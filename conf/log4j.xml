@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "/org/apache/log4j/xml/log4j.dtd">
+
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+
+    <appender name="CONSOLE" class="org.apache.log4j.ConsoleAppender">
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern"
+                value="%d{DATE} %p - %C{1}.%M(%L) -  %m%n"/>
+        </layout>
+    </appender>
+
+    <!-- A Simple File Appender -->
+    <appender name="FlatFile" class="org.apache.log4j.FileAppender">
+      <param name="File" value="@log_4_j_output_file@" />
+      <param name="BufferedIO" value="true"/>
+      <param name="Threshold" value="WARN" />
+
+      <!-- Setting the value of Append to true (the default) will append  -->
+      <!-- logging to the end of an existing log file.  If Append is false, -->
+      <!-- any existing file is overwritten, only new events are logged. -->
+      <param name="Append" value="@log_4_j_append@" />
+      <layout class="org.apache.log4j.PatternLayout">
+         <param name="ConversionPattern" value="%d{DATE} %-5p [%t] %c - %n\t\t%m%n" />
+      </layout>
+    </appender>
+    <!--  Rolling file appender -->
+    <appender name="RollingFile" class="org.apache.log4j.RollingFileAppender">
+      <param name="File" value="@log_4_j_output_file@" />
+      <param name="Threshold" value="@log_4_j_threshold@" />
+      <param name="MaxFileSize" value="100MB"/>
+      <param name="MaxBackupIndex" value="10"/>
+      <!-- Setting the value of Append to true (the default) will append  -->
+      <!-- logging to the end of an existing log file.  If Append is false, -->
+      <!-- any existing file is overwritten, only new events are logged. -->
+      <param name="Append" value="@log_4_j_append@" />
+      <layout class="org.apache.log4j.PatternLayout">
+         <param name="ConversionPattern" value="%d{DATE} %-5p [%t] %c - %n\t\t%m%n" />
+      </layout>
+    </appender>
+
+    <category name="org.apache">
+        <level value="WARN"/>
+    </category>
+
+
+    <category name="edu.mit.ll.d4m" >  
+		<priority value="INFO" />
+    </category>
+  
+ 
+    <root>
+       <level value="@log_4_j_root_level@"/>
+       <appender-ref ref="@log_4_j_appender@"/>
+       <appender-ref ref="CONSOLE"/>
+    </root>
+
+</log4j:configuration>

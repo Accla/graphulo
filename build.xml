@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+
+<project name="d4m-api" default="all" basedir=".">
+  <property file="${basedir}/default_build.properties"/>
+
+  <!--  build_common_targets is defined in default_build.properties -->
+  <!--  This allows for the use of the SKS' build_common_targets.xml, or use the local one -->
+  <import file="${basedir}/${build_common_targets}"/>
+<!--  <import file="${basedir}/../d4m_api/build_common_junit.xml"/>  -->
+<!--  <property name="matlab_src.dir" value="matlab_src"/> -->
+
+  <target name="init_local" depends="init">
+     <filter filtersfile="${base_property_file_name}"/>
+     <filter filtersfile="${full_property_file_name}"/>
+     <filter token="version_number" value="${version_number}"/>
+     <copy todir="${dist.dir}" filtering="true">
+        <fileset dir="${basedir}">
+          <include name="conf/**"/>
+          <include name="test/**"/>
+
+        </fileset>
+     </copy>    
+
+     <!-- copy scripts into bin directory -->
+     <copy todir="${dist.dir}/bin" >
+        <fileset dir="${basedir}/scripts">
+            <include name="**"/>
+        </fileset>
+     </copy>    
+     <chmod dir="${dist.dir}/bin" perm="uag+x" includes="**/*.sh"/>
+  </target>
+
+  <target name="ll_package" depends="init_local" description="Build 'LLonly' distribution">
+
+    <copy todir="${dist.dir}/docs">
+      <fileset dir="${docs.dir}" />
+    </copy>
+    <delete verbose="true">
+       <fileset dir="${dist.dir}/lib"  excludes="${ant.project.name}-${version_number}.jar"/>
+    </delete>
+    <copy todir="${dist.dir}">
+      <fileset dir=".">
+        <include name="*.txt" />
+        <include name="ExternalContrib"/>
+        <include name="Copyright"/>
+        <include name="Environment"/>
+        <include name="VersionLLonly"/>
+      </fileset>
+    </copy>
+
+    <copy todir="${dist.dir}/src" includeEmptyDirs="true">
+      <fileset dir="src" excludes="**/*.template **/docs/build/**/*"/>
+    </copy>
+
+    <copy todir="${dist.dir}/" file="build.xml"/>
+    <copy todir="${dist.dir}/" file="build_common_targets.xml"/>
+    <copy todir="${dist.dir}/" file="default_build.properties"/>
+    <copy todir="${dist.dir}/" file="base_build.properties"/>
+
+  </target>
+  <target name="all" depends="clean, init_local, build_jar, build_distribution"
+          description="Build a distribution of the whole software package"/> 
+  <target name="llonly" depends="clean,build_jar,ll_package,build_distribution"
+          description="Build distribution of LL proprietary software including d4m-api-XXX.jar - LLONLY"/>
+  
+
+</project>

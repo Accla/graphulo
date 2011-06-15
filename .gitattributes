@@ -3,7 +3,6 @@
 /ExternalContrib -text
 /README.txt -text
 /VERSION.txt -text
-/VersionLLonly -text
 /base_build.properties -text
 /build.xml -text
 /build_common_targets.xml -text

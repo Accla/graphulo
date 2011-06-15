@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 
-<project name="d4m-api" default="all" basedir=".">
+<project name="jd4m-api" default="all" basedir=".">
   <property file="${basedir}/default_build.properties"/>
 
   <!--  build_common_targets is defined in default_build.properties -->

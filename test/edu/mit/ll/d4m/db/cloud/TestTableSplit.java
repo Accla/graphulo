@@ -1,4 +1,4 @@
-package test.edu.mit.ll.d4m.db.cloud;
+package edu.mit.ll.d4m.db.cloud;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;

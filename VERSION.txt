@@ -1,6 +1,6 @@
 NOTE!!!! Make sure there are no blank lines at the end of the file.
 1) Add a new line with the new version info.
 SW-Version, Change, BuildDate...
-1.1.2, Built on June 14, 2011
-1.1.1, Built on June 9, 2011
 1.1.0, Built on May 31, 2011. 
+1.1.1, Built on June 9, 2011
+1.1.2, Built on June 14, 2011

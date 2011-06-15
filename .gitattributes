@@ -1,7 +1,6 @@
 * text=auto !eol
 /.classpath -text
 /.project -text
-/ExternalContrib -text
 /README.txt -text
 /VERSION.txt -text
 /base_build.properties -text

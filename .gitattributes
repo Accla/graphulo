@@ -22,6 +22,8 @@ conf/slaves -text
 conf/sql.properties -text
 conf/sslinfo.xml.example -text
 /default_build.properties -text
+docs/Copyright -text
+docs/ExternalContrib -text
 lib/cloudbase-core-1.2.0.jar -text
 lib/cloudbase-server-1.2.0.jar -text
 lib/cloudbase-start-1.2.0.jar -text

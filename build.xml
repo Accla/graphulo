@@ -1,67 +1,65 @@
 <?xml version="1.0"?>
 
-<project name="jd4m-api" default="all" basedir=".">
+<project name="D4M_API_JAVA" default="all" basedir=".">
   <property file="${basedir}/default_build.properties"/>
 
-  <!--  build_common_targets is defined in default_build.properties -->
-  <!--  This allows for the use of the SKS' build_common_targets.xml, or use the local one -->
-  <import file="${basedir}/${build_common_targets}"/>
-<!--  <import file="${basedir}/../d4m_api/build_common_junit.xml"/>  -->
-<!--  <property name="matlab_src.dir" value="matlab_src"/> -->
+  <import file="${basedir}/build_common_targets.xml"/>
 
   <target name="init_local" depends="init">
-     <filter filtersfile="${base_property_file_name}"/>
-     <filter filtersfile="${full_property_file_name}"/>
-     <filter token="version_number" value="${version_number}"/>
-     <copy todir="${dist.dir}" filtering="true">
-        <fileset dir="${basedir}">
-          <include name="conf/**"/>
-          <include name="test/**"/>
-
-        </fileset>
-     </copy>    
-
-     <!-- copy scripts into bin directory -->
-     <copy todir="${dist.dir}/bin" >
-        <fileset dir="${basedir}/scripts">
-            <include name="**"/>
-        </fileset>
-     </copy>    
-     <chmod dir="${dist.dir}/bin" perm="uag+x" includes="**/*.sh"/>
-  </target>
-
-  <target name="ll_package" depends="init_local" description="Build 'LLonly' distribution">
-
-    <copy todir="${dist.dir}/docs">
-      <fileset dir="${docs.dir}" />
-    </copy>
-    <delete verbose="true">
-       <fileset dir="${dist.dir}/lib"  excludes="${ant.project.name}-${version_number}.jar"/>
-    </delete>
-    <copy todir="${dist.dir}">
-      <fileset dir=".">
-        <include name="*.txt" />
-        <include name="ExternalContrib"/>
-        <include name="Copyright"/>
-        <include name="Environment"/>
-        <include name="VersionLLonly"/>
+    <filter filtersfile="${base_property_file_name}"/>
+    <filter filtersfile="${full_property_file_name}"/>
+    <filter token="version_number" value="${version_number}"/>
+  	
+    <mkdir dir="${build.dir}/classes"/>
+    <copy todir="${build.dir}/classes" filtering="true">
+      <fileset dir="${src.dir}">
+        <exclude name="**/*.java"/>
+        <exclude name="**/build.xml"/>
+        <exclude name="**/*.jpx"/>
       </fileset>
     </copy>
-
-    <copy todir="${dist.dir}/src" includeEmptyDirs="true">
-      <fileset dir="src" excludes="**/*.template **/docs/build/**/*"/>
+    <copy todir="${build.dir}/dist/lib">
+      <fileset dir="${lib.dir}"/>
     </copy>
-
-    <copy todir="${dist.dir}/" file="build.xml"/>
-    <copy todir="${dist.dir}/" file="build_common_targets.xml"/>
-    <copy todir="${dist.dir}/" file="default_build.properties"/>
-    <copy todir="${dist.dir}/" file="base_build.properties"/>
-
+    <copy todir="${dist.dir}" filtering="true">
+        <fileset dir="${basedir}">
+          <include name="conf/**"/>
+        </fileset>
+    </copy>    
+    <copy todir="${dist.dir}">
+      <fileset dir=".">
+        <include name="README.txt" />
+      </fileset>
+    </copy>  	
+    <copy todir="${build.dir}/classes" filtering="true">
+        <fileset dir="${basedir}/conf">
+          <include name="**/log4j.xml"/>
+        </fileset>
+    </copy>
+    <copy todir="${dist.dir}/docs">
+      <fileset dir="${basedir}/docs" />
+    </copy>
+    <copy todir="${dist.dir}/bin" >
+       <fileset dir="${basedir}/scripts">
+           <include name="**"/>
+       </fileset>
+    </copy>    
+    <chmod dir="${dist.dir}/bin" perm="uag+x" includes="**/*.sh"/>
   </target>
-  <target name="all" depends="clean, init_local, build_jar, build_distribution"
-          description="Build a distribution of the whole software package"/> 
-  <target name="llonly" depends="clean,build_jar,ll_package,build_distribution"
-          description="Build distribution of LL proprietary software including d4m-api-XXX.jar - LLONLY"/>
-  
 
+  <!-- must call init_local from the local build.xml file before invoking build_jar which depends on compile -->
+  <target name="compile" depends="init_local">
+    <javac debug="true" debuglevel="lines,vars,source" compiler="javac1.6" fork="yes" memorymaximumsize="500M" 
+      srcdir="${src.dir}" destdir="${build.dir}/classes" classpathref="master_classpath"/>
+  </target>
+  
+  <target name="build_jar" depends="compile">
+    <jar destfile="${dist.dir}/lib/${ant.project.name}.jar">
+         <fileset dir="${build.dir}/classes"/>
+         <fileset file="${dist.dir}/VERSION"/>  
+    </jar>
+  </target>
+
+	<target name="all" depends="clean, build_jar, build_distribution" description="Build a distribution of the whole software package"/>
+	
 </project>

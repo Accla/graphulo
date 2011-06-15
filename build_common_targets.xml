@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<project name="D4M_API_JAVA" basedir=".">
+<project name="D4M_COMMON_TARGETS" basedir=".">
 
   <property file="${basedir}/../d4m_api_java/default_build.properties"/>
 
@@ -12,67 +12,24 @@
   <property name="build.dir" value="${basedir}/build"/>
   <property name="lib.dir" value="${basedir}/lib"/>
   <property name="src.dir" value="${basedir}/src"/>
-  <property name="test_src.dir"  value="${basedir}/test/java"/>
+  <property name="test_src.dir"  value="${basedir}/test"/>
   <property name="dist.dir" value="${build.dir}/dist"/>
   <property name="test.reports" value="${basedir}/build/reports"/>
     
   <!-- Attributes -->
-  <echoproperties prefix="java.version"/>
   <property name="version.file" value="${basedir}/VERSION.txt"/>
 	
   <path id="master_classpath">
     <fileset dir="${lib.dir}">
       <include name="**/*.jar"/>
     </fileset>
-    <fileset dir="${dist.dir}/lib">
-      <include name="**/*.jar"/>
-    </fileset>    
     <pathelement path="${build.dir}/classes"/>
-  </path>
-
-  <path id="test_classpath">
-    <path refid="master_classpath"/>
-    <pathelement path="${build.dir}/test/classes"/>
   </path>
        
   <target name="clean">
     <delete dir="${build.dir}"/>
   </target>
-      
-  <target name="init" depends="get_version">
-    <mkdir dir="${build.dir}/classes"/>
-    <mkdir dir="${build.dir}/dist"/>
-    <mkdir dir="${build.dir}/dist/lib"/>
-    <mkdir dir="${build.dir}/reports"/>
 
-    <filter filtersfile="${base_property_file_name}"/>
-    <filter filtersfile="${full_property_file_name}"/>
-    <filter token="version_number" value="${version_number}"/>
-    <copy todir="${build.dir}/classes" filtering="true">
-      <fileset dir="${src.dir}">
-        <exclude name="**/*.java"/>
-        <exclude name="**/build.xml"/>
-        <exclude name="**/*.jpx"/>
-      </fileset>
-    </copy>
-    <copy todir="${build.dir}/dist/lib">
-      <fileset dir="${lib.dir}"/>
-    </copy>
-  </target>
-      
-  <!-- must call init_local from the local build.xml file before invoking build_jar which depends on compile -->
-  <target name="compile" depends="init">
-    <javac debug="true" debuglevel="lines,vars,source" compiler="javac1.6" fork="yes" memorymaximumsize="500M" 
-      srcdir="${src.dir}" destdir="${build.dir}/classes" classpathref="master_classpath"/>
-  </target>
-  
-  <target name="build_jar" depends="compile">
-    <jar destfile="${dist.dir}/lib/${ant.project.name}-${version_number}.jar">
-         <fileset dir="${build.dir}/classes"/>
-         <fileset file="${dist.dir}/VERSION"/>  
-    </jar>
-  </target>
-      
   <target name="get_version">
     <copy file="${version.file}" tofile="${build.dir}/dist/VERSION" overwrite="true"/>
     <loadfile srcFile="${version.file}" property="version_number" failonerror="true">
@@ -85,7 +42,13 @@
     </loadfile>
     <echo message="The version number is: ${version_number}"/>
   </target>
-
+    	
+  <target name="init" depends="get_version">
+    <mkdir dir="${build.dir}/dist"/>
+    <mkdir dir="${build.dir}/dist/docs"/>
+    <mkdir dir="${build.dir}/dist/lib"/>
+  </target>
+      
 	<target name="build_distribution" depends="get_version">
 		<zip destfile="${build.dir}/${ant.project.name}_${version_number}.zip">
 			<zipfileset dir="${build.dir}/dist" prefix="${ant.project.name}_${version_number}">
@@ -94,9 +57,10 @@
 		</zip>
 	</target>
 
-  <target name="build_dist_full" depends="get_version">
+  <target name="build_distribution_full" depends="get_version">
     <zip destfile="${build.dir}/${ant.project.name}_${version_number}_full.zip" >
       <zipfileset dir="." prefix="${ant.project.name}">
+        <exclude name="**/.svn" />
         <exclude name="**/*CVS" />
         <exclude name="**/.cvsignore" />
         <exclude name="**/bin/" />
@@ -108,37 +72,5 @@
       </zipfileset>
     </zip>
   </target>
-
-	
-    <target name="merge_processor_sks_xml_files" if="include.loadtest.sks.processors"  >
-          <echo message="property 'include.loadtest.sks.processors' has been enabled for load testing" />
-    	
-       <concat destfile="${dist.dir}/config/unclass_processors.xml">
-         <filelist dir="${basedir}/../SKS_UNCLASSIFIED/config/" files="processors.sks.xml"/>
-       </concat>
-
-        <concat destfile="${dist.dir}/config/first_ingest_processor_sks.xml">
-            <filelist dir="${basedir}/../SKS_INGEST/config" files="processors.sks.xml"/>
-              <filterchain>
-                <headfilter lines="13"/>
-              </filterchain>
-        </concat>
-
-    	
-    	
-       <concat destfile="${dist.dir}/config/tail_ingest_processors_sks.xml">
-           <filelist dir="${basedir}/../SKS_INGEST/config" files="processors.sks.xml"/>
-             <filterchain>
-               <headfilter lines="-1" skip="13"/>
-             </filterchain>
-       </concat>
-
-       <concat destfile="${basedir}/../SKS_INGEST/build/dist/config/processors.sks.xml">
-        <filelist dir="${dist.dir}/config/" files="first_ingest_processor_sks.xml"/>
-       	<filelist dir="${dist.dir}/config" files="unclass_processors.xml"/>
-         <filelist dir="${dist.dir}/config/" files="tail_ingest_processors_sks.xml"/>
-       </concat>
-    </target>
-
 
 </project>

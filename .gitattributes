@@ -1,5 +1,6 @@
 * text=auto !eol
-/Copyright -text
+/.classpath -text
+/.project -text
 /ExternalContrib -text
 /README.txt -text
 /VERSION.txt -text

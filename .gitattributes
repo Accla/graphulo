@@ -80,7 +80,7 @@ src/edu/mit/ll/d4m/db/cloud/util/GrantSystemPermission.java -text
 src/edu/mit/ll/sql/connection/SQLConnection.java -text
 src/edu/mit/ll/sql/connection/SQLProperties.java -text
 src/edu/mit/ll/sql/connection/sql.properties -text
-test/edu/mit/ll/d4m/db/cloud/TestCRUD.java -text
-test/edu/mit/ll/d4m/db/cloud/TestMonitor.java -text
-test/edu/mit/ll/d4m/db/cloud/TestScanner.java -text
-test/edu/mit/ll/d4m/db/cloud/TestTableSplit.java -text
+test/java/edu/mit/ll/d4m/db/cloud/TestCRUD.java -text
+test/java/edu/mit/ll/d4m/db/cloud/TestMonitor.java -text
+test/java/edu/mit/ll/d4m/db/cloud/TestScanner.java -text
+test/java/edu/mit/ll/d4m/db/cloud/TestTableSplit.java -text

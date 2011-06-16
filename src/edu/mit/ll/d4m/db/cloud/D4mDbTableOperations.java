@@ -1,69 +1,38 @@
 package edu.mit.ll.d4m.db.cloud;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.List;
-import java.util.ArrayList;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.Set;
 import java.util.Iterator;
+import java.util.List;
 import java.util.TreeMap;
 import java.util.Map.Entry;
-import java.util.HashSet;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TTransport;
 
-import cloudbase.core.client.Scanner;
 import cloudbase.core.client.CBException;
 import cloudbase.core.client.CBSecurityException;
+import cloudbase.core.client.Scanner;
 import cloudbase.core.client.TableExistsException;
 import cloudbase.core.client.TableNotFoundException;
-import cloudbase.core.CBConstants;
-import cloudbase.core.client.BatchScanner;
-import cloudbase.core.client.Connector;
-import cloudbase.core.client.TableNotFoundException;
-import cloudbase.core.data.Key;
-import cloudbase.core.data.Range;
-import cloudbase.core.data.Value;
-import cloudbase.core.security.Authorizations;
-import cloudbase.core.security.thrift.AuthInfo;
-import cloudbase.core.client.ZooKeeperInstance;
-
-import cloudbase.core.client.impl.HdfsZooInstance;
+import cloudbase.core.client.impl.MasterClient;
 import cloudbase.core.client.impl.Tables;
 import cloudbase.core.client.impl.ThriftTransportPool;
-import cloudbase.core.master.thrift.TableInfo;
-import cloudbase.core.master.thrift.TabletInfo;
-import cloudbase.core.master.thrift.TabletRates;
-import cloudbase.core.master.thrift.TabletServerStatus;
-import cloudbase.core.tabletserver.thrift.TabletClientService;
-import cloudbase.core.util.AddressUtil;
-import cloudbase.core.util.Pair;
-import cloudbase.server.master.mgmt.TabletServerState;
-import cloudbase.server.monitor.Monitor;
-import cloudbase.server.monitor.Monitor.MajorMinorStats;
-import cloudbase.server.monitor.util.Table;
-import cloudbase.server.monitor.util.TableRow;
-import cloudbase.server.monitor.util.celltypes.CompactionsType;
-import cloudbase.server.monitor.util.celltypes.DurationType;
-import cloudbase.server.monitor.util.celltypes.NumberType;
-import cloudbase.server.monitor.util.celltypes.ProgressChartType;
-import cloudbase.server.monitor.util.celltypes.TServerLinkType;
-import cloudbase.server.monitor.util.celltypes.TableLinkType;
-import cloudbase.server.security.SecurityConstants;
+import cloudbase.core.data.Key;
+import cloudbase.core.data.Value;
 import cloudbase.core.master.thrift.MasterClientService;
 import cloudbase.core.master.thrift.MasterMonitorInfo;
-import cloudbase.core.client.impl.MasterClient;
-
+import cloudbase.core.master.thrift.TabletInfo;
+import cloudbase.core.master.thrift.TabletServerStatus;
+import cloudbase.core.security.thrift.AuthInfo;
+import cloudbase.core.tabletserver.thrift.TabletClientService;
+import cloudbase.core.util.AddressUtil;
 import edu.mit.ll.cloud.connection.CloudbaseConnection;
 import edu.mit.ll.cloud.connection.ConnectionProperties;
 
@@ -76,7 +45,6 @@ public class D4mDbTableOperations {
     public String columnReturnString = "";
     public String valueReturnString = "";
 
-    private static int NUM_THREADS=3;
 	private ConnectionProperties connProps = new ConnectionProperties();
 
 	public D4mDbTableOperations() {
@@ -190,7 +158,6 @@ public class D4mDbTableOperations {
 	AuthInfo authInfo = authInfo();
 	CloudbaseConnection connector = connection();
 	
-	Map<String, String> nameToIdMap = Tables.getNameToIdMap(connector.getInstance());
 	InetSocketAddress address = AddressUtil.parseAddress(tserverAddress, -1);
 	TTransport transport = null;
 	ThriftTransportPool transportPool = ThriftTransportPool.getInstance();
@@ -263,13 +230,11 @@ public class D4mDbTableOperations {
 
     private TreeMap<String, TabletInfo>  getTabletInfo(String tserverAddress)  throws CBException, CBSecurityException, TableNotFoundException  {
 	AuthInfo authInfo = authInfo();
-	CloudbaseConnection connector = connection();
 	
 	//	Map<String, String> nameToIdMap = Tables.getNameToIdMap(connector.getInstance());
 	InetSocketAddress address = AddressUtil.parseAddress(tserverAddress, -1);
 	TTransport transport = null;
 	ThriftTransportPool transportPool = ThriftTransportPool.getInstance();
-	TabletInfo total = new TabletInfo();
 	TreeMap<String, TabletInfo> tabletMap =null;
 
 	try {
@@ -297,9 +262,8 @@ public class D4mDbTableOperations {
     }
 
     private String getTableName(String tabletId) throws CBException, CBSecurityException, TableNotFoundException  {
-	AuthInfo authInfo = authInfo();
-	CloudbaseConnection connector = connection();
-	return Tables.getTableName(connector.getInstance(), tabletId);
+		CloudbaseConnection connector = connection();
+		return Tables.getTableName(connector.getInstance(), tabletId);
     }
 
     /*

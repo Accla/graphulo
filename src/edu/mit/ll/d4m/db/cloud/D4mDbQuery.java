@@ -441,7 +441,6 @@ public class D4mDbQuery {
 		//		ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();
 		//CloudbaseConnection cbConnection = new CloudbaseConnection(this.connProps);
 		Scanner scanner = getScanner();//cbConnection.getScanner(tableName);
-		HashSet<Range> ranges = loadRanges(null, false);
 		scanner.fetchColumnFamily(new Text(this.family));
 		long start = System.currentTimeMillis();
 

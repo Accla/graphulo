@@ -1,20 +1,20 @@
 package edu.mit.ll.cloud.connection;
 
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.List;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import org.apache.hadoop.io.Text;
 
 import cloudbase.core.CBConstants;
-import cloudbase.core.client.Instance;
 import cloudbase.core.client.BatchScanner;
 import cloudbase.core.client.BatchWriter;
 import cloudbase.core.client.CBException;
 import cloudbase.core.client.CBSecurityException;
 import cloudbase.core.client.Connector;
+import cloudbase.core.client.Instance;
 import cloudbase.core.client.MasterInstance;
 import cloudbase.core.client.Scanner;
 import cloudbase.core.client.TableExistsException;

@@ -84,7 +84,6 @@ public class TestMonitor {
 		Connector connector = new Connector(instance, user, pass);
 	//	Map<String, String> nameToIdMap = Tables.getNameToIdMap(HdfsZooInstance.getInstance());
 
-	Map<String, String> nameToIdMap = Tables.getNameToIdMap(connector.getInstance());
 	InetSocketAddress address = AddressUtil.parseAddress(tserverAddress, -1);
 	TTransport transport = null;
 	ThriftTransportPool transportPool = ThriftTransportPool.getInstance();
@@ -103,7 +102,6 @@ public class TestMonitor {
 	
 	    tabletMap = new TreeMap<String, TabletInfo>(client.getTabletMap(authInfo));
 
-	    int size= tabletMap.size();
 	    Set<String> keySet = tabletMap.keySet();
 	    Iterator<String> itKey = keySet.iterator();
 	    while(itKey.hasNext()) {

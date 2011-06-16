@@ -29,8 +29,8 @@ public class TestTableSplit {
     //    static ArrayList<String> partitionKeys = new ArrayList<String>();
     public TestTableSplit(String host, String instanceName, String tableName, String user, String passwd, String partitionKey,
 			  String startVertexString, String endVertexString, String weightString) throws CBException, CBSecurityException, TableExistsException {
-	this.host = host;
-	this.instanceName=instanceName;
+    	TestTableSplit.host = host;
+    	TestTableSplit.instanceName=instanceName;
     }
 
     public static void main(String[] args) throws FileNotFoundException, IOException, CBException, CBSecurityException, TableNotFoundException, MutationsRejectedException, TableExistsException, InterruptedException {

@@ -1,13 +1,9 @@
 package edu.mit.ll.d4m.db.cloud;
 
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Random;
 import java.util.Map.Entry;
 
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 
 import cloudbase.core.CBConstants;
 import cloudbase.core.client.BatchScanner;
@@ -19,7 +15,6 @@ import cloudbase.core.client.ZooKeeperInstance;
 import cloudbase.core.data.Key;
 import cloudbase.core.data.Range;
 import cloudbase.core.data.Value;
-import cloudbase.core.security.Authorizations;
 
 /*
  *  Test program to see how the BatchScanner works and how to set up query.

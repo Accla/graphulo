@@ -6,17 +6,15 @@ package edu.mit.ll.d4m.db.cloud;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Collection;
+
+import org.apache.log4j.Logger;
 
 import cloudbase.core.client.CBException;
 import cloudbase.core.client.CBSecurityException;
-import cloudbase.core.client.admin.SecurityOperations;
 import cloudbase.core.security.SystemPermission;
 import cloudbase.core.security.TablePermission;
 import edu.mit.ll.cloud.connection.CloudbaseConnection;
 import edu.mit.ll.cloud.connection.ConnectionProperties;
-
-import org.apache.log4j.Logger;
 
 /**
  * @author cyee
@@ -39,10 +37,8 @@ public class D4mCbSecurityOperations {
 		try {
 			this.connection = new CloudbaseConnection(connProps);
 		} catch (CBException e) {
-			// TODO Auto-generated catch block
 			log.warn(e);
 		} catch (CBSecurityException e) {
-			// TODO Auto-generated catch block
 			log.warn(e);
 		}
 	}
@@ -115,7 +111,6 @@ public class D4mCbSecurityOperations {
 		String cmd = strings[0];
 		log.debug("CMD = "+cmd);
 		
-		int len = strings.length -1;
 		Object [] params = new Object[1];
 		
 		//Add parameters to  an arraylist since it is easier to use  reflection to 

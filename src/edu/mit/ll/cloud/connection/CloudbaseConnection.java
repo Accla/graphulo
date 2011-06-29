@@ -210,13 +210,17 @@ public class CloudbaseConnection {
      *   authorizations  the user's authorizations
      */
     public void addUser(String user, String password, String [] authorizations) throws CBException, CBSecurityException {
-    	this.connector.securityOperations().createUser(user, password.getBytes(), new Authorizations(authorizations));
+  
+    	Authorizations auth = CBConstants.NO_AUTHS;
+    	if(authorizations != null)
+    		auth = new Authorizations(authorizations);
+    	this.connector.securityOperations().createUser(user, password.getBytes(),auth );
     }
     
     /*
      * Grant table permission to the user
      */
-    public void grantTablePermission(String user, String tableName, TablePermission permission) throws CBException, CBSecurityException {
+    public void grantTablePermission(String user, String tableName, TablePermission permission) throws CBException, CBSecurityException {   	
     	this.connector.securityOperations().grantTablePermission(user, tableName, permission);
     }
 }

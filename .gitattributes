@@ -81,7 +81,9 @@ src/edu/mit/ll/d4m/db/cloud/D4mDbResultSet.java -text
 src/edu/mit/ll/d4m/db/cloud/D4mDbRow.java -text
 src/edu/mit/ll/d4m/db/cloud/D4mDbTableOperations.java -text
 src/edu/mit/ll/d4m/db/cloud/util/AddUser.java -text
+src/edu/mit/ll/d4m/db/cloud/util/CreateTable.java -text
 src/edu/mit/ll/d4m/db/cloud/util/GrantSystemPermission.java -text
+src/edu/mit/ll/d4m/db/cloud/util/GrantTablePermissions.java -text
 src/edu/mit/ll/sql/connection/SQLConnection.java -text
 src/edu/mit/ll/sql/connection/SQLProperties.java -text
 src/edu/mit/ll/sql/connection/sql.properties -text

@@ -11,6 +11,8 @@ import org.apache.log4j.Logger;
 
 import cloudbase.core.client.CBException;
 import cloudbase.core.client.CBSecurityException;
+import cloudbase.core.client.TableExistsException;
+import cloudbase.core.client.TableNotFoundException;
 import cloudbase.core.security.SystemPermission;
 import cloudbase.core.security.TablePermission;
 import edu.mit.ll.cloud.connection.CloudbaseConnection;
@@ -26,7 +28,7 @@ public class D4mCbSecurityOperations {
 	private String password="";
 	private CloudbaseConnection connection=null;
 	private ConnectionProperties connProps= new ConnectionProperties();
-	
+
 	public D4mCbSecurityOperations(String instanceName, String hostname, String rootuser, String password) {
 		this.user = rootuser;
 		this.password = password;
@@ -42,7 +44,7 @@ public class D4mCbSecurityOperations {
 			log.warn(e);
 		}
 	}
-	
+
 	/*
 	 * Root can grant system permission to a user.
 	 *  params
@@ -52,7 +54,7 @@ public class D4mCbSecurityOperations {
 	public void grantsystempermission(ArrayList<String> params) throws CBException, CBSecurityException {
 		grantSystemPermission(params.get(0), params.get(1));
 	}
-	
+
 	/*
 	 *  user     user to grant permission to
 	 *  permission  CREATE_TABLE, DROP_TABLE, ALTER_TABLE, CREATE_USER,DROP_USER,ALTER_USER,SYSTEM,GRANT
@@ -89,8 +91,15 @@ public class D4mCbSecurityOperations {
 	public void createUser(String user, String password, String [] authorizations) throws CBException, CBSecurityException  {
 		this.connection.addUser(user,password, authorizations);
 	}
-	
-	public void granttablepermission(ArrayList<String> params) throws CBException, CBSecurityException  {
+
+	public void createTable(String tableName) throws CBException, CBSecurityException, TableExistsException {
+		this.connection.createTable(tableName);
+		if(this.connProps.getUser().equals("root")) {
+			this.connection.grantTablePermission(this.connProps.getUser(), tableName, TablePermission.READ);
+			this.connection.grantTablePermission(this.connProps.getUser(), tableName, TablePermission.WRITE);
+		}
+	}
+	public void granttablepermission(ArrayList<String> params) throws CBException, CBSecurityException, TableNotFoundException, TableExistsException  {
 		String user = params.get(0);
 		String tablename = params.get(1);
 		String permission = params.get(2);
@@ -103,16 +112,18 @@ public class D4mCbSecurityOperations {
 		}
 		grantTablePermission(user,tablename, tablePermission);
 	}
-	
-	public void grantTablePermission(String username, String tableName, TablePermission permission) throws CBException, CBSecurityException  {
+
+	public void grantTablePermission(String username, String tableName, TablePermission permission) throws CBException, CBSecurityException, TableNotFoundException, TableExistsException  {
+		if(!this.connection.doesTableExist(tableName))
+			this.connection.createTable(tableName);
 		this.connection.grantTablePermission(username,tableName,permission);
 	}
 	public void process(String ...strings ) {
 		String cmd = strings[0];
 		log.debug("CMD = "+cmd);
-		
+
 		Object [] params = new Object[1];
-		
+
 		//Add parameters to  an arraylist since it is easier to use  reflection to 
 		// to invoke the appropriate method.
 		ArrayList<String> tmpList = new ArrayList<String>();
@@ -135,7 +146,7 @@ public class D4mCbSecurityOperations {
 		try {
 			if(meth != null) {
 				log.debug("Execute method = "+ meth.getName());
-			meth.invoke(this, params);
+				meth.invoke(this, params);
 			}
 		} catch (IllegalArgumentException e) {
 			log.warn(e);
@@ -144,7 +155,7 @@ public class D4mCbSecurityOperations {
 		} catch (InvocationTargetException e) {
 			log.warn(e+"  - "+meth.getName());
 		}
-		
+
 	}
 	/**
 	 * @param args
@@ -155,16 +166,16 @@ public class D4mCbSecurityOperations {
 		//host  = args[2]
 		//instance  = args[3]
 		// command option = args[4], ie createuser, grantsystempermission, granttablepermission
-		
+
 		// grantsystempermission
 		//  args[5]  username
 		//  args[6]   permission - CREATE_TABLE, DROP_TABLE,ALTER_TABLE
-		
+
 		// createuser
 		//   args[5] username
 		//   args[6] password
 		//   args[7 ...N] authorizations  - array of strings
-		
+
 		// granttablepermission
 		//    args[5]  username
 		//    args[6]   tablename
@@ -180,11 +191,11 @@ public class D4mCbSecurityOperations {
 			params[j] = args[i];
 			j++;
 		}
-		
+
 		D4mCbSecurityOperations d4mSecOp = 
 			new D4mCbSecurityOperations(instanceName,
 					host, rootuser, password);
-		
+
 		d4mSecOp.process(params);
 	}
 
@@ -196,5 +207,5 @@ public class D4mCbSecurityOperations {
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % (c) <2010> Massachusetts Institute of Technology
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-*/
+ */
 

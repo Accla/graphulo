@@ -41,12 +41,16 @@ lib/slf4j-log4j12-1.6.1.jar -text
 lib/thrift-0.2.jar -text
 lib/zookeeper-3.2.2.jar -text
 scripts/StartStopIntallCloudbase_README.txt -text
+scripts/adduser.sh -text
 scripts/clean_cloudbase.sh -text
 scripts/clean_hadoop.sh -text
 scripts/cloudbase_instance_processor.sh -text
+scripts/createtable.sh -text
 scripts/d4m_list_tables.sh -text
 scripts/d4m_query.sh -text
 scripts/diffex.sh -text
+scripts/grant-sys-permission.sh -text
+scripts/grant-tab-permission.sh -text
 scripts/install_cb_hd_local.sh -text
 scripts/load_d4m.sh -text
 scripts/load_d4m_w-args.sh -text

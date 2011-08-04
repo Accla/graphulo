@@ -5,9 +5,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
-
+import java.util.logging.Logger;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+//import org.apache.log4j.Logger;
 
 import cloudbase.core.client.BatchScanner;
 import cloudbase.core.client.CBException;
@@ -26,7 +26,7 @@ import edu.mit.ll.cloud.connection.ConnectionProperties;
  * @author William Smith
  */
 public class D4mDbQuery {
-	private static Logger log = Logger.getLogger(D4mDbQuery.class);
+	private static Logger log = Logger.getLogger(D4mDbQuery.class.getCanonicalName());
 	private String tableName = "";
 	private int numberOfThreads = 50;
 	public String rowReturnString = "";
@@ -251,7 +251,7 @@ public class D4mDbQuery {
 		if ((rows.equals(":")) && (cols.equals(":"))) {
 			return this.getAllData();
 		}
-		if( !rows.equals(":") && (!cols.equals(":")) ) {
+		if( !rows.startsWith(":") && !rows.equals(":") && (!cols.startsWith(":")) && (!cols.equals(":")) ) {
 			return this.searchByRowAndColumn(rows, cols, null,null);
 		}
 		HashMap<String, String> rowMap = this.assocColumnWithRow(rows, cols);
@@ -495,7 +495,7 @@ public class D4mDbQuery {
 	 */
 	public D4mDbResultSet searchByRowAndColumn(String rows, String cols, String family, String authorizations)  {
 		//throws CBException, CBSecurityException, TableNotFoundException {
-//		System.out.println("searchByRowAndColumn - Here I am");
+		//		System.out.println("searchByRowAndColumn - Here I am");
 		clearBuffers();
 		HashMap<String, Object> rowMap = this.processParam(rows);
 		HashMap<String, Object> columnMap = this.processParam(cols);
@@ -507,67 +507,43 @@ public class D4mDbQuery {
 
 		//Set up ranges
 		HashSet<Range> ranges = new HashSet<Range>();
-		Range range = new Range(new Text(rowArray[0]), true, new Text(rowArray[2]), true);
-		System.out.println("RANGE = "+range.toString());
-		ranges.add(range);
-		BatchScanner scanner = null;
-		try {
-			if(family != null || authorizations != null)
-				setFamilyAndAuthorizations(family,authorizations);
+		Range range = null;
+		if(rowArray.length == 3 && rowArray[1].equals(":")) {
+			if(rowArray[0].compareTo(rowArray[2]) < 0)
+				range = new Range(new Text(rowArray[0]), true, new Text(rowArray[2]), true);
+			else 
+				range = new Range(new Text(rowArray[2]), true, new Text(rowArray[0]), true);
+			//System.out.println("RANGE = "+range.toString());
+			log.info("RANGE = "+range.toString());
+			ranges.add(range);
+		} else {
+			int cnt=0;
+			for(String rowKey : rowArray) {
+				range = new Range(new Text(rowKey));
+				log.info(cnt+" :: RANGE = "+range.toString());
+				cnt++;
+				ranges.add(range);
+			}
+		}
 
-			scanner = getBatchScanner();
-			scanner.setRanges(ranges);
+		if(family != null || authorizations != null)
+			setFamilyAndAuthorizations(family,authorizations);
 
-			//loop over columns
-			//reset column by scanner.clearColumns()s
-			//set new columns fetchColumn(fam,col)
-			//iterate
-			//fill output buffer
-
+		//loop over columns
+		//reset column by scanner.clearColumns()s
+		//set new columns fetchColumn(fam,col)
+		//iterate
+		//fill output buffer
+		String colRegex = "";
+		if(columnArray.length == 3 && columnArray[1].equals(":")) {
 			String colStart1 = columnArray[0].substring(0, 1);
 			String colEnd1 = columnArray[2].substring(0,1);
-			String colRegex = "^["+colStart1+"-"+colEnd1+"].*";
-
-			scanner.setColumnQualifierRegex(colRegex);
-			scanner.fetchColumnFamily(new Text(this.family));
-			Iterator<Entry<Key, Value>> scannerIter = scanner.iterator();
-			int count=0;
-			while (scannerIter.hasNext()) {
-				Entry<Key, Value> entry = (Entry<Key, Value>) scannerIter.next();
-				String rowKey = entry.getKey().getRow().toString();
-				String column = entry.getKey().getColumnQualifier().toString();
-				//System.out.println(count+"BEFORE_ENTRY="+rowKey+","+column);
-				String finalColumn = column.replace(this.family, "");
-				boolean goodData=false;
-				if(finalColumn.compareToIgnoreCase(columnArray[0]) >= 0 &&
-						finalColumn.compareToIgnoreCase(columnArray[2]) <= 0) {
-						//System.out.println(count+"AFTER_ENTRY="+rowKey+","+column+","+value);
-					goodData=true;
-				} else if(finalColumn.compareToIgnoreCase(columnArray[0]) >= 0 && 
-						//finalColumn.matches("^"+columnArray[2])) {
-						finalColumn.startsWith(columnArray[2])) {
-					goodData=true;
-				}
-				if(goodData) {
-					String value = new String(entry.getValue().get());
-
-					if (this.doTest) {
-						this.saveTestResults(rowKey, finalColumn, value);
-					}
-					if(this.buildReturnString(rowKey, finalColumn, value)) break;
-				}
-				count++;
+			colRegex = "^["+colStart1+"-"+colEnd1+"].*";
+			SearchIt(ranges,colRegex);
+		} else {
+			for(String colKey : columnArray) {
+				SearchIt(ranges,colKey);
 			}
-			System.out.println(""+count);
-		} catch (CBException e) {
-			e.printStackTrace();
-		} catch (CBSecurityException e) {
-			e.printStackTrace();
-		} catch (TableNotFoundException e) {
-			e.printStackTrace();
-		}
-		finally {
-			scanner.close();
 		}
 		this.setRowReturnString(sbRowReturn.toString());
 		this.setColumnReturnString(sbColumnReturn.toString());
@@ -581,6 +557,185 @@ public class D4mDbQuery {
 		return results;
 	}
 
+	public D4mDbResultSet OLDsearchByRowAndColumn(String rows, String cols, String family, String authorizations)  {
+		//throws CBException, CBSecurityException, TableNotFoundException {
+		//		System.out.println("searchByRowAndColumn - Here I am");
+		clearBuffers();
+		HashMap<String, Object> rowMap = this.processParam(rows);
+		HashMap<String, Object> columnMap = this.processParam(cols);
+		String[] rowArray = (String[]) rowMap.get("content");
+		String[] columnArray = (String[]) columnMap.get("content");
+		D4mDbResultSet results = new D4mDbResultSet();
+		ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();
+		long start = System.currentTimeMillis();
+
+		//Set up ranges
+		HashSet<Range> ranges = new HashSet<Range>();
+		Range range = null;
+		if(rowArray.length == 3 && rowArray[1].equals(":")) {
+			if(rowArray[0].compareTo(rowArray[2]) < 0)
+				range = new Range(new Text(rowArray[0]), true, new Text(rowArray[2]), true);
+			else 
+				range = new Range(new Text(rowArray[2]), true, new Text(rowArray[0]), true);
+			//System.out.println("RANGE = "+range.toString());
+			log.info("RANGE = "+range.toString());
+			ranges.add(range);
+		} else {
+			int cnt=0;
+			for(String rowKey : rowArray) {
+				range = new Range(new Text(rowKey));
+				log.info(cnt+" :: RANGE = "+range.toString());
+				cnt++;
+				ranges.add(range);
+			}
+		}
+
+		BatchScanner scanner = null;
+		//		try {
+		if(family != null || authorizations != null)
+			setFamilyAndAuthorizations(family,authorizations);
+
+		//			scanner = getBatchScanner();
+		//			scanner.setRanges(ranges);
+
+		//loop over columns
+		//reset column by scanner.clearColumns()s
+		//set new columns fetchColumn(fam,col)
+		//iterate
+		//fill output buffer
+		String colRegex = "";
+		if(columnArray.length == 3 && columnArray[1].equals(":")) {
+			String colStart1 = columnArray[0].substring(0, 1);
+			String colEnd1 = columnArray[2].substring(0,1);
+			colRegex = "^["+colStart1+"-"+colEnd1+"].*";
+			SearchIt(ranges,colRegex);
+		} else {
+			//	StringBuffer sb = new StringBuffer();
+			//	StringBuffer sb2 = new StringBuffer();
+			//	sb.append("^[");
+			//	sb2.append("[");
+			for(String colKey : columnArray) {
+				//		sb.append(colKey.substring(0,1));
+				//		if(colKey.length() > 1) {
+				//			sb2.append(colKey.substring(1, 2));
+				//		}
+				SearchIt(ranges,colKey);
+			}
+			//	sb.append("]");
+			//	sb2.append("]");
+			//	colRegex = sb.toString()+sb2.toString()+".*";
+		}
+		//			scanner.setColumnQualifierRegex(colRegex);
+		//			scanner.fetchColumnFamily(new Text(this.family));
+		//			Iterator<Entry<Key, Value>> scannerIter = scanner.iterator();
+		//			int count=0;
+		//			while (scannerIter.hasNext()) {
+		//				Entry<Key, Value> entry = (Entry<Key, Value>) scannerIter.next();
+		//				String rowKey = entry.getKey().getRow().toString();
+		//				String column = entry.getKey().getColumnQualifier().toString();
+		//				//System.out.println(count+"BEFORE_ENTRY="+rowKey+","+column);
+		//				String finalColumn = column.replace(this.family, "");
+		//				boolean goodData=true;
+
+		//				if(finalColumn.compareToIgnoreCase(columnArray[0]) >= 0 &&
+		//						finalColumn.compareToIgnoreCase(columnArray[2]) <= 0) {
+		//					//System.out.println(count+"AFTER_ENTRY="+rowKey+","+column+","+value);
+		//					goodData=true;
+		//				} else if(finalColumn.compareToIgnoreCase(columnArray[0]) >= 0 && 
+		//						//finalColumn.matches("^"+columnArray[2])) {
+		//						finalColumn.startsWith(columnArray[2])) {
+		//					goodData=true;
+		//				}
+		//				if(goodData) {
+		//					String value = new String(entry.getValue().get());
+		//
+		//					if (this.doTest) {
+		//						this.saveTestResults(rowKey, finalColumn, value);
+		//					}
+		//					if(this.buildReturnString(rowKey, finalColumn, value)) break;
+		//				}
+		//				count++;
+		//			}
+		//			log.info("Num of entries found = "+count);
+		//		} catch (CBException e) {
+		//			e.printStackTrace();
+		//		} catch (CBSecurityException e) {
+		//			e.printStackTrace();
+		//		} catch (TableNotFoundException e) {
+		//			e.printStackTrace();
+		//		}
+		//		finally {
+		//			scanner.close();
+		//		}
+		this.setRowReturnString(sbRowReturn.toString());
+		this.setColumnReturnString(sbColumnReturn.toString());
+		this.setValueReturnString(sbValueReturn.toString());
+
+		double elapsed = (System.currentTimeMillis() - start);
+		results.setQueryTime(elapsed / 1000);
+		results.setMatlabDbRow(rowList);
+
+
+		return results;
+	}
+
+
+	
+	private void SearchIt(HashSet<Range> ranges, String col) {
+		BatchScanner scanner = null;
+		try {
+			scanner = getBatchScanner();
+			scanner.setRanges(ranges);
+
+			//loop over columns
+			//reset column by scanner.clearColumns()s
+			//set new columns fetchColumn(fam,col)
+			//iterate
+			//fill output buffer
+			String colRegex = col;
+			scanner.setColumnQualifierRegex(colRegex);
+			scanner.fetchColumnFamily(new Text(this.family));
+			Iterator<Entry<Key, Value>> scannerIter = scanner.iterator();
+			int count=0;
+			while (scannerIter.hasNext()) {
+				Entry<Key, Value> entry = (Entry<Key, Value>) scannerIter.next();
+				String rowKey = entry.getKey().getRow().toString();
+				String column = entry.getKey().getColumnQualifier().toString();
+				//System.out.println(count+"BEFORE_ENTRY="+rowKey+","+column);
+				String finalColumn = column.replace(this.family, "");
+				boolean goodData=true;
+
+				//				if(finalColumn.compareToIgnoreCase(columnArray[0]) >= 0 &&
+				//						finalColumn.compareToIgnoreCase(columnArray[2]) <= 0) {
+				//					//System.out.println(count+"AFTER_ENTRY="+rowKey+","+column+","+value);
+				//					goodData=true;
+				//				} else if(finalColumn.compareToIgnoreCase(columnArray[0]) >= 0 && 
+				//						//finalColumn.matches("^"+columnArray[2])) {
+				//						finalColumn.startsWith(columnArray[2])) {
+				//					goodData=true;
+				//				}
+				if(goodData) {
+					String value = new String(entry.getValue().get());
+					if (this.doTest) {
+						this.saveTestResults(rowKey, finalColumn, value);
+					}
+					if(this.buildReturnString(rowKey, finalColumn, value)) break;
+				}
+				count++;
+			}
+			log.info("Num of entries found = "+count);
+		} catch (CBException e) {
+			e.printStackTrace();
+		} catch (CBSecurityException e) {
+			e.printStackTrace();
+		} catch (TableNotFoundException e) {
+			e.printStackTrace();
+		}
+		finally {
+			scanner.close();
+		}
+
+	}
 
 	private BatchScanner getBatchScanner() throws CBException, CBSecurityException, TableNotFoundException {
 		CloudbaseConnection cbConnection = new CloudbaseConnection(this.connProps);
@@ -604,7 +759,7 @@ public class D4mDbQuery {
 	}
 	public static void main(String[] args) throws CBException, CBSecurityException, TableNotFoundException {
 
-		if (args.length < 1) {
+		if (args.length < 5) {
 			System.out.println("Usage: D4mDbQuery host table rows cols");
 			return;
 		}
@@ -773,6 +928,7 @@ public class D4mDbQuery {
 	}
 
 	public void clearBuffers() {
+		this.count = 0;
 		int len = this.sbRowReturn.length();
 		if(len > 0)
 			this.sbRowReturn = this.sbRowReturn.delete(0, len-1);

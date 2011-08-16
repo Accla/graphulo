@@ -36,7 +36,8 @@ public class CloudbaseConnection {
 	private Connector connector = null;
 	private String tableName = "";
 	private Authorizations authorizations = CBConstants.NO_AUTHS;
-	
+    //    private String instanceID=null;
+    private int maxNumThreads = 1;
 	public CloudbaseConnection(ConnectionProperties connProps) throws CBException, CBSecurityException {
 		if (connProps.getInstanceName() == "" || connProps.getInstanceName() == null) {
 			// Uses Cloudbase MasterInstance to connect.
@@ -47,9 +48,11 @@ public class CloudbaseConnection {
 		else {
 			// Uses ZooKeeper host(s)... can be a comma delim list.
 			ZooKeeperInstance instanceObj = new ZooKeeperInstance(connProps.getInstanceName(), connProps.getHost());
-			this.connector = new Connector(instanceObj, connProps.getUser(), connProps.getPass().getBytes());
+			//			this.connector = new Connector(instanceObj, connProps.getUser(), connProps.getPass().getBytes());
+			this.connector = instanceObj.getConnector( connProps.getUser(), connProps.getPass().getBytes());
+                     
 		}
-		
+		this.maxNumThreads = connProps.getMaxNumThreads();
 		String[] auths = connProps.getAuthorizations();
 		if(auths != null && auths.length > 0 && !auths[0].equals(""))
 			this.authorizations = new Authorizations(auths);
@@ -175,7 +178,7 @@ public class CloudbaseConnection {
 	 */
 
 	public BatchWriter getBatchWriter(String tableName) throws CBException, CBSecurityException, TableNotFoundException {
-		BatchWriter bw = this.connector.createBatchWriter(tableName, Long.valueOf("100000"), Long.valueOf("30"), 1);
+		BatchWriter bw = this.connector.createBatchWriter(tableName, Long.valueOf("100000"), Long.valueOf("30"), this.maxNumThreads);
 		return bw;
 	}
 
@@ -184,6 +187,10 @@ public class CloudbaseConnection {
      */
     public Instance getInstance() {
 	return this.connector.getInstance();
+    }
+    public String getInstanceID() {
+	Instance instance =getInstance();
+	return instance.getInstanceID();
     }
     public TableOperations getTableOperations() {
 	return this.connector.tableOperations();

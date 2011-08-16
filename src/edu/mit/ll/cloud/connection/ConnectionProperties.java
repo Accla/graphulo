@@ -7,7 +7,7 @@ public class ConnectionProperties {
 	private String pass;
 	private String instanceName;
 	private String [] authorizations=null;
-
+    private int maxNumThreads=10;
 	public String[] getAuthorizations() {
 		return authorizations;
 	}
@@ -76,7 +76,13 @@ public class ConnectionProperties {
 		this.instanceName = instanceName;
 	}
 
-}
+    public void setMaxNumThreads( int num) {
+	this.maxNumThreads=num;
+    }
+   public int getMaxNumThreads( ) {
+	return this.maxNumThreads;
+    }
+ }
 /*
  * %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
  * % D4M: Dynamic Distributed Dimensional Data Model 

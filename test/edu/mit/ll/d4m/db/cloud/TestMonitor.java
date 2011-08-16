@@ -7,11 +7,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
+import java.util.Map.Entry;
+import java.util.SortedMap;
 
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TTransport;
 
+import cloudbase.core.conf.CBConfiguration;
 import cloudbase.core.client.CBException;
 import cloudbase.core.client.CBSecurityException;
 import cloudbase.core.client.Connector;
@@ -27,7 +30,11 @@ import cloudbase.core.master.thrift.TabletServerStatus;
 import cloudbase.core.security.thrift.AuthInfo;
 import cloudbase.core.tabletserver.thrift.TabletClientService;
 import cloudbase.core.util.AddressUtil;
-import edu.mit.ll.d4m.db.cloud.D4mDbTableOperations;
+import cloudbase.core.util.ThriftUtil;
+import cloudbase.core.security.thrift.AuthInfo;
+import cloudbase.core.master.thrift.TableInfo;
+
+//import edu.mit.ll.d4m.db.cloud.D4mDbTableOperations;
 /*
  *  Test code to access the cloud via the MasterClientService and MasterMonitorInfo
  *
@@ -36,6 +43,46 @@ public class TestMonitor {
 
     private static MasterMonitorInfo mmi;
 
+    public static void main(String[] args) throws CBException, CBSecurityException, Exception {
+	String user = args[0];
+	String pass = args[1];
+	String instanceName = args[2];
+	String zooKeepers = args[3];
+
+	System.out.println("user="+user+", password="+pass+", instance="+instanceName+",zookeeper="+zooKeepers);
+	ZooKeeperInstance instance = new ZooKeeperInstance(instanceName, zooKeepers);
+	CBConfiguration cbConf = CBConfiguration.getSystemConfiguration(instance);
+	Connector connector =instance.getConnector(user, pass.getBytes());
+	AuthInfo authinfo = new AuthInfo(user,pass.getBytes(), instance.getInstanceID());
+
+	System.out.println("Zookeeper.InstanceId="+ instance.getInstanceID());
+	Map<String, String> nameToIdMap = Tables.getNameToIdMap(instance);    
+	Set<String> keyset = nameToIdMap.keySet();
+
+	System.out.println("SIZE of MAP="+nameToIdMap.size());
+	for(String key : keyset) {
+	    String val = nameToIdMap.get(key);
+            System.out.println(key+", "+val);
+	}
+	Map<String, String> tidToNameMap = Tables.getIdToNameMap(instance);
+	SortedMap<String, TableInfo> tableStats = new TreeMap<String, TableInfo>();
+
+	MasterClientService.Iface client = null;
+	client = MasterClient.getConnection(instance);
+	MasterMonitorInfo mmi = client.getMasterStats(null, authinfo);
+	for (Entry<String, TableInfo> te : mmi.tableMap.entrySet())
+	    tableStats.put(Tables.getPrintableTableNameFromId(tidToNameMap, te.getKey()), te.getValue());
+	for (Entry<String, String> tableName_tableId : Tables.getNameToIdMap(instance).entrySet()) {
+	    String tableName = tableName_tableId.getKey();
+	    String tableId = tableName_tableId.getValue();
+	    TableInfo tableInfo = tableStats.get(tableName);
+	    System.out.println("TABLE_NAME="+tableName+", TABLE_ID="+tableId+",NumRecs="+tableInfo.recs);
+	}
+
+	ThriftUtil.returnClient(client);
+
+    }
+    /*
     public static void main(String[] args) throws CBException, CBSecurityException, TableNotFoundException
     {
 
@@ -156,4 +203,6 @@ public class TestMonitor {
 	}
 	
     }
+
+    */
 }

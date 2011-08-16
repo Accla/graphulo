@@ -10,12 +10,18 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.Map;
+import java.util.SortedMap;
 
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TTransport;
+import org.apache.thrift.transport.TTransportException;
+import org.apache.thrift.TException;
 
+import cloudbase.core.conf.CBConfiguration;
+import cloudbase.core.client.Instance;
 import cloudbase.core.client.CBException;
 import cloudbase.core.client.CBSecurityException;
 import cloudbase.core.client.Scanner;
@@ -31,10 +37,18 @@ import cloudbase.core.master.thrift.MasterMonitorInfo;
 import cloudbase.core.master.thrift.TabletInfo;
 import cloudbase.core.master.thrift.TabletServerStatus;
 import cloudbase.core.security.thrift.AuthInfo;
+import cloudbase.core.security.thrift.ThriftSecurityException;
 import cloudbase.core.tabletserver.thrift.TabletClientService;
+import cloudbase.core.tabletserver.thrift.TabletStats;
 import cloudbase.core.util.AddressUtil;
+import cloudbase.core.util.ThriftUtil;
+import cloudbase.core.master.thrift.TableInfo;
+
+
 import edu.mit.ll.cloud.connection.CloudbaseConnection;
 import edu.mit.ll.cloud.connection.ConnectionProperties;
+
+
 
 /**
  * @author wi20909
@@ -44,7 +58,7 @@ public class D4mDbTableOperations {
     public String rowReturnString = "";
     public String columnReturnString = "";
     public String valueReturnString = "";
-
+    private long timeout=120000l; //120s
 	private ConnectionProperties connProps = new ConnectionProperties();
 
 	public D4mDbTableOperations() {
@@ -146,6 +160,41 @@ public class D4mDbTableOperations {
     }
 
     /*
+     *
+     *  tserverAddress    host:port
+     *  tableNamesList   list of the table names
+     *
+     */
+    public List<TabletStats> getTabletStatsList(String tserverAddress, List<String> tableNamesList) throws CBException, CBSecurityException, TableNotFoundException  {
+	InetSocketAddress address = AddressUtil.parseAddress(tserverAddress, -1);
+	List<TabletStats> tsStats = new ArrayList<TabletStats>();
+	Instance instance = connection().getInstance();
+
+	Map<String, String> nameToIdMap = Tables.getNameToIdMap(instance);    
+	CBConfiguration cbConf = CBConfiguration.getSystemConfiguration(instance);
+	
+	try {
+	    TabletClientService.Iface client = ThriftUtil.getClient(new TabletClientService.Client.Factory(),
+								    address, cbConf);
+	    try {
+		for(String tableName: tableNamesList) {
+		    String tableId = nameToIdMap.get(tableName);
+		//		for (String tableId : mmi.tableMap.keySet()) {
+		    tsStats.addAll(client.getTabletStats(null, authInfo(), tableId));
+		}
+
+	    } finally {
+		ThriftUtil.returnClient(client);
+	    }
+	} catch (Exception e) {
+	    log.fine( e.toString());
+	    
+	}
+
+	return tsStats;
+    }
+
+    /*
      *  Return the number of entries in this cloud instance.
      *  This method will give a total number of entries from all tables in this cloud instance
      *
@@ -157,108 +206,59 @@ public class D4mDbTableOperations {
 
 	AuthInfo authInfo = authInfo();
 	CloudbaseConnection connector = connection();
-	
+	Instance instance = connector.getInstance();
+	CBConfiguration cbConf = CBConfiguration.getSystemConfiguration(instance);
+
 	InetSocketAddress address = AddressUtil.parseAddress(tserverAddress, -1);
-	TTransport transport = null;
-	ThriftTransportPool transportPool = ThriftTransportPool.getInstance();
-	TabletInfo total = new TabletInfo();
-	TreeMap<String, TabletInfo> tabletMap =null;
+	MasterMonitorInfo mmi = getMmi();
+	TabletClientService.Iface client=null;
+	List<TabletStats> tsStats = new ArrayList<TabletStats>();
 
 	try {
-	    Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.FINE," address = "+ address.getAddress().getHostAddress()+ ", port = "+ address.getPort());
-	    transport = transportPool.getTransportWithDefaultTimeout(address.getAddress().getHostAddress(), address.getPort());
-
-	    // Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.FINE,"Got a transport obj.");
-	    TProtocol protocol = new TBinaryProtocol(transport);
-	    // Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.FINE,"Got a TProtocol obj.");
-	    TabletClientService.Client client = new TabletClientService.Client(protocol);
-	    // Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.FINE,"Got a TabletClientService client.");
-	
-	    tabletMap = new TreeMap<String, TabletInfo>(client.getTabletMap(authInfo));
-
-	    /*
-	    int size= tabletMap.size();
-	    Set<String> keySet = tabletMap.keySet();
-	    Iterator<String> itKey = keySet.iterator();
-	    while(itKey.hasNext()) {
-		String k = itKey.next();
-		Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.FINE,"TabletMap key = "+ k);
+	    client = ThriftUtil.getClient(new TabletClientService.Client.Factory(),
+					  address, cbConf);
+	    
+	    for (String tableId : mmi.tableMap.keySet()) {
+		System.out.println("Get TableId="+tableId);
+		
+		tsStats.addAll(client.getTabletStats(null, authInfo, tableId));
+		
+		
 	    }
-	    */
-	    int skipped=0;
-	    int numTabletInSet=0;
-	    for (Entry<String, TabletInfo> te : tabletMap.entrySet()) {
-		numTabletInSet++;
-		Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.FINE," Entry key = "+ te.getKey());
-		TabletInfo info = te.getValue();
-
-
-		String[] tabletIdent = te.getKey().split(";");
-		String thisTableName=null;
-
-		try {
-		    thisTableName = Tables.getTableName(connector.getInstance(), tabletIdent[0]);
-		} catch (TableNotFoundException e) {
-		    //log.warning(tabletIdent[0]+ e);
-		    //continue;
-		}
-
-		if (te.getKey().isEmpty()) {
-		    log.fine("TABLE="+thisTableName+", tablet skipping ="+ te.getKey());
-		    skipped++;
-		    continue;
-		}
-		log.fine("Tablet name ["+te.getKey() + "] has  "+ info.numEntries+ "  entries.");
-		total.numEntries += info.numEntries;
+	    for (TabletStats info : tsStats) {	      
+		retValue = info.numEntries;
 	    }
-	    log.fine("*** Number of tablets = "+numTabletInSet + ", number of tablets skipped = " + skipped);
-	    Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.FINE,"***** Total number of entries = " + total.numEntries);
-	    //	    tabletMap = new TreeMap<String, TabletInfo>(client.getTabletMap(SecurityConstants.systemCredentials));
-
-	} catch (Exception e) {
-	    //			banner(sb, "error", "No&nbsp;Such&nbsp;Tablet&nbsp;Server&nbsp;Available");
-	    Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.SEVERE,"",e);
-	    return 0;
-	} finally {
-	    transportPool.returnTransport(transport);
 	}
-	retValue = total.numEntries;
+	catch(TException e) {
+	    log.fine(e.toString());
+	}
 
+	catch(ThriftSecurityException e) {
+	    log.fine(e.toString());
+	}
+	finally {
+	    ThriftUtil.returnClient(client);
+	}
 	return retValue;
-	
     }
+    
 
-    private TreeMap<String, TabletInfo>  getTabletInfo(String tserverAddress)  throws CBException, CBSecurityException, TableNotFoundException  {
-	AuthInfo authInfo = authInfo();
-	
-	//	Map<String, String> nameToIdMap = Tables.getNameToIdMap(connector.getInstance());
-	InetSocketAddress address = AddressUtil.parseAddress(tserverAddress, -1);
-	TTransport transport = null;
-	ThriftTransportPool transportPool = ThriftTransportPool.getInstance();
-	TreeMap<String, TabletInfo> tabletMap =null;
-
+    private MasterMonitorInfo getMmi() {
+	MasterMonitorInfo mmi = null;
+	MasterClientService.Iface masterclient = null;
 	try {
-	   log.fine(" address = "+ 
-		    address.getAddress().getHostAddress()+
-		    ", port = "+ address.getPort());
-	    transport = transportPool.getTransportWithDefaultTimeout(address.getAddress().getHostAddress(), address.getPort());
-
-	    // Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.FINE,"Got a transport obj.");
-	    TProtocol protocol = new TBinaryProtocol(transport);
-	    // Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.FINE,"Got a TProtocol obj.");
-	    TabletClientService.Client client = new TabletClientService.Client(protocol);
-	    // Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.FINE,"Got a TabletClientService client.");
-	
-	    tabletMap = new TreeMap<String, TabletInfo>(client.getTabletMap(authInfo));
-	
-	} catch (Exception e) {
-	    Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.SEVERE,"",e);
-	    return null;
-	} finally {
-	    transportPool.returnTransport(transport);
+	    CloudbaseConnection connector = connection();
+	    Instance instance = connector.getInstance();
+	    masterclient = MasterClient.getConnection(instance);
+	    mmi=  masterclient.getMasterStats(null, authInfo());
 	}
-
-	return tabletMap;
+	catch(Exception e) {
+	    log.fine(e.toString());
+	}
+	finally {
+	    ThriftUtil.returnClient(masterclient);
+	}
+	return mmi;
     }
 
     private String getTableName(String tabletId) throws CBException, CBSecurityException, TableNotFoundException  {
@@ -268,7 +268,7 @@ public class D4mDbTableOperations {
 
     /*
      *
-     * tserverAddress   tablet server  address (by name)
+     * tserverAddress   tablet server  address (by name) IP:port
      * tableName    table name
      *
      *  RETURN a negative (-1) if there is an error, otherwise 
@@ -292,48 +292,47 @@ public class D4mDbTableOperations {
 	MasterMonitorInfo mmi=null;  
 	AuthInfo authInfo = authInfo();
 	CloudbaseConnection connector = connection();
+	Instance instance = connector.getInstance();
+	long retValue= 0l;
+	SortedMap<String, TableInfo> tableStats = new TreeMap<String, TableInfo>();
+	Map<String, String> tidToNameMap = Tables.getIdToNameMap(instance);
 
-	long retValue= 0;
-	long numRecords=0;
-	MasterClientService.Client client = null;
 	try {
-	    client = MasterClient.getConnection(connector.getInstance());
-	    mmi = client.getMasterStats(authInfo);
-	    ArrayList<TabletServerStatus> tservers = new ArrayList<TabletServerStatus>();
-	    if (mmi != null)
-		tservers.addAll(mmi.tServerInfo);
-	    for (TabletServerStatus status : tservers) {
-		Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.FINE,"TabletServer status ::  name = "+status.name);
-		retValue += getNumberOfEntries(status.name);
-		numRecords += status.totalRecords;
+	    mmi = getMmi();
+	    for (Entry<String, TableInfo> te : mmi.tableMap.entrySet())
+		tableStats.put(Tables.getPrintableTableNameFromId(tidToNameMap, te.getKey()), te.getValue());
+	    
+	    for (Entry<String, String> tableName_tableId : Tables.getNameToIdMap(instance).entrySet()) {
+		String tableName = tableName_tableId.getKey();
+		String tableId = tableName_tableId.getValue();
+		TableInfo tableInfo = tableStats.get(tableName);
+		retValue += tableInfo.recs;
+		log.fine("TABLE_NAME="+tableName+", TABLE_ID="+tableId+",NumRecs="+tableInfo.recs);
 	    }
-	    log.fine("tss numRecords = "+numRecords);
-
-	} catch (Exception e) {
+	    log.fine("tss numRecords = "+ retValue);
+	}	
+	catch (Exception e) {
 	    mmi = null;
-
-	} finally {
-	    if (client != null)
-		MasterClient.close(client);
+	    
 	}
-
+	
 	return retValue;
     }
-
+    
     /*
      *  Get a list of tablet servers
      *
      */
-    private ArrayList<TabletServerStatus> getTabletServers()  throws CBException, CBSecurityException, TableNotFoundException {
+    private ArrayList<TabletServerStatus> getTabletServers()  throws CBException, CBSecurityException, TableNotFoundException,TTransportException {
 	MasterMonitorInfo mmi=null;  
 	AuthInfo authInfo = authInfo();
 	CloudbaseConnection connector = connection();
 
-	MasterClientService.Client client = null;
+	MasterClientService.Iface client = null;
 	ArrayList<TabletServerStatus> tservers = new ArrayList<TabletServerStatus>();
 	try {
 	    client = MasterClient.getConnection(connector.getInstance());
-	    mmi = client.getMasterStats(authInfo);
+	    mmi = client.getMasterStats(null,authInfo);
 	    if (mmi != null)
 		tservers.addAll(mmi.tServerInfo);
 
@@ -342,7 +341,7 @@ public class D4mDbTableOperations {
 
 	} finally {
 	    if (client != null)
-		MasterClient.close(client);
+		ThriftUtil.returnClient(client);
 	}
 	return tservers;
     }
@@ -353,50 +352,19 @@ public class D4mDbTableOperations {
      *
      */
     public long getNumberOfEntries(String tserverAddress, ArrayList<String>  tableNames) throws CBException, CBSecurityException, TableNotFoundException {
-	long retValue=0l;
-	TreeMap<String, TabletInfo> tabletMap =null;
-	
-	try {
-	    
-	    tabletMap = getTabletInfo(tserverAddress);
-	    for (Entry<String, TabletInfo> te : tabletMap.entrySet()) {
-		log.fine(" Entry key = "+ te.getKey());
-		TabletInfo info = te.getValue();
-		String thisTableName =null;
-		
-		if (te.getKey().isEmpty() ) {
-		    continue;
-		}
-		String[] tabletIdent = te.getKey().split(";");
-		try {
-
-		    thisTableName = getTableName( tabletIdent[0]);//Tables.getTableName(connector.getInstance(), tabletIdent[0]);
-		} catch (TableNotFoundException e) {
-		    log.warning(tabletIdent[0]+ e);
-		    continue;
-		}
-		log.fine("Table name ["+thisTableName + "] has  "+ info.numEntries+ "  entries.");
-		for(String tableName: tableNames) {
-		    if(tableName.equals(thisTableName) ) {
-			retValue += info.numEntries;
-		    }
-		}
-	    }
-	    	    
-	} catch (Exception e) {
-	    Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.SEVERE,"",e);
-	    return -1;
-	} finally {    
+	long retval =0l;
+	List<TabletStats> tsStats = getTabletStatsList(tserverAddress, tableNames);
+	for(TabletStats info : tsStats) {
+	    retval += info.numEntries;
 	}
 
-	return retValue;
-	
+	return retval;
     }
-    /*  
+   /*  
      *  Get the total number of entries for the specified table names
      *  tableNames   list of table names of interest
      */
-    public long getNumberOfEntries(ArrayList<String>  tableNames) throws CBException, CBSecurityException, TableNotFoundException {
+    public long getNumberOfEntries(ArrayList<String>  tableNames) throws CBException, CBSecurityException, TableNotFoundException, TTransportException {
 	long retVal=0;
 
 	ArrayList<TabletServerStatus> tservers = getTabletServers();
@@ -476,8 +444,8 @@ public class D4mDbTableOperations {
     private AuthInfo authInfo() throws CBException, TableNotFoundException, CBSecurityException {
 	String user = this.connProps.getUser();
 	byte[] pass = this.connProps.getPass().getBytes();
-	
-	return 	 new AuthInfo(user,pass);
+	CloudbaseConnection connector = connection();
+	return 	 new AuthInfo(user,pass, connector.getInstanceID());
 
     }
 

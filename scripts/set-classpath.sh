@@ -14,9 +14,10 @@ if [ -z "$BASEDIR" ]; then
   exit
 fi
 CLASSES=.
+CLASSES="$CLASSES":$BASEDIR/conf
 CLASSES="$CLASSES":$BASEDIR/conf/cloudbase-site.xml
 echo adding $BASEDIR/conf/cloudbase-site.xml
-CLASSES="$CLASSES":$BASEDIR/conf
+
 echo adding $BASEDIR/conf
 # CLASSES
 

@@ -12,6 +12,7 @@
    <property>
       <name>instance.zookeeper.host</name>
       <value>localhost:2181</value>
+<!--      <value>bullet:2181</value> -->
       <description>Zookeeper server name. A comma-separated list of zookeepers.</description>
    </property>
    <property>
@@ -25,17 +26,17 @@
 	  <description>master port</description>
 	</property>
 
-	<property>
-	  <name>master.badtime.tserver.maxPastDelta</name>
-	  <value>300</value>
-	  <description>Amount of time a tablet server can lag behind the master time</description>
-	</property>
+<!-- 	<property> -->
+<!-- 	  <name>master.badtime.tserver.maxPastDelta</name> -->
+<!-- 	  <value>300</value> -->
+<!-- 	  <description>Amount of time a tablet server can lag behind the master time</description> -->
+<!-- 	</property> -->
 
-	<property>
-	  <name>master.badtime.tserver.maxFutureDelta</name>
-	  <value>30</value>
-	  <description>Amount of time a tablet server can be ahead the master time</description>
-	</property>
+<!-- 	<property> -->
+<!-- 	  <name>master.badtime.tserver.maxFutureDelta</name> -->
+<!-- 	  <value>30</value> -->
+<!-- 	  <description>Amount of time a tablet server can be ahead the master time</description> -->
+<!-- 	</property> -->
 	<property>
 	  <name>tserver.memory.maps.max</name>
 	  <value>256000000</value>

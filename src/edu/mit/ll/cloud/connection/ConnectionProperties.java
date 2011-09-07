@@ -7,7 +7,7 @@ public class ConnectionProperties {
 	private String pass;
 	private String instanceName;
 	private String [] authorizations=null;
-    private int maxNumThreads=10;
+    private int maxNumThreads=50;
 	public String[] getAuthorizations() {
 		return authorizations;
 	}

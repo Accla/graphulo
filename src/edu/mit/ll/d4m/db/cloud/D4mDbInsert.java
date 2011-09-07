@@ -36,7 +36,7 @@ public class D4mDbInsert {
 	static final boolean doTest = false;
 	static final boolean printOutput = false;
 	static final int maxMutationsToCache = 10000;
-	static final int numThreads = 50;
+	private int numThreads = 50;
 
 	private ConnectionProperties connProps = new ConnectionProperties();
 
@@ -89,6 +89,16 @@ public class D4mDbInsert {
 		this.connProps.setPass(password);
 	}
 
+	/**
+	 * @param instanceName
+	 * @param hostName
+	 * @param tableName
+	 * @param username
+	 * @param password
+	 * @throws CBException
+	 * @throws CBSecurityException
+	 * @throws TableExistsException
+	 */
 	public D4mDbInsert(String instanceName, String hostName, String tableName, String username, String password) throws CBException, CBSecurityException, TableExistsException {
 		this.tableName = tableName;
 
@@ -96,6 +106,28 @@ public class D4mDbInsert {
 		this.connProps.setInstanceName(instanceName);
 		this.connProps.setUser(username);
 		this.connProps.setPass(password);
+		this.connProps.setMaxNumThreads(this.numThreads);
+	}
+	/**
+	 * @param instanceName cloudbase instance
+	 * @param hostName    zookeeper host
+	 * @param tableName   name of table to insert data into
+	 * @param username    user name
+	 * @param password    user's password
+	 * @param numThreads   number of threads to use to write to table
+	 * @throws CBException
+	 * @throws CBSecurityException
+	 * @throws TableExistsException
+	 */
+	public D4mDbInsert(String instanceName, String hostName, String tableName, String username, String password, int numThreads) throws CBException, CBSecurityException, TableExistsException {
+		this.tableName = tableName;
+
+		this.connProps.setHost(hostName);
+		this.connProps.setInstanceName(instanceName);
+		this.connProps.setUser(username);
+		this.connProps.setPass(password);
+		this.numThreads= numThreads;
+		this.connProps.setMaxNumThreads(this.numThreads);
 	}
 
 	public static void main(String[] args) throws FileNotFoundException, IOException, CBException, CBSecurityException, TableNotFoundException, MutationsRejectedException, TableExistsException {

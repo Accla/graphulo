@@ -1,5 +1,7 @@
 package edu.mit.ll.cloud.connection;
 
+import java.io.File;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -7,6 +9,8 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
 
 import cloudbase.core.CBConstants;
 import cloudbase.core.client.BatchScanner;
@@ -32,16 +36,17 @@ import cloudbase.core.security.TablePermission;
  */
 
 public class CloudbaseConnection {
-
+	private static Logger log = Logger.getLogger(CloudbaseConnection.class);
 	private Connector connector = null;
 	private String tableName = "";
 	private Authorizations authorizations = CBConstants.NO_AUTHS;
     //    private String instanceID=null;
     private int maxNumThreads = 1;
+    
 	public CloudbaseConnection(ConnectionProperties connProps) throws CBException, CBSecurityException {
 		if (connProps.getInstanceName() == "" || connProps.getInstanceName() == null) {
 			// Uses Cloudbase MasterInstance to connect.
-			System.out.println("Trying to connect to Master: " + connProps.getHost());
+			log.debug("Trying to connect to Master: " + connProps.getHost());
 			MasterInstance instanceObj = new MasterInstance(connProps.getHost());
 			this.connector = new Connector(instanceObj, connProps.getUser(), connProps.getPass().getBytes());
 		}

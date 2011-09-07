@@ -5,9 +5,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.logging.Logger;
+import java.util.concurrent.ConcurrentLinkedQueue;
+//import java.util.logging.Logger;
 import org.apache.hadoop.io.Text;
-//import org.apache.log4j.Logger;
+import org.apache.log4j.Logger;
 
 import cloudbase.core.client.BatchScanner;
 import cloudbase.core.client.CBException;
@@ -26,7 +27,7 @@ import edu.mit.ll.cloud.connection.ConnectionProperties;
  * @author William Smith
  */
 public class D4mDbQuery {
-	private static Logger log = Logger.getLogger(D4mDbQuery.class.getCanonicalName());
+	private static Logger log = Logger.getLogger(D4mDbQuery.class);
 	private String tableName = "";
 	private int numberOfThreads = 50;
 	public String rowReturnString = "";
@@ -52,6 +53,10 @@ public class D4mDbQuery {
 	private boolean endRowInclusive=true;
 	private boolean positiveInfinity=false;
 	private boolean doAllRanges=false;
+	
+	Iterator<Entry<Key, Value>> scannerIter =null;
+	
+	private ConcurrentLinkedQueue <Entry<Key, Value>> dataQue=new ConcurrentLinkedQueue<Entry<Key,Value>>();
 	public D4mDbQuery() {
 		this.count=0;
 		this.limit=0;
@@ -67,6 +72,7 @@ public class D4mDbQuery {
 		this();
 		this.tableName = table;
 		this.connProps = connProps;
+		this.numberOfThreads = this.connProps.getMaxNumThreads();
 	}
 
 	/**
@@ -101,12 +107,13 @@ public class D4mDbQuery {
 			Entry<Key, Value> entry = (Entry<Key, Value>) scannerIter.next();
 			String rowKey = entry.getKey().getRow().toString();
 			String value = new String(entry.getValue().get());
-			String column = entry.getKey().getColumnQualifier().toString().replace(this.family, "");//new String(entry.getKey().getColumnQualifier().toString());
+			String column = entry.getKey().getColumnQualifier().toString();//.replace(this.family, "");//new String(entry.getKey().getColumnQualifier().toString());
 
 			if (this.doTest) {
 				this.saveTestResults(rowKey, column.replace(this.family, ""), value);
 			}
 			if(buildReturnString(rowKey, column, value)) {
+				//saveDataToQue(entry);
 				break;
 			}
 		}
@@ -141,6 +148,37 @@ public class D4mDbQuery {
 		return isDone;
 	}
 
+	/*
+	 *   If there is a large amount of results and a limit is set, then 
+	 *   remaining entries will be stored in a queue.
+	 *   NEXT can be called to return more results.
+	 */
+	private void saveDataToQue(Entry<Key, Value> entry) {
+		this.dataQue.add(entry);
+	}
+	/*
+	 * Next method will return the next chunk of data.
+	 * Chunk of data returned is determined by the limit.
+	 * For example, if the limit is set to 100, then it would the 100 results each time NEXT is called.
+	 * 
+	 */
+	public void next() {
+		this.count=0;
+		clearBuffers();
+		while(!this.dataQue.isEmpty() && this.count < this.limit) {
+			this.count++;
+			Entry<Key, Value> entry = (Entry<Key, Value>) this.dataQue.poll();
+			if(entry == null) break;
+			String rowKey = entry.getKey().getRow().toString();
+			String value = new String(entry.getValue().get());
+			String column = entry.getKey().getColumnQualifier().toString();//.replace(this.family, "");//new String(entry.getKey().getColumnQualifier().toString());
+			buildReturnString(rowKey,column,value);
+		}
+		this.setRowReturnString(sbRowReturn.toString());
+		this.setColumnReturnString(sbColumnReturn.toString());
+		this.setValueReturnString(sbValueReturn.toString());
+
+	}
 	public HashMap<String, String> assocColumnWithRow(String rows, String cols) {
 
 		HashMap<String, Object> rowMap = this.processParam(rows);
@@ -269,7 +307,7 @@ public class D4mDbQuery {
 		while (scannerIter.hasNext()) {
 			Entry<Key, Value> entry = (Entry<Key, Value>) scannerIter.next();
 			String rowKey = entry.getKey().getRow().toString();
-			String column = new String(entry.getKey().getColumnQualifier().toString());
+			String column = entry.getKey().getColumnQualifier().toString();//new String(entry.getKey().getColumnQualifier().toString());
 			String value = new String(entry.getValue().get());
 			String finalColumn = column.replace(this.family, "");
 
@@ -279,7 +317,10 @@ public class D4mDbQuery {
 					this.saveTestResults(rowKey, finalColumn, value);
 				}
 
-				if(this.buildReturnString(rowKey, finalColumn, value)) break;
+				if(this.buildReturnString(rowKey, finalColumn, value)) {
+						//saveDataToQue(entry);
+						break;
+					}
 			}
 		}
 
@@ -316,7 +357,7 @@ public class D4mDbQuery {
 			Entry<Key, Value> entry = (Entry<Key, Value>) scannerIter.next();
 			String rowKey = entry.getKey().getRow().toString();
 			String column = entry.getKey().getColumnQualifier().toString();//new String(entry.getKey().getColumnQualifier().toString());
-			String finalColumn = column.replace(this.family, "");
+			String finalColumn = column;//column.replace(this.family, "");
 
 			if (rowMap.containsKey(rowKey)) {
 				String value = new String(entry.getValue().get());
@@ -329,7 +370,10 @@ public class D4mDbQuery {
 					rowList.add(row);
 				}
 
-				if(this.buildReturnString(rowKey, finalColumn, value)) break;
+				if(this.buildReturnString(rowKey, finalColumn, value)) {
+					saveDataToQue(entry);
+					//break;
+				}
 			}
 		}
 		scanner.close();
@@ -417,7 +461,10 @@ public class D4mDbQuery {
 			if (this.doTest) {
 				this.saveTestResults(rowKey, finalColumn, value);
 			}
-			if(this.buildReturnString(rowKey, finalColumn, value)) break;
+			if(this.buildReturnString(rowKey, finalColumn, value)) {
+				//saveDataToQue(entry);
+				break;
+			}
 		}
 		scanner.close();
 		this.setRowReturnString(sbRowReturn.toString());
@@ -457,7 +504,10 @@ public class D4mDbQuery {
 				if (this.doTest) {
 					this.saveTestResults(rowKey, finalColumn, value);
 				}
-				if(this.buildReturnString(rowKey, finalColumn, value)) break;
+				if(this.buildReturnString(rowKey, finalColumn, value)) {
+					//saveDataToQue(entry);
+					break;
+				}
 			}
 
 		}
@@ -514,13 +564,15 @@ public class D4mDbQuery {
 			else 
 				range = new Range(new Text(rowArray[2]), true, new Text(rowArray[0]), true);
 			//System.out.println("RANGE = "+range.toString());
-			log.info("RANGE = "+range.toString());
+			if(log.isDebugEnabled())
+			log.debug("RANGE = "+range.toString());
 			ranges.add(range);
 		} else {
 			int cnt=0;
 			for(String rowKey : rowArray) {
 				range = new Range(new Text(rowKey));
-				log.info(cnt+" :: RANGE = "+range.toString());
+				if(log.isDebugEnabled())
+				log.debug(cnt+" :: RANGE = "+range.toString());
 				cnt++;
 				ranges.add(range);
 			}
@@ -545,128 +597,6 @@ public class D4mDbQuery {
 				SearchIt(ranges,colKey);
 			}
 		}
-		this.setRowReturnString(sbRowReturn.toString());
-		this.setColumnReturnString(sbColumnReturn.toString());
-		this.setValueReturnString(sbValueReturn.toString());
-
-		double elapsed = (System.currentTimeMillis() - start);
-		results.setQueryTime(elapsed / 1000);
-		results.setMatlabDbRow(rowList);
-
-
-		return results;
-	}
-
-	public D4mDbResultSet OLDsearchByRowAndColumn(String rows, String cols, String family, String authorizations)  {
-		//throws CBException, CBSecurityException, TableNotFoundException {
-		//		System.out.println("searchByRowAndColumn - Here I am");
-		clearBuffers();
-		HashMap<String, Object> rowMap = this.processParam(rows);
-		HashMap<String, Object> columnMap = this.processParam(cols);
-		String[] rowArray = (String[]) rowMap.get("content");
-		String[] columnArray = (String[]) columnMap.get("content");
-		D4mDbResultSet results = new D4mDbResultSet();
-		ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();
-		long start = System.currentTimeMillis();
-
-		//Set up ranges
-		HashSet<Range> ranges = new HashSet<Range>();
-		Range range = null;
-		if(rowArray.length == 3 && rowArray[1].equals(":")) {
-			if(rowArray[0].compareTo(rowArray[2]) < 0)
-				range = new Range(new Text(rowArray[0]), true, new Text(rowArray[2]), true);
-			else 
-				range = new Range(new Text(rowArray[2]), true, new Text(rowArray[0]), true);
-			//System.out.println("RANGE = "+range.toString());
-			log.info("RANGE = "+range.toString());
-			ranges.add(range);
-		} else {
-			int cnt=0;
-			for(String rowKey : rowArray) {
-				range = new Range(new Text(rowKey));
-				log.info(cnt+" :: RANGE = "+range.toString());
-				cnt++;
-				ranges.add(range);
-			}
-		}
-
-		BatchScanner scanner = null;
-		//		try {
-		if(family != null || authorizations != null)
-			setFamilyAndAuthorizations(family,authorizations);
-
-		//			scanner = getBatchScanner();
-		//			scanner.setRanges(ranges);
-
-		//loop over columns
-		//reset column by scanner.clearColumns()s
-		//set new columns fetchColumn(fam,col)
-		//iterate
-		//fill output buffer
-		String colRegex = "";
-		if(columnArray.length == 3 && columnArray[1].equals(":")) {
-			String colStart1 = columnArray[0].substring(0, 1);
-			String colEnd1 = columnArray[2].substring(0,1);
-			colRegex = "^["+colStart1+"-"+colEnd1+"].*";
-			SearchIt(ranges,colRegex);
-		} else {
-			//	StringBuffer sb = new StringBuffer();
-			//	StringBuffer sb2 = new StringBuffer();
-			//	sb.append("^[");
-			//	sb2.append("[");
-			for(String colKey : columnArray) {
-				//		sb.append(colKey.substring(0,1));
-				//		if(colKey.length() > 1) {
-				//			sb2.append(colKey.substring(1, 2));
-				//		}
-				SearchIt(ranges,colKey);
-			}
-			//	sb.append("]");
-			//	sb2.append("]");
-			//	colRegex = sb.toString()+sb2.toString()+".*";
-		}
-		//			scanner.setColumnQualifierRegex(colRegex);
-		//			scanner.fetchColumnFamily(new Text(this.family));
-		//			Iterator<Entry<Key, Value>> scannerIter = scanner.iterator();
-		//			int count=0;
-		//			while (scannerIter.hasNext()) {
-		//				Entry<Key, Value> entry = (Entry<Key, Value>) scannerIter.next();
-		//				String rowKey = entry.getKey().getRow().toString();
-		//				String column = entry.getKey().getColumnQualifier().toString();
-		//				//System.out.println(count+"BEFORE_ENTRY="+rowKey+","+column);
-		//				String finalColumn = column.replace(this.family, "");
-		//				boolean goodData=true;
-
-		//				if(finalColumn.compareToIgnoreCase(columnArray[0]) >= 0 &&
-		//						finalColumn.compareToIgnoreCase(columnArray[2]) <= 0) {
-		//					//System.out.println(count+"AFTER_ENTRY="+rowKey+","+column+","+value);
-		//					goodData=true;
-		//				} else if(finalColumn.compareToIgnoreCase(columnArray[0]) >= 0 && 
-		//						//finalColumn.matches("^"+columnArray[2])) {
-		//						finalColumn.startsWith(columnArray[2])) {
-		//					goodData=true;
-		//				}
-		//				if(goodData) {
-		//					String value = new String(entry.getValue().get());
-		//
-		//					if (this.doTest) {
-		//						this.saveTestResults(rowKey, finalColumn, value);
-		//					}
-		//					if(this.buildReturnString(rowKey, finalColumn, value)) break;
-		//				}
-		//				count++;
-		//			}
-		//			log.info("Num of entries found = "+count);
-		//		} catch (CBException e) {
-		//			e.printStackTrace();
-		//		} catch (CBSecurityException e) {
-		//			e.printStackTrace();
-		//		} catch (TableNotFoundException e) {
-		//			e.printStackTrace();
-		//		}
-		//		finally {
-		//			scanner.close();
-		//		}
 		this.setRowReturnString(sbRowReturn.toString());
 		this.setColumnReturnString(sbColumnReturn.toString());
 		this.setValueReturnString(sbValueReturn.toString());
@@ -705,25 +635,20 @@ public class D4mDbQuery {
 				String finalColumn = column.replace(this.family, "");
 				boolean goodData=true;
 
-				//				if(finalColumn.compareToIgnoreCase(columnArray[0]) >= 0 &&
-				//						finalColumn.compareToIgnoreCase(columnArray[2]) <= 0) {
-				//					//System.out.println(count+"AFTER_ENTRY="+rowKey+","+column+","+value);
-				//					goodData=true;
-				//				} else if(finalColumn.compareToIgnoreCase(columnArray[0]) >= 0 && 
-				//						//finalColumn.matches("^"+columnArray[2])) {
-				//						finalColumn.startsWith(columnArray[2])) {
-				//					goodData=true;
-				//				}
 				if(goodData) {
 					String value = new String(entry.getValue().get());
 					if (this.doTest) {
 						this.saveTestResults(rowKey, finalColumn, value);
 					}
-					if(this.buildReturnString(rowKey, finalColumn, value)) break;
+					if(this.buildReturnString(rowKey, finalColumn, value)) {
+						//saveDataToQue(entry);
+						break;
+					}
 				}
 				count++;
 			}
-			log.info("Num of entries found = "+count);
+			if(log.isDebugEnabled())
+			log.debug("Num of entries found = "+count);
 		} catch (CBException e) {
 			e.printStackTrace();
 		} catch (CBSecurityException e) {

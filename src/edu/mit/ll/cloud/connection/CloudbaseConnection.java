@@ -201,7 +201,7 @@ public class CloudbaseConnection {
 	return this.connector.tableOperations();
     }
 
-    public Collection<Text> getSplits(String tableName) {
+    public Collection<Text> getSplits(String tableName) throws TableNotFoundException {
 	return getTableOperations().getSplits(tableName);
     }
     

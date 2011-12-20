@@ -202,7 +202,15 @@ public class CloudbaseConnection {
     }
 
     public Collection<Text> getSplits(String tableName) throws TableNotFoundException {
-	return getTableOperations().getSplits(tableName);
+    	Collection<Text> textColl= null;
+    	
+    	try {
+			textColl=getTableOperations().getSplits(tableName);
+		} catch (TableNotFoundException e) {
+			log.warn("Cannot find table "+tableName);
+		}
+    	
+    	return textColl;
     }
     
     /*

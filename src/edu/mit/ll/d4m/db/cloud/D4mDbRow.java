@@ -10,6 +10,7 @@ public class D4mDbRow {
 	public String row = "";
 	public String title = "";
 	public String column = "";
+	public String columnFamily="";
 	public String value = "";
 	public String description = "";
 	public String location = "";
@@ -108,6 +109,18 @@ public class D4mDbRow {
 
 	public void setTitle(String title) {
 		this.title = title;
+	}
+	public String toString() {
+		String r=" "+ this.row+","+this.columnFamily+","+this.column+","+this.value;
+		return r;
+	}
+
+	public String getColumnFamily() {
+		return columnFamily;
+	}
+
+	public void setColumnFamily(String columnFamily) {
+		this.columnFamily = columnFamily;
 	}
 }
 /*

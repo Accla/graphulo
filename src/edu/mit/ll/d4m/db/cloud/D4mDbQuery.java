@@ -1,5 +1,7 @@
 package edu.mit.ll.d4m.db.cloud;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,8 +44,14 @@ public class D4mDbQuery {
 
 	private ConnectionProperties connProps = new ConnectionProperties();
 	private String family = "";
-	private int limit=0;
+	private int limit=0; // number of elements (column)
+	private int numRows=0; //number of rows
 	private int count=0;
+	private long cumCount=0; //cumulative count of results retrieved
+	private String rowsQuery=null;
+	private String colsQuery=null;
+	private HashMap<String, Object> rowMap=null;
+	private HashMap<String, Object> colMap=null;
 	private StringBuilder sbRowReturn = new StringBuilder();
 	private StringBuilder sbColumnReturn = new StringBuilder();
 	private StringBuilder sbValueReturn = new StringBuilder();
@@ -53,13 +61,23 @@ public class D4mDbQuery {
 	private boolean endRowInclusive=true;
 	private boolean positiveInfinity=false;
 	private boolean doAllRanges=false;
-	
+
 	Iterator<Entry<Key, Value>> scannerIter =null;
-	
-	private ConcurrentLinkedQueue <Entry<Key, Value>> dataQue=new ConcurrentLinkedQueue<Entry<Key,Value>>();
+
+	private String lastRowKey = null;
+	private Key startKey      = null;
+
+	private Range startRange  = null;
+	private String methodName = null;
+	private Scanner scanner = null;
+	private BatchScanner bscanner = null;
+	public D4mDbResultSet testResultSet=null;
+	public boolean hasNext=false;
+	//private ConcurrentLinkedQueue <Entry<Key, Value>> dataQue=new ConcurrentLinkedQueue<Entry<Key,Value>>();
 	public D4mDbQuery() {
 		this.count=0;
 		this.limit=0;
+		this.cumCount = 0;
 	}
 	/**
 	 * Constructor that may use ZooKeeperInstance or MasterInstance to connect
@@ -95,26 +113,40 @@ public class D4mDbQuery {
 
 	public D4mDbResultSet getAllData() throws CBException, TableNotFoundException, CBSecurityException {
 
+		this.methodName="getAllData";
 		D4mDbResultSet results = new D4mDbResultSet();
-		ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();
+		//ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();
 		//CloudbaseConnection cbConnection = new CloudbaseConnection(this.connProps);
 		Scanner scanner = getScanner(); //cbConnection.getScanner(tableName);
+		if(this.startRange == null) {
+			//			this.startKey = new Key();
+			this.startRange = new Range(this.startKey,null);
+		}
+		else if (this.startKey != null) {
+			//Text row = this.startKey.getRow();
+			this.startRange = new Range(this.startKey,null);
+		}
+		scanner.setRange(startRange);
 		scanner.fetchColumnFamily(new Text(this.family));
 		long start = System.currentTimeMillis();
 
 		Iterator<Entry<Key, Value>> scannerIter = scanner.iterator();
-		while (scannerIter.hasNext()) {
+		while ((this.hasNext=scannerIter.hasNext())) {
 			Entry<Key, Value> entry = (Entry<Key, Value>) scannerIter.next();
+			this.startKey = entry.getKey();
 			String rowKey = entry.getKey().getRow().toString();
 			String value = new String(entry.getValue().get());
 			String column = entry.getKey().getColumnQualifier().toString();//.replace(this.family, "");//new String(entry.getKey().getColumnQualifier().toString());
 
-			if (this.doTest) {
-				this.saveTestResults(rowKey, column.replace(this.family, ""), value);
-			}
-			if(buildReturnString(rowKey, column, value)) {
-				//saveDataToQue(entry);
+			if(buildReturnString(entry.getKey(),rowKey, column, value)) {
+				//Key startkey = this.startRange.getStartKey();
+				//startkey.set(entry.getKey());
+				//this.startRange = new Range(this.startKey,null);
 				break;
+			}
+			if (this.doTest) {
+				this.saveTestResults(rowKey, entry.getKey().getColumnFamily().toString(),
+						column.replace(this.family, ""), value);
 			}
 		}
 
@@ -122,9 +154,10 @@ public class D4mDbQuery {
 		this.setColumnReturnString(sbColumnReturn.toString());
 		this.setValueReturnString(sbValueReturn.toString());
 
-		double elapsed = (System.currentTimeMillis() - start);
+		double elapsed = (double)(System.currentTimeMillis() - start);
 		results.setQueryTime(elapsed / 1000);
-		results.setMatlabDbRow(rowList);
+		results.setMatlabDbRow(this.rowList);
+		this.testResultSet = results;
 		return results;
 	}
 
@@ -142,41 +175,52 @@ public class D4mDbQuery {
 			this.sbColumnReturn.append(column.replace(this.family, "") + newline);
 			this.sbValueReturn.append(value + newline);
 			this.count++;
+			this.cumCount++;
 		} else  {
+			this.lastRowKey = rowKey;
 			isDone = true;
+			//this.cumCount = this.cumCount + (long)this.count;
+		}
+		return isDone;
+	}
+	private boolean buildReturnString(Key theKey, String rowKey,  String column, String value) {
+		boolean isDone = buildReturnString(rowKey, column, value);
+		if(isDone) {
+			//Key startkey = this.startRange.getStartKey();
+			//startkey.set(theKey);
+			this.startKey = theKey;
 		}
 		return isDone;
 	}
 
-	/*
-	 *   If there is a large amount of results and a limit is set, then 
-	 *   remaining entries will be stored in a queue.
-	 *   NEXT can be called to return more results.
-	 */
-	private void saveDataToQue(Entry<Key, Value> entry) {
-		this.dataQue.add(entry);
+	public boolean hasNext() {
+		return this.hasNext;
 	}
 	/*
 	 * Next method will return the next chunk of data.
 	 * Chunk of data returned is determined by the limit.
-	 * For example, if the limit is set to 100, then it would the 100 results each time NEXT is called.
+	 * For example, if the limit is set to 100, then it would return 100 results each time NEXT is called.
 	 * 
 	 */
 	public void next() {
 		this.count=0;
 		clearBuffers();
-		while(!this.dataQue.isEmpty() && this.count < this.limit) {
-			this.count++;
-			Entry<Key, Value> entry = (Entry<Key, Value>) this.dataQue.poll();
-			if(entry == null) break;
-			String rowKey = entry.getKey().getRow().toString();
-			String value = new String(entry.getValue().get());
-			String column = entry.getKey().getColumnQualifier().toString();//.replace(this.family, "");//new String(entry.getKey().getColumnQualifier().toString());
-			buildReturnString(rowKey,column,value);
+		try {
+			if(this.hasNext) {
+				getAllData();
+			}
+			//Method m = this.getClass().getMethod(methodName, null);
+			//Object [] args = null;
+			//m.invoke(this,args);
+			//this.setRowReturnString(sbRowReturn.toString());
+			//this.setColumnReturnString(sbColumnReturn.toString());
+			//this.setValueReturnString(sbValueReturn.toString());
+
+
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-		this.setRowReturnString(sbRowReturn.toString());
-		this.setColumnReturnString(sbColumnReturn.toString());
-		this.setValueReturnString(sbValueReturn.toString());
 
 	}
 	public HashMap<String, String> assocColumnWithRow(String rows, String cols) {
@@ -294,7 +338,7 @@ public class D4mDbQuery {
 		}
 		HashMap<String, String> rowMap = this.assocColumnWithRow(rows, cols);
 		D4mDbResultSet results = new D4mDbResultSet();
-		ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();
+		//ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();
 		//CloudbaseConnection cbConnection = new CloudbaseConnection(this.connProps);
 		HashSet<Range> ranges = this.loadRanges(rowMap);
 		BatchScanner scanner =  getBatchScanner(); // cbConnection.getBatchScanner(this.tableName, this.numberOfThreads);
@@ -313,14 +357,15 @@ public class D4mDbQuery {
 
 			if ((rowMap.containsKey(rowKey)) && (rowMap.containsValue(finalColumn))) {
 
+				if(this.buildReturnString(rowKey, finalColumn, value)) {
+					//saveDataToQue(entry);
+					break;
+				}
 				if (this.doTest) {
-					this.saveTestResults(rowKey, finalColumn, value);
+					this.saveTestResults(rowKey, entry.getKey().getColumnFamily().toString(), finalColumn, value);
 				}
 
-				if(this.buildReturnString(rowKey, finalColumn, value)) {
-						//saveDataToQue(entry);
-						break;
-					}
+
 			}
 		}
 
@@ -344,7 +389,7 @@ public class D4mDbQuery {
 
 		HashMap<String, String> rowMap = this.loadRowMap(rows);
 		D4mDbResultSet results = new D4mDbResultSet();
-		ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();
+		//ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();
 		//CloudbaseConnection cbConnection = new CloudbaseConnection(this.connProps);
 		HashSet<Range> ranges = this.loadRanges(rowMap);
 		BatchScanner scanner = getBatchScanner();//cbConnection.getBatchScanner(this.tableName, this.numberOfThreads);
@@ -365,14 +410,15 @@ public class D4mDbQuery {
 				if (this.doTest) {
 					D4mDbRow row = new D4mDbRow();
 					row.setRow(rowKey);
+					row.setColumnFamily(entry.getKey().getColumnFamily().toString());
 					row.setColumn(finalColumn);
 					row.setValue(value);
 					rowList.add(row);
 				}
 
 				if(this.buildReturnString(rowKey, finalColumn, value)) {
-					saveDataToQue(entry);
-					//break;
+					//saveDataToQue(entry);
+					break;
 				}
 			}
 		}
@@ -447,7 +493,7 @@ public class D4mDbQuery {
 		}
 
 		D4mDbResultSet results = new D4mDbResultSet();
-		ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();
+		//ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();
 		long start = System.currentTimeMillis();
 
 		Iterator<Entry<Key, Value>> scannerIter = scanner.iterator();
@@ -459,7 +505,7 @@ public class D4mDbQuery {
 			String finalColumn =  entry.getKey().getColumnQualifier().toString().replace(this.family, "");    //column.replace(this.family, "");
 
 			if (this.doTest) {
-				this.saveTestResults(rowKey, finalColumn, value);
+				this.saveTestResults(rowKey, entry.getKey().getColumnFamily().toString() ,finalColumn, value);
 			}
 			if(this.buildReturnString(rowKey, finalColumn, value)) {
 				//saveDataToQue(entry);
@@ -502,7 +548,7 @@ public class D4mDbQuery {
 				String value = new String(entry.getValue().get());
 
 				if (this.doTest) {
-					this.saveTestResults(rowKey, finalColumn, value);
+					this.saveTestResults(rowKey, entry.getKey().getColumnFamily().toString(), finalColumn, value);
 				}
 				if(this.buildReturnString(rowKey, finalColumn, value)) {
 					//saveDataToQue(entry);
@@ -523,17 +569,24 @@ public class D4mDbQuery {
 
 	private Scanner getScanner() throws CBException, CBSecurityException, TableNotFoundException {
 		CloudbaseConnection cbConnection = new CloudbaseConnection(this.connProps);
-		Scanner scanner = cbConnection.getScanner(tableName);
+		if(this.scanner == null)
+			this.scanner = cbConnection.getScanner(tableName);
 		return scanner;
+	}
+	private BatchScanner getBatchScanner() throws CBException, CBSecurityException, TableNotFoundException {
+		CloudbaseConnection cbConnection = new CloudbaseConnection(this.connProps);
+		if(this.bscanner == null)
+			this.bscanner = cbConnection.getBatchScanner(this.tableName, this.numberOfThreads);
+		return this.bscanner;
 	}
 	/*
 	 *  How can I get a chunk of data at a time?
 	 *  Can I keep the iterator?
 	 *  Will it time out?
 	 */
-	public void getNextChunk() {
-
-	}
+	//	public void getNextChunk() {
+	//
+	//	}
 
 	/*
 	 *  Search by both row and column
@@ -552,7 +605,7 @@ public class D4mDbQuery {
 		String[] rowArray = (String[]) rowMap.get("content");
 		String[] columnArray = (String[]) columnMap.get("content");
 		D4mDbResultSet results = new D4mDbResultSet();
-		ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();
+		//ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();
 		long start = System.currentTimeMillis();
 
 		//Set up ranges
@@ -565,14 +618,14 @@ public class D4mDbQuery {
 				range = new Range(new Text(rowArray[2]), true, new Text(rowArray[0]), true);
 			//System.out.println("RANGE = "+range.toString());
 			if(log.isDebugEnabled())
-			log.debug("RANGE = "+range.toString());
+				log.debug("RANGE = "+range.toString());
 			ranges.add(range);
 		} else {
 			int cnt=0;
 			for(String rowKey : rowArray) {
 				range = new Range(new Text(rowKey));
 				if(log.isDebugEnabled())
-				log.debug(cnt+" :: RANGE = "+range.toString());
+					log.debug(cnt+" :: RANGE = "+range.toString());
 				cnt++;
 				ranges.add(range);
 			}
@@ -605,12 +658,10 @@ public class D4mDbQuery {
 		results.setQueryTime(elapsed / 1000);
 		results.setMatlabDbRow(rowList);
 
-
 		return results;
 	}
 
 
-	
 	private void SearchIt(HashSet<Range> ranges, String col) {
 		BatchScanner scanner = null;
 		try {
@@ -638,7 +689,7 @@ public class D4mDbQuery {
 				if(goodData) {
 					String value = new String(entry.getValue().get());
 					if (this.doTest) {
-						this.saveTestResults(rowKey, finalColumn, value);
+						this.saveTestResults(rowKey, entry.getKey().getColumnFamily().toString(),finalColumn, value);
 					}
 					if(this.buildReturnString(rowKey, finalColumn, value)) {
 						//saveDataToQue(entry);
@@ -648,7 +699,7 @@ public class D4mDbQuery {
 				count++;
 			}
 			if(log.isDebugEnabled())
-			log.debug("Num of entries found = "+count);
+				log.debug("Num of entries found = "+count);
 		} catch (CBException e) {
 			e.printStackTrace();
 		} catch (CBSecurityException e) {
@@ -662,25 +713,18 @@ public class D4mDbQuery {
 
 	}
 
-	private BatchScanner getBatchScanner() throws CBException, CBSecurityException, TableNotFoundException {
-		CloudbaseConnection cbConnection = new CloudbaseConnection(this.connProps);
-		BatchScanner scanner = cbConnection.getBatchScanner(this.tableName, this.numberOfThreads);
-		return scanner;
-	}
-
 	private void setFamilyAndAuthorizations(String family, String authorizations) {
 		this.family = family;
 		connProps.setAuthorizations(authorizations.split(","));
-
 	}
 
-	private void saveTestResults(String rowKey, String finalColumn, String value) {
+	private void saveTestResults(String rowKey, String columnFamily, String finalColumn, String value) {
 		D4mDbRow row = new D4mDbRow();
 		row.setRow(rowKey);
+		row.setColumnFamily(columnFamily);
 		row.setColumn(finalColumn);
 		row.setValue(value);
 		this.rowList.add(row);
-
 	}
 	public static void main(String[] args) throws CBException, CBSecurityException, TableNotFoundException {
 
@@ -756,7 +800,7 @@ public class D4mDbQuery {
 	}
 
 	public int getLimit() {
-		return limit;
+		return this.limit;
 	}
 
 	public void setLimit(int limit) {
@@ -777,7 +821,7 @@ public class D4mDbQuery {
 	}
 
 	public String getColumnReturnString() {
-		return columnReturnString;
+		return this.columnReturnString;
 	}
 
 	public void setColumnReturnString(String columnReturnString) {
@@ -785,7 +829,7 @@ public class D4mDbQuery {
 	}
 
 	public String getRowReturnString() {
-		return rowReturnString;
+		return this.rowReturnString;
 	}
 
 	public void setRowReturnString(String rowReturnString) {
@@ -793,7 +837,7 @@ public class D4mDbQuery {
 	}
 
 	public String getValueReturnString() {
-		return valueReturnString;
+		return this.valueReturnString;
 	}
 
 	public void setValueReturnString(String valueReturnString) {
@@ -856,10 +900,10 @@ public class D4mDbQuery {
 		this.count = 0;
 		int len = this.sbRowReturn.length();
 		if(len > 0)
-			this.sbRowReturn = this.sbRowReturn.delete(0, len-1);
+			this.sbRowReturn = this.sbRowReturn.delete(0, len);
 		len = this.sbColumnReturn.length();
 		if(len > 0)
-			this.sbColumnReturn = this.sbColumnReturn.delete(0, len-1);
+			this.sbColumnReturn = this.sbColumnReturn.delete(0, len);
 		len = this.sbValueReturn.length();
 		if(len > 0)
 			this.sbValueReturn = this.sbValueReturn.delete(0, len);
@@ -872,6 +916,32 @@ public class D4mDbQuery {
 	}
 	public void setDoAllRanges(boolean doAllRanges) {
 		this.doAllRanges = doAllRanges;
+	}
+	/*
+	 * Get the cumulative total of results retrieved.
+	 */
+	public long getCumCount() {
+		return this.cumCount;
+	}
+	public void reset() {
+		this.startRange = null;
+		this.startKey   = null;
+	}
+	public String getFamily() {
+		return family;
+	}
+	public void setFamily(String family) {
+		this.family = family;
+	}
+	public int getNumRows() {
+		return numRows;
+	}
+	public void setNumRows(int numRows) {
+		this.numRows = numRows;
+	}
+
+	public void setHasNext(boolean hasNext) {
+		this.hasNext = hasNext;
 	}
 }
 /*

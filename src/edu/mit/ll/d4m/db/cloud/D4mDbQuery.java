@@ -73,6 +73,7 @@ public class D4mDbQuery {
 	private BatchScanner bscanner = null;
 	public D4mDbResultSet testResultSet=null;
 	public boolean hasNext=false;
+	private boolean getAllData = false;
 	//private ConcurrentLinkedQueue <Entry<Key, Value>> dataQue=new ConcurrentLinkedQueue<Entry<Key,Value>>();
 	public D4mDbQuery() {
 		this.count=0;
@@ -112,7 +113,7 @@ public class D4mDbQuery {
 	}
 
 	public D4mDbResultSet getAllData() throws CBException, TableNotFoundException, CBSecurityException {
-
+		this.getAllData = true;
 		this.methodName="getAllData";
 		D4mDbResultSet results = new D4mDbResultSet();
 		//ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();
@@ -206,8 +207,11 @@ public class D4mDbQuery {
 		this.count=0;
 		clearBuffers();
 		try {
-			if(this.hasNext) {
+			if(this.hasNext && this.getAllData) {
 				getAllData();
+			}
+			else {
+//				doMatlabQuery(this.rowsQuery, this.colsQuery);
 			}
 			//Method m = this.getClass().getMethod(methodName, null);
 			//Object [] args = null;
@@ -237,27 +241,74 @@ public class D4mDbQuery {
 		return resultMap;
 	}
 
+	/*
+	 *  A common method called by loadRowMap and loadColumnMap
+	 */
+	private HashMap<String, String>  loadMap(String queryString) {
+		HashMap<String, Object> tmpObjMap = this.processParam(queryString);
+		String[] contentArray = (String[]) tmpObjMap.get("content");
+
+		//		HashMap<String, String> resultMap = new HashMap<String, String>();
+		//		for (int i = 0; i < contentArray.length; i++) {
+		//			resultMap.put(contentArray[i], contentArray[i]);
+		//		}
+		HashMap<String, String> resultMap = loadMap(contentArray);
+		return resultMap;
+
+	}
+
+	private HashMap<String,String> loadMap (String [] contentArray) {
+		HashMap<String, String> resultMap = new HashMap<String, String>();
+		for (int i = 0; i < contentArray.length; i++) {
+			resultMap.put(contentArray[i], contentArray[i]);
+		}
+		return resultMap;
+	}
 	public HashMap<String, String> loadColumnMap(String cols) {
 
-		HashMap<String, Object> columnMap = this.processParam(cols);
-		String[] columnArray = (String[]) columnMap.get("content");
+		//		HashMap<String, Object> columnMap = this.processParam(cols);
+		//		String[] columnArray = (String[]) columnMap.get("content");
+		//			HashMap<String, String> resultMap = new HashMap<String, String>();
+		//		for (int i = 0; i < columnArray.length; i++) {
+		//			resultMap.put(columnArray[i], columnArray[i]);
+		//		}
+		HashMap<String, String> resultMap = loadMap(cols);
 
-		HashMap<String, String> resultMap = new HashMap<String, String>();
-		for (int i = 0; i < columnArray.length; i++) {
-			resultMap.put(columnArray[i], columnArray[i]);
-		}
+		return resultMap;
+	}
+
+	public HashMap<String, String> loadColumnMap(String [] cols) {
+		HashMap<String, String> resultMap = loadMap(cols);
+		return resultMap;
+	}
+
+	public HashMap<String, String> loadColumnMap(HashMap<String,Object> colMap) {
+		String[] contentArray = (String[]) colMap.get("content");
+		HashMap<String,String> resultMap = loadMap(contentArray);
 		return resultMap;
 	}
 
 	public HashMap<String, String> loadRowMap(String rows) {
 
-		HashMap<String, Object> rowMap = this.processParam(rows);
-		String[] rowArray = (String[]) rowMap.get("content");
+		//		HashMap<String, Object> rowMap = this.processParam(rows);
+		//		String[] rowArray = (String[]) rowMap.get("content");
+		//
+		//		HashMap<String, String> resultMap = new HashMap<String, String>();
+		//		for (int i = 0; i < rowArray.length; i++) {
+		//			resultMap.put(rowArray[i], rowArray[i]);
+		//		}
+		HashMap<String, String> resultMap = loadMap(rows);
+		return resultMap;
+	}
 
-		HashMap<String, String> resultMap = new HashMap<String, String>();
-		for (int i = 0; i < rowArray.length; i++) {
-			resultMap.put(rowArray[i], rowArray[i]);
-		}
+	public HashMap<String, String> loadRowMap(HashMap<String, Object> rowMap) {
+
+		String[] rowArray = (String[]) rowMap.get("content");
+		//		HashMap<String, String> resultMap = new HashMap<String, String>();
+		//		for (int i = 0; i < rowArray.length; i++) {
+		//			resultMap.put(rowArray[i], rowArray[i]);
+		//		}
+		HashMap<String, String> resultMap = loadMap(rowArray);
 		return resultMap;
 	}
 
@@ -310,6 +361,8 @@ public class D4mDbQuery {
 		this.family = family;
 		connProps.setAuthorizations(authorizations.split(","));
 		clearBuffers();
+		this.rowsQuery = rows;
+		this.colsQuery = cols;
 		return doMatlabQuery(rows, cols);
 	}
 
@@ -318,6 +371,7 @@ public class D4mDbQuery {
 		if ((!rows.equals(":")) && (cols.equals(":"))) {
 
 			HashMap<String, Object> rowMap = this.processParam(rows);
+			this.rowMap = rowMap;
 			String[] paramContent = (String[]) rowMap.get("content");
 			// System.out.println("this.isRangeQuery(paramContent)="+this.isRangeQuery(paramContent));
 			if (this.isRangeQuery(paramContent)) {
@@ -336,7 +390,13 @@ public class D4mDbQuery {
 		if( !rows.startsWith(":") && !rows.equals(":") && (!cols.startsWith(":")) && (!cols.equals(":")) ) {
 			return this.searchByRowAndColumn(rows, cols, null,null);
 		}
-		HashMap<String, String> rowMap = this.assocColumnWithRow(rows, cols);
+		
+		//FIXME - this.rowMap is incompatible with rowMap
+		HashMap<String, String> rowMap = null;
+		if(this.rowMap == null) {
+			rowMap = this.assocColumnWithRow(rows, cols);
+		}
+
 		D4mDbResultSet results = new D4mDbResultSet();
 		//ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();
 		//CloudbaseConnection cbConnection = new CloudbaseConnection(this.connProps);
@@ -387,7 +447,15 @@ public class D4mDbQuery {
 
 	private D4mDbResultSet doMatlabQueryOnRows(String rows, String cols) throws CBException, CBSecurityException, TableNotFoundException {
 
-		HashMap<String, String> rowMap = this.loadRowMap(rows);
+		HashMap<String, String> rowMap = null;
+
+		if( this.rowMap == null) {	
+			this.rowMap = processParam(rows);
+			rowMap = this.loadRowMap(rows);
+		}
+		else {
+			rowMap = loadRowMap(this.rowMap);
+		}
 		D4mDbResultSet results = new D4mDbResultSet();
 		//ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();
 		//CloudbaseConnection cbConnection = new CloudbaseConnection(this.connProps);
@@ -398,9 +466,10 @@ public class D4mDbQuery {
 		long start = System.currentTimeMillis();
 
 		Iterator<Entry<Key, Value>> scannerIter = scanner.iterator();
+		String rowKey = null;
 		while (scannerIter.hasNext()) {
 			Entry<Key, Value> entry = (Entry<Key, Value>) scannerIter.next();
-			String rowKey = entry.getKey().getRow().toString();
+			rowKey = entry.getKey().getRow().toString();
 			String column = entry.getKey().getColumnQualifier().toString();//new String(entry.getKey().getColumnQualifier().toString());
 			String finalColumn = column;//column.replace(this.family, "");
 
@@ -422,7 +491,13 @@ public class D4mDbQuery {
 				}
 			}
 		}
+
 		scanner.close();
+
+		//Set the next row to search
+		// take last rowkey to add to
+		setNewRowKeyInMap(rowKey, this.rowMap);
+
 		this.setRowReturnString(sbRowReturn.toString());
 		this.setColumnReturnString(sbColumnReturn.toString());
 		this.setValueReturnString(sbValueReturn.toString());
@@ -433,6 +508,10 @@ public class D4mDbQuery {
 		return results;
 	}
 
+	private void setNewRowKeyInMap(String rowKey, HashMap<String, Object> contentMap) {
+		String[] paramContent = (String[]) contentMap.get("content");
+		paramContent[0] = rowKey;
+	}
 	public D4mDbResultSet doMatlabRangeQueryOnRows(String rows, String cols, String family, String authorizations) throws CBException, CBSecurityException, TableNotFoundException {
 		this.family = family;
 		connProps.setAuthorizations(authorizations.split(","));
@@ -441,7 +520,15 @@ public class D4mDbQuery {
 
 	private D4mDbResultSet doMatlabRangeQueryOnRows(String rows, String cols) throws CBException, CBSecurityException, TableNotFoundException {
 
-		HashMap<String, Object> rowMap = this.processParam(rows);
+		HashMap<String, Object> rowMap = null;
+
+		if(this.rowMap == null) {
+			rowMap =this.processParam(rows);
+			this.rowMap = rowMap;
+		}
+		else {
+			rowMap = this.rowMap;
+		}
 		String[] rowArray = (String[]) rowMap.get("content");
 
 		HashSet<Range> ranges = new HashSet<Range>();
@@ -497,9 +584,10 @@ public class D4mDbQuery {
 		long start = System.currentTimeMillis();
 
 		Iterator<Entry<Key, Value>> scannerIter = scanner.iterator();
+		String rowKey=null;
 		while (scannerIter.hasNext()) {
 			Entry<Key, Value> entry = (Entry<Key, Value>) scannerIter.next();
-			String rowKey = entry.getKey().getRow().toString();
+			rowKey = entry.getKey().getRow().toString();
 			//String column = new String(entry.getKey().getColumnQualifier().toString());
 			String value = new String(entry.getValue().get());
 			String finalColumn =  entry.getKey().getColumnQualifier().toString().replace(this.family, "");    //column.replace(this.family, "");
@@ -513,6 +601,13 @@ public class D4mDbQuery {
 			}
 		}
 		scanner.close();
+
+		//Set the new row key to start next search
+		if(rowKey != null) {
+			setNewRowKeyInMap(rowKey, this.rowMap);
+		}
+
+		// *********************************************
 		this.setRowReturnString(sbRowReturn.toString());
 		this.setColumnReturnString(sbColumnReturn.toString());
 		this.setValueReturnString(sbValueReturn.toString());
@@ -535,11 +630,19 @@ public class D4mDbQuery {
 		D4mDbResultSet results = new D4mDbResultSet();
 		Scanner scanner = getScanner();//cbConnection.getScanner(tableName);
 		scanner.fetchColumnFamily(new Text(this.family));
+
+		if( this.startKey != null)
+		{
+			//Set the range to start search
+			this.startRange = new Range(this.startKey,null);
+			scanner.setRange(startRange);
+		}
 		long start = System.currentTimeMillis();
 
 		Iterator<Entry<Key, Value>> scannerIter = scanner.iterator();
+		Entry<Key, Value> entry =null;
 		while (scannerIter.hasNext()) {
-			Entry<Key, Value> entry = (Entry<Key, Value>) scannerIter.next();
+			entry = (Entry<Key, Value>) scannerIter.next();
 			String rowKey = entry.getKey().getRow().toString();
 			//String column = new String(entry.getKey().getColumnQualifier().toString());
 			String finalColumn =  entry.getKey().getColumnQualifier().toString().replace(this.family, "");  //column.replace(this.family, "");
@@ -550,13 +653,15 @@ public class D4mDbQuery {
 				if (this.doTest) {
 					this.saveTestResults(rowKey, entry.getKey().getColumnFamily().toString(), finalColumn, value);
 				}
-				if(this.buildReturnString(rowKey, finalColumn, value)) {
+				if(this.buildReturnString(entry.getKey(),rowKey, finalColumn, value)) {
 					//saveDataToQue(entry);
 					break;
 				}
 			}
 
 		}
+
+
 		this.setRowReturnString(sbRowReturn.toString());
 		this.setColumnReturnString(sbColumnReturn.toString());
 		this.setValueReturnString(sbValueReturn.toString());
@@ -600,8 +705,20 @@ public class D4mDbQuery {
 		//throws CBException, CBSecurityException, TableNotFoundException {
 		//		System.out.println("searchByRowAndColumn - Here I am");
 		clearBuffers();
-		HashMap<String, Object> rowMap = this.processParam(rows);
-		HashMap<String, Object> columnMap = this.processParam(cols);
+		HashMap<String, Object> rowMap = null;
+		if( this.rowMap ==null) {
+			rowMap = this.processParam(rows);
+			this.rowMap = rowMap;
+		}
+		else
+			rowMap = this.rowMap;
+		HashMap<String, Object> columnMap = null;
+		if(this.colMap == null) {
+			columnMap =this.processParam(cols);
+			this.colMap = columnMap;
+		} else
+			columnMap = this.colMap;
+
 		String[] rowArray = (String[]) rowMap.get("content");
 		String[] columnArray = (String[]) columnMap.get("content");
 		D4mDbResultSet results = new D4mDbResultSet();
@@ -664,6 +781,8 @@ public class D4mDbQuery {
 
 	private void SearchIt(HashSet<Range> ranges, String col) {
 		BatchScanner scanner = null;
+		Entry<Key, Value> entry =null;
+		String rowKey = null;
 		try {
 			scanner = getBatchScanner();
 			scanner.setRanges(ranges);
@@ -679,8 +798,8 @@ public class D4mDbQuery {
 			Iterator<Entry<Key, Value>> scannerIter = scanner.iterator();
 			int count=0;
 			while (scannerIter.hasNext()) {
-				Entry<Key, Value> entry = (Entry<Key, Value>) scannerIter.next();
-				String rowKey = entry.getKey().getRow().toString();
+				entry = (Entry<Key, Value>) scannerIter.next();
+				rowKey = entry.getKey().getRow().toString();
 				String column = entry.getKey().getColumnQualifier().toString();
 				//System.out.println(count+"BEFORE_ENTRY="+rowKey+","+column);
 				String finalColumn = column.replace(this.family, "");
@@ -691,7 +810,7 @@ public class D4mDbQuery {
 					if (this.doTest) {
 						this.saveTestResults(rowKey, entry.getKey().getColumnFamily().toString(),finalColumn, value);
 					}
-					if(this.buildReturnString(rowKey, finalColumn, value)) {
+					if(this.buildReturnString(entry.getKey(),rowKey, finalColumn, value)) {
 						//saveDataToQue(entry);
 						break;
 					}
@@ -708,6 +827,8 @@ public class D4mDbQuery {
 			e.printStackTrace();
 		}
 		finally {
+
+			setNewRowKeyInMap(rowKey, this.rowMap);
 			scanner.close();
 		}
 
@@ -926,6 +1047,15 @@ public class D4mDbQuery {
 	public void reset() {
 		this.startRange = null;
 		this.startKey   = null;
+		this.rowsQuery = null;
+		this.colsQuery = null;
+		this.colMap = null;
+		this.rowMap = null;
+		this.hasNext=false;
+		this.getAllData = false;
+		this.count = 0;
+		clearBuffers();
+
 	}
 	public String getFamily() {
 		return family;

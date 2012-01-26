@@ -129,8 +129,7 @@ public class D4mDbQuery {
 		this.getAllData = true;
 		this.methodName="getAllData";
 		D4mDbResultSet results = new D4mDbResultSet();
-		//ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();
-		//CloudbaseConnection cbConnection = new CloudbaseConnection(this.connProps);
+                if(!this.hasNext || this.scannerIter == null) {
 		Scanner scanner = getScanner(); //cbConnection.getScanner(tableName);
 		if(this.startRange == null) {
 			//			this.startKey = new Key();
@@ -142,10 +141,12 @@ public class D4mDbQuery {
 		}
 		scanner.setRange(startRange);
 		scanner.fetchColumnFamily(new Text(this.family));
+		 this.scannerIter = scanner.iterator();
+		}
 		long start = System.currentTimeMillis();
 
-		Iterator<Entry<Key, Value>> scannerIter = scanner.iterator();
-		iterateOverEntries(scannerIter);
+
+		iterateOverEntries(this.scannerIter);
 
 		this.setRowReturnString(sbRowReturn.toString());
 		this.setColumnReturnString(sbColumnReturn.toString());

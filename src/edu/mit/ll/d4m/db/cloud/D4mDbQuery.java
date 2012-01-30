@@ -1532,6 +1532,12 @@ public class D4mDbQuery {
 	public void setHasNext(boolean hasNext) {
 		this.hasNext = hasNext;
 	}
+	public String getTableName() {
+		return tableName;
+	}
+	public void setTableName(String tableName) {
+		this.tableName = tableName;
+	}
 }
 /*
  * %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 

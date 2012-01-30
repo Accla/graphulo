@@ -20,9 +20,25 @@ public class RegExpUtil {
 	 *  
 	 */
 	public static String makeRegex(String [] str) {
-		String s=null;
-		if(str.length != 3)
+		String s="";
+		if(str.length == 1) {
+		    s=str[0];
+		 } else if (str.length == 2) {
+		    if(!str[0].equals(":")) {
+			s=str[0] +"|";
+		    } else {
+			s=".*";
 			return s;
+		    }
+		    if(!str[1].equals(":")) {
+			s = s+str[1];
+		    } else {
+			s = s+".*";
+		    }
+
+		}
+		else if(str.length == 3) {
+
 		
 		String s0 = str[0];
 		String s2 = str[2];
@@ -48,6 +64,7 @@ public class RegExpUtil {
 //		s="|^("+str[0]+")|^("+str[2]+").*";
 //		sb.append(s);
 		s = sb.toString();
+		}
 		return s;
 	}
 }

@@ -88,7 +88,8 @@ public class D4mDbQuery {
 	private boolean getNext = true;
 	private int index = 0;
 	private LinkedList<Range> rangesList= new LinkedList<Range>();
-	//private ConcurrentLinkedQueue <Entry<Key, Value>> dataQue=new ConcurrentLinkedQueue<Entry<Key,Value>>();
+
+	private Pattern pattern=null;
 	public D4mDbQuery() {
 		this.count=0;
 		this.limit=0;
@@ -130,19 +131,19 @@ public class D4mDbQuery {
 		this.getAllData = true;
 		this.methodName="getAllData";
 		D4mDbResultSet results = new D4mDbResultSet();
-                if(!this.hasNext || this.scannerIter == null) {
-		Scanner scanner = getScanner(); //cbConnection.getScanner(tableName);
-		if(this.startRange == null) {
-			//			this.startKey = new Key();
-			this.startRange = new Range(this.startKey,null);
-		}
-		else if (this.startKey != null) {
-			//Text row = this.startKey.getRow();
-			this.startRange = new Range(this.startKey,null);
-		}
-		scanner.setRange(startRange);
-		scanner.fetchColumnFamily(new Text(this.family));
-		 this.scannerIter = scanner.iterator();
+		if(!this.hasNext || this.scannerIter == null) {
+			Scanner scanner = getScanner(); //cbConnection.getScanner(tableName);
+			if(this.startRange == null) {
+				//			this.startKey = new Key();
+				this.startRange = new Range(this.startKey,null);
+			}
+			else if (this.startKey != null) {
+				//Text row = this.startKey.getRow();
+				this.startRange = new Range(this.startKey,null);
+			}
+			scanner.setRange(startRange);
+			scanner.fetchColumnFamily(new Text(this.family));
+			this.scannerIter = scanner.iterator();
 		}
 		long start = System.currentTimeMillis();
 
@@ -170,7 +171,8 @@ public class D4mDbQuery {
 		boolean isDone=false;
 
 		if(limit == 0 || this.count < this.limit) {
-			log.debug("  +++ ROW="+rowKey+",COL="+column+",VAL="+value+" +++");
+			if(log.isDebugEnabled())
+				log.debug(this.cumCount+"  +++ ROW="+rowKey+",COL="+column+",VAL="+value+" +++");
 			this.sbRowReturn.append(rowKey + newline);
 			this.sbColumnReturn.append(column.replace(this.family, "") + newline);
 			this.sbValueReturn.append(value + newline);
@@ -221,6 +223,8 @@ public class D4mDbQuery {
 	public void next() {
 		this.count=0;
 		clearBuffers();
+		long start = System.currentTimeMillis();
+
 		try {
 			if(this.hasNext) {
 				if(this.getAllData) {
@@ -232,6 +236,13 @@ public class D4mDbQuery {
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
+		}
+		long end = System.currentTimeMillis();
+		double elapsed = (double)((end - start)/1000);
+		
+		if (log.isDebugEnabled()) {
+			log.info("Query elapsed time (sec) = "+elapsed);
+			System.out.println("Query elapsed time (sec) = "+elapsed);
 		}
 
 	}
@@ -255,11 +266,6 @@ public class D4mDbQuery {
 	private HashMap<String, String>  loadMap(String queryString) {
 		HashMap<String, Object> tmpObjMap = this.processParam(queryString);
 		String[] contentArray = (String[]) tmpObjMap.get("content");
-
-		//		HashMap<String, String> resultMap = new HashMap<String, String>();
-		//		for (int i = 0; i < contentArray.length; i++) {
-		//			resultMap.put(contentArray[i], contentArray[i]);
-		//		}
 		HashMap<String, String> resultMap = loadMap(contentArray);
 		return resultMap;
 
@@ -274,14 +280,7 @@ public class D4mDbQuery {
 	}
 	public HashMap<String, String> loadColumnMap(String cols) {
 
-		//		HashMap<String, Object> columnMap = this.processParam(cols);
-		//		String[] columnArray = (String[]) columnMap.get("content");
-		//			HashMap<String, String> resultMap = new HashMap<String, String>();
-		//		for (int i = 0; i < columnArray.length; i++) {
-		//			resultMap.put(columnArray[i], columnArray[i]);
-		//		}
 		HashMap<String, String> resultMap = loadMap(cols);
-
 		return resultMap;
 	}
 
@@ -298,13 +297,6 @@ public class D4mDbQuery {
 
 	public HashMap<String, String> loadRowMap(String rows) {
 
-		//		HashMap<String, Object> rowMap = this.processParam(rows);
-		//		String[] rowArray = (String[]) rowMap.get("content");
-		//
-		//		HashMap<String, String> resultMap = new HashMap<String, String>();
-		//		for (int i = 0; i < rowArray.length; i++) {
-		//			resultMap.put(rowArray[i], rowArray[i]);
-		//		}
 		HashMap<String, String> resultMap = loadMap(rows);
 		return resultMap;
 	}
@@ -312,10 +304,6 @@ public class D4mDbQuery {
 	public HashMap<String, String> loadRowMap(HashMap<String, Object> rowMap) {
 
 		String[] rowArray = (String[]) rowMap.get("content");
-		//		HashMap<String, String> resultMap = new HashMap<String, String>();
-		//		for (int i = 0; i < rowArray.length; i++) {
-		//			resultMap.put(rowArray[i], rowArray[i]);
-		//		}
 		HashMap<String, String> resultMap = loadMap(rowArray);
 		return resultMap;
 	}
@@ -372,7 +360,16 @@ public class D4mDbQuery {
 		reset();
 		this.rowsQuery = rows;
 		this.colsQuery = cols;
-		return doMatlabQuery(rows, cols);
+		long start = System.currentTimeMillis();
+		D4mDbResultSet results= 
+			doMatlabQuery(rows, cols);
+		long end = System.currentTimeMillis();
+		double elapsed = ((double)(end - start))/1000.0;
+		if(log.isInfoEnabled()) {
+			log.info("Query elapsed time (sec) = "+elapsed);
+			System.out.println("Query elapsed time (sec) = "+elapsed);
+		}
+		return results;
 	}
 
 	private D4mDbResultSet doMatlabQuery(String rows, String cols) throws CBException, CBSecurityException, TableNotFoundException {
@@ -477,58 +474,6 @@ public class D4mDbQuery {
 		return null;
 	}
 
-	//	private D4mDbResultSet doScanMatlabQueryOnRows(String rows, String cols) throws CBException, CBSecurityException, TableNotFoundException {
-	//		HashMap<String, String> rowMap = null;
-	//		String [] rowsArray = null;
-	//		long start = System.currentTimeMillis();
-	//
-	//		if( this.rowMap == null) {	
-	//			this.rowMap = processParam(rows);
-	//			rowsArray = (String[])this.rowMap.get("content");
-	//			this.rowKeys = param2keys(rowsArray);
-	//			rowMap = this.loadRowMap(rows);
-	//		}
-	//		else {
-	//
-	//			rowMap = loadRowMap(this.rowMap);
-	//
-	//			rowsArray = (String[])this.rowMap.get("content");
-	//			this.rowKeys = param2keys(rowsArray);
-	//
-	//		}
-	//		D4mDbResultSet results = new D4mDbResultSet();
-	//
-	//		Range range =null;
-	//		if(this.rangesList.size() == 0) {
-	//			makeRangesList(rowsArray);
-	//		}
-	//
-	//		if(this.scanner == null || !this.hasNext) {
-	//			this.scanner = getScanner();
-	//			range = this.rangesList.poll();
-	//			this.scanner.setRange(range);
-	//			this.scanner.fetchColumnFamily(new Text(this.family));
-	//			this.scannerIter = this.scanner.iterator();
-	//		}
-	//		Entry<Key, Value> entry = iterateMatlabQueryOnRows(scannerIter, rowMap);
-	//		this.setRowReturnString(sbRowReturn.toString());
-	//		this.setColumnReturnString(sbColumnReturn.toString());
-	//		this.setValueReturnString(sbValueReturn.toString());
-	//
-	//		double elapsed = (System.currentTimeMillis() - start);
-	//		results.setQueryTime(elapsed / 1000);
-	//		results.setMatlabDbRow(rowList);
-	//		this.testResultSet = results;
-	//
-	//		if(entry == null || !this.hasNext) {
-	//			log.debug("Increment index and null startKey.");
-	//			index++;
-	//			this.startKey = null;
-	//		}
-	//
-	//		//close();
-	//		return results;
-	//	}
 	/*
 	 * use BatchScanner to get data
 	 */
@@ -615,7 +560,8 @@ public class D4mDbQuery {
 	private D4mDbResultSet doMatlabRangeQueryOnRows(String rows, String cols) throws CBException, CBSecurityException, TableNotFoundException {
 		log.debug("%%%% doMatlabRangeQueryOnRows %%%%");
 		HashMap<String, Object> rowMap = null;
-
+		D4mDbResultSet results = new D4mDbResultSet();
+                boolean useScanner=true;
 		if(this.rowMap == null) {
 			rowMap =this.processParam(rows);
 			this.rowMap = rowMap;
@@ -626,10 +572,12 @@ public class D4mDbQuery {
 		String[] rowArray = (String[]) rowMap.get("content");
 
 		HashSet<Range> ranges = new HashSet<Range>();
-		if(!this.hasNext) {
+		long start = System.currentTimeMillis();
+		if(this.scannerIter == null) {
+
 			//CloudbaseConnection cbConnection = new CloudbaseConnection(this.connProps);
-			if(this.bscanner == null)
-				this.bscanner = getBatchScanner();//cbConnection.getBatchScanner(this.tableName, this.numberOfThreads);
+			//	if(this.bscanner == null)
+			//cbConnection.getBatchScanner(this.tableName, this.numberOfThreads);
 
 			if (this.getRangeQueryType(rowArray).equals(D4mDbQuery.KEY_RANGE)) {
 				// System.out.println("queryType="+this.KEY_RANGE+
@@ -637,55 +585,87 @@ public class D4mDbQuery {
 				Key startKey = new Key(new Text(rowArray[0]));
 				Key endKey = new Key(new Text(rowArray[2]));
 				//Range range = new Range(startKey, true, endKey.followingKey(1), false);
-				Range range = new Range(startKey, true, endKey.followingKey(PartialKey.ROW), false);
+				//Range range = new Range(startKey, true, endKey.followingKey(PartialKey.ROW), false);
+				Range range = new Range(startKey, true, endKey, true);
+                                if(useScanner) {
+				this.scanner = getScanner();
+				this.scanner.setRange(range);
+				this.scannerIter = this.scanner.iterator();
+				} else {
 				ranges.add(range);
+				this.bscanner = getBatchScanner();
 				bscanner.setRanges(ranges);
+				}
 				// Note; there is a bug in CB 1.1 for ranges including end key,
 				// use "endKey.followingKey(1), false" work around
-			}
-
-			if (this.getRangeQueryType(rowArray).equals(D4mDbQuery.POSITIVE_INFINITY_RANGE)) {
+			} else if (this.getRangeQueryType(rowArray).equals(D4mDbQuery.POSITIVE_INFINITY_RANGE)) {
 				// System.out.println("queryType="+this.POSITIVE_INFINITY_RANGE+
 				// " rowArray[0]="+rowArray[0]);
 				Key startKey = new Key(new Text(rowArray[0]));
 				Range range = new Range(startKey, true, null, true);
-				ranges.add(range);
-				bscanner.setRanges(ranges);
-			}
+				if(useScanner) {
+				this.scanner = getScanner();
+				this.scanner.setRange(range);
+				this.scannerIter = this.scanner.iterator();
 
-			if (this.getRangeQueryType(rowArray).equals(D4mDbQuery.NEGATIVE_INFINITY_RANGE)) {
+				} else {
+                                ranges.add(range);
+				this.bscanner = getBatchScanner();
+				this.bscanner.setRanges(ranges);
+				}
+			}
+			else if (this.getRangeQueryType(rowArray).equals(D4mDbQuery.NEGATIVE_INFINITY_RANGE)) {
 				// System.out.println("queryType="+this.NEGATIVE_INFINITY_RANGE+
 				// " rowArray[0]="+rowArray[0]);
 				Key endKey = new Key(new Text(rowArray[2]));
 				//Range range = new Range(null, true, endKey.followingKey(1), false);
 				Range range = new Range(null, true, endKey.followingKey(PartialKey.ROW), false);
+
+				if(useScanner) {
+          				this.scanner = getScanner();
+				this.scanner.setRange(range);
+				this.scannerIter = this.scanner.iterator();
+
+				}  else {
 				ranges.add(range);
+				this.bscanner = getBatchScanner();
 				bscanner.setRanges(ranges);
+				}
 				// Note; there is a bug in CB 1.1 for ranges including end key,
 				// use "endKey.followingKey(1), false" work around
-			}
-
-			if (this.getRangeQueryType(rowArray).equals(D4mDbQuery.REGEX_RANGE)) {
+			} else if (this.getRangeQueryType(rowArray).equals(D4mDbQuery.REGEX_RANGE)) {
 				// System.out.println("queryType="+this.REGEX_RANGE+
 				// " rowArray[0]="+rowArray[0]);
 				String regexParams = this.regexMapper(rowArray[0]);
-				bscanner.setRowRegex(regexParams);
-				Range range = new Range();
+                                Range range = new Range();			
+   	                        if(useScanner) {
+          			this.scanner = getScanner();
+				this.scanner.setRange(range);
+                        	scanner.setRowRegex(regexParams);			
+				this.scannerIter = this.scanner.iterator();
+
+				} else {
+
 				ranges.add(range);
-				bscanner.setRanges(ranges);
+				this.bscanner = getBatchScanner();
+	bscanner.setRowRegex(regexParams);			
+	bscanner.setRanges(ranges);
+				}
 			}
-		}
 
-		D4mDbResultSet results = new D4mDbResultSet();
-		//ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();
-		long start = System.currentTimeMillis();
-
-		if(this.scannerIter == null) {
-			this.scannerIter = bscanner.iterator();
+			if(this.bscanner != null)
+				this.scannerIter = bscanner.iterator();
 		}
 		String rowKey=null;
+		long startIterate = System.currentTimeMillis();
 		Entry<Key, Value> entry = iterateOverEntries(this.scannerIter);
+		double elapsedIterateStep = ((double)(System.currentTimeMillis() - start))/1000.0;
+		if(log.isDebugEnabled()) {
+			String s= " Iterator step time (sec) = "+Double.toString(elapsedIterateStep);
+			log.info(s);
 
+			System.out.println(s);
+		}
 		//Set the new row key to start next search
 		if(entry != null) {
 			setNewRowKeyInMap(entry.getKey().getRow().toString(), this.rowMap);
@@ -702,6 +682,26 @@ public class D4mDbQuery {
 		this.testResultSet = results;
 		return results;
 	}
+
+    private Iterator<Entry<Key, Value>> makeIterator(Range range)  throws CBException, CBSecurityException, TableNotFoundException {
+	Iterator<Entry<Key, Value>> iter=null;
+       
+	this.scanner = getScanner();
+	this.scanner.setRange(range);
+	iter = this.scanner.iterator();
+	return iter;
+    }
+
+    private Iterator<Entry<Key, Value>> makeIterator( HashSet<Range> ranges, String rowRegex)  throws CBException, CBSecurityException, TableNotFoundException {
+	Iterator<Entry<Key, Value>> iter=null;
+	this.bscanner = getBatchScanner();
+	bscanner.setRanges(ranges);
+	if(rowRegex != null )
+         bscanner.setRowRegex(rowRegex);
+        iter = bscanner.iterator();
+        return iter;
+
+    }
 
 	public D4mDbResultSet doMatlabQueryOnColumns(String rows, String cols, String family, String authorizations) throws CBException, CBSecurityException, TableNotFoundException {
 		this.family = family;
@@ -738,6 +738,13 @@ public class D4mDbQuery {
 		if(this.scannerIter == null)
 			this.scannerIter = scanner.iterator();
 		Entry<Key, Value> entry =null;
+		boolean usePattern=false;
+		if( colArray.length == 3 && colArray[1].equals(":")) {
+			String colRegex = RegExpUtil.makeRegex(colArray);
+			this.pattern = Pattern.compile(colRegex);
+			usePattern = true;
+		}
+
 		while (  (this.hasNext =scannerIter.hasNext())) {
 
 			entry = (Entry<Key, Value>) scannerIter.next();
@@ -746,9 +753,11 @@ public class D4mDbQuery {
 			String finalColumn =  entry.getKey().getColumnQualifier().toString();  //column.replace(this.family, "");
 			String value=null;
 			boolean isGood=false;
-			if( colArray.length == 3 && colArray[1].equals(":")) {
-				String colRegex = RegExpUtil.makeRegex(colArray);
-				isGood = Pattern.matches(colRegex, finalColumn);
+			if(usePattern) {
+				//if( colArray.length == 3 && colArray[1].equals(":")) {
+				//String colRegex = RegExpUtil.makeRegex(colArray);
+				Matcher match = this.pattern.matcher( finalColumn);
+				isGood = match.matches();
 				if(isGood)
 					value = new String(entry.getValue().get());
 			}
@@ -982,18 +991,18 @@ public class D4mDbQuery {
 
 				//	for(String colKey : columnArray) {
 				//	if(!colKey.equals(":")) {
-						String col = colkey.getColumnQualifier().toString();
-						Matcher match = pat.matcher(col);
-						//	boolean isMatching = Pattern.matches(colKey, col);
-						if(match.matches()) {
-							if(buildReturnString(colkey, entry.getValue())) {
-								break;
-							}
-						}
-						//	SearchIt(range,colKey);
-						
-						//					}
-						//}
+				String col = colkey.getColumnQualifier().toString();
+				Matcher match = pat.matcher(col);
+				//	boolean isMatching = Pattern.matches(colKey, col);
+				if(match.matches()) {
+					if(buildReturnString(colkey, entry.getValue())) {
+						break;
+					}
+				}
+				//	SearchIt(range,colKey);
+
+				//					}
+				//}
 			}
 		}
 
@@ -1081,7 +1090,7 @@ public class D4mDbQuery {
 		return entry;
 	}
 
-    private  Entry<Key, Value> iterateOverEntries(Iterator<Entry<Key, Value>> scannerIter, Pattern col) {
+	private  Entry<Key, Value> iterateOverEntries(Iterator<Entry<Key, Value>> scannerIter, Pattern col) {
 		Entry<Key, Value> entry =null;
 		String rowKey = null;
 		int count=0;
@@ -1094,12 +1103,12 @@ public class D4mDbQuery {
 
 				Matcher match = col.matcher(column);
 				if(match.matches()) {
-				//System.out.println(count+"BEFORE_ENTRY="+rowKey+","+column);
-				String value = new String(entry.getValue().get());
-				if(this.buildReturnString(entry.getKey(),rowKey, column, value)) {
-					break;
-				}
-				count++;
+					//System.out.println(count+"BEFORE_ENTRY="+rowKey+","+column);
+					String value = new String(entry.getValue().get());
+					if(this.buildReturnString(entry.getKey(),rowKey, column, value)) {
+						break;
+					}
+					count++;
 				}
 			}
 			else {
@@ -1119,11 +1128,11 @@ public class D4mDbQuery {
 			colRegex = RegExpUtil.makeRegex(columnArray);//"["+colStart1+"-"+colEnd1+"].*";
 			SearchIt(ranges,colRegex);
 		} else {
-		    //for(String colKey : columnArray) {
-		    String colregex = RegExpUtil.makeRegex(columnArray);
-		    Pattern colpat = Pattern.compile(colregex);
-		    	SearchIt(ranges,colpat);
-		    //}
+			//for(String colKey : columnArray) {
+			String colregex = RegExpUtil.makeRegex(columnArray);
+			Pattern colpat = Pattern.compile(colregex);
+			SearchIt(ranges,colpat);
+			//}
 		}
 
 	}
@@ -1178,31 +1187,31 @@ public class D4mDbQuery {
 		Entry<Key, Value> entry =null;
 		String rowKey = null;
 		try {
-		    if(this.scannerIter == null) {
-			if( this.bscanner == null || !this.hasNext) {
-				scanner = getBatchScanner();
-				scanner.setRanges(ranges);
+			if(this.scannerIter == null) {
+				if( this.bscanner == null || !this.hasNext) {
+					scanner = getBatchScanner();
+					scanner.setRanges(ranges);
 
-				//loop over columns
-				//reset column by scanner.clearColumns()s
-				//set new columns fetchColumn(fam,col)
-				//iterate
-				//fill output buffer
-				//scanner.setColumnQualifierRegex(colRegex);
-				String regexName="D4mRegEx";
-				scanner.setScanIterators(1, RegExIterator.class.getName(), regexName);
-				scanner.setScanIteratorOption(regexName, RegExFilter.COLQ_REGEX, col.pattern());
+					//loop over columns
+					//reset column by scanner.clearColumns()s
+					//set new columns fetchColumn(fam,col)
+					//iterate
+					//fill output buffer
+					//scanner.setColumnQualifierRegex(colRegex);
+					String regexName="D4mRegEx";
+					scanner.setScanIterators(1, RegExIterator.class.getName(), regexName);
+					scanner.setScanIteratorOption(regexName, RegExFilter.COLQ_REGEX, col.pattern());
 
-				scanner.fetchColumnFamily(new Text(this.family));
+					scanner.fetchColumnFamily(new Text(this.family));
+				}
+				this.scannerIter = scanner.iterator();
 			}
-	                this.scannerIter = scanner.iterator();
-		    }
-			
-			
+
+
 			//int count=0;
 
-		    //		    iterateOverEntries(this.scannerIter,col);
-		    iterateOverEntries(this.scannerIter);
+			//		    iterateOverEntries(this.scannerIter,col);
+			iterateOverEntries(this.scannerIter);
 
 		} catch (CBException e) {
 			e.printStackTrace();
@@ -1501,6 +1510,7 @@ public class D4mDbQuery {
 		this.cumCount=0;
 		this.rangesList.clear();
 		this.rowKeys = null;
+		this.pattern = null;
 		try {
 			//Close the BatchScanner
 			close();

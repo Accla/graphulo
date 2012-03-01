@@ -6,6 +6,7 @@ package edu.mit.ll.d4m.db.cloud;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -50,6 +51,10 @@ public class CloudbaseQuery implements D4mQueryIF {
     private int count =0; //
     private Iterator<Entry<Key, Value>> scannerIter =null;
     private QueryResultFilter filter = new QueryResultFilter();
+
+    private Scanner scanner = null;
+    private BatchScanner bscanner = null;
+
     /**
      * 
      */
@@ -118,9 +123,16 @@ public class CloudbaseQuery implements D4mQueryIF {
 
        public void getAllData(String rows, String cols, String family, String authorizations) {
 	   if(this.scannerIter == null ) {
-	       Scanner scanner = getScanner();
-	       scanner.setRange(new Range(null));
-	       scanner.fetchColumnFamily(new Text(this.family));
+	       try {
+	       this.scanner = getScanner();
+
+	       } catch (CBSecurityException e) {
+
+	       }  catch (TableNotFoundException e) {
+	       }  catch (CBException e) {
+	       }
+	       this.scanner.setRange(new Range());
+	       this.scanner.fetchColumnFamily(new Text(family));
 	       this.scannerIter = scanner.iterator();
 
 	   }
@@ -131,8 +143,15 @@ public class CloudbaseQuery implements D4mQueryIF {
 	    HashMap<String, Object> rowMap=null;
 	    rowMap = D4mQueryUtil.processParam(rows);
 	    String [] rowsArray = (String[])rowMap.get("content");
-	    ArrayList<Key> rowKeys = D4mQueryUtil.param2keys(rowsArray);
+	    ArrayList<Key> rowKeys = param2keys(rowsArray);
 	    HashMap<String,String> sRowMap = D4mQueryUtil.loadRowMap(rows);
+	    if(this.bscanner == null) {
+		HashSet<Range> ranges = this.loadRanges(rowKeys);
+		scanner = getBatchScanner();//cbConnection.getBatchScanner(this.tableName, this.numberOfThreads);
+		scanner.setRanges(ranges);
+		scanner.fetchColumnFamily(new Text(family));
+		
+	    }
 
 
 	}
@@ -188,7 +207,7 @@ public class CloudbaseQuery implements D4mQueryIF {
 		if(this.limit == 0 || filter.getCount() < this.limit) {
 		    entry = (Entry<Key, Value>) scannerIter.next();
 
-		    rowKey = entry.getKey().getRow().toString();
+		    String rowKey = entry.getKey().getRow().toString();
 		    String column = entry.getKey().getColumnQualifier().toString();
 		    //System.out.println(count+"BEFORE_ENTRY="+rowKey+","+column);
 		    String value = new String(entry.getValue().get());
@@ -228,7 +247,62 @@ public class CloudbaseQuery implements D4mQueryIF {
 	 */
 	@Override
 	public void setLimit(int limit) {
-		// TODO Auto-generated method stub
+	    this.limit = limit;
+
+	}
+	public ArrayList<Key> param2keys(String [] params) {
+		ArrayList<Key> keys = new ArrayList<Key> ();
+		for(String s : params) {
+			if(s.equals(":")) continue;
+			Key k = new Key(s);
+			keys.add(k);
+		}
+		return keys;
+	}
+
+	public HashSet<Range> loadRanges(HashMap<String, String> queryMap) {
+		HashSet<Range> ranges = new HashSet<Range>();
+		Iterator<String> it = queryMap.keySet().iterator();
+		while (it.hasNext()) {
+			String rowId = (String) it.next();
+			//System.out.println("==>>ROW_ID="+rowId+"<<++");
+			if(rowId != null) {
+				Key key = new Key(new Text(rowId));
+				//Range range = new Range(key, true, key.followingKey(1), false);
+				Range range = new Range(key, true, key.followingKey(PartialKey.ROW), false);
+
+
+				ranges.add(range);
+			}
+		}
+		return ranges;
+	}
+	public HashSet<Range> loadRanges(String [] rowsRange) {
+	    //		HashSet<Range> ranges = new HashSet<Range>();
+		//Iterator<String> it = rangeQuery.iterator();
+		//	System.out.println("<<< ROW_ARRAY_LENGTH="+rowsRange.length+" >>>");
+	    ArrayList<Key> rowsList = param2keys(rowsRange);
+	    //int len = rowsRange.length;
+		//for (int i = 0; i < len; i++) {
+	    //	for (String rowId :rowsRange ) {
+	    //		if(rowId != null && !rowId.equals(":")) {
+	    //			Key key = new Key(new Text(rowId));
+	    //			rowsList.add(key);
+				//Range range = new Range(key, true, key.followingKey(1), false);
+				//Range range = new Range(key, true, key.followingKey(PartialKey.ROW), false);
+				//ranges.add(range);
+	    //		}
+	    //		}
+		HashSet<Range> ranges = loadRanges(rowsList);
+		return ranges;
+	}
+	public HashSet<Range> loadRanges(ArrayList<Key> rowsRange) {
+		HashSet<Range> ranges = new HashSet<Range>();
+		for(Key key : rowsRange) {
+			Range range = new Range(key, true, key.followingKey(PartialKey.ROW), false);
+			ranges.add(range);
+		}
+		return ranges;
 
 	}
 

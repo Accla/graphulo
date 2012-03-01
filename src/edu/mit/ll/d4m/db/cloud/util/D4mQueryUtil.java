@@ -4,8 +4,11 @@
 package edu.mit.ll.d4m.db.cloud.util;
 
 import java.util.HashMap;
+import java.util.ArrayList;
 
 import org.apache.log4j.Logger;
+
+import cloudbase.core.data.Key;
 
 import edu.mit.ll.d4m.db.cloud.D4mDbQuery;
 import edu.mit.ll.d4m.db.cloud.QueryMethod;
@@ -63,6 +66,9 @@ public class D4mQueryUtil {
 
 		return dataObj;
 	}
+
+
+
 	public static HashMap<String, String> assocColumnWithRow(String rows, String cols) {
 
 		HashMap<String, Object> rowMap = processParam(rows);

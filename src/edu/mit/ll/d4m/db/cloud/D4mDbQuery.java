@@ -43,12 +43,12 @@ public class D4mDbQuery {
 	public String rowReturnString = "";
 	public String columnReturnString = "";
 	public String valueReturnString = "";
-	public final String newline =   "\n"; // "\n" is necessary for correct parsing. //System.getProperty("line.separator");
+	public static final String newline =   "\n"; // "\n" is necessary for correct parsing. //System.getProperty("line.separator");
 	public boolean doTest = false;
-	private static final String KEY_RANGE = "KEY_RANGE";
-	private static final String REGEX_RANGE = "REGEX_RANGE";
-	private static final String POSITIVE_INFINITY_RANGE = "POSITIVE_INFINITY_RANGE";
-	private static final String NEGATIVE_INFINITY_RANGE = "NEGATIVE_INFINITY_RANGE";
+	public static final String KEY_RANGE = "KEY_RANGE";
+	public static final String REGEX_RANGE = "REGEX_RANGE";
+	public static final String POSITIVE_INFINITY_RANGE = "POSITIVE_INFINITY_RANGE";
+	public static final String NEGATIVE_INFINITY_RANGE = "NEGATIVE_INFINITY_RANGE";
 
 	private ConnectionProperties connProps = new ConnectionProperties();
 	private String family = "";
@@ -397,7 +397,7 @@ public class D4mDbQuery {
 			log.debug("GET_ALL_DATA");
 			return this.getAllData();
 		}
-		if( !rows.startsWith(":") && !rows.equals(":") && (!cols.startsWith(":")) && (!cols.equals(":")) ) {
+		if( (!rows.startsWith(":") && !rows.equals(":") ) && (!cols.startsWith(":")) && (!cols.equals(":")) ) {
 			log.debug("SEARCH_BY_ROW_&_COL");
 			return this.searchByRowAndColumn(rows, cols, null,null);
 		}

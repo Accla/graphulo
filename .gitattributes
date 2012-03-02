@@ -111,3 +111,11 @@ test/edu/mit/ll/d4m/db/cloud/TestD4mDbQuery.java -text
 test/edu/mit/ll/d4m/db/cloud/TestMonitor.java -text
 test/edu/mit/ll/d4m/db/cloud/TestScanner.java -text
 test/edu/mit/ll/d4m/db/cloud/TestTableSplit.java -text
+test/edu/mit/ll/d4m/db/cloud/test/CloudDataLoader.java -text
+test/edu/mit/ll/d4m/db/cloud/test/D4mDbQuerySearchRowAndColTest.java -text
+test/edu/mit/ll/d4m/db/cloud/test/D4mDbQueryTest.java -text
+test/edu/mit/ll/d4m/db/cloud/test/D4mDbQueryTest5.java -text
+test/edu/mit/ll/d4m/db/cloud/test/D4mDbQueryTest6.java -text
+test/edu/mit/ll/d4m/db/cloud/test/D4mDbQueryTest7.java -text
+test/edu/mit/ll/d4m/db/cloud/test/D4mDbQueryTest8.java -text
+test/edu/mit/ll/d4m/db/cloud/test/D4mDbQueryTest9.java -text

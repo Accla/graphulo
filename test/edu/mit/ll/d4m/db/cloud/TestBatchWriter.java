@@ -48,6 +48,11 @@ public class TestBatchWriter {
 
 	static String columnFamily="";
 	static long count=0;
+	
+	
+	public void run() {
+		
+	}
 	/**
 	 * @param args
 	 * @throws CBSecurityException 
@@ -90,7 +95,8 @@ public class TestBatchWriter {
 		long maxLatency = 30l;
 		
 
-		System.out.println("user="+user+", password="+pass+", instance="+instanceName+",zookeeper="+zooKeepers+
+		System.out.println("user="+user+", password="+pass+", instance="+instanceName+
+				", table="+table+",zookeeper="+zooKeepers+
 				", #threads="+numThreads+", col family="+columnFamily+", number of entries"+numEntries+
 				", number of col entries="+numColEntries+", visibility="+visibility);
 		ZooKeeperInstance instance = new ZooKeeperInstance(instanceName, zooKeepers);

@@ -42,6 +42,7 @@ lib/commons-logging-1.0.4.jar -text
 lib/hadoop-0.20.2-core.jar -text
 lib/hadoop-0.20.2-tools.jar -text
 lib/json.jar -text
+lib/junit-4.9.jar -text
 lib/ll-octave4j-1.0.jar -text
 lib/log4j-1.2.15.jar -text
 lib/slf4j-api-1.6.1.jar -text

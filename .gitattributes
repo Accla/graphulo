@@ -121,3 +121,4 @@ test/edu/mit/ll/d4m/db/cloud/test/D4mDbQueryTest6.java -text
 test/edu/mit/ll/d4m/db/cloud/test/D4mDbQueryTest7.java -text
 test/edu/mit/ll/d4m/db/cloud/test/D4mDbQueryTest8.java -text
 test/edu/mit/ll/d4m/db/cloud/test/D4mDbQueryTest9.java -text
+test/edu/mit/ll/d4m/db/cloud/test/D4mQueryTest10.java -text

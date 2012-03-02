@@ -197,6 +197,29 @@
     </junitreport>
   </target>
 
+    <target name="junit-d4mquery10" depends="compile,compile-test">
+    <mkdir dir="${test.reports}"/>
+
+    <junit fork="no" printsummary="yes" haltonfailure="no" showoutput="yes">
+      <jvmarg value="-Dlogging.path=${logging.path}"/>
+      <jvmarg value="-Xms256m"/>
+      <jvmarg value="-Xmx1024m"/>
+      <classpath refid="master_classpath"/>
+      <formatter type="plain"/>
+      <test name="edu.mit.ll.d4m.db.cloud.test.D4mQueryTest10" fork="yes" todir="${test.reports}">
+         <formatter type="plain"/>
+      </test>
+ 
+
+    </junit>
+    <junitreport todir="${test.reports}">
+      <fileset dir="${test.reports}">
+        <include name="TEST-*.txt"/>
+      </fileset>
+      <report todir="${test.reports}"/>
+    </junitreport>
+  </target>
+
 
   <target name="junit-d4mquery-rowcol" depends="compile,compile-test">
     <mkdir dir="${test.reports}"/>

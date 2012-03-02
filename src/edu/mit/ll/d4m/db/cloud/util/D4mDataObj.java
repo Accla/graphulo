@@ -3,6 +3,9 @@
  */
 package edu.mit.ll.d4m.db.cloud.util;
 
+import java.util.ArrayList;
+
+import edu.mit.ll.d4m.db.cloud.D4mDbRow;
 import edu.mit.ll.d4m.db.cloud.QueryMethod;
 /**
  * @author cyee
@@ -15,6 +18,7 @@ public class D4mDataObj {
 	private String colQualifier=null;
 	private String value = null;
 	private QueryMethod method;  //Query switch
+	private ArrayList<D4mDbRow> rowList=null;
 	
 	/**
 	 * 
@@ -60,6 +64,14 @@ public class D4mDataObj {
 
 	public void setMethodName(QueryMethod methodName) {
 		this.method = methodName;
+	}
+
+	public ArrayList<D4mDbRow> getRowList() {
+		return rowList;
+	}
+
+	public void setRowList(ArrayList<D4mDbRow> rowList) {
+		this.rowList = rowList;
 	}
 
 }

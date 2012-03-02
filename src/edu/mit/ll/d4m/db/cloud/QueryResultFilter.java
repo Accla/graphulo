@@ -3,6 +3,7 @@
  */
 package edu.mit.ll.d4m.db.cloud;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -28,24 +29,25 @@ public class QueryResultFilter {
 
 	private String family = null;
 	HashMap<String, Object> objectMap=null;
-	
+
 	HashMap<String,String> stringMap = null;
 
 	private StringBuilder sbRowReturn = new StringBuilder();
 	private StringBuilder sbColumnReturn = new StringBuilder();
 	private StringBuilder sbValueReturn = new StringBuilder();
 
-//	private final String GET_ALL_DATA = "GET_ALL_DATA";
-//	private final String MATLAB_QUERY_ON_COLS = "MATLAB_QUERY_ON_COLS";
-//	private final String MATLAB_RANGE_QUERY_ON_ROWS = "MATLAB_RANGE_QUERY_ON_ROWS";
-//	private final String MATLAB_QUERY_ON_ROWS = "MATLAB_QUERY_ON_ROWS";
-//	private final String SEARCH_BY_ROW_AND_COL = "SEARCH_BY_ROW_AND_COL";
-//	private final String ASSOC_COLUMN_WITH_ROW = "AssocColumnWithRow";
+	//	private final String GET_ALL_DATA = "GET_ALL_DATA";
+	//	private final String MATLAB_QUERY_ON_COLS = "MATLAB_QUERY_ON_COLS";
+	//	private final String MATLAB_RANGE_QUERY_ON_ROWS = "MATLAB_RANGE_QUERY_ON_ROWS";
+	//	private final String MATLAB_QUERY_ON_ROWS = "MATLAB_QUERY_ON_ROWS";
+	//	private final String SEARCH_BY_ROW_AND_COL = "SEARCH_BY_ROW_AND_COL";
+	//	private final String ASSOC_COLUMN_WITH_ROW = "AssocColumnWithRow";
 	private QueryMethod METHOD=QueryMethod.GET_ALL_DATA;
 	private Pattern pattern = null;
 	private Pattern pattern2 = null;
-    private boolean hasData = false;
-    private int count =0;
+	private boolean hasData = false;
+	private int count =0;
+	ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();  //for testing, Set Log level to INFO to trigger
 
 	/**
 	 * 
@@ -55,7 +57,7 @@ public class QueryResultFilter {
 
 	}
 
-    public void init(String rows, String cols, QueryMethod methName) {
+	public void init(String rows, String cols, QueryMethod methName) {
 		reset();
 		this.rows = rows;
 		this.cols = cols;
@@ -63,38 +65,38 @@ public class QueryResultFilter {
 		this.METHOD = methName;
 		switch(this.METHOD) {
 		case GET_ALL_DATA:
-		    
-		    break;
+
+			break;
 		case MATLAB_QUERY_ON_COLS:
-		    setupMatlabQueryOnColumns(rows, cols);
-		    break;
+			setupMatlabQueryOnColumns(rows, cols);
+			break;
 		case MATLAB_RANGE_QUERY_ON_ROWS:
-		    setupMatlabRangeQueryOnRows(rows, cols);
-		    
-		    break;
+			setupMatlabRangeQueryOnRows(rows, cols);
+
+			break;
 		case MATLAB_QUERY_ON_ROWS:
-		    setupMatlabQueryOnRows(rows, cols);
-		    break;
+			setupMatlabQueryOnRows(rows, cols);
+			break;
 		case SEARCH_BY_ROW_AND_COL:
-		    setupSearchByRowAndColumn(rows, cols);
-		    break;
+			setupSearchByRowAndColumn(rows, cols);
+			break;
 		case ASSOC_COLUMN_WITH_ROW:
-		    setupAssocColumnWithRow(rows,cols);
-		    break;
-		    
+			setupAssocColumnWithRow(rows,cols);
+			break;
+
 		default:
-		    break;
-		    
+			break;
+
 		}
-		
 
 
-    }
+
+	}
 	public void init(String rows, String cols) {
-		reset();
+		resetAll();
 		this.rows = rows;
 		this.cols = cols;
-		
+
 		//Determine the type of query - getAllData, matlabQueryOnColumn, MatlabRangeQueryOnRows, MATLAB_QUERY_ON_ROWS, SEARCH_BY_ROW_&_COL
 
 
@@ -126,7 +128,7 @@ public class QueryResultFilter {
 			//return this.getAllData();
 		} else if( !rows.startsWith(":") && !rows.equals(":")
 				&& (!cols.startsWith(":")) && (!cols.equals(":")) ) {
-		
+
 			log.debug("SEARCH_BY_ROW_&_COL");
 			this.METHOD=QueryMethod.SEARCH_BY_ROW_AND_COL;
 			setupSearchByRowAndColumn(rows, cols);
@@ -134,11 +136,11 @@ public class QueryResultFilter {
 			this.METHOD= QueryMethod.ASSOC_COLUMN_WITH_ROW;
 			setupAssocColumnWithRow(rows,cols);
 		}
-		
+
 
 
 	}
-	
+
 	private void setupMatlabRangeQueryOnRows(String rows, String cols) {
 		return;
 	}
@@ -149,7 +151,7 @@ public class QueryResultFilter {
 		this.pattern = Pattern.compile(regex);
 		return;
 	}
-	
+
 	private void setupMatlabQueryOnColumns(String rows, String cols) {
 		this.objectMap = D4mQueryUtil.processParam(cols);
 		String [] contentArray = (String[]) objectMap.get("content");
@@ -161,9 +163,9 @@ public class QueryResultFilter {
 		String [] contentArray2 = (String[]) objectMap2.get("content");
 		String regex2 = RegExpUtil.makeRegex(contentArray2);
 		this.pattern2 = Pattern.compile(regex2);
-		
+
 	}
-	
+
 	private void setupAssocColumnWithRow(String rows, String cols) {
 		HashMap<String, Object> objectMap1=D4mQueryUtil.processParam(rows); 
 		String [] contentArray = (String[]) objectMap1.get("content");
@@ -173,13 +175,13 @@ public class QueryResultFilter {
 		String [] contentArray2 = (String[]) objectMap2.get("content");
 		String regex2 = RegExpUtil.makeRegex(contentArray2);
 		this.pattern2 = Pattern.compile(regex2);
-		
+
 	}
 
 	public void getAllData(D4mDataObj keyObj) {
 		buildStringReturn(keyObj.getRow(), keyObj.getColFamily(),keyObj.getColQualifier(), keyObj.getValue());
 	}
-	
+
 	public void assocColumnWithRow(D4mDataObj keyObj) {
 		String row = keyObj.getRow();
 		String col = keyObj.getColQualifier().replace(keyObj.getColFamily(), "");
@@ -189,7 +191,7 @@ public class QueryResultFilter {
 			buildStringReturn(keyObj.getRow(), keyObj.getColFamily(),keyObj.getColQualifier(), keyObj.getValue());
 		}
 	}
-	
+
 	public void matlabQueryOnCols(D4mDataObj keyObj) {
 		String col = keyObj.getColQualifier();
 		Matcher match = this.pattern.matcher(col);
@@ -197,46 +199,66 @@ public class QueryResultFilter {
 			this.buildStringReturn(keyObj.getRow(), keyObj.getColFamily(), keyObj.getColQualifier(), keyObj.getValue());
 		}
 	}
-	
+
 	public void matlabQueryOnRows(D4mDataObj keyObj) {
 		String rowkey = keyObj.getRow();
 		Matcher match = this.pattern.matcher(rowkey);
 		if(match.matches()) {
 			this.buildStringReturn(rowkey,keyObj.getColFamily(), keyObj.getColQualifier(), keyObj.getValue());
-			
+
 		}
-		
-		
+
+
 	}
 	public void matlabRangeQueryOnRows(D4mDataObj keyObj) {
 		buildStringReturn(keyObj.getRow(), keyObj.getColFamily(),keyObj.getColQualifier(), keyObj.getValue());
 	}
-	
+
 	public void searchByRowAndColumn(D4mDataObj keyObj) {
-	    this.hasData=false;
+		this.hasData=false;
 		Matcher mat = this.pattern2.matcher(keyObj.getColQualifier().replace(keyObj.getColFamily(),""));
 		if(mat.matches()) {
 			buildStringReturn(keyObj.getRow(), keyObj.getColFamily(),keyObj.getColQualifier(), keyObj.getValue());
 			this.hasData=true;
 		}
 	}
-	
+
 	public void buildStringReturn(String rowKey, String family, String columnQualifier, String value) {
 		this.sbRowReturn.append(rowKey + D4mDbQuery.newline);
 		this.sbColumnReturn.append(columnQualifier.replace(family, "") + D4mDbQuery.newline);
 		this.sbValueReturn.append(value + D4mDbQuery.newline);
 		this.hasData=true;
 		this.count++;
+		if(log.isInfoEnabled()) {
+			saveTestResults(rowKey,family, columnQualifier, value);
+		}
+	}
+	private void saveTestResults(String rowKey, String columnFamily, String finalColumn, String value) {
+		D4mDbRow row = new D4mDbRow();
+		row.setRow(rowKey);
+		row.setColumnFamily(columnFamily);
+		row.setColumn(finalColumn);
+		row.setValue(value);
+		this.rowList.add(row);
 	}
 
 	public void reset() {
-		this.pattern = null;
-		this.stringMap =null;
-		this.objectMap = null;
-		
+		//this.pattern = null;
+		//this.stringMap =null;
+		//this.objectMap = null;
+
 		clearBuffers();
 		this.count =0;
 		this.hasData=false;
+	}
+	public void resetAll() {
+
+		this.pattern    = null;
+		this.stringMap  = null;
+		this.objectMap  = null;
+
+		reset();
+
 	}
 	/*
 	 * Clear StringBuffers for reuse
@@ -253,20 +275,20 @@ public class QueryResultFilter {
 			this.sbValueReturn = this.sbValueReturn.delete(0, len);
 
 	}
-	
-    public boolean hasData() {
-	return this.hasData;
-    }
-    public int getCount() {
-	return this.count;
-    }
+
+	public boolean hasData() {
+		return this.hasData;
+	}
+	public int getCount() {
+		return this.count;
+	}
 	/**
 	 * @param key  new result
 	 * @param appendResults  append result to existing results, 
 	 *                       true to append, false to clear the buffer
 	 */
 	public void query(D4mDataObj key, boolean appendResults) {
-	    this.hasData=false;
+		this.hasData=false;
 		if(!appendResults) clearBuffers();
 		switch(this.METHOD)  {
 		case GET_ALL_DATA:
@@ -296,29 +318,38 @@ public class QueryResultFilter {
 	public String getRowResult() {
 		return this.sbRowReturn.toString();
 	}
-    public String getColumnResult() {
+	public String getColumnResult() {
 		return this.sbColumnReturn.toString();
 	}
 	public String getValueResult() {
 		return this.sbValueReturn.toString();
 	}
+
+	public ArrayList<D4mDbRow> getRowList() {
+		return rowList;
+	}
+
+	public void setRowList(ArrayList<D4mDbRow> rowList) {
+		this.rowList = rowList;
+	}
+
 	
-//	public enum QueryMethod {
-//		 GET_ALL_DATA ( "GET_ALL_DATA"),
-//		 MATLAB_QUERY_ON_COLS ("MATLAB_QUERY_ON_COLS"),
-//		 MATLAB_RANGE_QUERY_ON_ROWS ("MATLAB_RANGE_QUERY_ON_ROWS"),
-//		 MATLAB_QUERY_ON_ROWS ("MATLAB_QUERY_ON_ROWS"),
-//		 SEARCH_BY_ROW_AND_COL ( "SEARCH_BY_ROW_AND_COL"),
-//		 ASSOC_COLUMN_WITH_ROW ( "AssocColumnWithRow");
-//
-//		 private String name=null;
-//		 QueryMethod(String name) {
-//			 this.name= name;
-//		 }
-//		 public String getName() {
-//			 return this.name;
-//		 }
-//	}
+	//	public enum QueryMethod {
+	//		 GET_ALL_DATA ( "GET_ALL_DATA"),
+	//		 MATLAB_QUERY_ON_COLS ("MATLAB_QUERY_ON_COLS"),
+	//		 MATLAB_RANGE_QUERY_ON_ROWS ("MATLAB_RANGE_QUERY_ON_ROWS"),
+	//		 MATLAB_QUERY_ON_ROWS ("MATLAB_QUERY_ON_ROWS"),
+	//		 SEARCH_BY_ROW_AND_COL ( "SEARCH_BY_ROW_AND_COL"),
+	//		 ASSOC_COLUMN_WITH_ROW ( "AssocColumnWithRow");
+	//
+	//		 private String name=null;
+	//		 QueryMethod(String name) {
+	//			 this.name= name;
+	//		 }
+	//		 public String getName() {
+	//			 return this.name;
+	//		 }
+	//	}
 }
 /*
  * %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 

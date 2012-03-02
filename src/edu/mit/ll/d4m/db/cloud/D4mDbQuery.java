@@ -30,6 +30,7 @@ import cloudbase.core.iterators.RegExIterator;
 import cloudbase.core.iterators.filter.RegExFilter;
 import edu.mit.ll.cloud.connection.CloudbaseConnection;
 import edu.mit.ll.cloud.connection.ConnectionProperties;
+import edu.mit.ll.d4m.db.cloud.util.D4mDataObj;
 import edu.mit.ll.d4m.db.cloud.util.RegExpUtil;
 
 
@@ -90,6 +91,8 @@ public class D4mDbQuery {
 	private LinkedList<Range> rangesList= new LinkedList<Range>();
 
 	private Pattern pattern=null;
+	
+	private D4mQueryBase d4m=null;
 	public D4mDbQuery() {
 		this.count=0;
 		this.limit=0;
@@ -215,11 +218,24 @@ public class D4mDbQuery {
 		return this.hasNext;
 	}
 	/*
+	 * NextNewMatlabQuery
+	 *     Cloudbase or Accumulo
+	 *  get the next batch of results.
+	 *
 	 * Next method will return the next chunk of data.
 	 * Chunk of data returned is determined by the limit.
 	 * For example, if the limit is set to 100, then it would return 100 results each time NEXT is called.
 	 * 
 	 */
+	public void nextNewMatlabQuery() {
+		this.d4m.next();
+		D4mDataObj data = this.d4m.getResults();
+		this.setRowReturnString(data.getRow());
+		this.setColumnReturnString(data.getColQualifier());
+		this.setValueReturnString(data.getValue());
+
+	}
+
 	public void next() {
 		this.count=0;
 		clearBuffers();
@@ -239,7 +255,7 @@ public class D4mDbQuery {
 		}
 		long end = System.currentTimeMillis();
 		double elapsed = (double)((end - start)/1000);
-		
+
 		if (log.isDebugEnabled()) {
 			log.info("Query elapsed time (sec) = "+elapsed);
 			System.out.println("Query elapsed time (sec) = "+elapsed);
@@ -353,6 +369,19 @@ public class D4mDbQuery {
 		return rangeQueryType;
 	}
 
+	public void doNewMatlabQuery(String rows, String cols, String family, String authorizations) {
+		
+		this.d4m = D4mQueryFactory.create();
+		if(this.d4m instanceof CloudbaseQuery) {
+			
+			log.info("CloudbaseQuery");
+		}
+		this.d4m.setConnProps(connProps);
+		this.d4m.setTableName(tableName);
+		this.d4m.setLimit(limit);
+		this.d4m.doMatlabQuery(rows, cols, family, authorizations);
+		
+	}
 	public D4mDbResultSet doMatlabQuery(String rows, String cols, String family, String authorizations) throws CBException, CBSecurityException, TableNotFoundException {
 		this.family = family;
 		connProps.setAuthorizations(authorizations.split(","));
@@ -362,7 +391,7 @@ public class D4mDbQuery {
 		this.colsQuery = cols;
 		long start = System.currentTimeMillis();
 		D4mDbResultSet results= 
-			doMatlabQuery(rows, cols);
+				doMatlabQuery(rows, cols);
 		long end = System.currentTimeMillis();
 		double elapsed = ((double)(end - start))/1000.0;
 		if(log.isInfoEnabled()) {
@@ -561,7 +590,7 @@ public class D4mDbQuery {
 		log.debug("%%%% doMatlabRangeQueryOnRows %%%%");
 		HashMap<String, Object> rowMap = null;
 		D4mDbResultSet results = new D4mDbResultSet();
-                boolean useScanner=true;
+		boolean useScanner=true;
 		if(this.rowMap == null) {
 			rowMap =this.processParam(rows);
 			this.rowMap = rowMap;
@@ -587,14 +616,14 @@ public class D4mDbQuery {
 				//Range range = new Range(startKey, true, endKey.followingKey(1), false);
 				//Range range = new Range(startKey, true, endKey.followingKey(PartialKey.ROW), false);
 				Range range = new Range(startKey, true, endKey, true);
-                                if(useScanner) {
-				this.scanner = getScanner();
-				this.scanner.setRange(range);
-				this.scannerIter = this.scanner.iterator();
+				if(useScanner) {
+					this.scanner = getScanner();
+					this.scanner.setRange(range);
+					this.scannerIter = this.scanner.iterator();
 				} else {
-				ranges.add(range);
-				this.bscanner = getBatchScanner();
-				bscanner.setRanges(ranges);
+					ranges.add(range);
+					this.bscanner = getBatchScanner();
+					bscanner.setRanges(ranges);
 				}
 				// Note; there is a bug in CB 1.1 for ranges including end key,
 				// use "endKey.followingKey(1), false" work around
@@ -604,14 +633,14 @@ public class D4mDbQuery {
 				Key startKey = new Key(new Text(rowArray[0]));
 				Range range = new Range(startKey, true, null, true);
 				if(useScanner) {
-				this.scanner = getScanner();
-				this.scanner.setRange(range);
-				this.scannerIter = this.scanner.iterator();
+					this.scanner = getScanner();
+					this.scanner.setRange(range);
+					this.scannerIter = this.scanner.iterator();
 
 				} else {
-                                ranges.add(range);
-				this.bscanner = getBatchScanner();
-				this.bscanner.setRanges(ranges);
+					ranges.add(range);
+					this.bscanner = getBatchScanner();
+					this.bscanner.setRanges(ranges);
 				}
 			}
 			else if (this.getRangeQueryType(rowArray).equals(D4mDbQuery.NEGATIVE_INFINITY_RANGE)) {
@@ -622,14 +651,14 @@ public class D4mDbQuery {
 				Range range = new Range(null, true, endKey.followingKey(PartialKey.ROW), false);
 
 				if(useScanner) {
-          				this.scanner = getScanner();
-				this.scanner.setRange(range);
-				this.scannerIter = this.scanner.iterator();
+					this.scanner = getScanner();
+					this.scanner.setRange(range);
+					this.scannerIter = this.scanner.iterator();
 
 				}  else {
-				ranges.add(range);
-				this.bscanner = getBatchScanner();
-				bscanner.setRanges(ranges);
+					ranges.add(range);
+					this.bscanner = getBatchScanner();
+					bscanner.setRanges(ranges);
 				}
 				// Note; there is a bug in CB 1.1 for ranges including end key,
 				// use "endKey.followingKey(1), false" work around
@@ -637,19 +666,19 @@ public class D4mDbQuery {
 				// System.out.println("queryType="+this.REGEX_RANGE+
 				// " rowArray[0]="+rowArray[0]);
 				String regexParams = this.regexMapper(rowArray[0]);
-                                Range range = new Range();			
-   	                        if(useScanner) {
-          			this.scanner = getScanner();
-				this.scanner.setRange(range);
-                        	scanner.setRowRegex(regexParams);			
-				this.scannerIter = this.scanner.iterator();
+				Range range = new Range();			
+				if(useScanner) {
+					this.scanner = getScanner();
+					this.scanner.setRange(range);
+					scanner.setRowRegex(regexParams);			
+					this.scannerIter = this.scanner.iterator();
 
 				} else {
 
-				ranges.add(range);
-				this.bscanner = getBatchScanner();
-	bscanner.setRowRegex(regexParams);			
-	bscanner.setRanges(ranges);
+					ranges.add(range);
+					this.bscanner = getBatchScanner();
+					bscanner.setRowRegex(regexParams);			
+					bscanner.setRanges(ranges);
 				}
 			}
 
@@ -683,25 +712,25 @@ public class D4mDbQuery {
 		return results;
 	}
 
-    private Iterator<Entry<Key, Value>> makeIterator(Range range)  throws CBException, CBSecurityException, TableNotFoundException {
-	Iterator<Entry<Key, Value>> iter=null;
-       
-	this.scanner = getScanner();
-	this.scanner.setRange(range);
-	iter = this.scanner.iterator();
-	return iter;
-    }
+	private Iterator<Entry<Key, Value>> makeIterator(Range range)  throws CBException, CBSecurityException, TableNotFoundException {
+		Iterator<Entry<Key, Value>> iter=null;
 
-    private Iterator<Entry<Key, Value>> makeIterator( HashSet<Range> ranges, String rowRegex)  throws CBException, CBSecurityException, TableNotFoundException {
-	Iterator<Entry<Key, Value>> iter=null;
-	this.bscanner = getBatchScanner();
-	bscanner.setRanges(ranges);
-	if(rowRegex != null )
-         bscanner.setRowRegex(rowRegex);
-        iter = bscanner.iterator();
-        return iter;
+		this.scanner = getScanner();
+		this.scanner.setRange(range);
+		iter = this.scanner.iterator();
+		return iter;
+	}
 
-    }
+	private Iterator<Entry<Key, Value>> makeIterator( HashSet<Range> ranges, String rowRegex)  throws CBException, CBSecurityException, TableNotFoundException {
+		Iterator<Entry<Key, Value>> iter=null;
+		this.bscanner = getBatchScanner();
+		bscanner.setRanges(ranges);
+		if(rowRegex != null )
+			bscanner.setRowRegex(rowRegex);
+		iter = bscanner.iterator();
+		return iter;
+
+	}
 
 	public D4mDbResultSet doMatlabQueryOnColumns(String rows, String cols, String family, String authorizations) throws CBException, CBSecurityException, TableNotFoundException {
 		this.family = family;
@@ -1547,6 +1576,12 @@ public class D4mDbQuery {
 	}
 	public void setTableName(String tableName) {
 		this.tableName = tableName;
+	}
+	public D4mQueryBase getD4m() {
+		return d4m;
+	}
+	public void setD4m(D4mQueryBase d4m) {
+		this.d4m = d4m;
 	}
 }
 /*

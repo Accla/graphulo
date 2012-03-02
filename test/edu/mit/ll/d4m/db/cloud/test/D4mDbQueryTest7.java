@@ -90,8 +90,8 @@ bbb :bbb []    bbb-bbb
 	@After
 	public void tearDown() throws Exception {
 		//Delete table
-		D4mDbTableOperations dbTable = new D4mDbTableOperations(instanceName,host,username,password);
-		dbTable.deleteTable(table);
+//		D4mDbTableOperations dbTable = new D4mDbTableOperations(instanceName,host,username,password);
+//		dbTable.deleteTable(table);
 	}
 
 	/*

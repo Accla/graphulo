@@ -68,4 +68,12 @@ public class RegExpUtil {
 		}
 		return s;
 	}
+	
+	public static String regexMapper(String regex) {
+
+		String charStr = regex.replace("*", "");
+		String reg = "^" + charStr + "*|^" + charStr + ".";
+		return reg;
+	}
+
 }

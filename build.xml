@@ -31,9 +31,16 @@
         <include name="README.txt" />
       </fileset>
     </copy>  	
-    <copy todir="${build.dir}/classes" filtering="true">
+    <copy todir="${build.dir}/classes/" filtering="true">
         <fileset dir="${basedir}/conf">
           <include name="**/log4j.xml"/>
+          <include name="**/*.properties"/>
+          <include name="**/cloudbase-site.xml"/>
+        </fileset>
+    </copy>
+    <copy todir="${build.dir}/classes/" filtering="true">
+        <fileset dir="${basedir}/conf">
+          <include name="**/cloudbase-site.xml"/>
         </fileset>
     </copy>
     <copy todir="${dist.dir}/docs">
@@ -52,14 +59,202 @@
     <javac debug="true" debuglevel="lines,vars,source" compiler="javac1.6" fork="yes" memorymaximumsize="500M" 
       srcdir="${src.dir}" destdir="${build.dir}/classes" classpathref="master_classpath"/>
   </target>
+  <target name="compile-test" depends="init_local">
+    <javac debug="true" debuglevel="lines,vars,source" compiler="javac1.6" fork="yes" memorymaximumsize="500M" 
+      srcdir="${test_src.dir}" destdir="${build.dir}/classes" classpathref="master_classpath"/>
+    <antcall target="build_jar">
+        <param name="jar.name" value="${ant.project.name}-test"/>
+    </antcall>
+  </target>
   
   <target name="build_jar" depends="compile">
-    <jar destfile="${dist.dir}/lib/${ant.project.name}.jar">
+    <property name="jar.name" value="${ant.project.name}"/>
+
+    <jar destfile="${dist.dir}/lib/${jar.name}.jar">
          <fileset dir="${build.dir}/classes"/>
          <fileset file="${dist.dir}/VERSION"/>  
     </jar>
   </target>
 
 	<target name="all" depends="clean, build_jar, build_distribution" description="Build a distribution of the whole software package"/>
-	
+
+  <target name="tar-all" depends="clean, build_jar, get_version" >
+     <tar destfile="${build.dir}/${ant.project.name}_${version_number}.tar.gz">
+          <tarfileset dir="${dist.dir}/bin" filemode="755">
+             <include name="*.sh"/>
+          </tarfileset>
+          <tarfileset dir="${dist.dir}" prefix="${ant.project.name}_${version_number}">
+             <include name="**/**"/>
+          </tarfileset>
+     </tar>
+  </target>	
+
+  <target name="junit_all" depends="compile,compile-test">
+    <mkdir dir="${test.reports}"/>
+
+    <junit fork="no" printsummary="withOutAndErr" haltonfailure="no" showoutput="yes">
+      <jvmarg value="-Dlogging.path=${logging.path}"/>
+      <jvmarg value="-Dtitle=${title}"/>
+      <jvmarg value="-Dlog4j.configuration=${log_4_j_config_file}"/>      
+      <jvmarg value="-Xms256m"/>
+      <jvmarg value="-Xmx1024m"/>
+      <classpath refid="master_classpath"/>
+      <formatter type="plain"/>
+      <batchtest fork="yes" todir="${test.reports}">
+        <fileset dir="${build.dir}/classes">
+           <include name="**/*Test.class"/>
+        </fileset>
+      </batchtest>
+    </junit>
+    <junitreport todir="${test.reports}">
+      <fileset dir="${test.reports}">
+        <include name="TEST-*.txt"/>
+      </fileset>
+      <report todir="${test.reports}"/>
+    </junitreport>
+  </target>
+
+  <target name="junit-d4mquery" depends="compile,compile-test">
+    <mkdir dir="${test.reports}"/>
+
+    <junit fork="no" printsummary="yes" haltonfailure="no" showoutput="yes">
+      <jvmarg value="-Dlogging.path=${logging.path}"/>
+      <jvmarg value="-Xms256m"/>
+      <jvmarg value="-Xmx1024m"/>
+      <classpath refid="master_classpath"/>
+      <formatter type="plain"/>
+      <test name="edu.mit.ll.d4m.db.cloud.test.D4mDbQueryTest" fork="yes" todir="${test.reports}">
+         <formatter type="plain"/>
+      </test>
+      <test name="edu.mit.ll.d4m.db.cloud.test.D4mDbQueryTest5" fork="yes" todir="${test.reports}">
+         <formatter type="plain"/>
+      </test>
+      <test name="edu.mit.ll.d4m.db.cloud.test.D4mDbQueryTest6" fork="yes" todir="${test.reports}">
+         <formatter type="plain"/>
+      </test>
+
+    </junit>
+    <junitreport todir="${test.reports}">
+      <fileset dir="${test.reports}">
+        <include name="TEST-*.txt"/>
+      </fileset>
+      <report todir="${test.reports}"/>
+    </junitreport>
+  </target>
+  <target name="junit-d4mquery7" depends="compile,compile-test">
+    <mkdir dir="${test.reports}"/>
+
+    <junit fork="no" printsummary="yes" haltonfailure="no" showoutput="yes">
+      <jvmarg value="-Dlogging.path=${logging.path}"/>
+      <jvmarg value="-Xms256m"/>
+      <jvmarg value="-Xmx1024m"/>
+      <classpath refid="master_classpath"/>
+      <formatter type="plain"/>
+      <test name="edu.mit.ll.d4m.db.cloud.test.D4mDbQueryTest7" fork="yes" todir="${test.reports}">
+         <formatter type="plain"/>
+      </test>
+<!--       <test name="edu.mit.ll.d4m.db.cloud.test.D4mDbQueryTest5" fork="yes" todir="${test.reports}"> -->
+<!--          <formatter type="plain"/> -->
+<!--       </test> -->
+<!--       <test name="edu.mit.ll.d4m.db.cloud.test.D4mDbQueryTest6" fork="yes" todir="${test.reports}"> -->
+<!--          <formatter type="plain"/> -->
+<!--       </test> -->
+
+    </junit>
+    <junitreport todir="${test.reports}">
+      <fileset dir="${test.reports}">
+        <include name="TEST-*.txt"/>
+      </fileset>
+      <report todir="${test.reports}"/>
+    </junitreport>
+  </target>
+
+  <target name="junit-d4mquery8" depends="compile,compile-test">
+    <mkdir dir="${test.reports}"/>
+
+    <junit fork="no" printsummary="yes" haltonfailure="no" showoutput="yes">
+      <jvmarg value="-Dlogging.path=${logging.path}"/>
+      <jvmarg value="-Xms256m"/>
+      <jvmarg value="-Xmx1024m"/>
+      <classpath refid="master_classpath"/>
+      <formatter type="plain"/>
+      <test name="edu.mit.ll.d4m.db.cloud.test.D4mDbQueryTest8" fork="yes" todir="${test.reports}">
+         <formatter type="plain"/>
+      </test>
+      <test name="edu.mit.ll.d4m.db.cloud.test.D4mDbQueryTest9" fork="yes" todir="${test.reports}">
+         <formatter type="plain"/>
+      </test>
+<!--       <test name="edu.mit.ll.d4m.db.cloud.test.D4mDbQueryTest6" fork="yes" todir="${test.reports}"> -->
+<!--          <formatter type="plain"/> -->
+<!--       </test> -->
+
+    </junit>
+    <junitreport todir="${test.reports}">
+      <fileset dir="${test.reports}">
+        <include name="TEST-*.txt"/>
+      </fileset>
+      <report todir="${test.reports}"/>
+    </junitreport>
+  </target>
+
+
+  <target name="junit-d4mquery-rowcol" depends="compile,compile-test">
+    <mkdir dir="${test.reports}"/>
+
+    <junit fork="no" printsummary="yes" haltonfailure="no" showoutput="yes">
+      <jvmarg value="-Dlogging.path=${logging.path}"/>
+      <jvmarg value="-Xms256m"/>
+      <jvmarg value="-Xmx1024m"/>
+      <classpath refid="master_classpath"/>
+      <formatter type="plain"/>
+      <test name="edu.mit.ll.d4m.db.cloud.test.D4mDbQuerySearchRowAndColTest" fork="yes" todir="${test.reports}">
+         <formatter type="plain"/>
+      </test>
+<!--       <test name="edu.mit.ll.d4m.db.cloud.test.D4mDbQueryTest5" fork="yes" todir="${test.reports}"> -->
+<!--          <formatter type="plain"/> -->
+<!--       </test> -->
+<!--       <test name="edu.mit.ll.d4m.db.cloud.test.D4mDbQueryTest6" fork="yes" todir="${test.reports}"> -->
+<!--          <formatter type="plain"/> -->
+<!--       </test> -->
+
+    </junit>
+    <junitreport todir="${test.reports}">
+      <fileset dir="${test.reports}">
+        <include name="TEST-*.txt"/>
+      </fileset>
+      <report todir="${test.reports}"/>
+    </junitreport>
+  </target>
+
+  <target name="junit-batch-d4mquery" depends="compile,compile-test">
+    <mkdir dir="${test.reports}"/>
+
+    <junit fork="no" printsummary="yes" haltonfailure="no" showoutput="yes">
+      <jvmarg value="-Dlogging.path=${logging.path}"/>
+      <jvmarg value="-Xms256m"/>
+      <jvmarg value="-Xmx1024m"/>
+      <classpath refid="master_classpath"/>
+      <formatter type="plain"/>
+      <batchtest fork="yes" todir="${test.reports}">
+        <fileset dir="${build.dir}/classes">
+           <include name="**/D4mDbQueryTest.class"/>
+           <include name="**/D4mDbQueryTest5.class"/>
+           <include name="**/D4mDbQueryTest6.class"/>
+        </fileset>
+      </batchtest>
+
+
+<!--       <test name="edu.mit.ll.d4m.db.cloud.test.D4mDbQueryTest5" fork="yes" todir="${test.reports}"> -->
+<!--          <formatter type="plain"/> -->
+<!--       </test> -->
+    </junit>
+    <junitreport todir="${test.reports}">
+      <fileset dir="${test.reports}">
+        <include name="TEST-*.txt"/>
+      </fileset>
+      <report todir="${test.reports}"/>
+    </junitreport>
+  </target>
+
+
 </project>

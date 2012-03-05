@@ -109,7 +109,7 @@ public abstract class D4mQueryBase implements D4mQueryIF {
 	 */
 	@Override
 	public D4mDataObj getResults() {
-		if(log.isInfoEnabled()) {
+		if(log.isInfoEnabled() || log.isDebugEnabled()) {
 			results.setRowList(filter.getRowList());
 		}
 		return this.results;

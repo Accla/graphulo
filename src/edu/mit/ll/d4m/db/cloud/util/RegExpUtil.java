@@ -3,6 +3,10 @@
  */
 package edu.mit.ll.d4m.db.cloud.util;
 
+import org.apache.log4j.Logger;
+
+import edu.mit.ll.d4m.db.cloud.QueryResultFilter;
+
 /**
  * RegExpUtil :  Regular expression utility class
  * 
@@ -10,6 +14,7 @@ package edu.mit.ll.d4m.db.cloud.util;
  *
  */
 public class RegExpUtil {
+	private static Logger log = Logger.getLogger(RegExpUtil.class);
 
 	/*
 	 *  str -  String array - eg   a,:,b
@@ -21,6 +26,7 @@ public class RegExpUtil {
 	 */
 	public static String makeRegex(String [] str) {
 		String s="";
+		log.debug("LENGTH OF STR ARRAY = "+str.length);
 		if(str.length == 1) {
 			s=str[0];
 		} else if (str.length == 2) {
@@ -42,14 +48,16 @@ public class RegExpUtil {
 			if( str[1].equals(":")) {
 				String s0 = str[0];
 				String s2 = str[2];
+				log.debug("[0] = "+s0 + " ,[2]="+s2);
 
-				s="^("+str[0]+")|^("+str[2]+").*|";
+				//s="^("+str[0]+")|^("+str[2]+").*|";
+				s="("+str[0]+")|("+str[2]+".*)|";
 				sb.append(s);
 
 				sb.append("^(");
 				sb.append(s0);
 				sb.append(")-(");
-				sb.append(s2);
+				sb.append(s2).append(".");
 				sb.append(")");
 
 //				if(s0.length() > 1 && s2.length() > 1) {

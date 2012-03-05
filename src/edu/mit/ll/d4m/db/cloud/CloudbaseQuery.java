@@ -138,6 +138,7 @@ public class CloudbaseQuery extends D4mQueryBase {
 	}
 	@Override
 	public void doMatlabQueryOnRows(String rows, String cols, String family, String authorizations) {
+		log.debug(" %%%% doMatlabQueryOnRows %%%%");
 		if(scannerIter == null) {
 			//Use BatchScanner
 			HashMap<String, Object> rowMap=null;
@@ -247,6 +248,8 @@ public class CloudbaseQuery extends D4mQueryBase {
 	}
 	@Override
 	public void searchByRowAndOnColumns(String rows, String cols, String family, String authorizations) {
+		log.debug(" <<<< searchByRowAndOnColumns >>>> ");
+
 		HashMap<String, Object> rowMap = null;
 		rowMap = D4mQueryUtil.processParam(rows);
 		HashMap<String, Object> columnMap = null;
@@ -277,6 +280,9 @@ public class CloudbaseQuery extends D4mQueryBase {
 
 		}
 		String colRegex = RegExpUtil.makeRegex(columnArray);
+		Pattern colPattern = Pattern.compile(colRegex);
+		log.debug("COLUMN PATTERN =   "+colPattern.pattern() + "   ===>>>   "+ colRegex);
+
 		if(range != null) {
 
 			try {
@@ -293,17 +299,19 @@ public class CloudbaseQuery extends D4mQueryBase {
 				String regexName="D4mRegEx";
 				try {
 					this.scanner.setScanIterators(1, RegExIterator.class.getName(), regexName);
+					this.scanner.setScanIteratorOption(regexName, RegExFilter.COLQ_REGEX, colRegex);
+
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					log.warn(e);
 				}
-				this.scanner.setScanIteratorOption(regexName, RegExFilter.COLQ_REGEX, colRegex);
 
 			}
 			scanner.fetchColumnFamily(new Text(family));
 			this.scannerIter = scanner.iterator();
 		} else if (ranges != null) {
-			Pattern colPattern = Pattern.compile(colRegex);
+		//	Pattern colPattern = Pattern.compile(colRegex);
+			log.debug("COLUMN PATTERN =   "+colPattern.pattern());
 			try {
 				bscanner = getBatchScanner();
 				bscanner.setRanges(ranges);
@@ -329,6 +337,8 @@ public class CloudbaseQuery extends D4mQueryBase {
 	}
 	@Override
 	public void doAssociateColumnWithRow(String rows, String cols, String family, String authorizations) {
+		log.debug(" <<<< doAssociateColumnWithRow >>>> ");
+
 		HashMap<String, String> rowMap=null;
 		rowMap = D4mQueryUtil.assocColumnWithRow(rows, cols);
 		HashMap<String,Object>objRowMap = D4mQueryUtil.processParam(rows);
@@ -396,8 +406,9 @@ public class CloudbaseQuery extends D4mQueryBase {
 
 				String rowKey = entry.getKey().getRow().toString();
 				String column = entry.getKey().getColumnQualifier().toString();
-				log.info("ENTRY="+rowKey+","+column);
 				String value = new String(entry.getValue().get());
+				log.info("ENTRY="+rowKey+","+column+","+value);
+
 				results.setRow(rowKey);
 				results.setColFamily(entry.getKey().getColumnFamily().toString());
 				results.setColQualifier(column);

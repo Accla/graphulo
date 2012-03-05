@@ -179,10 +179,12 @@ public class QueryResultFilter {
 	}
 
 	public void getAllData(D4mDataObj keyObj) {
+		log.debug("getAllData");
 		buildStringReturn(keyObj.getRow(), keyObj.getColFamily(),keyObj.getColQualifier(), keyObj.getValue());
 	}
 
 	public void assocColumnWithRow(D4mDataObj keyObj) {
+		log.debug("=== assocColumnWithRow ===");
 		String row = keyObj.getRow();
 		String col = keyObj.getColQualifier().replace(keyObj.getColFamily(), "");
 		Matcher mat1 = this.pattern.matcher(row);
@@ -193,6 +195,7 @@ public class QueryResultFilter {
 	}
 
 	public void matlabQueryOnCols(D4mDataObj keyObj) {
+		log.debug("=== matlabQueryOnCols ===");
 		String col = keyObj.getColQualifier();
 		Matcher match = this.pattern.matcher(col);
 		if(match.matches()) {
@@ -201,6 +204,7 @@ public class QueryResultFilter {
 	}
 
 	public void matlabQueryOnRows(D4mDataObj keyObj) {
+		log.debug("=== matlabQueryOnRows ===");
 		String rowkey = keyObj.getRow();
 		Matcher match = this.pattern.matcher(rowkey);
 		if(match.matches()) {
@@ -211,10 +215,12 @@ public class QueryResultFilter {
 
 	}
 	public void matlabRangeQueryOnRows(D4mDataObj keyObj) {
+		log.debug("=== matlabRangeQueryOnRows ===");
 		buildStringReturn(keyObj.getRow(), keyObj.getColFamily(),keyObj.getColQualifier(), keyObj.getValue());
 	}
 
 	public void searchByRowAndColumn(D4mDataObj keyObj) {
+		log.debug("=== searchByRowAndColumn ===");
 		this.hasData=false;
 		Matcher mat = this.pattern2.matcher(keyObj.getColQualifier().replace(keyObj.getColFamily(),""));
 		if(mat.matches()) {
@@ -229,7 +235,7 @@ public class QueryResultFilter {
 		this.sbValueReturn.append(value + D4mDbQuery.newline);
 		this.hasData=true;
 		this.count++;
-		if(log.isInfoEnabled()) {
+		if(log.isInfoEnabled() || log.isDebugEnabled()) {
 			saveTestResults(rowKey,family, columnQualifier, value);
 		}
 	}

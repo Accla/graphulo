@@ -26,7 +26,6 @@ public class RegExpUtil {
 	 */
 	public static String makeRegex(String [] str) {
 		String s="";
-		log.debug("LENGTH OF STR ARRAY = "+str.length);
 		if(str.length == 1) {
 			s=str[0];
 		} else if (str.length == 2) {
@@ -60,13 +59,13 @@ public class RegExpUtil {
 				sb.append(s2).append(".");
 				sb.append(")");
 
-//				if(s0.length() > 1 && s2.length() > 1) {
-//					sb.append("[");
-//					sb.append(s0.substring(1, 2));
-//					sb.append("-");
-//					sb.append(s2.substring(1, 2));
-//					sb.append("]");
-//				}
+				//				if(s0.length() > 1 && s2.length() > 1) {
+				//					sb.append("[");
+				//					sb.append(s0.substring(1, 2));
+				//					sb.append("-");
+				//					sb.append(s2.substring(1, 2));
+				//					sb.append("]");
+				//				}
 			}
 			//sb.append(".*");
 
@@ -74,9 +73,15 @@ public class RegExpUtil {
 			//		sb.append(s);
 			s = sb.toString();
 		}
+
+		if(log.isDebugEnabled()) {
+			log.debug("LENGTH OF STR ARRAY = "+str.length);
+			System.out.println("LENGTH OF STR ARRAY = "+str.length);
+		}
+
 		return s;
 	}
-	
+
 	public static String regexMapper(String regex) {
 
 		String charStr = regex.replace("*", "");

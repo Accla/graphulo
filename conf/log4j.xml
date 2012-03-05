@@ -39,14 +39,20 @@
       </layout>
     </appender>
 
-    <category name="org.apache">
+    <logger name="org.apache">
         <level value="WARN"/>
-    </category>
+    </logger>
+    <logger name="org.apache.zookeeper">
+        <level value="WARN"/>
+    </logger>
 
 
-    <category name="edu.mit.ll.d4m" >  
-		<priority value="INFO" />
-    </category>
+    <logger name="edu.mit.ll.d4m" >  
+        <level value="@log_4_j_threshold@" />
+    </logger>
+    <logger name="cloudbase.core" >  
+        <level value="@log_4_j_threshold@" />
+    </logger>
   
  
     <root>

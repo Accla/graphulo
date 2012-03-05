@@ -371,7 +371,7 @@ public class D4mDbQuery {
 
 	public void doNewMatlabQuery(String rows, String cols, String family, String authorizations) {
 		
-		this.d4m = D4mQueryFactory.create();
+		this.d4m = D4mFactory.create();
 		if(this.d4m instanceof CloudbaseQuery) {
 			
 			log.info("CloudbaseQuery");

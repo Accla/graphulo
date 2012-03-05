@@ -7,7 +7,7 @@
 
 <property>
   <name>fs.default.name</name>
-  <value>hdfs://localhost:9000</value>
+  <value>hdfs://f-2-10.llgrid.ll.mit.edu:9000</value>
 </property>
 
 </configuration>

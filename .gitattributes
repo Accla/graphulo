@@ -95,10 +95,10 @@ src/edu/mit/ll/d4m/db/cloud/D4mDbQuery.java -text
 src/edu/mit/ll/d4m/db/cloud/D4mDbResultSet.java -text
 src/edu/mit/ll/d4m/db/cloud/D4mDbRow.java -text
 src/edu/mit/ll/d4m/db/cloud/D4mDbTableOperations.java -text
+src/edu/mit/ll/d4m/db/cloud/D4mFactory.java -text
 src/edu/mit/ll/d4m/db/cloud/D4mInsertBase.java -text
 src/edu/mit/ll/d4m/db/cloud/D4mInserterIF.java -text
 src/edu/mit/ll/d4m/db/cloud/D4mQueryBase.java -text
-src/edu/mit/ll/d4m/db/cloud/D4mQueryFactory.java -text
 src/edu/mit/ll/d4m/db/cloud/D4mQueryIF.java -text
 src/edu/mit/ll/d4m/db/cloud/QueryMethod.java -text
 src/edu/mit/ll/d4m/db/cloud/QueryResultFilter.java -text

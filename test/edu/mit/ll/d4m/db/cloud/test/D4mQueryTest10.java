@@ -19,7 +19,7 @@ import cloudbase.core.client.TableNotFoundException;
 import edu.mit.ll.d4m.db.cloud.D4mDbInsert;
 import edu.mit.ll.d4m.db.cloud.D4mDbQuery;
 import edu.mit.ll.d4m.db.cloud.D4mDbRow;
-import edu.mit.ll.d4m.db.cloud.D4mQueryFactory;
+import edu.mit.ll.d4m.db.cloud.D4mFactory;
 import edu.mit.ll.d4m.db.cloud.util.D4mDataObj;
 
 /**
@@ -42,7 +42,7 @@ public class D4mQueryTest10 {
 	@Before
 	public void setUp() throws Exception {
 
-		System.setProperty(D4mQueryFactory.PROPERTY_D4M_CLOUD_TYPE,"BigTableLike");
+		System.setProperty(D4mFactory.PROPERTY_D4M_CLOUD_TYPE,"BigTableLike");
 		instanceName               ="cloudbase";
 		host                       = "f-2-6.llgrid.ll.mit.edu:2181";
 		username                   =  "cbuser";

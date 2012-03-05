@@ -8,13 +8,18 @@
       <value>true</value>
       <description>determine whether to scan cache is enabled</description>
    </property>
-
    <property>
       <name>instance.zookeeper.host</name>
-      <value>localhost:2181</value>
+      <value>grp104loaner:2181</value>
 <!--      <value>bullet:2181</value> -->
       <description>Zookeeper server name. A comma-separated list of zookeepers.</description>
    </property>
+
+<!--    <property> -->
+<!--       <name>instance.zookeeper.host</name> -->
+<!--       <value>localhost:2181</value> -->
+<!--       <description>Zookeeper server name. A comma-separated list of zookeepers.</description> -->
+<!--    </property> -->
    <property>
       <name>instance.dfs.dir</name>
       <value>/cloudbase</value>

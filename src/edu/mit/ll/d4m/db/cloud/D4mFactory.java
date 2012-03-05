@@ -12,8 +12,8 @@ import edu.mit.ll.cloud.connection.ConnectionProperties;
  * @author CHV8091
  *
  */
-public class D4mQueryFactory {
-	private static Logger log = Logger.getLogger(D4mQueryFactory.class);
+public class D4mFactory {
+	private static Logger log = Logger.getLogger(D4mFactory.class);
 
 	public static String PROPERTY_D4M_CLOUD_TYPE="d4m.cloud.type";
 	public static String CLOUD_TYPE="BigTableLike"; // BigTableLike or Accumulo
@@ -32,14 +32,14 @@ public class D4mQueryFactory {
 	/**
 	 * 
 	 */
-	public D4mQueryFactory() {
+	public D4mFactory() {
 		// TODO Auto-generated constructor stub
 	}
 	public static D4mQueryBase create()
 	{
 		D4mQueryBase d4m = null;
 		CloudbaseQuery cbd4m=null;
-		ClassLoader loader = D4mQueryFactory.class.getClassLoader();
+		ClassLoader loader = D4mFactory.class.getClassLoader();
 		D4mConfig d4mConfig = D4mConfig.getInstance();
 		CLOUD_TYPE = d4mConfig.getCloudType();
 		try {
@@ -73,7 +73,7 @@ public class D4mQueryFactory {
 		connProp.setHost(host);
 		connProp.setUser(username);
 		connProp.setPass(password);
-		ClassLoader loader = D4mQueryFactory.class.getClassLoader();
+		ClassLoader loader = D4mFactory.class.getClassLoader();
 		try {
 			if(CLOUD_TYPE.equals("BigTableLike")) {
 

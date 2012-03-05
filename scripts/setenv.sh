@@ -9,10 +9,10 @@
 #HADOOP_USER=wi20909
 
 
-HADOOP_HDFS=/home/cr18739
-CLOUDBASE_HOME=/home/cr18739/Cloud/cloudbase-1.1.0-LL
-ZOOKEEPER_HOME=/home/cr18739/Cloud/zookeeper-3.2.2
-HADOOP_HOME=/home/cr18739/Cloud
+HADOOP_HDFS=$HOME/temp/hadoop
+CLOUDBASE_HOME=$HOME/temp/
+ZOOKEEPER_HOME=$HOME/temp/zookeeper-3.3.1
+HADOOP_HOME=$HOME/temp/hadoop-0.20.2
 HADOOP_HOSTNAME=localhost
 HADOOP_USER=cr18739
 #JAVA_HOME=/home/cr18739/java

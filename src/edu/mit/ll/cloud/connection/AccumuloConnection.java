@@ -28,6 +28,8 @@ public class AccumuloConnection {
 	private ZooKeeperInstance instance=null;
 	private Connector connector= null;
 	private Authorizations auth= org.apache.accumulo.core.Constants.NO_AUTHS;
+	public static long maxMemory= 102400L;
+	public static long maxLatency = 30;
 	/**
 	 * 
 	 */
@@ -88,5 +90,9 @@ public class AccumuloConnection {
 		}
 	}
 
+	public boolean tableExist(String tableName) {
+		return connector.tableOperations().exists(tableName);
+		
+	}
 
 }

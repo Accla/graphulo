@@ -1,0 +1,257 @@
+/**
+ * 
+ */
+package edu.mit.ll.d4m.db.cloud;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
+import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
+import org.apache.thrift.TException;
+import org.apache.thrift.transport.TTransportException;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.master.thrift.MasterClientService;
+import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
+import org.apache.accumulo.core.util.ThriftUtil;
+import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
+import edu.mit.ll.cloud.connection.AccumuloConnection;
+import edu.mit.ll.cloud.connection.CloudbaseConnection;
+import edu.mit.ll.cloud.connection.ConnectionProperties;
+
+/**
+ * @author cyee
+ *
+ */
+public class AccumuloTableOperations implements D4mTableOpsIF {
+	private static Logger log = Logger.getLogger(AccumuloTableOperations.class);
+
+	AccumuloConnection connection= null;
+	ConnectionProperties connProp= null;
+
+	/**
+	 * 
+	 */
+	public AccumuloTableOperations() {
+		// TODO Auto-generated constructor stub
+	}
+
+	/* (non-Javadoc)
+	 * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#createTable(java.lang.String)
+	 */
+	@Override
+	public void createTable(String tableName) {
+		this.connection.createTable(tableName);
+	}
+
+	/* (non-Javadoc)
+	 * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#deleteTable(java.lang.String)
+	 */
+	@Override
+	public void deleteTable(String tableName) {
+		this.connection.deleteTable(tableName);
+	}
+
+	/* (non-Javadoc)
+	 * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#splitTable(java.lang.String, java.lang.String)
+	 */
+	@Override
+	public void splitTable(String tableName, String partitions) {
+		String [] pKeys = partitions.split(",");
+		//Make SortedSet
+		TreeSet<Text> set = new TreeSet<Text>();
+
+		for(String pt : pKeys) {
+			Text text = new Text(pt);
+			set.add(text);
+		}
+		this.connection.addSplit(tableName, set);
+
+	}
+
+	/* (non-Javadoc)
+	 * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#getNumberOfEntries(java.util.ArrayList)
+	 */
+	@Override
+	public long getNumberOfEntries(ArrayList<String> tableNames) {
+		long retval=0l;
+
+		//Get TServers
+		try {
+			ArrayList<TabletServerStatus> tserverStatusList = getTabletServers();
+			List<TabletStats> tabletStatsList = getTabletStatsList(tserverStatusList,  tableNames);
+			retval = getNumberOfEntries(tabletStatsList);
+		} catch (ThriftSecurityException e) {
+			// TODO Auto-generated catch block
+			log.warn(e);
+		} catch (TException e) {
+			// TODO Auto-generated catch block
+			log.warn(e);
+		}
+		
+		// Connect to each tserver and get numEntries from each tableName
+		//    Get the TabletStat
+
+		return retval;
+	}
+	private long getNumberOfEntries(List<TabletStats> list) {
+		long retval = 0;
+		for(TabletStats ts: list) {
+			retval += ts.numEntries;
+		}
+		
+		return retval;
+	}
+
+	private ArrayList<TabletServerStatus> getTabletServers() throws ThriftSecurityException, TException {
+		ArrayList<TabletServerStatus> list = new ArrayList<TabletServerStatus>();// list of TServer info
+		MasterClientService.Iface client=null;
+		try {
+			MasterMonitorInfo mmi=null; 
+			client = this.connection.getMasterClient();
+			mmi = client.getMasterStats(null, getAuthInfo());
+
+			list.addAll(mmi.getTServerInfo());
+		} finally {
+			ThriftUtil.returnClient(client);
+		}
+		return list;
+	}
+	private List<TabletStats> getTabletStatsList(List<TabletServerStatus> tserverNames, ArrayList<String> tableNames) {
+		List<TabletStats> tabStatsList=new ArrayList<TabletStats>();
+		
+		for(TabletServerStatus tss: tserverNames) {
+			String tserverName = tss.name;
+			List<TabletStats> tlist = getTabletStatsList(tserverName, tableNames);
+			tabStatsList.addAll(tlist);
+		}
+		return tabStatsList;
+	}
+	/*
+	 * Get numEntries from tserver
+	 */
+	private List<TabletStats> getTabletStatsList(String tserverName, ArrayList<String> tableNames) {
+		long retval=0;
+		MasterClientService.Iface masterClient= null;
+		TabletClientService.Iface tabClient = null;
+		AuthInfo authInfo  = getAuthInfo();
+		List<TabletStats> tabStatsList = new ArrayList<TabletStats>();
+		try {
+			masterClient = this.connection.getMasterClient();
+			tabClient = this.connection.getTabletClient(tserverName);
+			Map<String, String> nameToIdMap = this.connection.getNameToIdMap();
+			
+			for(String tableName : tableNames) {
+				String tableId = nameToIdMap.get(tableName);
+				tabStatsList.addAll(tabClient.getTabletStats(null, authInfo, tableId));
+			}
+			
+		} catch (TTransportException e) {
+			// TODO Auto-generated catch block
+			log.warn(e);
+		} catch (ThriftSecurityException e) {
+			// TODO Auto-generated catch block
+			log.warn(e);
+		} catch (TException e) {
+			// TODO Auto-generated catch block
+			log.warn(e);
+		} finally {
+			ThriftUtil.returnClient(masterClient);
+			ThriftUtil.returnClient(tabClient);
+		}
+
+		
+		return tabStatsList;
+	}
+	/* (non-Javadoc)
+	 * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#setConnProps(edu.mit.ll.cloud.connection.ConnectionProperties)
+	 */
+	@Override
+	public void setConnProps(ConnectionProperties connProp) {
+		this.connProp = connProp;
+
+	}
+
+	/* (non-Javadoc)
+	 * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#setConnProps(java.lang.String, java.lang.String, java.lang.String, java.lang.String)
+	 */
+	@Override
+	public void setConnProps(String instanceName, String host, String username,
+			String password) {
+		this.connProp = new ConnectionProperties();
+		this.connProp.setHost(host);
+		this.connProp.setInstanceName(instanceName);
+		this.connProp.setUser(username);
+		this.connProp.setPass(password);
+	}
+
+	/* (non-Javadoc)
+	 * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#connect()
+	 */
+	@Override
+	public void connect() {
+		this.connection = new AccumuloConnection(connProp);
+	}
+	public AuthInfo getAuthInfo() {
+		String user = this.connProp.getUser();
+		byte [] pw = this.connProp.getPass().getBytes();
+		String instanceId = this.connection.getInstance().getInstanceID();
+		AuthInfo authinfo=new AuthInfo(user, pw, instanceId);
+		return authinfo;
+	}
+	/*
+	 *    private AuthInfo authInfo() throws CBException, TableNotFoundException, CBSecurityException {
+	String user = this.connProps.getUser();
+	byte[] pass = this.connProps.getPass().getBytes();
+	CloudbaseConnection connector = connection();
+	return 	 new AuthInfo(user,pass, connector.getInstanceID());
+
+    }
+
+	 */
+
+	@Override
+	public void splitTable(String tableName, String[] partitions) {
+		TreeSet<Text> tset = new TreeSet<Text>();
+		for(String pt : partitions) {
+			tset.add(new Text(pt));
+		}
+		
+		splitTable(tableName,tset);
+	}
+
+	@Override
+	public void splitTable(String tableName, SortedSet<Text> partitions) {
+		// TODO Auto-generated method stub
+		this.connection.addSplit(tableName, partitions);
+
+	}
+
+	@Override
+	public List<String> getSplits(String tableName) {
+		Collection<Text> splitsColl=null;
+		List<String> list = new ArrayList<String>();
+		try {
+			splitsColl = this.connection.getSplits(tableName);
+			for(Text t: splitsColl) {
+				String s = t.toString();
+				list.add(s);
+			}
+		} catch (TableNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return list;
+	}
+
+}

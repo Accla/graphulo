@@ -24,7 +24,7 @@ import edu.mit.ll.cloud.connection.ConnectionProperties;
  * @author William Smith
  */
 
-public class D4mDbInsert {
+public class D4mDbInsert extends D4mParent {
 
 	private static Logger log = Logger.getLogger(D4mDbInsert.class);
 	private String tableName = "";
@@ -40,6 +40,7 @@ public class D4mDbInsert {
 
 	private ConnectionProperties connProps = new ConnectionProperties();
 
+	private D4mInsertBase d4mInserter=null;
 	/**
 	 * Constructor that may use MasterInstance or ZooKeeperInstance to connect
 	 * to CB.
@@ -55,6 +56,7 @@ public class D4mDbInsert {
 	 */
 	@Deprecated
 	public D4mDbInsert(ConnectionProperties connProps, String tableName, String rows, String cols, String vals) throws CBException, CBSecurityException, TableExistsException {
+	    super();
 		this.tableName = tableName;
 		this.rows = rows;
 		this.cols = cols;
@@ -78,6 +80,7 @@ public class D4mDbInsert {
 	 */
 	@Deprecated
 	public D4mDbInsert(String instanceName, String hostName, String tableName, String username, String password, String rows, String cols, String vals) throws CBException, CBSecurityException, TableExistsException {
+	    super();
 		this.tableName = tableName;
 		this.rows = rows;
 		this.cols = cols;
@@ -100,6 +103,7 @@ public class D4mDbInsert {
 	 * @throws TableExistsException
 	 */
 	public D4mDbInsert(String instanceName, String hostName, String tableName, String username, String password) throws CBException, CBSecurityException, TableExistsException {
+	    super();
 		this.tableName = tableName;
 
 		this.connProps.setHost(hostName);
@@ -120,6 +124,7 @@ public class D4mDbInsert {
 	 * @throws TableExistsException
 	 */
 	public D4mDbInsert(String instanceName, String hostName, String tableName, String username, String password, int numThreads) throws CBException, CBSecurityException, TableExistsException {
+	    super();
 		this.tableName = tableName;
 
 		this.connProps.setHost(hostName);
@@ -155,9 +160,17 @@ public class D4mDbInsert {
 		this.vals = vals;
 		this.family = family;
 		this.visibility = visibility;
-		doProcessing();
+		
+		this.d4mInserter = D4mFactory.createInserter();
+		this.d4mInserter.setConnProps(connProps);
+		this.d4mInserter.setTableName(this.tableName);
+		this.d4mInserter.doProcessing(rows, cols, vals, family, visibility);
+		
+		//
+		//doProcessing();
 	}
 
+	//Insert using Cloudbase
 	private void doProcessing() throws IOException, CBException, CBSecurityException, TableNotFoundException, MutationsRejectedException {
 
 		// this.doLoadTest();
@@ -237,11 +250,8 @@ public class D4mDbInsert {
 			}
 
 		}
-		catch (CBException ex) {
+		catch (Exception ex) {
 			log.warn(ex);
-		}
-		catch (CBSecurityException ex) {
-			log.warn("Security problem", ex);
 		}
 		return exist;
 	}
@@ -275,6 +285,13 @@ public class D4mDbInsert {
 		doProcessing();
 
 	}
+	/*
+	 * Set cloud type - Cloudbase or Accumulo
+	 */
+// 	public void setCloudType(String cloudType) {
+// 		D4mConfig d4mConf = D4mConfig.getInstance();
+// 		d4mConf.setCloudType(cloudType);
+// 	}
 
 	/*
 	 * partitionKey a string or comma-separated list

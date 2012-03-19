@@ -109,7 +109,7 @@ public class CloudbaseQuery extends D4mQueryBase {
 		}
 
 	}
-*/
+	 */
 	/* (non-Javadoc)
 	 * @see edu.mit.ll.d4m.db.cloud.D4mQueryIF#doMatlabQuery(java.lang.String, java.lang.String)
 	 */
@@ -120,7 +120,11 @@ public class CloudbaseQuery extends D4mQueryBase {
 	}
 	@Override
 	public void getAllData(String rows, String cols, String family, String authorizations) {
-		log.debug(" %%%% getAllData %%%%");
+		if(log.isDebugEnabled()) {
+			log.debug(" %%%% getAllData %%%%");
+			//System.out.println(" %%%% getAllData %%%%");
+
+		}
 		if(this.scannerIter == null ) {
 			try {
 				this.scanner = getScanner();
@@ -138,18 +142,24 @@ public class CloudbaseQuery extends D4mQueryBase {
 	}
 	@Override
 	public void doMatlabQueryOnRows(String rows, String cols, String family, String authorizations) {
-		log.debug(" %%%% doMatlabQueryOnRows %%%%");
+		if(log.isDebugEnabled()) {
+			log.debug(" %%%% doMatlabQueryOnRows %%%%");
+			//System.out.println(" %%%% doMatlabQueryOnRows %%%%");
+		}
 		if(scannerIter == null) {
 			//Use BatchScanner
 			HashMap<String, Object> rowMap=null;
 			rowMap = D4mQueryUtil.processParam(rows);
 			String [] rowsArray = (String[])rowMap.get("content");
 			ArrayList<Key> rowKeys = param2keys(rowsArray);
-			HashMap<String,String> sRowMap = D4mQueryUtil.loadRowMap(rows);
-			if(this.bscanner == null) {
-				HashSet<Range> ranges = this.loadRanges(rowKeys);
+			//HashMap<String,String> sRowMap = D4mQueryUtil.loadRowMap(rows);
+		//	if(this.bscanner == null) {
+				//HashSet<Range> ranges = this.loadRanges(rowsArray);
+				//HashSet<Range> ranges = this.loadRanges(rowKeys);
+				Range range = this.loadRange(rowsArray);
 				try {
-					bscanner = getBatchScanner();
+					//bscanner = getBatchScanner();
+					this.scanner = getScanner();
 				} catch (CBException e) {
 					// TODO Auto-generated catch block
 					log.warn(e);
@@ -160,17 +170,37 @@ public class CloudbaseQuery extends D4mQueryBase {
 					// TODO Auto-generated catch block
 					log.warn(e);
 				}//cbConnection.getBatchScanner(this.tableName, this.numberOfThreads);
-				bscanner.setRanges(ranges);
-				bscanner.fetchColumnFamily(new Text(family));
-				this.scannerIter = this.bscanner.iterator();
-			}
+				//bscanner.setRanges(ranges);
+				//bscanner.fetchColumnFamily(new Text(family));
+				//this.scannerIter = this.bscanner.iterator();
+				this.scanner.setRange(range);
+				this.scanner.fetchColumnFamily(new Text(family));
+				this.scannerIter = this.scanner.iterator();
+			//}
 
 
 		}
 	}
+	
+	private Range loadRange(String [] ranges) {
+		Range range =null;
+		if(ranges.length == 1) {
+			range = new Range(ranges[0]);
+		} else if(ranges.length == 2)
+		{
+			range = new Range(ranges[0], ranges[1]);
+		}
+		else {
+			range = new Range();
+		}
+		return range;
+	}
 	@Override
 	public void doMatlabRangeQueryOnRows(String rows, String cols, String family, String authorizations) {
-		log.debug("%%%% doMatlabRangeQueryOnRows %%%%");
+		if(log.isDebugEnabled()) {
+			log.debug("%%%% doMatlabRangeQueryOnRows %%%%");
+			//	System.out.println("%%%% doMatlabRangeQueryOnRows %%%%");
+		}
 		HashMap<String, Object> rowMap = null;
 		String regexParams=null;
 		if (this.scannerIter == null) {
@@ -212,8 +242,20 @@ public class CloudbaseQuery extends D4mQueryBase {
 				log.warn(e);
 			}
 			this.scanner.setRange(range);
-			if(regexParams != null)
-				scanner.setRowRegex(regexParams);	
+			if(regexParams != null) {
+				//scanner.setRowRegex(regexParams);	
+
+				//String regexName="D4mRegEx";
+				//try {
+				//	this.scanner.setScanIterators(1, RegExIterator.class.getName(), regexName);
+				//	this.scanner.setScanIteratorOption(regexName, RegExFilter.ROW_REGEX, regexParams);
+
+				//} catch (IOException e) {
+				//	log.warn(e);
+				//}
+
+
+			}
 			scanner.fetchColumnFamily(new Text(family));
 			this.scannerIter = this.scanner.iterator();
 
@@ -221,7 +263,10 @@ public class CloudbaseQuery extends D4mQueryBase {
 	}
 	@Override
 	public void doMatlabQueryOnColumns(String rows, String cols, String family, String authorizations) {
-		log.debug(" <<<< doMatlabQueryOnColumns >>>> ");
+		if(log.isDebugEnabled()) {
+			log.debug(" <<<< doMatlabQueryOnColumns >>>> ");
+			//System.out.println(" <<<< doMatlabQueryOnColumns >>>> ");
+		}
 		if(this.scannerIter == null) {
 			HashMap<?, ?> rowMap = D4mQueryUtil.loadColumnMap(cols);
 			HashMap<String,Object> objColMap = D4mQueryUtil.processParam(cols);
@@ -239,6 +284,7 @@ public class CloudbaseQuery extends D4mQueryBase {
 				log.warn(e);
 			}
 			Range range =  new Range();
+
 			scanner.setRange(range);
 			scanner.fetchColumnFamily(new Text(family));
 			this.scannerIter = scanner.iterator();
@@ -248,8 +294,10 @@ public class CloudbaseQuery extends D4mQueryBase {
 	}
 	@Override
 	public void searchByRowAndOnColumns(String rows, String cols, String family, String authorizations) {
-		log.debug(" <<<< searchByRowAndOnColumns >>>> ");
-
+		if(log.isDebugEnabled()) {
+			log.debug(" <<<< searchByRowAndOnColumns >>>> ");
+			//System.out.println(" <<<< searchByRowAndOnColumns >>>> ");
+		}
 		HashMap<String, Object> rowMap = null;
 		rowMap = D4mQueryUtil.processParam(rows);
 		HashMap<String, Object> columnMap = null;
@@ -310,13 +358,14 @@ public class CloudbaseQuery extends D4mQueryBase {
 			scanner.fetchColumnFamily(new Text(family));
 			this.scannerIter = scanner.iterator();
 		} else if (ranges != null) {
-		//	Pattern colPattern = Pattern.compile(colRegex);
+			//	Pattern colPattern = Pattern.compile(colRegex);
 			log.debug("COLUMN PATTERN =   "+colPattern.pattern());
 			try {
 				bscanner = getBatchScanner();
 				bscanner.setRanges(ranges);
 				String regexName="D4mRegEx";
-				bscanner.setScanIterators(1, RegExIterator.class.getName(), regexName);
+				String iterClsName=RegExIterator.class.getName();
+				bscanner.setScanIterators(Integer.MAX_VALUE, iterClsName , regexName);
 				bscanner.setScanIteratorOption(regexName, RegExFilter.COLQ_REGEX, colPattern.pattern());
 
 			} catch (CBException e) {
@@ -337,8 +386,10 @@ public class CloudbaseQuery extends D4mQueryBase {
 	}
 	@Override
 	public void doAssociateColumnWithRow(String rows, String cols, String family, String authorizations) {
-		log.debug(" <<<< doAssociateColumnWithRow >>>> ");
-
+		if(log.isDebugEnabled()) {
+			log.debug(" <<<< doAssociateColumnWithRow >>>> ");
+			//	System.out.println(" <<<< doAssociateColumnWithRow >>>> ");
+		}
 		HashMap<String, String> rowMap=null;
 		rowMap = D4mQueryUtil.assocColumnWithRow(rows, cols);
 		HashMap<String,Object>objRowMap = D4mQueryUtil.processParam(rows);
@@ -398,35 +449,53 @@ public class CloudbaseQuery extends D4mQueryBase {
 	 */
 	@Override
 	public void next() {
+		filter.reset();
+
 		Entry<Key, Value> entry =null;
-
+		int cnt=0;
+		log.debug("MY LIMIT = "+this.limit);
 		while(scannerIter.hasNext()) {
-			if(this.limit == 0 || filter.getCount() < this.limit) {
+			log.debug("I am in the loop");
+			if(super.limit == 0 || filter.getCount() < super.limit) {
 				entry = (Entry<Key, Value>) scannerIter.next();
+				if(entry != null) {
+					Key key = entry.getKey();
+					if(key != null) {
+						Text tRow = entry.getKey().getRow();
+						if(tRow != null) {
+							String rowKey = tRow.toString();
+							String column = entry.getKey().getColumnQualifier().toString();
+							String family = entry.getKey().getColumnFamily().toString();
+							String value = new String(entry.getValue().get());
+							log.info("ENTRY="+rowKey+","+column+","+value);
 
-				String rowKey = entry.getKey().getRow().toString();
-				String column = entry.getKey().getColumnQualifier().toString();
-				String value = new String(entry.getValue().get());
-				log.info("ENTRY="+rowKey+","+column+","+value);
-
-				results.setRow(rowKey);
-				results.setColFamily(entry.getKey().getColumnFamily().toString());
-				results.setColQualifier(column);
-				results.setValue(value);
-				filter.query(results,true);
+							results.setRow(rowKey);
+							results.setColFamily(entry.getKey().getColumnFamily().toString());
+							results.setColQualifier(column.replace(family, ""));
+							results.setValue(value);
+							filter.query(results,true);
+						}
+					} else {
+						break;
+					}
+				}
 
 			} else {
-
 				//		if(this.limit != 0 && filter.getCount() >= this.limit) {
 				break;
 			}
+			//cnt++;
+			//if(cnt > filter.getCount() && (System.currentTimeMillis() - filter.getTimeLastUpdated()) > D4mConfig.TIME_THRESHOLD) break;
+
+			//log.info("Looping "+cnt);
 		}
 
 		results.setRow(filter.getRowResult());
 		results.setColQualifier(filter.getColumnResult());
 		results.setValue(filter.getValueResult());
-		filter.reset();
-
+		results.setRowList(filter.getRowList());
+		super.totalCount += filter.getCount();
+		log.debug("***** END NEXT() **************************");
 	}
 
 	/* (non-Javadoc)
@@ -476,27 +545,29 @@ public class CloudbaseQuery extends D4mQueryBase {
 		return ranges;
 	}
 	public HashSet<Range> loadRanges(String [] rowsRange) {
-		//		HashSet<Range> ranges = new HashSet<Range>();
+		HashSet<Range> ranges = new HashSet<Range>();
 		//Iterator<String> it = rangeQuery.iterator();
 		//	System.out.println("<<< ROW_ARRAY_LENGTH="+rowsRange.length+" >>>");
-		ArrayList<Key> rowsList = param2keys(rowsRange);
+		//		ArrayList<Key> rowsList = param2keys(rowsRange);
 		//int len = rowsRange.length;
 		//for (int i = 0; i < len; i++) {
-		//	for (String rowId :rowsRange ) {
-		//		if(rowId != null && !rowId.equals(":")) {
-		//			Key key = new Key(new Text(rowId));
-		//			rowsList.add(key);
-		//Range range = new Range(key, true, key.followingKey(1), false);
-		//Range range = new Range(key, true, key.followingKey(PartialKey.ROW), false);
-		//ranges.add(range);
-		//		}
-		//		}
-		HashSet<Range> ranges = loadRanges(rowsList);
+		for (String rowId :rowsRange ) {
+			if(rowId != null && !rowId.equals(":")) {
+				//			Key key = new Key(new Text(rowId));
+				//			rowsList.add(key);
+				//Range range = new Range(key, true, key.followingKey(1), false);
+				//Range range = new Range(key, true, key.followingKey(PartialKey.ROW), false);
+				Range range = new Range(rowId);
+				ranges.add(range);
+			}
+		}
+		//		HashSet<Range> ranges = loadRanges(rowsList);
 		return ranges;
 	}
 	public HashSet<Range> loadRanges(ArrayList<Key> rowsRange) {
 		HashSet<Range> ranges = new HashSet<Range>();
 		for(Key key : rowsRange) {
+			//Range range = new Range(key,true,key,false);
 			Range range = new Range(key, true, key.followingKey(PartialKey.ROW), false);
 			ranges.add(range);
 		}
@@ -509,10 +580,12 @@ public class CloudbaseQuery extends D4mQueryBase {
 
 		if(this.bscanner != null) {
 			this.bscanner.close();
+			this.bscanner = null;
 		}
 		if(this.scanner != null) {
 			this.scanner.clearColumns();
 			this.scanner.clearScanIterators();
+			this.scanner = null;
 		}
 	}
 }

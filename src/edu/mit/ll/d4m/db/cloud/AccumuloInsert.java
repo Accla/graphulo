@@ -27,7 +27,9 @@ public class AccumuloInsert extends D4mInsertBase {
 
 	String[] rowsArr=null;
 
-	
+	public AccumuloInsert() {
+		super();
+	}
 	/**
 	 * @param instanceName
 	 * @param hostName
@@ -47,7 +49,7 @@ public class AccumuloInsert extends D4mInsertBase {
 	@Override
 	public void doProcessing() {
 		//Create table
-		
+		createTable();
 		//Build mutations and sort
 		makeMutations();
 		//Add mutation

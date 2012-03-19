@@ -14,12 +14,13 @@ import edu.mit.ll.d4m.db.cloud.QueryMethod;
 public class D4mDataObj {
 
 	private String row=null;
-	private String colFamily=null;
+	private String colFamily="";
 	private String colQualifier=null;
 	private String value = null;
-	private QueryMethod method;  //Query switch
+	private QueryMethod queryMethod;  //Query switch
 	private ArrayList<D4mDbRow> rowList=null;
-	
+	private double queryTime = 0; // seconds, elapsed time to execute query
+
 	/**
 	 * 
 	 */
@@ -58,12 +59,12 @@ public class D4mDataObj {
 		this.value = value;
 	}
 
-	public QueryMethod getMethod() {
-		return method;
+	public QueryMethod getQueryMethod() {
+		return queryMethod;
 	}
 
-	public void setMethodName(QueryMethod methodName) {
-		this.method = methodName;
+	public void setQueryMethod(QueryMethod methodName) {
+		this.queryMethod = methodName;
 	}
 
 	public ArrayList<D4mDbRow> getRowList() {
@@ -74,4 +75,17 @@ public class D4mDataObj {
 		this.rowList = rowList;
 	}
 
+	public String toString() {
+		String s = "QUERY_METHOD:"+this.queryMethod+", ROW=["+
+		this.row+"], FAMILY=["+this.colFamily+"], QUALIFIER=["+this.colQualifier+"], VALUE=["+this.value+"]";
+		return s;
+	}
+
+	public double getQueryTime() {
+		return queryTime;
+	}
+
+	public void setQueryTime(double queryTime) {
+		this.queryTime = queryTime;
+	}
 }

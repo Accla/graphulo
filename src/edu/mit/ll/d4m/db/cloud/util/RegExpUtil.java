@@ -49,16 +49,35 @@ public class RegExpUtil {
 				String s2 = str[2];
 				log.debug("[0] = "+s0 + " ,[2]="+s2);
 
-				//s="^("+str[0]+")|^("+str[2]+").*|";
-				s="("+str[0]+")|("+str[2]+".*)|";
+				s="^"+str[0]+"|^"+str[2]+".*";
+				//s="("+str[0]+")|("+str[2]+".*)|";
 				sb.append(s);
 
-				sb.append("^(");
-				sb.append(s0);
-				sb.append(")-(");
-				sb.append(s2).append(".");
-				sb.append(")");
-
+                                if(s0.length() >= 1) {
+				   sb.append("|").append("^[");
+				   sb.append(s0.substring(0,1)).append("");
+                                     if(s2.length() >= 1) {
+                                         sb.append("-").append(s2.substring(0,1));
+                                     } 
+                                     sb.append("]");
+                                     if(s0.length() > 1) {
+                                        int len0 = s0.length();
+                                        sb.append("(").append(s0.substring(1)).append(")");
+                                     }
+                                     if(s2.length() > 1) {
+                                        sb.append("(").append(s2.substring(1)).append(")");
+                                     }
+                                }
+				//sb.append("-");
+				//sb.append("(").append(s2).append(")].");
+				//if(s0.length() > 1)
+				//	sb.append("*(").append(s0.substring(1)).append(")");
+				//if(s0.length() > 1 && s2.length() > 1) {
+				//	sb.append("|");//.append(s2.substring(1)).append(")");
+				//}  
+				//if(s2.length() > 1) {
+			//		sb.append("*(").append(s2.substring(1)).append(")");
+			//	}
 				//				if(s0.length() > 1 && s2.length() > 1) {
 				//					sb.append("[");
 				//					sb.append(s0.substring(1, 2));
@@ -66,7 +85,11 @@ public class RegExpUtil {
 				//					sb.append(s2.substring(1, 2));
 				//					sb.append("]");
 				//				}
-			}
+			} else {
+                              sb.append(str[0]).append("|");
+                              sb.append(str[1]).append("|");
+                              sb.append(str[2]);
+                        }
 			//sb.append(".*");
 
 			//		s="|^("+str[0]+")|^("+str[2]+").*";
@@ -75,8 +98,8 @@ public class RegExpUtil {
 		}
 
 		if(log.isDebugEnabled()) {
-			log.debug("LENGTH OF STR ARRAY = "+str.length);
-			System.out.println("LENGTH OF STR ARRAY = "+str.length);
+			log.debug("LENGTH OF STR ARRAY = "+str.length+ ",   "+s);
+			//System.out.println("LENGTH OF STR ARRAY = "+str.length+ ",   "+s);
 		}
 
 		return s;

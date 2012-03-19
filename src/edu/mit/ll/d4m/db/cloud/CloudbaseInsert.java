@@ -28,6 +28,9 @@ public class CloudbaseInsert extends D4mInsertBase {
 	private static Logger log = Logger.getLogger(CloudbaseInsert.class);
 	String[] rowsArr=null;
 
+	public CloudbaseInsert() {
+		super();
+	}
 	/**
 	 * @param instanceName
 	 * @param hostName
@@ -48,6 +51,7 @@ public class CloudbaseInsert extends D4mInsertBase {
 	public void doProcessing()  {
 		// TODO Auto-generated method stub
 		//	Create the table
+		long start = System.currentTimeMillis();
 		try {
 			this.createTable();
 			makeMutations();
@@ -62,7 +66,8 @@ public class CloudbaseInsert extends D4mInsertBase {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
+		long end = System.currentTimeMillis();
+		log.debug("Insert elapsed time (sec) = "+((double)(end-start))/1000.0);
 		//Sort the mutations
 
 		//Add mutations
@@ -83,6 +88,9 @@ public class CloudbaseInsert extends D4mInsertBase {
 	public boolean doesTableExistFromMetadata(String tableName) {
 		boolean exist = false;
 		D4mDbInfo info = new D4mDbInfo(this.connProps);
+		D4mConfig d4mConfig = D4mConfig.getInstance();
+		String cloudType = d4mConfig.getCloudType();
+		info.setCloudType(cloudType);
 		String tableNames = "";
 		try {
 			tableNames = info.getTableList();
@@ -91,11 +99,8 @@ public class CloudbaseInsert extends D4mInsertBase {
 			}
 
 		}
-		catch (CBException ex) {
+		catch (Exception ex) {
 			log.warn(ex);
-		}
-		catch (CBSecurityException ex) {
-			log.warn("Security problem", ex);
 		}
 		return exist;
 	}
@@ -113,8 +118,8 @@ public class CloudbaseInsert extends D4mInsertBase {
 
 		for (int i = 0; i < rowsArr.length; i++) {
 
-			String thisRow = rowsArr[i];
-			String thisCol = colsArr[i];
+			String thisRow = rowsArr[i].trim();
+			String thisCol = colsArr[i].trim();
 			String thisVal = valsArr[i];
 			Mutation m=null;
 			Text column = new Text(thisCol);
@@ -138,7 +143,7 @@ public class CloudbaseInsert extends D4mInsertBase {
 
 		for (int i = 0; i < rowsArr.length; i++) {
 
-			String thisRow = rowsArr[i];
+			String thisRow = rowsArr[i].trim();
 			Mutation m = (Mutation)mutSorter.get(thisRow);
 			batchWriter.addMutation(m);
 		}

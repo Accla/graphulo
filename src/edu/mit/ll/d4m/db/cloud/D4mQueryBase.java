@@ -20,6 +20,7 @@ import edu.mit.ll.d4m.db.cloud.util.D4mQueryUtil;
  *
  */
 public abstract class D4mQueryBase implements D4mQueryIF {
+	private static final String ME="D4mQueryBase";
 	private static Logger log = Logger.getLogger(D4mQueryBase.class);
 
 	protected D4mDataObj query=null;
@@ -29,6 +30,7 @@ public abstract class D4mQueryBase implements D4mQueryIF {
 	protected String tableName=null;
 	protected int limit =0; //limit number of results returned.
 	protected int count =0; //
+	protected int totalCount=0;
 	protected int numberOfThreads = 50;
 	protected QueryResultFilter filter = new QueryResultFilter();
 
@@ -42,6 +44,7 @@ public abstract class D4mQueryBase implements D4mQueryIF {
 	 * 
 	 */
 	public D4mQueryBase(String instanceName, String host, String table, String username, String password) {
+		super();
 		this.tableName = table;
 		this.connProps.setHost(host);
 		this.connProps.setInstanceName(instanceName);
@@ -49,6 +52,15 @@ public abstract class D4mQueryBase implements D4mQueryIF {
 		this.connProps.setPass(password);
 
 	}
+	
+	abstract public void getAllData(String rows, String cols, String family, String authorizations);
+	abstract public void doMatlabQueryOnRows(String rows, String cols, String family, String authorizations) ;
+	abstract public void doMatlabRangeQueryOnRows(String rows, String cols, String family, String authorizations);
+	abstract public void doMatlabQueryOnColumns(String rows, String cols, String family, String authorizations) ;
+	abstract public void searchByRowAndOnColumns(String rows, String cols, String family, String authorizations);
+	abstract public void doAssociateColumnWithRow(String rows, String cols, String family, String authorizations);
+	abstract public void clear();
+
 
 	/* (non-Javadoc)
 	 * @see edu.mit.ll.d4m.db.cloud.D4mQueryIF#doMatlabQuery(java.lang.String, java.lang.String, java.lang.String, java.lang.String)
@@ -58,16 +70,22 @@ public abstract class D4mQueryBase implements D4mQueryIF {
 			String authorizations) {
 		clear();
 		query = D4mQueryUtil.whatQueryMethod(rows, cols);
+		results.setQueryMethod(query.getQueryMethod());
 		//	query = D4mQueryUtil.whatQueryMethod(rows, cols);
+		if(log.isDebugEnabled()) {
+			String message = "++++++++++++++++++++++\n"+ME+"::: QUERY = ( "+rows+","+cols+" )\n"+query.toString();
+			log.debug(message);
+		//	System.out.println(message);
+		}
 
 		if(family != null && family.length() >  0)
 			query.setColFamily(family);
 
-		filter.init(query.getRow(), query.getColQualifier(), query.getMethod());
+		filter.init(query.getRow(), query.getColQualifier(), query.getQueryMethod());
 		if(authorizations != null && authorizations.length() > 0)
 			this.connProps.setAuthorizations(authorizations.split(","));
 
-		switch(query.getMethod()) {
+		switch(query.getQueryMethod()) {
 		case GET_ALL_DATA:
 			getAllData(rows,cols,family,authorizations);
 			break;
@@ -109,7 +127,7 @@ public abstract class D4mQueryBase implements D4mQueryIF {
 	 */
 	@Override
 	public D4mDataObj getResults() {
-		if(log.isInfoEnabled() || log.isDebugEnabled()) {
+		if(D4mConfig.DEBUG) {
 			results.setRowList(filter.getRowList());
 		}
 		return this.results;
@@ -128,18 +146,13 @@ public abstract class D4mQueryBase implements D4mQueryIF {
 	 * @see edu.mit.ll.d4m.db.cloud.D4mQueryIF#next()
 	 */
 	@Override
-	public void next() {
-		// TODO Auto-generated method stub
-
-	}
+	abstract public void next() ;
 
 	/* (non-Javadoc)
 	 * @see edu.mit.ll.d4m.db.cloud.D4mQueryIF#hasNext()
 	 */
 	@Override
-	public boolean hasNext() {
-		return false;
-	}
+	abstract public boolean hasNext();
 
 	/* (non-Javadoc)
 	 * @see edu.mit.ll.d4m.db.cloud.D4mQueryIF#setLimit(int)
@@ -150,13 +163,6 @@ public abstract class D4mQueryBase implements D4mQueryIF {
 
 	}
 
-	abstract public void getAllData(String rows, String cols, String family, String authorizations);
-	abstract public void doMatlabQueryOnRows(String rows, String cols, String family, String authorizations) ;
-	abstract public void doMatlabRangeQueryOnRows(String rows, String cols, String family, String authorizations);
-	abstract public void doMatlabQueryOnColumns(String rows, String cols, String family, String authorizations) ;
-	abstract public void searchByRowAndOnColumns(String rows, String cols, String family, String authorizations);
-	abstract public void doAssociateColumnWithRow(String rows, String cols, String family, String authorizations);
-	abstract public void clear();
 	public int getCount() {
 		return this.count;
 	}
@@ -177,4 +183,28 @@ public abstract class D4mQueryBase implements D4mQueryIF {
 		this.tableName = tableName;
 	}
 
+	public int getLimit() {
+		return limit;
+	}
+
+	public void setCount(int count) {
+		this.count = count;
+	}
+
+	public int getTotalCount() {
+		return totalCount;
+	}
+
+	public void setTotalCount(int totalCount) {
+		this.totalCount = totalCount;
+	}
+
 }
+/*
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% D4M: Dynamic Distributed Dimensional Data Model
+% MIT Lincoln Laboratory
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% (c) <2010> Massachusetts Institute of Technology
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+*/

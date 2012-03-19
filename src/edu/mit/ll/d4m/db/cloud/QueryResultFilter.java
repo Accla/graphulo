@@ -22,6 +22,7 @@ import edu.mit.ll.d4m.db.cloud.util.RegExpUtil;
  *
  */
 public class QueryResultFilter {
+	private static String ME="QueryResultFilter";
 	private static Logger log = Logger.getLogger(QueryResultFilter.class);
 
 	private String rows = null;
@@ -29,6 +30,7 @@ public class QueryResultFilter {
 
 	private String family = null;
 	HashMap<String, Object> objectMap=null;
+	HashMap<String, Object> colObjectMap=null;
 
 	HashMap<String,String> stringMap = null;
 
@@ -48,7 +50,7 @@ public class QueryResultFilter {
 	private boolean hasData = false;
 	private int count =0;
 	ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();  //for testing, Set Log level to INFO to trigger
-
+	long timeLastUpdated = -1l;
 	/**
 	 * 
 	 */
@@ -137,6 +139,11 @@ public class QueryResultFilter {
 			setupAssocColumnWithRow(rows,cols);
 		}
 
+		if(log.isDebugEnabled()) {
+			String message="^*^*QUERY_METHOD="+this.METHOD.toString();
+			log.debug(message);
+			System.out.println(message);
+		}
 
 
 	}
@@ -159,8 +166,8 @@ public class QueryResultFilter {
 		this.pattern = Pattern.compile(regex);
 	}
 	private void setupSearchByRowAndColumn(String rows, String cols) {
-		HashMap<String, Object> objectMap2=D4mQueryUtil.processParam(cols); 
-		String [] contentArray2 = (String[]) objectMap2.get("content");
+		objectMap=D4mQueryUtil.processParam(cols); 
+		String [] contentArray2 = (String[]) objectMap.get("content");
 		String regex2 = RegExpUtil.makeRegex(contentArray2);
 		this.pattern2 = Pattern.compile(regex2);
 
@@ -198,15 +205,41 @@ public class QueryResultFilter {
 		log.debug("=== matlabQueryOnCols ===");
 		String col = keyObj.getColQualifier();
 		Matcher match = this.pattern.matcher(col);
+		if(log.isDebugEnabled()) {
+			//System.out.println(ME+" === matlabQueryOnCols ===");
+
+//			System.out.println(ME+"  COL = "+col + " to match PATTERN="+this.pattern.pattern());
+		}
+
+
 		if(match.matches()) {
 			this.buildStringReturn(keyObj.getRow(), keyObj.getColFamily(), keyObj.getColQualifier(), keyObj.getValue());
+		} else {
+			String [] contentArray = (String[]) objectMap.get("content");
+			if(D4mQueryUtil.isWithInRange(col, contentArray)) {
+			
+				//if(col.compareTo(contentArray[0]) > 0 && col.compareTo(contentArray[2]) < 0) {
+					this.buildStringReturn(keyObj.getRow(),
+							keyObj.getColFamily(), 
+							keyObj.getColQualifier(),
+							keyObj.getValue());
+			
+				//}
 		}
+		}
+
 	}
 
 	public void matlabQueryOnRows(D4mDataObj keyObj) {
-		log.debug("=== matlabQueryOnRows ===");
 		String rowkey = keyObj.getRow();
+		if(log.isDebugEnabled()) {
+			log.debug("=== matlabQueryOnRows ===");
+			//System.out.println(ME+" === matlabQueryOnRows ===");
+		//	System.out.println(ME+"  ROW_KEY = "+rowkey + " to match PATTERN="+this.pattern.pattern());
+		}
+
 		Matcher match = this.pattern.matcher(rowkey);
+		log.debug("MATCH RESULT="+keyObj+" <---> PATTERN ="+pattern.pattern());
 		if(match.matches()) {
 			this.buildStringReturn(rowkey,keyObj.getColFamily(), keyObj.getColQualifier(), keyObj.getValue());
 
@@ -222,10 +255,20 @@ public class QueryResultFilter {
 	public void searchByRowAndColumn(D4mDataObj keyObj) {
 		log.debug("=== searchByRowAndColumn ===");
 		this.hasData=false;
-		Matcher mat = this.pattern2.matcher(keyObj.getColQualifier().replace(keyObj.getColFamily(),""));
+		String col = keyObj.getColQualifier().replace(keyObj.getColFamily(),"");
+		Matcher mat = this.pattern2.matcher(col);
 		if(mat.matches()) {
 			buildStringReturn(keyObj.getRow(), keyObj.getColFamily(),keyObj.getColQualifier(), keyObj.getValue());
 			this.hasData=true;
+		} else {
+			String [] contentArray = (String[]) objectMap.get("content");
+			if(D4mQueryUtil.isWithInRange(col, contentArray)) {
+				buildStringReturn(keyObj.getRow(), 
+						keyObj.getColFamily(),
+						keyObj.getColQualifier(),
+						keyObj.getValue());
+
+			}
 		}
 	}
 
@@ -235,7 +278,8 @@ public class QueryResultFilter {
 		this.sbValueReturn.append(value + D4mDbQuery.newline);
 		this.hasData=true;
 		this.count++;
-		if(log.isInfoEnabled() || log.isDebugEnabled()) {
+		this.timeLastUpdated = System.currentTimeMillis();
+		if(D4mConfig.DEBUG) {
 			saveTestResults(rowKey,family, columnQualifier, value);
 		}
 	}
@@ -252,10 +296,11 @@ public class QueryResultFilter {
 		//this.pattern = null;
 		//this.stringMap =null;
 		//this.objectMap = null;
-
+		this.rowList.clear();
 		clearBuffers();
 		this.count =0;
 		this.hasData=false;
+		this.timeLastUpdated = System.currentTimeMillis();
 	}
 	public void resetAll() {
 
@@ -296,6 +341,11 @@ public class QueryResultFilter {
 	public void query(D4mDataObj key, boolean appendResults) {
 		this.hasData=false;
 		if(!appendResults) clearBuffers();
+
+		if(log.isDebugEnabled()) {
+			log.debug(" INCOMING RESULT TO CHECK === "+key.toString());
+			//System.out.println(" INCOMING RESULT TO CHECK === "+key.toString());
+		}
 		switch(this.METHOD)  {
 		case GET_ALL_DATA:
 			getAllData(key);
@@ -319,6 +369,9 @@ public class QueryResultFilter {
 			break;
 		}
 
+		if(log.isDebugEnabled()) {
+		//	System.out.println(this.count+")  ROW RESULTS IN S-BUFFER => "+this.getRowResult());
+		}
 	}
 
 	public String getRowResult() {
@@ -339,7 +392,15 @@ public class QueryResultFilter {
 		this.rowList = rowList;
 	}
 
-	
+	public long getTimeLastUpdated() {
+		return timeLastUpdated;
+	}
+
+	public void setTimeLastUpdated(long timeLastUpdated) {
+		this.timeLastUpdated = timeLastUpdated;
+	}
+
+
 	//	public enum QueryMethod {
 	//		 GET_ALL_DATA ( "GET_ALL_DATA"),
 	//		 MATLAB_QUERY_ON_COLS ("MATLAB_QUERY_ON_COLS"),

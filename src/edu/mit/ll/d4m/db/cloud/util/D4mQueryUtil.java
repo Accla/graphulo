@@ -21,6 +21,10 @@ import edu.mit.ll.d4m.db.cloud.QueryMethod;
 public class D4mQueryUtil {
 
 	private static Logger log = Logger.getLogger(D4mQueryUtil.class);
+	public static final String KEY_RANGE = "KEY_RANGE";
+	public static final String REGEX_RANGE = "REGEX_RANGE";
+	public static final String POSITIVE_INFINITY_RANGE = "POSITIVE_INFINITY_RANGE";
+	public static final String NEGATIVE_INFINITY_RANGE = "NEGATIVE_INFINITY_RANGE";
 
 
 	public static D4mDataObj whatQueryMethod (String rows, String cols) {
@@ -37,29 +41,29 @@ public class D4mQueryUtil {
 			// System.out.println("this.isRangeQuery(paramContent)="+this.isRangeQuery(paramContent));
 			if (isRangeQuery(paramContent)) {
 				log.debug("MATLAB_RANGE_QUERY_ON_ROWS");
-				dataObj.setMethodName(QueryMethod.MATLAB_RANGE_QUERY_ON_ROWS);
+				dataObj.setQueryMethod(QueryMethod.MATLAB_RANGE_QUERY_ON_ROWS);
 				//return this.doMatlabRangeQueryOnRows(rows, cols);
 			}
 			else {
 				log.debug("MATLAB_QUERY_ON_ROWS");
-				dataObj.setMethodName(QueryMethod.MATLAB_QUERY_ON_ROWS);
+				dataObj.setQueryMethod(QueryMethod.MATLAB_QUERY_ON_ROWS);
 				//				return this.doMatlabQueryOnRows(rows, cols);
 			}
 		} else if ((rows.equals(":")) && (!cols.equals(":"))) {
 			log.debug("MATLAB_QUERY_ON_COLS");
-			dataObj.setMethodName(QueryMethod.MATLAB_QUERY_ON_COLS);
+			dataObj.setQueryMethod(QueryMethod.MATLAB_QUERY_ON_COLS);
 			//			return this.doMatlabQueryOnColumns(rows, cols);
 		} else if ((rows.equals(":")) && (cols.equals(":"))) {
 			log.debug("GET_ALL_DATA");
-			dataObj.setMethodName(QueryMethod.GET_ALL_DATA);
+			dataObj.setQueryMethod(QueryMethod.GET_ALL_DATA);
 			//		return this.getAllData();
 		} else if( (!rows.startsWith(":") && !rows.equals(":") ) && (!cols.startsWith(":")) && (!cols.equals(":")) ) {
 			log.debug("SEARCH_BY_ROW_&_COL");
-			dataObj.setMethodName(QueryMethod.SEARCH_BY_ROW_AND_COL);
+			dataObj.setQueryMethod(QueryMethod.SEARCH_BY_ROW_AND_COL);
 			//	return this.searchByRowAndColumn(rows, cols, null,null);
 		} else {
 			//AssocColumnWithRow
-			dataObj.setMethodName(QueryMethod.ASSOC_COLUMN_WITH_ROW);
+			dataObj.setQueryMethod(QueryMethod.ASSOC_COLUMN_WITH_ROW);
 
 		}
 
@@ -191,4 +195,12 @@ public class D4mQueryUtil {
 		return map;
 	}
 
+	public static boolean isWithInRange(String key, String [] rangeCriteria) {
+		boolean isInRange = false;
+		
+		if(rangeCriteria.length == 3 && rangeCriteria[1].equals(":")) {
+			isInRange = (key.compareTo(rangeCriteria[0]) > 0 && key.compareTo(rangeCriteria[2]) < 0);
+		}
+		return isInRange;
+	}
 }

@@ -122,6 +122,16 @@ public class CloudbaseConnection {
         this.connector.tableOperations().addSplits(tableName, sortedSet);
     }
 
+    public void splitTable(String tableName, SortedSet<Text> partitionKeys) throws CBException, CBSecurityException, TableNotFoundException {
+
+//    	SortedSet<Text> sortedSet = new TreeSet<Text>();
+//    	for(String partitionKey:partitionKeys) {
+//    	    Text text = new Text(partitionKey);
+//    	    sortedSet.add(text);
+//    	}
+            this.connector.tableOperations().addSplits(tableName, partitionKeys);
+        }
+
 	public Scanner getScanner() throws TableNotFoundException, CBException, CBSecurityException {
 		Scanner scanner = connector.createScanner(this.tableName, this.authorizations);
 		return scanner;

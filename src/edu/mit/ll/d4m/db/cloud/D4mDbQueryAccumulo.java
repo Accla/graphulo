@@ -30,6 +30,7 @@ import org.apache.accumulo.core.iterators.RegExIterator;
 import org.apache.accumulo.core.iterators.filter.RegExFilter;
 import edu.mit.ll.cloud.connection.AccumuloConnection;
 import edu.mit.ll.cloud.connection.ConnectionProperties;
+import edu.mit.ll.d4m.db.cloud.util.CompareUtil;
 import edu.mit.ll.d4m.db.cloud.util.D4mDataObj;
 import edu.mit.ll.d4m.db.cloud.util.RegExpUtil;
 
@@ -39,7 +40,7 @@ import edu.mit.ll.d4m.db.cloud.util.RegExpUtil;
  */
 public class D4mDbQueryAccumulo extends D4mParentQuery {
 	private static Logger log = Logger.getLogger(D4mDbQueryAccumulo.class);
-//	private String tableName = "";
+	//	private String tableName = "";
 	private int numberOfThreads = 50;
 	public String rowReturnString = "";
 	public String columnReturnString = "";
@@ -51,9 +52,9 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	private static final String POSITIVE_INFINITY_RANGE = "POSITIVE_INFINITY_RANGE";
 	private static final String NEGATIVE_INFINITY_RANGE = "NEGATIVE_INFINITY_RANGE";
 
-//	private ConnectionProperties connProps = new ConnectionProperties();
+	//	private ConnectionProperties connProps = new ConnectionProperties();
 	private String family = "";
-//	private int limit=0; // number of elements (column)
+	//	private int limit=0; // number of elements (column)
 	private int numRows=0; //number of rows
 	private int count=0;
 	private long cumCount=0; //cumulative count of results retrieved
@@ -89,10 +90,12 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	private boolean getNext = true;
 	private int index = 0;
 	private LinkedList<Range> rangesList= new LinkedList<Range>();
+	private CompareUtil compareUtil=null;
 	//private ConcurrentLinkedQueue <Entry<Key, Value>> dataQue=new ConcurrentLinkedQueue<Entry<Key,Value>>();
 	public D4mDbQueryAccumulo() {
+		super();
 		this.count=0;
-		this.limit=0;
+		//this.limit=0;
 		this.cumCount = 0;
 	}
 	/**
@@ -131,7 +134,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		this.getAllData = true;
 		this.methodName="getAllData";
 		D4mDbResultSet results = new D4mDbResultSet();
-		if(!this.hasNext || this.scannerIter == null) {
+		if(this.scannerIter == null) {
 			Scanner scanner = getScanner(); //cbConnection.getScanner(tableName);
 			if(this.startRange == null) {
 				//			this.startKey = new Key();
@@ -170,14 +173,14 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	private boolean buildReturnString(String rowKey,  String column, String value) {
 		boolean isDone=false;
 
-		if(limit == 0 || this.count < this.limit) {
+		if(super.limit == 0 || this.count < super.limit) {
 			log.debug("  +++ ROW="+rowKey+",COL="+column+",VAL="+value+" +++");
 			this.sbRowReturn.append(rowKey + newline);
 			this.sbColumnReturn.append(column.replace(this.family, "") + newline);
 			this.sbValueReturn.append(value + newline);
 			this.count++;
 			this.cumCount++;
-			if(this.limit > 0 && this.count == this.limit) {
+			if(super.limit > 0 && this.count == super.limit) {
 				isDone=true;
 			}
 		} else  {
@@ -211,6 +214,9 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	}
 
 	public boolean hasNext() {
+		if(this.scannerIter != null) {
+			this.hasNext = this.scannerIter.hasNext();
+		}
 		return this.hasNext;
 	}
 	/*
@@ -223,7 +229,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		this.count=0;
 		clearBuffers();
 		try {
-			if(this.hasNext) {
+			if(hasNext()) {
 				if(this.getAllData) {
 					getAllData();
 				}
@@ -367,7 +373,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	}
 
 	public D4mDbResultSet doMatlabQuery(String rows, String cols, String family, String authorizations) throws D4mException {
-	//throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+		//throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 		this.family = family;
 		if(authorizations != null && authorizations.length() > 0)
 			connProps.setAuthorizations(authorizations.split(","));
@@ -378,19 +384,18 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		try {
 			this.testResultSet = doMatlabQuery(rows, cols);
 		} catch (AccumuloException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			throw new D4mException(e);
 		} catch (AccumuloSecurityException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			throw new D4mException(e);
 		} catch (TableNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			throw new D4mException(e);
+		} catch (NullPointerException e) {
+			throw new D4mException("NULLPOINTER =  rows ="+rows+", cols="+cols+"\n"+e.toString());
 		}
-		
+
 		return this.testResultSet;
 	}
 
@@ -436,16 +441,18 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		HashMap<String, String> rowMap = this.rowStringMap;
 
 		D4mDbResultSet results = new D4mDbResultSet();
-		HashSet<Range> ranges = this.loadRanges(this.rowKeys);
-		BatchScanner scanner =  getBatchScanner(); // cbConnection.getBatchScanner(this.tableName, this.numberOfThreads);
-		scanner.fetchColumnFamily(new Text(this.family));
-		scanner.setRanges(ranges);
-
 		long start = System.currentTimeMillis();
 
+		if(this.scannerIter == null) {
+			HashSet<Range> ranges = this.loadRanges(this.rowKeys);
+			BatchScanner scanner =  getBatchScanner(); // cbConnection.getBatchScanner(this.tableName, this.numberOfThreads);
+			scanner.fetchColumnFamily(new Text(this.family));
+			scanner.setRanges(ranges);
+			scannerIter = scanner.iterator();
+		}
 		Entry<Key, Value> entry = null;
 		String rowKey = null;
-		Iterator<Entry<Key, Value>> scannerIter = scanner.iterator();
+
 		while ((this.count < this.limit)||(this.hasNext=scannerIter.hasNext())) {
 			entry = (Entry<Key, Value>) scannerIter.next();
 			rowKey = entry.getKey().getRow().toString();
@@ -735,27 +742,45 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 
 
 		String [] colArray = (String []) objColMap.get("content");
+		compareUtil = new CompareUtil(colArray);
+
 		log.debug("LENGTH_OF_COL_ARRAY = "+colArray.length);
 		D4mDbResultSet results = new D4mDbResultSet();
-		Scanner scanner = null;
-		if(this.scanner == null) {
-			scanner = getScanner();//cbConnection.getScanner(tableName);
-			if( this.startKey != null)
-			{
-				//Set the range to start search
-				this.startRange = new Range(this.startKey,null);
-				scanner.setRange(startRange);
-			} else {
-				this.startRange =  new Range();//new Range(this.startKey,null);
-				scanner.setRange(startRange);
-			}
-			scanner.fetchColumnFamily(new Text(this.family));
-		}
-
 		long start = System.currentTimeMillis();
 
-		if(this.scannerIter == null)
+		if(this.scannerIter == null) {
+
+			//Scanner scanner = null;
+			//	if(this.scanner == null) {
+			scanner = getScanner();//cbConnection.getScanner(tableName);
+			//if( this.startKey != null)
+			//{
+			//Set the range to start search
+			//	this.startRange = new Range(this.startKey,null);
+			//	scanner.setRange(startRange);
+			//} else {
+			this.startRange =  new Range();//new Range(this.startKey,null);
+			scanner.setRange(startRange);
+			//}
+			String regexName="D4mRegEx";
+			try {
+				this.scanner.setScanIterators(1, RegExIterator.class.getName(), regexName);
+				this.scanner.setScanIteratorOption(regexName, RegExFilter.COLQ_REGEX, compareUtil.getPattern().pattern());
+
+			} catch (IOException e) {
+				log.warn("Bad REGEX ="+ compareUtil.getPattern().pattern(),e);
+				e.printStackTrace();
+			}
+
+			scanner.fetchColumnFamily(new Text(this.family));
+			//	}
+
+
+
 			this.scannerIter = scanner.iterator();
+		}
+
+		/*
 		Entry<Key, Value> entry =null;
 		while (  (this.hasNext =scannerIter.hasNext())) {
 
@@ -765,26 +790,17 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 			String finalColumn =  entry.getKey().getColumnQualifier().toString();  //column.replace(this.family, "");
 			String value=null;
 			boolean isGood=false;
-			if( colArray.length == 3 && colArray[1].equals(":")) {
-				String colRegex = RegExpUtil.makeRegex(colArray);
-				isGood = Pattern.matches(colRegex, finalColumn);
-				if(isGood)
-					value = new String(entry.getValue().get());
-			}
-			else {
-				if (rowMap.containsValue(finalColumn)) {
-					value = new String(entry.getValue().get());
-					isGood= true;
-				}
-			}
-			if(isGood)
+			isGood = compareUtil.compareIt(finalColumn.replace(this.family, ""));
+			if(isGood) {
+				value = new String(entry.getValue().get());
 				if(this.buildReturnString(entry.getKey(),rowKey, finalColumn, value)) {
 					break;
 				}
+			}
 
 		}
-
-
+		 */
+		iterateOverEntries(this.scannerIter, this.compareUtil);
 		this.setRowReturnString(sbRowReturn.toString());
 		this.setColumnReturnString(sbColumnReturn.toString());
 		this.setValueReturnString(sbValueReturn.toString());
@@ -829,7 +845,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	 *  Get batchscanner
 	 */
 	public D4mDbResultSet searchByRowAndColumn(String rows, String cols, String family, String authorizations)  {
-		boolean useBatchSearch=false;
+		//boolean useBatchSearch=false;
 		clearBuffers();
 		D4mDbResultSet results = null;
 		HashMap<String, Object> rowMap = null;
@@ -886,14 +902,19 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 			if(rowArray[1].equals(":")) {
 				rowkey1 = rowArray[0];
 				rowkey2 = rowArray[length-1];
-			} else if( rowArray[(length-1)].equals(":")) {
-				rowkey1 = rowArray[0];
-				rowkey2 = rowArray[1];
+				log.debug("3__RANGE__"+rowkey1+","+rowkey2);
+				range = makeRange(rowkey1, rowkey2);
+				SearchIt(range,columnArray);
+				rowArrayGood = true;
+
+			} 
+			else {//else if( rowArray[(length-1)].equals(":")) {
+				//rowkey1 = rowArray[0];
+				//rowkey2 = rowArray[1];
+				ranges = loadRanges(rowArray);
+				SearchIt(ranges,columnArray);
+				rowArrayGood = true;
 			}
-			log.debug("3__RANGE__"+rowkey1+","+rowkey2);
-			range = makeRange(rowkey1, rowkey2);
-			SearchIt(range,columnArray);
-			rowArrayGood = true;
 		}
 		if(!rowArrayGood || length > 3) {
 			System.out.println("Currently, we cannot handle more than 3 arguments for row key and column key");
@@ -916,7 +937,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		this.testResultSet = results;
 		return results;
 	}
-
+	/*
 	public D4mDbResultSet batchSearchByRowAndColumn(HashMap<String, Object> rowMap,HashMap<String, Object> columnMap ,
 			String family, String authorizations)  {
 		clearBuffers();
@@ -979,15 +1000,19 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		this.testResultSet = results;
 		return results;
 	}
-
+	 */
 	private void SearchIt(Range range, String [] columnArray) {
 		String colRegex = RegExpUtil.makeRegex(columnArray);
+		if(compareUtil == null) {
+			this.compareUtil = new CompareUtil(columnArray);
+		}
 		if(columnArray.length == 3 && columnArray[1].equals(":")) {
 			String colStart1 = columnArray[0].substring(0, 1);
 			String colEnd1 = columnArray[2].substring(0,1);
 			//colRegex = RegExpUtil.makeRegex(columnArray);//"^["+colStart1+"-"+colEnd1+"].*";
 			log.debug("COLUMN REGEX="+colRegex);
 			SearchIt(range,colRegex);
+			//SearchIt(range,this.compareUtil);
 		} else {
 
 			if(this.scannerIter == null)
@@ -1051,9 +1076,9 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 				this.scanner = getScanner();
 				this.scanner.setRange(range);
 				//Setup regular expression
-				String regexName="D4mRegEx";
-				this.scanner.setScanIterators(1, RegExIterator.class.getName(), regexName);
-				this.scanner.setScanIteratorOption(regexName, RegExFilter.COLQ_REGEX, colRegex);
+				//String regexName="D4mRegEx";
+				//this.scanner.setScanIterators(1, RegExIterator.class.getName(), regexName);
+				//this.scanner.setScanIteratorOption(regexName, RegExFilter.COLQ_REGEX, colRegex);
 				//scanner.setColumnQualifierRegex(colRegex);
 				scanner.fetchColumnFamily(new Text(this.family));
 
@@ -1063,16 +1088,47 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 				e.printStackTrace();
 			} catch (TableNotFoundException e) {
 				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			} 
+			//catch (IOException e) {
+			//	e.printStackTrace();
+			//}
 		}
 
 		//setup query, set range
 		if(this.scannerIter == null) {
 			this.scannerIter = this.scanner.iterator();
 		}
-		iterateOverEntries(this.scannerIter);
+
+		iterateOverEntries(this.scannerIter, this.compareUtil);
+	}
+	private  Entry<Key, Value> iterateOverEntries(Iterator<Entry<Key, Value>> scannerIter, CompareUtil compUtil) {
+		Entry<Key, Value> entry =null;
+		String rowKey = null;
+		int count=0;
+		while ((this.hasNext =scannerIter.hasNext())) {
+			if(this.limit == 0 || this.count < this.limit) {
+				entry = (Entry<Key, Value>) scannerIter.next();
+				this.startKey = entry.getKey();
+				rowKey = entry.getKey().getRow().toString();
+				String column = entry.getKey().getColumnQualifier().toString();
+				//System.out.println(count+"BEFORE_ENTRY="+rowKey+","+column);
+				//String value = new String(entry.getValue().get());
+				boolean isGood = compUtil.compareIt(column.replace(this.family, ""));
+				if(isGood) {
+					String value = new String(entry.getValue().get());
+					if(this.buildReturnString(entry.getKey(),rowKey, column, value)) {
+						break;
+					}
+
+					count++;
+				}
+			}
+			else {
+				break;
+			}
+		}
+		log.debug("Number of entries = "+count);
+		return entry;
 	}
 
 	private  Entry<Key, Value> iterateOverEntries(Iterator<Entry<Key, Value>> scannerIter) {
@@ -1100,6 +1156,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		return entry;
 	}
 
+	/*
 	private  Entry<Key, Value> iterateOverEntries(Iterator<Entry<Key, Value>> scannerIter, Pattern col) {
 		Entry<Key, Value> entry =null;
 		String rowKey = null;
@@ -1128,28 +1185,53 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		log.debug("Number of entries = "+count);
 		return entry;
 	}
-
+	 */
 
 	private void SearchIt(HashSet<Range> ranges, String [] columnArray) {
-		String colRegex = "";
+		//String colRegex = "";
+		if(compareUtil == null) {
+			this.compareUtil = new CompareUtil(columnArray);
+		}
+
 		if(columnArray.length == 3 && columnArray[1].equals(":")) {
-			String colStart1 = columnArray[0].substring(0, 1);
-			String colEnd1 = columnArray[2].substring(0,1);
-			colRegex = RegExpUtil.makeRegex(columnArray);//"["+colStart1+"-"+colEnd1+"].*";
-			SearchIt(ranges,colRegex);
+			//String colStart1 = columnArray[0].substring(0, 1);
+			//String colEnd1 = columnArray[2].substring(0,1);
+			//colRegex = RegExpUtil.makeRegex(columnArray);//"["+colStart1+"-"+colEnd1+"].*";
+			SearchIt(ranges,this.compareUtil);
 		} else {
 			//for(String colKey : columnArray) {
 			String colregex = RegExpUtil.makeRegex(columnArray);
 			Pattern colpat = Pattern.compile(colregex);
 			SearchIt(ranges,colpat);
 			//}
-	}
+		}
 
 	}
 
+	private void SearchIt(HashSet<Range> ranges, CompareUtil compUtil) {
+		if(this.scannerIter == null) {
+			try {
+				this.bscanner = getBatchScanner();
+				this.bscanner.setRanges(ranges);
+				bscanner.fetchColumnFamily(new Text(this.family));
+
+				this.scannerIter = bscanner.iterator();
+			} catch (AccumuloException e) {
+				e.printStackTrace();
+			} catch (AccumuloSecurityException e) {
+				e.printStackTrace();
+			} catch (TableNotFoundException e) {
+				e.printStackTrace();
+			}
+
+		}
+		iterateOverEntries(this.scannerIter, compUtil);
+
+
+	}
 	private void SearchIt(HashSet<Range> ranges, String col) {
 		BatchScanner scanner = null;
-		Entry<Key, Value> entry =null;
+		//		Entry<Key, Value> entry =null;
 		String rowKey = null;
 		try {
 			if( this.bscanner == null || !this.hasNext) {
@@ -1327,13 +1409,13 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		System.out.println("####ValueReturnString=" + query.getValueReturnString());
 	}
 
-//	public int getLimit() {
-//		return this.limit;
-//	}
-//
-//	public void setLimit(int limit) {
-//		this.limit = limit;
-//	}
+	//	public int getLimit() {
+	//		return this.limit;
+	//	}
+	//
+	//	public void setLimit(int limit) {
+	//		this.limit = limit;
+	//	}
 
 	public HashMap<String, Object> processParam(String param) {
 		HashMap<String, Object> map = new HashMap<String, Object>();
@@ -1521,6 +1603,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		this.cumCount=0;
 		this.rangesList.clear();
 		this.rowKeys = null;
+		this.compareUtil = null;
 		try {
 			//Close the BatchScanner
 			close();

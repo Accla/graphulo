@@ -54,7 +54,7 @@ import edu.mit.ll.cloud.connection.ConnectionProperties;
 /**
  * @author wi20909
  */
-public class D4mDbTableOperations {
+public class D4mDbTableOperations extends D4mParent {
 	private static  Logger log = Logger.getLogger(D4mDbTableOperations.class.getName());
 	public String rowReturnString = "";
 	public String columnReturnString = "";
@@ -71,6 +71,10 @@ public class D4mDbTableOperations {
 		this.connProps = connProps;
 	}
 	public D4mDbTableOperations(String instanceName, String host, String username, String password) {
+		this.connProps.setHost(host);
+		this.connProps.setInstanceName(instanceName);
+		this.connProps.setUser(username);
+		this.connProps.setPass(password);
 
 	}
 
@@ -86,18 +90,20 @@ public class D4mDbTableOperations {
 		this.connProps.setUser(username);
 		this.connProps.setPass(password);
 		setCloudType(cloudType);
-		doInit();
+//		doInit();
 	}
 	private void doInit() {
 		String instanceName = this.connProps.getInstanceName();
 		String host = this.connProps.getHost();
 		String username = this.connProps.getUser();
 		String password = this.connProps.getPass();
+		if(d4mTableOp == null)
 		d4mTableOp = D4mFactory.createTableOperations(instanceName, host, username, password);
 		
 	}
 
 	public void createTable(String tableName) {
+		doInit();
 		this.d4mTableOp.createTable(tableName);
 		//		CloudbaseConnection cbConnection = null;
 		//		try {
@@ -125,6 +131,8 @@ public class D4mDbTableOperations {
 	}
 
 	public void deleteTable(String tableName) {
+		doInit();
+
 		this.d4mTableOp.deleteTable(tableName);
 		//		CloudbaseConnection cbConnection = null;
 		//		try {
@@ -159,6 +167,7 @@ public class D4mDbTableOperations {
 		//	String [] pKeys = partitionKey.split(",");
 		//	//System.out.println(" *** Number of partition keys = "+ pKeys.length);
 		//	splitTable(tableName,pKeys);
+		doInit();
 		this.d4mTableOp.splitTable(tableName, partitionKey);
 	}
 
@@ -172,6 +181,7 @@ public class D4mDbTableOperations {
 //			list.add(partitionKeys[i]);
 //		}
 //		splitTable(tableName, list);
+		doInit();		
 		this.d4mTableOp.splitTable(tableName, partitionKeys);
 	}
 
@@ -185,16 +195,17 @@ public class D4mDbTableOperations {
 		for(String pt : partitionKeys) {
 			tset.add(new Text(pt));
 		}
-		
+		doInit();
+
 		this.d4mTableOp.splitTable(tableName, tset);
 //		CloudbaseConnection  cbConnection = new CloudbaseConnection(this.connProps);
 //		cbConnection.splitTable(tableName, partitionKeys);
 	}
 
-	public void setCloudType(String cloudType) {
-		D4mConfig d4mconf = D4mConfig.getInstance();
-		d4mconf.setCloudType(cloudType);
-	}
+//	public void setCloudType(String cloudType) {
+//		D4mConfig d4mconf = D4mConfig.getInstance();
+//		d4mconf.setCloudType(cloudType);
+//	}
 	/*
 	 *
 	 *  tserverAddress    host:port
@@ -407,7 +418,9 @@ public class D4mDbTableOperations {
 	 *  Get the total number of entries for the specified table names
 	 *  tableNames   list of table names of interest	
 	 */
-	public long getNumberOfEntries(ArrayList<String>  tableNames) throws CBException, CBSecurityException, TableNotFoundException, TTransportException {
+	public long getNumberOfEntries(ArrayList<String>  tableNames)  {
+		//throws CBException, CBSecurityException, TableNotFoundException, TTransportException {
+		doInit();
 		long retVal= this.d4mTableOp.getNumberOfEntries(tableNames);
 
 //		ArrayList<TabletServerStatus> tservers = getTabletServers();
@@ -467,6 +480,7 @@ public class D4mDbTableOperations {
 */
 	
 	public List<String> getSplits(String tableName){
+		doInit();
 		List<String> list = this.d4mTableOp.getSplits(tableName);
 			
 //			new ArrayList<String>();

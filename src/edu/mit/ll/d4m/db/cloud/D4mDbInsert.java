@@ -154,7 +154,8 @@ public class D4mDbInsert extends D4mParent {
 		ci.doProcessing(visibility, family, columnQualifier);
 	}
 
-	public void doProcessing(String rows, String cols, String vals, String family, String visibility) throws IOException, CBException, CBSecurityException, TableNotFoundException, MutationsRejectedException {
+	public void doProcessing(String rows, String cols, String vals, String family, String visibility) throws D4mException {
+		//throws IOException, CBException, CBSecurityException, TableNotFoundException, MutationsRejectedException {
 		this.rows = rows;
 		this.cols = cols;
 		this.vals = vals;

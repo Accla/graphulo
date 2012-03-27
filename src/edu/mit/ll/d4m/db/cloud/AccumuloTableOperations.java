@@ -42,7 +42,11 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	 * 
 	 */
 	public AccumuloTableOperations() {
-		// TODO Auto-generated constructor stub
+
+	}
+	public AccumuloTableOperations(ConnectionProperties connProp) {
+		this.connProp = connProp;
+		connect();
 	}
 
 	/* (non-Javadoc)
@@ -91,10 +95,8 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 			List<TabletStats> tabletStatsList = getTabletStatsList(tserverStatusList,  tableNames);
 			retval = getNumberOfEntries(tabletStatsList);
 		} catch (ThriftSecurityException e) {
-			// TODO Auto-generated catch block
 			log.warn(e);
 		} catch (TException e) {
-			// TODO Auto-generated catch block
 			log.warn(e);
 		}
 		
@@ -106,6 +108,8 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	private long getNumberOfEntries(List<TabletStats> list) {
 		long retval = 0;
 		for(TabletStats ts: list) {
+			log.debug("num entries = "+ts.numEntries);
+			
 			retval += ts.numEntries;
 		}
 		
@@ -128,9 +132,11 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	}
 	private List<TabletStats> getTabletStatsList(List<TabletServerStatus> tserverNames, ArrayList<String> tableNames) {
 		List<TabletStats> tabStatsList=new ArrayList<TabletStats>();
-		
+		int cnt=0;
 		for(TabletServerStatus tss: tserverNames) {
+			cnt++;
 			String tserverName = tss.name;
+			log.debug("["+cnt+"] - Tserver name = "+tserverName);
 			List<TabletStats> tlist = getTabletStatsList(tserverName, tableNames);
 			tabStatsList.addAll(tlist);
 		}
@@ -151,18 +157,17 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 			Map<String, String> nameToIdMap = this.connection.getNameToIdMap();
 			
 			for(String tableName : tableNames) {
+				
 				String tableId = nameToIdMap.get(tableName);
+				log.debug(tserverName+"-Tablet INFO ("+tableName+","+tableId+")");
 				tabStatsList.addAll(tabClient.getTabletStats(null, authInfo, tableId));
 			}
 			
 		} catch (TTransportException e) {
-			// TODO Auto-generated catch block
 			log.warn(e);
 		} catch (ThriftSecurityException e) {
-			// TODO Auto-generated catch block
 			log.warn(e);
 		} catch (TException e) {
-			// TODO Auto-generated catch block
 			log.warn(e);
 		} finally {
 			ThriftUtil.returnClient(masterClient);

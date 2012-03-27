@@ -112,6 +112,7 @@ src/edu/mit/ll/d4m/db/cloud/D4mTableOpsIF.java -text
 src/edu/mit/ll/d4m/db/cloud/QueryMethod.java -text
 src/edu/mit/ll/d4m/db/cloud/QueryResultFilter.java -text
 src/edu/mit/ll/d4m/db/cloud/util/AddUser.java -text
+src/edu/mit/ll/d4m/db/cloud/util/CompareUtil.java -text
 src/edu/mit/ll/d4m/db/cloud/util/CreateTable.java -text
 src/edu/mit/ll/d4m/db/cloud/util/D4mDataObj.java -text
 src/edu/mit/ll/d4m/db/cloud/util/D4mKeyUtil.java -text

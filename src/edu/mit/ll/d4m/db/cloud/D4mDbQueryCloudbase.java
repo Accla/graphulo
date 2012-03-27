@@ -30,6 +30,7 @@ import cloudbase.core.iterators.RegExIterator;
 import cloudbase.core.iterators.filter.RegExFilter;
 import edu.mit.ll.cloud.connection.CloudbaseConnection;
 import edu.mit.ll.cloud.connection.ConnectionProperties;
+import edu.mit.ll.d4m.db.cloud.util.CompareUtil;
 import edu.mit.ll.d4m.db.cloud.util.D4mDataObj;
 import edu.mit.ll.d4m.db.cloud.util.RegExpUtil;
 
@@ -89,6 +90,8 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 	private boolean getNext = true;
 	private int index = 0;
 	private LinkedList<Range> rangesList= new LinkedList<Range>();
+	private CompareUtil compareUtil=null;
+
 	//private ConcurrentLinkedQueue <Entry<Key, Value>> dataQue=new ConcurrentLinkedQueue<Entry<Key,Value>>();
 	public D4mDbQueryCloudbase() {
 		super();
@@ -132,19 +135,19 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 		this.getAllData = true;
 		this.methodName="getAllData";
 		D4mDbResultSet results = new D4mDbResultSet();
-                if(!this.hasNext || this.scannerIter == null) {
-		Scanner scanner = getScanner(); //cbConnection.getScanner(tableName);
-		if(this.startRange == null) {
-			//			this.startKey = new Key();
-			this.startRange = new Range(this.startKey,null);
-		}
-		else if (this.startKey != null) {
-			//Text row = this.startKey.getRow();
-			this.startRange = new Range(this.startKey,null);
-		}
-		scanner.setRange(startRange);
-		scanner.fetchColumnFamily(new Text(this.family));
-		 this.scannerIter = scanner.iterator();
+		if(!this.hasNext || this.scannerIter == null) {
+			Scanner scanner = getScanner(); //cbConnection.getScanner(tableName);
+			if(this.startRange == null) {
+				//			this.startKey = new Key();
+				this.startRange = new Range(this.startKey,null);
+			}
+			else if (this.startKey != null) {
+				//Text row = this.startKey.getRow();
+				this.startRange = new Range(this.startKey,null);
+			}
+			scanner.setRange(startRange);
+			scanner.fetchColumnFamily(new Text(this.family));
+			this.scannerIter = scanner.iterator();
 		}
 		long start = System.currentTimeMillis();
 
@@ -171,14 +174,14 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 	private boolean buildReturnString(String rowKey,  String column, String value) {
 		boolean isDone=false;
 
-		if(limit == 0 || this.count < this.limit) {
+		if(super.limit == 0 || this.count < super.limit) {
 			log.debug("  +++ ROW="+rowKey+",COL="+column+",VAL="+value+" +++");
 			this.sbRowReturn.append(rowKey + newline);
 			this.sbColumnReturn.append(column.replace(this.family, "") + newline);
 			this.sbValueReturn.append(value + newline);
 			this.count++;
 			this.cumCount++;
-			if(this.limit > 0 && this.count == this.limit) {
+			if(super.limit > 0 && this.count == super.limit) {
 				isDone=true;
 			}
 		} else  {
@@ -369,7 +372,7 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 
 	@Override
 	public D4mDbResultSet doMatlabQuery(String rows, String cols, String family, String authorizations) throws D4mException {
-	//throws CBException, CBSecurityException, TableNotFoundException {
+		//throws CBException, CBSecurityException, TableNotFoundException {
 		this.family = family;
 		connProps.setAuthorizations(authorizations.split(","));
 		clearBuffers();
@@ -379,7 +382,7 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 		try {
 			this.testResultSet = doMatlabQuery(rows, cols);
 		} catch (CBException e) {
-			
+
 			e.printStackTrace();
 			throw new D4mException(e);
 		} catch (CBSecurityException e) {
@@ -390,7 +393,7 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 			e.printStackTrace();
 			throw new D4mException(e);
 		}
-		
+
 		return this.testResultSet;
 	}
 
@@ -829,7 +832,7 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 	 *  Get batchscanner
 	 */
 	public D4mDbResultSet searchByRowAndColumn(String rows, String cols, String family, String authorizations)  {
-		boolean useBatchSearch=false;
+		//	boolean useBatchSearch=false;
 		clearBuffers();
 		D4mDbResultSet results = null;
 		HashMap<String, Object> rowMap = null;
@@ -886,14 +889,19 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 			if(rowArray[1].equals(":")) {
 				rowkey1 = rowArray[0];
 				rowkey2 = rowArray[length-1];
-			} else if( rowArray[(length-1)].equals(":")) {
-				rowkey1 = rowArray[0];
-				rowkey2 = rowArray[1];
+				log.debug("3__RANGE__"+rowkey1+","+rowkey2);
+				range = makeRange(rowkey1, rowkey2);
+				SearchIt(range,columnArray);
+				rowArrayGood = true;
+
+			} else {
+				//if( rowArray[(length-1)].equals(":")) {
+				//rowkey1 = rowArray[0];
+				//rowkey2 = rowArray[1];
+				ranges = loadRanges(rowArray);
+				SearchIt(ranges,columnArray);
+				rowArrayGood = true;
 			}
-			log.debug("3__RANGE__"+rowkey1+","+rowkey2);
-			range = makeRange(rowkey1, rowkey2);
-			SearchIt(range,columnArray);
-			rowArrayGood = true;
 		}
 		if(!rowArrayGood || length > 3) {
 			System.out.println("Currently, we cannot handle more than 3 arguments for row key and column key");
@@ -917,6 +925,7 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 		return results;
 	}
 
+	/*
 	public D4mDbResultSet batchSearchByRowAndColumn(HashMap<String, Object> rowMap,HashMap<String, Object> columnMap ,
 			String family, String authorizations)  {
 		clearBuffers();
@@ -979,12 +988,17 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 		this.testResultSet = results;
 		return results;
 	}
-
+	 */
 	private void SearchIt(Range range, String [] columnArray) {
+
 		String colRegex = RegExpUtil.makeRegex(columnArray);
+		if(compareUtil == null) {
+			this.compareUtil = new CompareUtil(columnArray);
+		}
+
 		if(columnArray.length == 3 && columnArray[1].equals(":")) {
-			String colStart1 = columnArray[0].substring(0, 1);
-			String colEnd1 = columnArray[2].substring(0,1);
+			//			String colStart1 = columnArray[0].substring(0, 1);
+			//			String colEnd1 = columnArray[2].substring(0,1);
 			//colRegex = RegExpUtil.makeRegex(columnArray);//"^["+colStart1+"-"+colEnd1+"].*";
 			log.debug("COLUMN REGEX="+colRegex);
 			SearchIt(range,colRegex);
@@ -1001,18 +1015,18 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 
 				//	for(String colKey : columnArray) {
 				//	if(!colKey.equals(":")) {
-						String col = colkey.getColumnQualifier().toString();
-						Matcher match = pat.matcher(col);
-						//	boolean isMatching = Pattern.matches(colKey, col);
-						if(match.matches()) {
-							if(buildReturnString(colkey, entry.getValue())) {
-								break;
-							}
-						}
-						//	SearchIt(range,colKey);
-						
-						//					}
-						//}
+				String col = colkey.getColumnQualifier().toString();
+				Matcher match = pat.matcher(col);
+				//	boolean isMatching = Pattern.matches(colKey, col);
+				if(match.matches()) {
+					if(buildReturnString(colkey, entry.getValue())) {
+						break;
+					}
+				}
+				//	SearchIt(range,colKey);
+
+				//					}
+				//}
 			}
 		}
 
@@ -1051,9 +1065,9 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 				this.scanner = getScanner();
 				this.scanner.setRange(range);
 				//Setup regular expression
-				String regexName="D4mRegEx";
-				this.scanner.setScanIterators(1, RegExIterator.class.getName(), regexName);
-				this.scanner.setScanIteratorOption(regexName, RegExFilter.COLQ_REGEX, colRegex);
+				//String regexName="D4mRegEx";
+				//this.scanner.setScanIterators(1, RegExIterator.class.getName(), regexName);
+				//this.scanner.setScanIteratorOption(regexName, RegExFilter.COLQ_REGEX, colRegex);
 				//scanner.setColumnQualifierRegex(colRegex);
 				scanner.fetchColumnFamily(new Text(this.family));
 
@@ -1063,16 +1077,45 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 				e.printStackTrace();
 			} catch (TableNotFoundException e) {
 				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			} 
+			//catch (IOException e) {
+			//	e.printStackTrace();
+			//}
 		}
 
 		//setup query, set range
 		if(this.scannerIter == null) {
 			this.scannerIter = this.scanner.iterator();
 		}
-		iterateOverEntries(this.scannerIter);
+		iterateOverEntries(this.scannerIter, this.compareUtil);
+	}
+
+	private  Entry<Key, Value> iterateOverEntries(Iterator<Entry<Key, Value>> scannerIter,  CompareUtil compUtil) {
+		Entry<Key, Value> entry =null;
+		String rowKey = null;
+		int count=0;
+		while ((this.hasNext =scannerIter.hasNext())) {
+			if(this.limit == 0 || this.count < this.limit) {
+				entry = (Entry<Key, Value>) scannerIter.next();
+				this.startKey = entry.getKey();
+				rowKey = entry.getKey().getRow().toString();
+				String column = entry.getKey().getColumnQualifier().toString();
+				//System.out.println(count+"BEFORE_ENTRY="+rowKey+","+column);
+				boolean isGood = compUtil.compareIt(column.replace(this.family, ""));
+				if(isGood) {
+					String value = new String(entry.getValue().get());
+					if(this.buildReturnString(entry.getKey(),rowKey, column, value)) {
+						break;
+					}
+					count++;
+				}
+			}
+			else {
+				break;
+			}
+		}
+		log.debug("Number of entries = "+count);
+		return entry;
 	}
 
 	private  Entry<Key, Value> iterateOverEntries(Iterator<Entry<Key, Value>> scannerIter) {
@@ -1100,7 +1143,8 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 		return entry;
 	}
 
-    private  Entry<Key, Value> iterateOverEntries(Iterator<Entry<Key, Value>> scannerIter, Pattern col) {
+/*
+	private  Entry<Key, Value> iterateOverEntries(Iterator<Entry<Key, Value>> scannerIter, Pattern col) {
 		Entry<Key, Value> entry =null;
 		String rowKey = null;
 		int count=0;
@@ -1113,12 +1157,12 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 
 				Matcher match = col.matcher(column);
 				if(match.matches()) {
-				//System.out.println(count+"BEFORE_ENTRY="+rowKey+","+column);
-				String value = new String(entry.getValue().get());
-				if(this.buildReturnString(entry.getKey(),rowKey, column, value)) {
-					break;
-				}
-				count++;
+					//System.out.println(count+"BEFORE_ENTRY="+rowKey+","+column);
+					String value = new String(entry.getValue().get());
+					if(this.buildReturnString(entry.getKey(),rowKey, column, value)) {
+						break;
+					}
+					count++;
 				}
 			}
 			else {
@@ -1128,25 +1172,49 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 		log.debug("Number of entries = "+count);
 		return entry;
 	}
-
+*/
 
 	private void SearchIt(HashSet<Range> ranges, String [] columnArray) {
 		String colRegex = "";
-		if(columnArray.length == 3 && columnArray[1].equals(":")) {
-			String colStart1 = columnArray[0].substring(0, 1);
-			String colEnd1 = columnArray[2].substring(0,1);
-			colRegex = RegExpUtil.makeRegex(columnArray);//"["+colStart1+"-"+colEnd1+"].*";
-			SearchIt(ranges,colRegex);
-		} else {
-		    //for(String colKey : columnArray) {
-		    String colregex = RegExpUtil.makeRegex(columnArray);
-		    Pattern colpat = Pattern.compile(colregex);
-		    	SearchIt(ranges,colpat);
-		    //}
+		if(compareUtil == null) {
+			this.compareUtil = new CompareUtil(columnArray);
 		}
+
+		if(columnArray.length == 3 && columnArray[1].equals(":")) {
+			//String colStart1 = columnArray[0].substring(0, 1);
+			//String colEnd1 = columnArray[2].substring(0,1);
+			//colRegex = RegExpUtil.makeRegex(columnArray);//"["+colStart1+"-"+colEnd1+"].*";
+			//SearchIt(ranges,colRegex);
+			//SearchIt(ranges,this.compareUtil);
+			SearchIt(ranges,this.compareUtil);
+		} else {
+			//for(String colKey : columnArray) {
+			String colregex = RegExpUtil.makeRegex(columnArray);
+			Pattern colpat = Pattern.compile(colregex);
+			SearchIt(ranges,colpat);
+			//}
+	}
 
 	}
 
+	private void SearchIt(HashSet<Range> ranges , CompareUtil compUtil) {
+		if(this.scannerIter == null) {
+			try {
+				bscanner = getBatchScanner();
+			} catch (CBException e) {
+				e.printStackTrace();
+			} catch (CBSecurityException e) {
+				e.printStackTrace();
+			} catch (TableNotFoundException e) {
+				e.printStackTrace();
+			}
+			bscanner.setRanges(ranges);
+			bscanner.fetchColumnFamily(new Text(this.family));
+			this.scannerIter = bscanner.iterator();
+		}
+		
+		iterateOverEntries(this.scannerIter, compUtil);
+	}
 	private void SearchIt(HashSet<Range> ranges, String col) {
 		BatchScanner scanner = null;
 		Entry<Key, Value> entry =null;
@@ -1197,31 +1265,31 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 		Entry<Key, Value> entry =null;
 		String rowKey = null;
 		try {
-		    if(this.scannerIter == null) {
-			if( this.bscanner == null || !this.hasNext) {
-				scanner = getBatchScanner();
-				scanner.setRanges(ranges);
+			if(this.scannerIter == null) {
+				if( this.bscanner == null || !this.hasNext) {
+					scanner = getBatchScanner();
+					scanner.setRanges(ranges);
 
-				//loop over columns
-				//reset column by scanner.clearColumns()s
-				//set new columns fetchColumn(fam,col)
-				//iterate
-				//fill output buffer
-				//scanner.setColumnQualifierRegex(colRegex);
-				String regexName="D4mRegEx";
-				scanner.setScanIterators(1, RegExIterator.class.getName(), regexName);
-				scanner.setScanIteratorOption(regexName, RegExFilter.COLQ_REGEX, col.pattern());
+					//loop over columns
+					//reset column by scanner.clearColumns()s
+					//set new columns fetchColumn(fam,col)
+					//iterate
+					//fill output buffer
+					//scanner.setColumnQualifierRegex(colRegex);
+					String regexName="D4mRegEx";
+					scanner.setScanIterators(1, RegExIterator.class.getName(), regexName);
+					scanner.setScanIteratorOption(regexName, RegExFilter.COLQ_REGEX, col.pattern());
 
-				scanner.fetchColumnFamily(new Text(this.family));
+					scanner.fetchColumnFamily(new Text(this.family));
+				}
+				this.scannerIter = scanner.iterator();
 			}
-	                this.scannerIter = scanner.iterator();
-		    }
-			
-			
+
+
 			//int count=0;
 
-		    //		    iterateOverEntries(this.scannerIter,col);
-		    iterateOverEntries(this.scannerIter);
+			//		    iterateOverEntries(this.scannerIter,col);
+			iterateOverEntries(this.scannerIter);
 
 		} catch (CBException e) {
 			e.printStackTrace();
@@ -1327,13 +1395,13 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 		System.out.println("####ValueReturnString=" + query.getValueReturnString());
 	}
 
-//	public int getLimit() {
-//		return this.limit;
-//	}
-//
-//	public void setLimit(int limit) {
-//		this.limit = limit;
-//	}
+	//	public int getLimit() {
+	//		return this.limit;
+	//	}
+	//
+	//	public void setLimit(int limit) {
+	//		this.limit = limit;
+	//	}
 
 	public HashMap<String, Object> processParam(String param) {
 		HashMap<String, Object> map = new HashMap<String, Object>();
@@ -1521,6 +1589,7 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 		this.cumCount=0;
 		this.rangesList.clear();
 		this.rowKeys = null;
+		this.compareUtil = null;
 		try {
 			//Close the BatchScanner
 			close();
@@ -1552,12 +1621,12 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 	public void setHasNext(boolean hasNext) {
 		this.hasNext = hasNext;
 	}
-//	public String getTableName() {
-//		return tableName;
-//	}
-//	public void setTableName(String tableName) {
-//		this.tableName = tableName;
-//	}
+	//	public String getTableName() {
+	//		return tableName;
+	//	}
+	//	public void setTableName(String tableName) {
+	//		this.tableName = tableName;
+	//	}
 	@Override
 	public D4mDataObj getResults() {
 		D4mDataObj data = new D4mDataObj();

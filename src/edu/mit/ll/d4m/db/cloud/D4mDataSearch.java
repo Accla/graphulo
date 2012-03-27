@@ -52,6 +52,8 @@ public class D4mDataSearch extends D4mParentQuery {
 			this.d4m.setTableName(super.tableName);
 			this.d4m.setConnProps(super.connProps);
 		}
+		this.d4m.setLimit(super.limit);
+		this.d4m.setTableName(super.tableName);
 		D4mDbResultSet testResult = d4m.doMatlabQuery(rows, cols, family, authorizations);
 		setResults();
 		return testResult;
@@ -62,6 +64,7 @@ public class D4mDataSearch extends D4mParentQuery {
 	 */
 	@Override
 	public void next() {
+		this.d4m.setLimit(super.limit);
 		d4m.next();
 		setResults();
 	}
@@ -115,6 +118,13 @@ public class D4mDataSearch extends D4mParentQuery {
 	public boolean hasNext() {
 		// TODO Auto-generated method stub
 		return this.d4m.hasNext();
+	}
+	
+	@Override
+	public void setLimit(int limit) {
+		super.setLimit(limit);
+		if(this.d4m != null)
+		this.d4m.setLimit(limit);
 	}
 }
 

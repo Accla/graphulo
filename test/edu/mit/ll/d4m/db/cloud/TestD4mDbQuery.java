@@ -19,8 +19,7 @@ public class TestD4mDbQuery {
 		D4mDbQuery d4m=null;
 
 	}
-	public static void main(String[] args) throws CBException, CBSecurityException, TableNotFoundException
-	{
+	public static void main(String[] args) throws Exception	{
 		String instanceName = args[0];
 		String host = args[1];
 		String username = args[2];

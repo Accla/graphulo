@@ -100,16 +100,10 @@ bbb :bbb []    bbb-bbb
 			d4m.doMatlabQuery(rows, cols, columnFamily, authorizations);
 			D4mDbQueryTest.print(d4m);
 
-		} catch (CBException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (CBSecurityException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (TableNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		} 
 		finally {
 			d4m.close();
 		}

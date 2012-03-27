@@ -390,12 +390,14 @@ public class D4mDbQueryTest {
 
 		D4mDbResultSet results = d4m.testResultSet;
 		ArrayList<D4mDbRow> rowList = results.getMatlabDbRow();
+		if(rowList != null) {
 		for(D4mDbRow row : rowList) {
 			System.out.println(count + "  "+ row.toString());
 			count++;
 		}
 		System.out.println(" Query elapsed time (sec) =  "+results.getQueryTime());
 		System.out.println(" Total Number of rows "+rowList.size());
+		}
 	}
 
 }

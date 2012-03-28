@@ -5,8 +5,6 @@ package edu.mit.ll.d4m.db.cloud.util;
 
 import org.apache.log4j.Logger;
 
-import edu.mit.ll.d4m.db.cloud.QueryResultFilter;
-
 /**
  * RegExpUtil :  Regular expression utility class
  * 
@@ -27,7 +25,7 @@ public class RegExpUtil {
 	 *  
 	 */
 	public static String makeRegex(String [] str1) {
-                 String [] str = checkForWildCards(str1); 
+		String [] str = checkForWildCards(str1); 
 		String s="";
 		if(str.length == 1) {
 			s=str[0];
@@ -69,9 +67,9 @@ public class RegExpUtil {
 					}
 					if(s2.length() > 1) {
 						String tmp = s2.substring(1).replace(ASCII_127, ".*");
-					
+
 						sb.append("(").append(tmp).append(")").append("");
-					
+
 					}
 				}
 				//sb.append("-");
@@ -111,23 +109,23 @@ public class RegExpUtil {
 		return s;
 	}
 
-        private static String [] checkForWildCards(String [] str1) {
-                String [] str = new String[str1.length];
-                for (int i=0; i < str1.length; i++) {
-                    if(!str1[i].equals(":") && str1[i].endsWith("*")) {
-                       String tmp = regexMapper(str1[i]);
-                       str[i] = tmp;
-                    } else {
-                       str[i] = str1[i];
-                    }
-                }
-                return str;
-        }
+	private static String [] checkForWildCards(String [] str1) {
+		String [] str = new String[str1.length];
+		for (int i=0; i < str1.length; i++) {
+			if(!str1[i].equals(":") && str1[i].endsWith("*")) {
+				String tmp = regexMapper(str1[i]);
+				str[i] = tmp;
+			} else {
+				str[i] = str1[i];
+			}
+		}
+		return str;
+	}
 	public static String regexMapper(String regex) {
 
 		String charStr = regex.replace("*", "");
 		String reg = "^" + charStr + "*|^" + charStr + ".*";
-                //String reg = charStr + ".*|^" + charStr + ".*";
+		//String reg = charStr + ".*|^" + charStr + ".*";
 		return reg;
 	}
 

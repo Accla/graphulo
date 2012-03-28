@@ -46,7 +46,7 @@ public class D4mFactory {
 	public static D4mParentQuery createSearcher()
 	{
 		D4mParentQuery d4m = null;
-		CloudbaseQuery cbd4m=null;
+		//CloudbaseQuery cbd4m=null;
 		ClassLoader loader = D4mFactory.class.getClassLoader();
 		D4mConfig d4mConfig = D4mConfig.getInstance();
 		CLOUD_TYPE = d4mConfig.getCloudType();
@@ -73,6 +73,7 @@ public class D4mFactory {
 	/*
 	 * Create Query object
 	 */
+	/*
 	public static D4mQueryBase createQuery()
 	{
 		D4mQueryBase d4m = null;
@@ -102,10 +103,12 @@ public class D4mFactory {
 
 		return d4m;
 	}
+	*/
 
 	/*
 	 * Create Query object
 	 */
+	/*
 	public static D4mQueryBase createQuery(String instanceName, String host, String table, String username, String password)
 	{
 		D4mQueryBase d4m = null;
@@ -141,7 +144,7 @@ public class D4mFactory {
 
 		return d4m;
 	}
-
+*/
 	public static D4mInsertBase createInserter() {
 		D4mInsertBase d4m = null;
 		ClassLoader loader = D4mFactory.class.getClassLoader();

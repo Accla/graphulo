@@ -10,7 +10,7 @@ import edu.mit.ll.d4m.db.cloud.util.D4mDataObj;
  * @author cyee
  *
  */
-public abstract class D4mParentQuery {
+public abstract class D4mParentQuery extends D4mParent {
 
 	protected String tableName=null;
 	protected ConnectionProperties connProps=null;
@@ -36,10 +36,10 @@ public abstract class D4mParentQuery {
 	abstract public boolean hasNext();
 	abstract public D4mDataObj getResults();
 	abstract public void reset();
-	public void setCloudType(String cloudType) {
-		D4mConfig d4mConfig = D4mConfig.getInstance();
-		d4mConfig.setCloudType(cloudType);
-	}
+//	public void setCloudType(String cloudType) {
+//		D4mConfig d4mConfig = D4mConfig.getInstance();
+//		d4mConfig.setCloudType(cloudType);
+//	}
 
 	public String getTableName() {
 		return tableName;

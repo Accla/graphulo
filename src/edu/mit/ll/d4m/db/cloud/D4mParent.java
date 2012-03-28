@@ -9,9 +9,8 @@ public abstract class D4mParent {
 
     public void setCloudType(String cloudType) {
 		D4mConfig d4mConf = D4mConfig.getInstance();
-		
+		log.debug("CLOUD TYPE = "+cloudType);
 		d4mConf.setCloudType(cloudType);
-
     }
 
 }

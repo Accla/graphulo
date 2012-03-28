@@ -10,7 +10,7 @@ import org.apache.log4j.Logger;
 
 import cloudbase.core.data.Key;
 
-import edu.mit.ll.d4m.db.cloud.D4mDbQuery;
+//import edu.mit.ll.d4m.db.cloud.D4mDbQuery;
 import edu.mit.ll.d4m.db.cloud.QueryMethod;
 
 /**
@@ -164,19 +164,19 @@ public class D4mQueryUtil {
 		 */
 		String rangeQueryType = "";
 		if (paramContent[0].contains("*")) {
-			rangeQueryType = D4mDbQuery.REGEX_RANGE;
+			rangeQueryType = D4mQueryUtil.REGEX_RANGE;
 		}
 		if (paramContent.length == 3) {
 			if (paramContent[1].contains(":")) {
-				rangeQueryType = D4mDbQuery.KEY_RANGE;
+				rangeQueryType = D4mQueryUtil.KEY_RANGE;
 			}
 		}
 		if (paramContent.length == 3) {
 			if (paramContent[1].contains(":") && paramContent[2].toLowerCase().contains("end")) {
-				rangeQueryType = D4mDbQuery.POSITIVE_INFINITY_RANGE;
+				rangeQueryType = D4mQueryUtil.POSITIVE_INFINITY_RANGE;
 			}
 			if (paramContent[1].contains(":") && paramContent[0].equals("")) {
-				rangeQueryType = D4mDbQuery.NEGATIVE_INFINITY_RANGE;
+				rangeQueryType = D4mQueryUtil.NEGATIVE_INFINITY_RANGE;
 			}
 		}
 		return rangeQueryType;

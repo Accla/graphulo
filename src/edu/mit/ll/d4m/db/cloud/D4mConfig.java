@@ -25,11 +25,12 @@ public class D4mConfig {
 	private static D4mConfig instance= null;
 	public static long TIME_THRESHOLD=60000L;
 	public static boolean DEBUG=false;
+	public static boolean SORT_MUTATIONS=false;
 	static {
 		ClassLoader clsloader = D4mConfig.class.getClassLoader();
 		URL urlLog4j = clsloader.getResource("log4j.xml");
 		if(urlLog4j != null) {
-			System.out.println("D4mConfig::LOG4J file path = "+urlLog4j.getPath());
+//			System.out.println("D4mConfig::LOG4J file path = "+urlLog4j.getPath());
 			PropertyConfigurator.configure(urlLog4j);
 
 		}

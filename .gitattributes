@@ -92,6 +92,7 @@ src/edu/mit/ll/d4m/db/cloud/D4mConfig.java -text
 src/edu/mit/ll/d4m/db/cloud/D4mDataSearch.java -text
 src/edu/mit/ll/d4m/db/cloud/D4mDbInfo.java -text
 src/edu/mit/ll/d4m/db/cloud/D4mDbInsert.java -text
+src/edu/mit/ll/d4m/db/cloud/D4mDbQuery.java -text
 src/edu/mit/ll/d4m/db/cloud/D4mDbQueryAccumulo.java -text
 src/edu/mit/ll/d4m/db/cloud/D4mDbQueryCloudbase.java -text
 src/edu/mit/ll/d4m/db/cloud/D4mDbResultSet.java -text

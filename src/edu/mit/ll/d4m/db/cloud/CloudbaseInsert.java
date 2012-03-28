@@ -41,7 +41,7 @@ public class CloudbaseInsert extends D4mInsertBase {
 	public CloudbaseInsert(String instanceName, String hostName,
 			String tableName, String username, String password) {
 		super(instanceName, hostName, tableName, username, password);
-		
+
 	}
 
 	/* (non-Javadoc)
@@ -54,36 +54,46 @@ public class CloudbaseInsert extends D4mInsertBase {
 		long start = System.currentTimeMillis();
 		try {
 			this.createTable();
-			makeMutations();
-			addMutations();
+			if(D4mConfig.SORT_MUTATIONS) {
+
+                //make the mutations, sorting
+				makeMutations();
+				// each mutation is sent to the cloud with the batchwriter
+				addMutations();
+			} else {
+				//Make mutation and write it via BatchWriter
+				makeAndAddMutation();
+			}
 		} catch (CBException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (CBSecurityException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (TableNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		long end = System.currentTimeMillis();
 		log.debug("Insert elapsed time (sec) = "+((double)(end-start))/1000.0);
-		//Sort the mutations
 
-		//Add mutations
 	}
-	
+
 	public void createTable() throws CBException, CBSecurityException {
 
-		if (this.doesTableExistFromMetadata(tableName) == false) {
+//		if (this.doesTableExistFromMetadata(tableName) == false) {
 			try {
 				CloudbaseConnection cbConnection = new CloudbaseConnection(this.connProps);
-				cbConnection.createTable(tableName);
+				if(!cbConnection.doesTableExist(tableName)) {
+					cbConnection.createTable(tableName);
+				}
+
 			}
 			catch (TableExistsException ex) {
 				System.out.println("Table already exists.");
 			}
-		}
+//		}
+ catch (TableNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 	}
 	public boolean doesTableExistFromMetadata(String tableName) {
 		boolean exist = false;
@@ -105,7 +115,58 @@ public class CloudbaseInsert extends D4mInsertBase {
 		return exist;
 	}
 
+	/*
+	 *  The rows,cols, and values are sorted.
+	 *  Entries with the same row id are put in the same Mutation object.
+	 */
 	private void makeMutations() {
+		HashMap<String, Object> rowsMap = D4mQueryUtil.processParam(super.rows);
+		HashMap<String, Object> colsMap = D4mQueryUtil.processParam(super.cols);
+		HashMap<String, Object> weightMap = D4mQueryUtil.processParam(super.vals);
+
+		rowsArr = (String[]) rowsMap.get("content");
+		String[] colsArr = (String[]) colsMap.get("content");
+		String[] valsArr = (String[]) weightMap.get("content");
+		ColumnVisibility colVisibility = new ColumnVisibility(super.visibility);
+		Text colfamily = new Text(super.family);
+
+		for (int i = 0; i < rowsArr.length; i++) {
+
+			String thisRow = rowsArr[i].trim();
+			String thisCol = colsArr[i].trim();
+			String thisVal = valsArr[i];
+			Mutation m=null;
+			Text column = new Text(thisCol);
+
+			Value value = new Value(thisVal.getBytes());
+            // Sort the mutation by rowid
+			if(!mutSorter.hasMutation(thisRow)) {
+				m = new Mutation(new Text(thisRow));
+				mutSorter.add(thisRow, m);
+			} else {
+				m = (Mutation)mutSorter.get(thisRow);
+			}
+			m.put(colfamily, column, colVisibility, value);
+
+		}
+	}
+
+	private void addMutations() throws CBException, CBSecurityException, TableNotFoundException {
+		CloudbaseConnection cbConnection = new CloudbaseConnection(this.connProps);
+		BatchWriter batchWriter = cbConnection.getBatchWriter(tableName);
+
+		for (int i = 0; i < rowsArr.length; i++) {
+
+			String thisRow = rowsArr[i].trim();
+			Mutation m = (Mutation)mutSorter.get(thisRow);
+			batchWriter.addMutation(m);
+		}
+	}
+
+	private void makeAndAddMutation() throws CBException, CBSecurityException, TableNotFoundException {
+		CloudbaseConnection cbConnection = new CloudbaseConnection(this.connProps);
+		BatchWriter batchWriter = cbConnection.getBatchWriter(tableName);
+
 		HashMap<String, Object> rowsMap = D4mQueryUtil.processParam(rows);
 		HashMap<String, Object> colsMap = D4mQueryUtil.processParam(cols);
 		HashMap<String, Object> weightMap = D4mQueryUtil.processParam(vals);
@@ -126,26 +187,15 @@ public class CloudbaseInsert extends D4mInsertBase {
 
 			Value value = new Value(thisVal.getBytes());
 
-			if(!mutSorter.hasMutation(thisRow)) {
-				 m = new Mutation(new Text(thisRow));
-				 mutSorter.add(thisRow, m);
-			} else {
-				m = (Mutation)mutSorter.get(thisRow);
-			}
+			//if(!mutSorter.hasMutation(thisRow)) {
+			m = new Mutation(new Text(thisRow));
+
 			m.put(colfamily, column, colVisibility, value);
-			
-		}
-	}
-
-	private void addMutations() throws CBException, CBSecurityException, TableNotFoundException {
-		CloudbaseConnection cbConnection = new CloudbaseConnection(this.connProps);
-		BatchWriter batchWriter = cbConnection.getBatchWriter(tableName);
-
-		for (int i = 0; i < rowsArr.length; i++) {
-
-			String thisRow = rowsArr[i].trim();
-			Mutation m = (Mutation)mutSorter.get(thisRow);
 			batchWriter.addMutation(m);
+
+
 		}
+
+
 	}
 }

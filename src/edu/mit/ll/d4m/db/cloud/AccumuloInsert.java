@@ -51,17 +51,18 @@ public class AccumuloInsert extends D4mInsertBase {
 		//Create table
 		createTable();
 		//Build mutations and sort
-		makeMutations();
 		//Add mutation
 		//    make connection
 		try {
-			addMutations();
-			//makeAndAddMutations();
+			if(D4mConfig.SORT_MUTATIONS){
+				makeMutations();
+				addMutations();
+			} else {
+				makeAndAddMutations();
+			}
 		} catch (MutationsRejectedException e) {
-			// TODO Auto-generated catch block
 			log.warn(e);
 		} catch (TableNotFoundException e) {
-			// TODO Auto-generated catch block
 			log.warn(e);
 		}
 
@@ -88,8 +89,8 @@ public class AccumuloInsert extends D4mInsertBase {
 			Value value = new Value(thisVal.getBytes());
 
 			if(!mutSorter.hasMutation(thisRow)) {
-				 m = new Mutation(new Text(thisRow));
-				 mutSorter.add(thisRow, m);
+				m = new Mutation(new Text(thisRow));
+				mutSorter.add(thisRow, m);
 			} else {
 				m = (Mutation)mutSorter.get(thisRow);
 			}
@@ -98,7 +99,7 @@ public class AccumuloInsert extends D4mInsertBase {
 
 		}
 	}
-	
+
 	private void makeAndAddMutations() throws TableNotFoundException, MutationsRejectedException {
 		AccumuloConnection connection = new AccumuloConnection(super.connProps);
 		BatchWriter bw = connection.createBatchWriter(tableName, AccumuloConnection.maxMemory, AccumuloConnection.maxLatency, super.connProps.getMaxNumThreads());
@@ -122,12 +123,12 @@ public class AccumuloInsert extends D4mInsertBase {
 			Value value = new Value(thisVal.getBytes());
 			log.debug(i+" - INSERTING [r,c,v] =  ["+ thisRow+","+thisCol+","+thisVal+"]");
 			m = new Mutation(new Text(thisRow));
-				m.put(colFamily, column, colVisibility, value);
-				bw.addMutation(m);
+			m.put(colFamily, column, colVisibility, value);
+			bw.addMutation(m);
 
 		}
 
-		
+
 	}
 	private void addMutations() throws TableNotFoundException, MutationsRejectedException {
 		AccumuloConnection connection = new AccumuloConnection(super.connProps);

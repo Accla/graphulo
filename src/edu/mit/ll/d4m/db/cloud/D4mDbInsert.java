@@ -56,7 +56,7 @@ public class D4mDbInsert extends D4mParent {
 	 */
 	@Deprecated
 	public D4mDbInsert(ConnectionProperties connProps, String tableName, String rows, String cols, String vals) throws CBException, CBSecurityException, TableExistsException {
-	    super();
+		super();
 		this.tableName = tableName;
 		this.rows = rows;
 		this.cols = cols;
@@ -80,7 +80,7 @@ public class D4mDbInsert extends D4mParent {
 	 */
 	@Deprecated
 	public D4mDbInsert(String instanceName, String hostName, String tableName, String username, String password, String rows, String cols, String vals) throws CBException, CBSecurityException, TableExistsException {
-	    super();
+		super();
 		this.tableName = tableName;
 		this.rows = rows;
 		this.cols = cols;
@@ -102,8 +102,8 @@ public class D4mDbInsert extends D4mParent {
 	 * @throws CBSecurityException
 	 * @throws TableExistsException
 	 */
-	public D4mDbInsert(String instanceName, String hostName, String tableName, String username, String password) throws CBException, CBSecurityException, TableExistsException {
-	    super();
+	public D4mDbInsert(String instanceName, String hostName, String tableName, String username, String password)  {
+		super();
 		this.tableName = tableName;
 
 		this.connProps.setHost(hostName);
@@ -123,8 +123,8 @@ public class D4mDbInsert extends D4mParent {
 	 * @throws CBSecurityException
 	 * @throws TableExistsException
 	 */
-	public D4mDbInsert(String instanceName, String hostName, String tableName, String username, String password, int numThreads) throws CBException, CBSecurityException, TableExistsException {
-	    super();
+	public D4mDbInsert(String instanceName, String hostName, String tableName, String username, String password, int numThreads) {
+		super();
 		this.tableName = tableName;
 
 		this.connProps.setHost(hostName);
@@ -161,12 +161,17 @@ public class D4mDbInsert extends D4mParent {
 		this.vals = vals;
 		this.family = family;
 		this.visibility = visibility;
-		
-		this.d4mInserter = D4mFactory.createInserter();
-		this.d4mInserter.setConnProps(connProps);
+		if(this.d4mInserter == null) {
+			this.d4mInserter = D4mFactory.createInserter();
+			this.d4mInserter.setConnProps(connProps);
+		}
 		this.d4mInserter.setTableName(this.tableName);
+
+		long start = System.currentTimeMillis();
 		this.d4mInserter.doProcessing(rows, cols, vals, family, visibility);
-		
+		long end = System.currentTimeMillis();
+		double elapsed = ((double)(end-start))/1000.0;
+		log.info("INSERT time elapsed(sec) = "+elapsed);
 		//
 		//doProcessing();
 	}
@@ -289,10 +294,10 @@ public class D4mDbInsert extends D4mParent {
 	/*
 	 * Set cloud type - Cloudbase or Accumulo
 	 */
-// 	public void setCloudType(String cloudType) {
-// 		D4mConfig d4mConf = D4mConfig.getInstance();
-// 		d4mConf.setCloudType(cloudType);
-// 	}
+	// 	public void setCloudType(String cloudType) {
+	// 		D4mConfig d4mConf = D4mConfig.getInstance();
+	// 		d4mConf.setCloudType(cloudType);
+	// 	}
 
 	/*
 	 * partitionKey a string or comma-separated list

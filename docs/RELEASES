@@ -1,0 +1,48 @@
+March 28, 2012
+
+Version 2.0.0
+-  Port code to Accumulo
+   - Implement new interfaces to allow switching between Cloudbase or Accumulo.
+     - D4mConfig
+        - configuration class to switch between Cloudbase or Accumulo.
+        - setCloudType method
+     - D4mParent: base class
+
+         -D4mDbInfo
+         -D4mDbInsert
+         -D4mDbTableOperations
+         - D4mParentQuery
+            - D4mParentQuery  base class for query objects
+
+              - D4mDbQueryAccumulo
+              - D4mDbQueryCloudbase
+
+            - D4mDataSearch :  replaces D4mDbQuery
+               - This class is called from d4m_api matlab code to execute queries
+               - This class acts like a wrapper class to wrap the functionality of 
+                 D4mDbQueryCloudbase and D4mDbQueryAccumulo
+
+
+     - AccumuloConnection
+       - Similar to Cloudbase connection
+       - use the ConnectionProperties class to hold info to access cloud
+
+     - D4mInsertBase   base class
+        - AccumuloInsert
+        - CloudbaseInsert
+
+     - D4mFactory; factory class to create the child classes for inserting, querying, table operations
+ 
+     - CloudbaseTableOperations
+     - AccumuloTableOperations
+    
+================================================================
+
+January 31, 2012
+
+-  D4mDbQuery.java was modified to allow for iterating a batch of results.
+One can make successive calls to next() to get another batch of results.
+For example, if your query returns a millions of results, you can get batches
+of 100 results returned to you.
+
+ 

@@ -54,16 +54,16 @@ public class CloudbaseInsert extends D4mInsertBase {
 		long start = System.currentTimeMillis();
 		try {
 			this.createTable();
-			if(D4mConfig.SORT_MUTATIONS) {
+			//if(D4mConfig.SORT_MUTATIONS) {
 
                 //make the mutations, sorting
-				makeMutations();
+			//	makeMutations();
 				// each mutation is sent to the cloud with the batchwriter
-				addMutations();
-			} else {
+			//	addMutations();
+		//	} else {
 				//Make mutation and write it via BatchWriter
 				makeAndAddMutation();
-			}
+			//}
 		} catch (CBException e) {
 			e.printStackTrace();
 		} catch (CBSecurityException e) {

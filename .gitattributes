@@ -23,6 +23,7 @@ conf/sslinfo.xml.example -text
 /default_build.properties -text
 docs/Copyright -text
 docs/ExternalContrib -text
+docs/RELEASES -text
 lib/accumulo-core-1.3.5-incubating.jar -text
 lib/accumulo-server-1.3.5-incubating.jar -text
 lib/cloudbase-core-1.3.4.jar -text

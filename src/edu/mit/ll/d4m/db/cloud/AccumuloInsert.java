@@ -54,12 +54,12 @@ public class AccumuloInsert extends D4mInsertBase {
 		//Add mutation
 		//    make connection
 		try {
-			if(D4mConfig.SORT_MUTATIONS){
-				makeMutations();
-				addMutations();
-			} else {
+			//if(D4mConfig.SORT_MUTATIONS){
+			//	makeMutations();
+			//	addMutations();
+			//} else {
 				makeAndAddMutations();
-			}
+			//}
 		} catch (MutationsRejectedException e) {
 			log.warn(e);
 		} catch (TableNotFoundException e) {

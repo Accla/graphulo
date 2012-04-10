@@ -64,13 +64,15 @@ public class D4mDbTableOperations extends D4mParent {
 
 	D4mTableOpsIF d4mTableOp = null;
 	public D4mDbTableOperations() {
-
+               super();
 	}
 
 	public D4mDbTableOperations(ConnectionProperties connProps) {
+                super();
 		this.connProps = connProps;
 	}
 	public D4mDbTableOperations(String instanceName, String host, String username, String password) {
+                super();
 		this.connProps.setHost(host);
 		this.connProps.setInstanceName(instanceName);
 		this.connProps.setUser(username);

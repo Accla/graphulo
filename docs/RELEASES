@@ -1,3 +1,11 @@
+May 10, 2012
+Version 2.0.1
+
+- Fix a problem where the number of threads kept growing when performing an insert.
+  Must call the close method on the BatchWriter.
+
+
+=========================================
 March 28, 2012
 
 Version 2.0.0

@@ -41,9 +41,31 @@ public class CloudbaseConnection {
 	private String tableName = "";
 	private Authorizations authorizations = CBConstants.NO_AUTHS;
     //    private String instanceID=null;
-    private int maxNumThreads = 1;
+    private int maxNumThreads = 10;
+    private static CloudbaseConnection instance = null;
+    ConnectionProperties connProps = null;
+    public static CloudbaseConnection getConnectionInstance() {
+    	return instance;
+    }
+    
+    public static CloudbaseConnection getConnectionInstance(ConnectionProperties connProps) {
+    	if(instance == null) {
+    		try {
+				instance = new CloudbaseConnection(connProps);
+			} catch (CBException e) {
+				log.warn(e);
+				e.printStackTrace();
+			} catch (CBSecurityException e) {
+				log.warn(e);
+				e.printStackTrace();
+			}
+    	}
+    	return instance;
+    }
     
 	public CloudbaseConnection(ConnectionProperties connProps) throws CBException, CBSecurityException {
+    	this.connProps= connProps;
+
 		if (connProps.getInstanceName() == "" || connProps.getInstanceName() == null) {
 			// Uses Cloudbase MasterInstance to connect.
 			log.debug("Trying to connect to Master: " + connProps.getHost());
@@ -57,6 +79,7 @@ public class CloudbaseConnection {
 			this.connector = instanceObj.getConnector( connProps.getUser(), connProps.getPass().getBytes());
                      
 		}
+    	log.info("CONNECTION PROPS = "+this.connProps.toString());
 		this.maxNumThreads = connProps.getMaxNumThreads();
 		String[] auths = connProps.getAuthorizations();
 		if(auths != null && auths.length > 0 && !auths[0].equals(""))
@@ -193,7 +216,7 @@ public class CloudbaseConnection {
 	 */
 
 	public BatchWriter getBatchWriter(String tableName) throws CBException, CBSecurityException, TableNotFoundException {
-		BatchWriter bw = this.connector.createBatchWriter(tableName, Long.valueOf("100000"), Long.valueOf("30"), this.maxNumThreads);
+		BatchWriter bw = this.connector.createBatchWriter(tableName, Long.valueOf("1000000"), Long.valueOf("30"), this.maxNumThreads);
 		return bw;
 	}
 

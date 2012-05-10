@@ -91,6 +91,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	private int index = 0;
 	private LinkedList<Range> rangesList= new LinkedList<Range>();
 	private CompareUtil compareUtil=null;
+	AccumuloConnection cbConnection=null;
 	//private ConcurrentLinkedQueue <Entry<Key, Value>> dataQue=new ConcurrentLinkedQueue<Entry<Key,Value>>();
 	public D4mDbQueryAccumulo() {
 		super();
@@ -813,13 +814,15 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	}
 
 	private Scanner getScanner() throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-		AccumuloConnection cbConnection = new AccumuloConnection(this.connProps);
+		if(this.cbConnection == null)
+		this.cbConnection = new AccumuloConnection(this.connProps);
 		if(this.scanner == null)
 			this.scanner = cbConnection.createScanner(tableName);
 		return scanner;
 	}
 	private BatchScanner getBatchScanner() throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-		AccumuloConnection cbConnection = new AccumuloConnection(this.connProps);
+		if(this.cbConnection == null)
+		cbConnection = new AccumuloConnection(this.connProps);
 		if(this.bscanner == null)
 			this.bscanner = cbConnection.getBatchScanner(this.tableName, this.numberOfThreads);
 		return this.bscanner;
@@ -848,21 +851,22 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		//boolean useBatchSearch=false;
 		clearBuffers();
 		D4mDbResultSet results = null;
-		HashMap<String, Object> rowMap = null;
+//		HashMap<String, Object> rowMap = null;
 		if( this.rowMap == null) {
-			rowMap = this.processParam(rows);
-			this.rowMap = rowMap;
+			this.rowMap = this.processParam(rows);
+//			rowMap = this.rowMap;
 		}
-		else
-			rowMap = this.rowMap;
+//		else
+//			rowMap = this.rowMap;
 		HashMap<String, Object> columnMap = null;
 		if(this.colMap == null) {
 			columnMap =this.processParam(cols);
 			this.colMap = columnMap;
-		} else
-			columnMap = this.colMap;
+		} 
+		//else
+			//columnMap = this.colMap;
 
-		results = searchByRowAndColumn(rowMap,columnMap);
+		results = searchByRowAndColumn(this.rowMap,colMap);
 
 		return results;
 	}

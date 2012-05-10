@@ -26,7 +26,7 @@ public class AccumuloInsert extends D4mInsertBase {
 	private static Logger log = Logger.getLogger(AccumuloInsert.class);
 
 	String[] rowsArr=null;
-
+	AccumuloConnection connection=null;
 	public AccumuloInsert() {
 		super();
 	}
@@ -48,6 +48,9 @@ public class AccumuloInsert extends D4mInsertBase {
 	 */
 	@Override
 	public void doProcessing() {
+		if(connection == null)
+			connection = new AccumuloConnection(super.connProps);
+
 		//Create table
 		createTable();
 		//Build mutations and sort
@@ -58,7 +61,7 @@ public class AccumuloInsert extends D4mInsertBase {
 			//	makeMutations();
 			//	addMutations();
 			//} else {
-				makeAndAddMutations();
+			makeAndAddMutations();
 			//}
 		} catch (MutationsRejectedException e) {
 			log.warn(e);
@@ -101,8 +104,8 @@ public class AccumuloInsert extends D4mInsertBase {
 	}
 
 	private void makeAndAddMutations() throws TableNotFoundException, MutationsRejectedException {
-		AccumuloConnection connection = new AccumuloConnection(super.connProps);
-		BatchWriter bw = connection.createBatchWriter(tableName, AccumuloConnection.maxMemory, AccumuloConnection.maxLatency, super.connProps.getMaxNumThreads());
+		//		AccumuloConnection connection = new AccumuloConnection(super.connProps);
+		BatchWriter bw = this.connection.createBatchWriter(tableName);
 		HashMap<String, Object> rowsMap = D4mQueryUtil.processParam(rows);
 		HashMap<String, Object> colsMap = D4mQueryUtil.processParam(cols);
 		HashMap<String, Object> weightMap = D4mQueryUtil.processParam(vals);
@@ -127,12 +130,16 @@ public class AccumuloInsert extends D4mInsertBase {
 			bw.addMutation(m);
 
 		}
-
+		bw.flush();
+		bw.close();
 
 	}
 	private void addMutations() throws TableNotFoundException, MutationsRejectedException {
 		AccumuloConnection connection = new AccumuloConnection(super.connProps);
-		BatchWriter bw = connection.createBatchWriter(tableName, AccumuloConnection.maxMemory, AccumuloConnection.maxLatency, super.connProps.getMaxNumThreads());
+		BatchWriter bw = connection.createBatchWriter(tableName,
+				AccumuloConnection.maxMemory, 
+				AccumuloConnection.maxLatency,
+				super.connProps.getMaxNumThreads());
 		for(int i = 0; i < rowsArr.length; i++) {
 			String thisRow = rowsArr[i];
 			log.debug(i+" - INSERTING row = "+ thisRow);
@@ -141,7 +148,8 @@ public class AccumuloInsert extends D4mInsertBase {
 		}
 	}
 	private void createTable () {
-		AccumuloConnection connection = new AccumuloConnection(super.connProps);
+		if(connection == null)
+			connection = new AccumuloConnection(super.connProps);
 		if(!connection.tableExist(super.tableName)) {
 			connection.createTable(super.tableName);
 		}

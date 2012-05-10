@@ -7,7 +7,8 @@ public class ConnectionProperties {
 	private String pass;
 	private String instanceName;
 	private String [] authorizations=null;
-    private int maxNumThreads=50;
+	public static int MAX_NUM_THREADS=25;
+    private int maxNumThreads=MAX_NUM_THREADS;  //50
 	public String[] getAuthorizations() {
 		return authorizations;
 	}
@@ -82,6 +83,10 @@ public class ConnectionProperties {
    public int getMaxNumThreads( ) {
 	return this.maxNumThreads;
     }
+   public String toString() {
+	   String s = "INSTANCE_NAME="+this.instanceName+", HOST="+this.host+", USER="+this.user;
+	   return s;
+   }
  }
 /*
  * %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 

@@ -27,7 +27,7 @@ import edu.mit.ll.d4m.db.cloud.util.MutationSorter;
 public class CloudbaseInsert extends D4mInsertBase {
 	private static Logger log = Logger.getLogger(CloudbaseInsert.class);
 	String[] rowsArr=null;
-
+	CloudbaseConnection cbConnection=null;
 	public CloudbaseInsert() {
 		super();
 	}
@@ -52,17 +52,18 @@ public class CloudbaseInsert extends D4mInsertBase {
 		// TODO Auto-generated method stub
 		//	Create the table
 		long start = System.currentTimeMillis();
+		this.cbConnection = CloudbaseConnection.getConnectionInstance(super.connProps);
 		try {
 			this.createTable();
 			//if(D4mConfig.SORT_MUTATIONS) {
 
-                //make the mutations, sorting
+			//make the mutations, sorting
 			//	makeMutations();
-				// each mutation is sent to the cloud with the batchwriter
+			// each mutation is sent to the cloud with the batchwriter
 			//	addMutations();
-		//	} else {
-				//Make mutation and write it via BatchWriter
-				makeAndAddMutation();
+			//	} else {
+			//Make mutation and write it via BatchWriter
+			makeAndAddMutation();
 			//}
 		} catch (CBException e) {
 			e.printStackTrace();
@@ -78,26 +79,27 @@ public class CloudbaseInsert extends D4mInsertBase {
 
 	public void createTable() throws CBException, CBSecurityException {
 
-//		if (this.doesTableExistFromMetadata(tableName) == false) {
-			try {
-				CloudbaseConnection cbConnection = new CloudbaseConnection(this.connProps);
-				if(!cbConnection.doesTableExist(tableName)) {
-					cbConnection.createTable(tableName);
-				}
+		//		if (this.doesTableExistFromMetadata(tableName) == false) {
+		try {
+			if(this.cbConnection == null)
+				cbConnection = CloudbaseConnection.getConnectionInstance(super.connProps);//new CloudbaseConnection(super.connProps);
+			if(!cbConnection.doesTableExist(tableName)) {
+				cbConnection.createTable(tableName);
+			}
 
-			}
-			catch (TableExistsException ex) {
-				System.out.println("Table already exists.");
-			}
-//		}
- catch (TableNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+		}
+		catch (TableExistsException ex) {
+			System.out.println("Table already exists.");
+		}
+		//		}
+		catch (TableNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	public boolean doesTableExistFromMetadata(String tableName) {
 		boolean exist = false;
-		D4mDbInfo info = new D4mDbInfo(this.connProps);
+		D4mDbInfo info = new D4mDbInfo(super.connProps);
 		D4mConfig d4mConfig = D4mConfig.getInstance();
 		String cloudType = d4mConfig.getCloudType();
 		info.setCloudType(cloudType);
@@ -139,7 +141,7 @@ public class CloudbaseInsert extends D4mInsertBase {
 			Text column = new Text(thisCol);
 
 			Value value = new Value(thisVal.getBytes());
-            // Sort the mutation by rowid
+			// Sort the mutation by rowid
 			if(!mutSorter.hasMutation(thisRow)) {
 				m = new Mutation(new Text(thisRow));
 				mutSorter.add(thisRow, m);
@@ -152,7 +154,9 @@ public class CloudbaseInsert extends D4mInsertBase {
 	}
 
 	private void addMutations() throws CBException, CBSecurityException, TableNotFoundException {
-		CloudbaseConnection cbConnection = new CloudbaseConnection(this.connProps);
+		if(this.cbConnection == null)
+			cbConnection = CloudbaseConnection.getConnectionInstance(super.connProps);// new CloudbaseConnection(super.connProps);
+
 		BatchWriter batchWriter = cbConnection.getBatchWriter(tableName);
 
 		for (int i = 0; i < rowsArr.length; i++) {
@@ -161,11 +165,14 @@ public class CloudbaseInsert extends D4mInsertBase {
 			Mutation m = (Mutation)mutSorter.get(thisRow);
 			batchWriter.addMutation(m);
 		}
+		batchWriter.flush();
+		batchWriter.close();
 	}
 
 	private void makeAndAddMutation() throws CBException, CBSecurityException, TableNotFoundException {
-		CloudbaseConnection cbConnection = new CloudbaseConnection(this.connProps);
-		BatchWriter batchWriter = cbConnection.getBatchWriter(tableName);
+		//if(this.cbConnection == null)
+			//cbConnection = new CloudbaseConnection(super.connProps);
+		BatchWriter batchWriter = this.cbConnection.getBatchWriter(tableName);
 
 		HashMap<String, Object> rowsMap = D4mQueryUtil.processParam(rows);
 		HashMap<String, Object> colsMap = D4mQueryUtil.processParam(cols);
@@ -195,7 +202,8 @@ public class CloudbaseInsert extends D4mInsertBase {
 
 
 		}
-
+		batchWriter.flush();
+		batchWriter.close();
 
 	}
 }

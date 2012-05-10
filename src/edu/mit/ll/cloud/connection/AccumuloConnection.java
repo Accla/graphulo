@@ -47,7 +47,7 @@ public class AccumuloConnection {
 	private ZooKeeperInstance instance=null;
 	private Connector connector= null;
 	private Authorizations auth= org.apache.accumulo.core.Constants.NO_AUTHS;
-	public static long maxMemory= 102400L;
+	public static long maxMemory= 1024000L;
 	public static long maxLatency = 30;
 	/**
 	 * 
@@ -93,6 +93,9 @@ public class AccumuloConnection {
 	// batchwriter
 	public BatchWriter createBatchWriter (String table, long maxMemory, long maxLatency,int maxWriteThreads) throws TableNotFoundException {
 		return connector.createBatchWriter(table, maxMemory, maxLatency, maxWriteThreads);
+	}
+	public BatchWriter createBatchWriter (String table) throws TableNotFoundException {
+		return createBatchWriter(table, maxMemory, maxLatency, conn.getMaxNumThreads());
 	}
 
 	//Scanner

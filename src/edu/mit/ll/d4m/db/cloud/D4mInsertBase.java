@@ -3,6 +3,8 @@
  */
 package edu.mit.ll.d4m.db.cloud;
 
+import org.apache.log4j.Logger;
+
 import edu.mit.ll.cloud.connection.ConnectionProperties;
 import edu.mit.ll.d4m.db.cloud.util.MutationSorter;
 
@@ -11,6 +13,8 @@ import edu.mit.ll.d4m.db.cloud.util.MutationSorter;
  *
  */
 public abstract class D4mInsertBase implements D4mInserterIF {
+	private static Logger log = Logger.getLogger(D4mInsertBase.class);
+
 	protected String tableName = "";
 	protected String rows = "";
 	protected String cols = "";
@@ -20,9 +24,9 @@ public abstract class D4mInsertBase implements D4mInserterIF {
 
 	protected ConnectionProperties connProps = new ConnectionProperties();
 	protected MutationSorter mutSorter = new MutationSorter();
-	
+
 	public D4mInsertBase() {
-		
+
 	}
 	public D4mInsertBase(String instanceName,String hostName, String tableName, String username, String password) {
 		init(instanceName,hostName,tableName,username,password);
@@ -37,7 +41,7 @@ public abstract class D4mInsertBase implements D4mInserterIF {
 		connProps.setPass(password);
 		this.tableName = tableName;
 
-		
+
 	}
 
 	@Override
@@ -49,11 +53,18 @@ public abstract class D4mInsertBase implements D4mInserterIF {
 		this.vals = vals;
 		this.family = family;
 		this.visibility = visibility;
+		long start = System.currentTimeMillis();
 		doProcessing();
+		long end = System.currentTimeMillis();
+		double elapsed= ((double)(end-start))/1000.0;
+		if(log.isDebugEnabled()) {
+			String s = "Ingest time : "+ elapsed + " sec";
+			log.debug(s);
+		}
 	}
-	
+
 	abstract public void doProcessing();
-	
+
 	public void setConnProps(ConnectionProperties connProps) {
 		this.connProps = connProps;
 	}
@@ -65,7 +76,7 @@ public abstract class D4mInsertBase implements D4mInserterIF {
 	public void setTableName(String tableName) {
 		this.tableName = tableName;
 	}
-	
+
 }
 
 /*

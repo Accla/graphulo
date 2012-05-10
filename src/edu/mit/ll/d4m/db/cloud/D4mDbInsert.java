@@ -171,7 +171,9 @@ public class D4mDbInsert extends D4mParent {
 		this.d4mInserter.doProcessing(rows, cols, vals, family, visibility);
 		long end = System.currentTimeMillis();
 		double elapsed = ((double)(end-start))/1000.0;
-		log.info("INSERT time elapsed(sec) = "+elapsed);
+		log.info("INGEST time elapsed(sec) = "+elapsed);
+		System.out.println("INGEST time (sec) = "+elapsed);
+
 		//
 		//doProcessing();
 	}

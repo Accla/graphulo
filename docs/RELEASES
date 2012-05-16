@@ -1,3 +1,20 @@
+May 16, 2012
+Version 2.0.2
+
+Migrating from Accumulo-1.3.5-incubating to Accumulo-1.4.0
+  - Changed TableOperations from class to interface.
+     All calls for TableOpertions by the Connector resulted in casting the object to TableOperationsImpl. 
+     See AccumuloTableOperations.java
+
+  - ScannerBase had deprecate methods - setScanIterators and setScanIteratorOption.
+    In 1.4, you have to use IteratorSettings object to set the ScanIterator, then
+    use the addScanIterator() method to add the IteratorSetting. In the IteratorSettings' object
+    you use the addOption() method to add options.
+
+
+ 
+
+==============================================
 May 10, 2012
 Version 2.0.1
 

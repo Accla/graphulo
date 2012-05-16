@@ -9,6 +9,10 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.SortedSet;
 
+import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
+import org.apache.thrift.transport.TTransportException;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -22,19 +26,13 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.Tables;
-import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
-import org.apache.thrift.transport.TTransportException;
-
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.AddressUtil;
-
 import org.apache.accumulo.core.util.ThriftUtil;
-
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.client.admin.TableOperationsImpl;
 
 /**
  * @author cyee
@@ -54,7 +52,7 @@ public class AccumuloConnection {
 	 */
 	public AccumuloConnection(ConnectionProperties conn) {
 		this.conn = conn;
-		this.instance = new ZooKeeperInstance(conn.getInstanceName(), conn.getHost());
+		this.instance = new ZooKeeperInstance(conn.getInstanceName(), conn.getHost(), conn.getSessionTimeOut());
 		try {
 			this.connector = this.instance.getConnector(this.conn.getUser(), this.conn.getPass().getBytes());
 			String [] sAuth = conn.getAuthorizations();
@@ -79,7 +77,8 @@ public class AccumuloConnection {
 
 	public void createTable(String tableName) {
 		try {
-			connector.tableOperations().create(tableName);
+			TableOperationsImpl tableImpl = (TableOperationsImpl)connector.tableOperations();
+			tableImpl.create(tableName);
 		} catch (AccumuloException e) {		
 			log.warn(e);
 		} catch (AccumuloSecurityException e) {
@@ -110,7 +109,8 @@ public class AccumuloConnection {
 
 	public void deleteTable (String tableName)  {
 		try {
-			connector.tableOperations().delete(tableName);
+			TableOperationsImpl tableImpl = (TableOperationsImpl)connector.tableOperations();
+			tableImpl.delete(tableName);
 		} catch (AccumuloException e) {
 			// TODO Auto-generated catch block
 			log.warn(e);
@@ -122,13 +122,15 @@ public class AccumuloConnection {
 	}
 
 	public boolean tableExist(String tableName) {
-		return connector.tableOperations().exists(tableName);
+		TableOperationsImpl tableImpl = (TableOperationsImpl)connector.tableOperations();
+		return tableImpl.exists(tableName);
 
 	}
 
 	public void addSplit(String tableName, SortedSet<Text> partitions) {
 		try {
-			connector.tableOperations().addSplits(tableName, partitions);
+			TableOperationsImpl tableImpl = (TableOperationsImpl)connector.tableOperations();
+			tableImpl.addSplits(tableName, partitions);
 		} catch (TableNotFoundException e) {
 
 			log.warn(e);
@@ -167,8 +169,8 @@ public class AccumuloConnection {
 		return splits;
 	}
 	public SortedSet<String> getTableList() {
-		
-		SortedSet<String> set = this.connector.tableOperations().list();
+		TableOperationsImpl tableImpl = (TableOperationsImpl)this.connector.tableOperations();
+		SortedSet<String> set = tableImpl.list();
 		return set;
 	}
 }

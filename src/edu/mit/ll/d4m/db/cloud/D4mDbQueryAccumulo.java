@@ -27,7 +27,10 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.RegExIterator;
-import org.apache.accumulo.core.iterators.filter.RegExFilter;
+//import org.apache.accumulo.core.iterators.filter.RegExFilter;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.iterators.user.RegExFilter;
+
 import edu.mit.ll.cloud.connection.AccumuloConnection;
 import edu.mit.ll.cloud.connection.ConnectionProperties;
 import edu.mit.ll.d4m.db.cloud.util.CompareUtil;
@@ -765,10 +768,16 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 			//}
 			String regexName="D4mRegEx";
 			try {
-				this.scanner.setScanIterators(1, RegExIterator.class.getName(), regexName);
-				this.scanner.setScanIteratorOption(regexName, RegExFilter.COLQ_REGEX, compareUtil.getPattern().pattern());
+				//Accum-1.4  Use IteratorSetting
+				IteratorSetting itSet  = new IteratorSetting(1, regexName, RegExFilter.class);
+				//IteratorSetting.addOption(option, value)
+				itSet.addOption(RegExFilter.COLQ_REGEX, compareUtil.getPattern().pattern());
+				scanner.addScanIterator(itSet);
 
-			} catch (IOException e) {
+				//this.scanner.setScanIterators(1, RegExIterator.class.getName(), regexName);
+				//this.scanner.setScanIteratorOption(regexName, RegExFilter.COLQ_REGEX, compareUtil.getPattern().pattern());
+
+			} catch (RuntimeException e) {
 				log.warn("Bad REGEX ="+ compareUtil.getPattern().pattern(),e);
 				e.printStackTrace();
 			}
@@ -1234,13 +1243,13 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 
 	}
 	private void SearchIt(HashSet<Range> ranges, String col) {
-		BatchScanner scanner = null;
+		//BatchScanner scanner = null;
 		//		Entry<Key, Value> entry =null;
 		String rowKey = null;
 		try {
 			if( this.bscanner == null || !this.hasNext) {
-				scanner = getBatchScanner();
-				scanner.setRanges(ranges);
+				bscanner = getBatchScanner();
+				bscanner.setRanges(ranges);
 
 				//loop over columns
 				//reset column by scanner.clearColumns()s
@@ -1249,14 +1258,21 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 				//fill output buffer
 				String colRegex = col;
 				String regexName="D4mRegEx";
+				//Accum-1.4 Use IteratorSetting
+				//           scanner.addScanIterator
+				IteratorSetting itSet  = new IteratorSetting(1, regexName, RegExFilter.class);
+				//IteratorSetting.addOption(option, value)
+				itSet.addOption(RegExFilter.COLQ_REGEX, colRegex);
+				bscanner.addScanIterator(itSet);
+				/*  Accum-1.3.5-incubating
 				scanner.setScanIterators(1, RegExIterator.class.getName(), regexName);
 				scanner.setScanIteratorOption(regexName, RegExFilter.COLQ_REGEX, colRegex);
-
+                 */
 				//scanner.setColumnQualifierRegex(colRegex);
-				scanner.fetchColumnFamily(new Text(this.family));
+				bscanner.fetchColumnFamily(new Text(this.family));
 			}
 			if(scannerIter == null)
-				scannerIter = scanner.iterator();
+				scannerIter = bscanner.iterator();
 			//int count=0;
 
 			iterateOverEntries(this.scannerIter);
@@ -1267,7 +1283,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 			e.printStackTrace();
 		} catch (TableNotFoundException e) {
 			e.printStackTrace();
-		} catch (IOException e) {
+		} catch (RuntimeException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -1279,14 +1295,14 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 
 	}
 	private void SearchIt(HashSet<Range> ranges, Pattern col) {
-		BatchScanner scanner = null;
+		//BatchScanner scanner = null;
 		Entry<Key, Value> entry =null;
 		String rowKey = null;
 		try {
 			if(this.scannerIter == null) {
 				if( this.bscanner == null || !this.hasNext) {
-					scanner = getBatchScanner();
-					scanner.setRanges(ranges);
+					bscanner = getBatchScanner();
+					bscanner.setRanges(ranges);
 
 					//loop over columns
 					//reset column by scanner.clearColumns()s
@@ -1295,12 +1311,17 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 					//fill output buffer
 					//scanner.setColumnQualifierRegex(colRegex);
 					String regexName="D4mRegEx";
-					scanner.setScanIterators(1, RegExIterator.class.getName(), regexName);
-					scanner.setScanIteratorOption(regexName, RegExFilter.COLQ_REGEX, col.pattern());
+					IteratorSetting itSet  = new IteratorSetting(1, regexName, RegExFilter.class);
+					//IteratorSetting.addOption(option, value)
+					itSet.addOption(RegExFilter.COLQ_REGEX, col.pattern());
+					bscanner.addScanIterator(itSet);
 
-					scanner.fetchColumnFamily(new Text(this.family));
+					//bscanner.setScanIterators(1, RegExIterator.class.getName(), regexName);
+					//bscanner.setScanIteratorOption(regexName, RegExFilter.COLQ_REGEX, col.pattern());
+
+					bscanner.fetchColumnFamily(new Text(this.family));
 				}
-				this.scannerIter = scanner.iterator();
+				this.scannerIter = bscanner.iterator();
 			}
 
 

@@ -10,7 +10,7 @@ import java.util.TreeSet;
 
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
+//import org.apache.log4j.PropertyConfigurator;
 
 import cloudbase.core.CBConstants;
 import cloudbase.core.client.BatchScanner;

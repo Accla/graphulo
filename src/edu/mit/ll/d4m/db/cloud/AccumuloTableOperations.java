@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.nio.ByteBuffer;
 
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -122,6 +123,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 		try {
 			MasterMonitorInfo mmi=null; 
 			client = this.connection.getMasterClient();
+			//changed in accumulo-1.4
 			mmi = client.getMasterStats(null, getAuthInfo());
 
 			list.addAll(mmi.getTServerInfo());
@@ -210,7 +212,9 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 		String user = this.connProp.getUser();
 		byte [] pw = this.connProp.getPass().getBytes();
 		String instanceId = this.connection.getInstance().getInstanceID();
-		AuthInfo authinfo=new AuthInfo(user, pw, instanceId);
+		//Accumulo-1.4 use ByteBuffer for the password in AuthInfo constructor
+		ByteBuffer pwbuffer = ByteBuffer.wrap(pw);
+		AuthInfo authinfo=new AuthInfo(user, pwbuffer, instanceId);
 		return authinfo;
 	}
 	/*

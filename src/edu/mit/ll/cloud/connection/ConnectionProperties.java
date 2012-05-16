@@ -9,6 +9,7 @@ public class ConnectionProperties {
 	private String [] authorizations=null;
 	public static int MAX_NUM_THREADS=25;
     private int maxNumThreads=MAX_NUM_THREADS;  //50
+    private int sessionTimeOut=100000; //millisec
 	public String[] getAuthorizations() {
 		return authorizations;
 	}
@@ -87,6 +88,14 @@ public class ConnectionProperties {
 	   String s = "INSTANCE_NAME="+this.instanceName+", HOST="+this.host+", USER="+this.user;
 	   return s;
    }
+
+public int getSessionTimeOut() {
+	return sessionTimeOut;
+}
+
+public void setSessionTimeOut(int sessionTimeOut) {
+	this.sessionTimeOut = sessionTimeOut;
+}
  }
 /*
  * %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 

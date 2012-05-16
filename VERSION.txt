@@ -11,3 +11,4 @@ SW-Version, Change, BuildDate...
 1.2.0,add batching function,Jan 31 2012
 2.0.0, port to accumulo, March 28, 2012
 2.0.1, port to accumulo, May 10, 2012
+2.0.2, upgrade to accumulo-1.4.0, May 16, 2012

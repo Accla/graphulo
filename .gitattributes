@@ -30,6 +30,7 @@ lib/cloudbase-core-1.3.4.jar -text
 lib/cloudbase-server-1.3.4.jar -text
 lib/cloudbase-start-1.3.4.jar -text
 lib/cloudtrace-0.1.3.jar -text
+lib/cloudtrace-1.4.0.jar -text
 lib/commons-cli-1.2.jar -text
 lib/commons-codec-1.5.jar -text
 lib/commons-collections-3.2.jar -text

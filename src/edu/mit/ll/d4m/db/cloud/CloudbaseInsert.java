@@ -3,8 +3,6 @@
  */
 package edu.mit.ll.d4m.db.cloud;
 
-import java.util.HashMap;
-
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -18,7 +16,6 @@ import cloudbase.core.data.Value;
 import cloudbase.core.security.ColumnVisibility;
 import edu.mit.ll.cloud.connection.CloudbaseConnection;
 import edu.mit.ll.d4m.db.cloud.util.D4mQueryUtil;
-import edu.mit.ll.d4m.db.cloud.util.MutationSorter;
 
 /**
  * @author CHV8091
@@ -122,13 +119,13 @@ public class CloudbaseInsert extends D4mInsertBase {
 	 *  Entries with the same row id are put in the same Mutation object.
 	 */
 	private void makeMutations() {
-		HashMap<String, Object> rowsMap = D4mQueryUtil.processParam(super.rows);
-		HashMap<String, Object> colsMap = D4mQueryUtil.processParam(super.cols);
-		HashMap<String, Object> weightMap = D4mQueryUtil.processParam(super.vals);
+//		HashMap<String, Object> rowsMap = D4mQueryUtil.processParam(rows);
+//		HashMap<String, Object> colsMap = D4mQueryUtil.processParam(cols);
+//		HashMap<String, Object> weightMap = D4mQueryUtil.processParam(vals);
 
-		rowsArr = (String[]) rowsMap.get("content");
-		String[] colsArr = (String[]) colsMap.get("content");
-		String[] valsArr = (String[]) weightMap.get("content");
+		rowsArr = D4mQueryUtil.processParam(rows);//(String[]) rowsMap.get("content");
+		String[] colsArr = D4mQueryUtil.processParam(cols);//(String[]) colsMap.get("content");
+		String[] valsArr = D4mQueryUtil.processParam(vals);//(String[]) weightMap.get("content");
 		ColumnVisibility colVisibility = new ColumnVisibility(super.visibility);
 		Text colfamily = new Text(super.family);
 
@@ -174,13 +171,13 @@ public class CloudbaseInsert extends D4mInsertBase {
 			//cbConnection = new CloudbaseConnection(super.connProps);
 		BatchWriter batchWriter = this.cbConnection.getBatchWriter(tableName);
 
-		HashMap<String, Object> rowsMap = D4mQueryUtil.processParam(rows);
-		HashMap<String, Object> colsMap = D4mQueryUtil.processParam(cols);
-		HashMap<String, Object> weightMap = D4mQueryUtil.processParam(vals);
+//		HashMap<String, Object> rowsMap = D4mQueryUtil.processParam(rows);
+//		HashMap<String, Object> colsMap = D4mQueryUtil.processParam(cols);
+//		HashMap<String, Object> weightMap = D4mQueryUtil.processParam(vals);
 
-		rowsArr = (String[]) rowsMap.get("content");
-		String[] colsArr = (String[]) colsMap.get("content");
-		String[] valsArr = (String[]) weightMap.get("content");
+		rowsArr = D4mQueryUtil.processParam(rows);//(String[]) rowsMap.get("content");
+		String[] colsArr = D4mQueryUtil.processParam(cols);//(String[]) colsMap.get("content");
+		String[] valsArr = D4mQueryUtil.processParam(vals);//(String[]) weightMap.get("content");
 		ColumnVisibility colVisibility = new ColumnVisibility(super.visibility);
 		Text colfamily = new Text(super.family);
 

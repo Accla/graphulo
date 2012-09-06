@@ -3,7 +3,6 @@
  */
 package edu.mit.ll.d4m.db.cloud;
 
-import edu.mit.ll.cloud.connection.ConnectionProperties;
 import edu.mit.ll.d4m.db.cloud.util.D4mDataObj;
 
 /**

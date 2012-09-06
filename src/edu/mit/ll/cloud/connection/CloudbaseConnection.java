@@ -1,7 +1,5 @@
 package edu.mit.ll.cloud.connection;
 
-import java.io.File;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -10,7 +8,6 @@ import java.util.TreeSet;
 
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
-//import org.apache.log4j.PropertyConfigurator;
 
 import cloudbase.core.CBConstants;
 import cloudbase.core.client.BatchScanner;

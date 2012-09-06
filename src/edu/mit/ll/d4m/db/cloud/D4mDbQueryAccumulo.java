@@ -1,35 +1,27 @@
 package edu.mit.ll.d4m.db.cloud;
 
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.regex.Pattern;
 import java.util.regex.Matcher;
-//import java.util.logging.Logger;
-import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import java.util.regex.Pattern;
 
-import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.RegExIterator;
-//import org.apache.accumulo.core.iterators.filter.RegExFilter;
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
+import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 
 import edu.mit.ll.cloud.connection.AccumuloConnection;
 import edu.mit.ll.cloud.connection.ConnectionProperties;
@@ -1150,13 +1142,13 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		int count=0;
 		while ((this.hasNext =scannerIter.hasNext())) {
 			if(this.limit == 0 || this.count < this.limit) {
-				entry = (Entry<Key, Value>) scannerIter.next();
-				this.startKey = entry.getKey();
-				rowKey = entry.getKey().getRow().toString();
-				String column = entry.getKey().getColumnQualifier().toString();
+				entry = scannerIter.next();
+				startKey = entry.getKey();
+				rowKey = startKey.getRow().toString();
+				String column = startKey.getColumnQualifier().toString();
 				//System.out.println(count+"BEFORE_ENTRY="+rowKey+","+column);
 				String value = new String(entry.getValue().get());
-				if(this.buildReturnString(entry.getKey(),rowKey, column, value)) {
+				if(this.buildReturnString(startKey,rowKey, column, value)) {
 					break;
 				}
 				count++;
@@ -1348,10 +1340,10 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 
 	}
 
-	private void setFamilyAndAuthorizations(String family, String authorizations) {
+	/*private void setFamilyAndAuthorizations(String family, String authorizations) {
 		this.family = family;
 		connProps.setAuthorizations(authorizations.split(","));
-	}
+	}*/
 
 	private void saveTestResults(String rowKey, String columnFamily, String finalColumn, String value) {
 		D4mDbRow row = new D4mDbRow();

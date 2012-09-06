@@ -3,8 +3,6 @@
  */
 package edu.mit.ll.d4m.db.cloud.test;
 
-import static org.junit.Assert.*;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -13,10 +11,6 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import cloudbase.core.client.CBException;
-import cloudbase.core.client.CBSecurityException;
-import cloudbase.core.client.TableNotFoundException;
 
 import edu.mit.ll.d4m.db.cloud.D4mDbInsert;
 import edu.mit.ll.d4m.db.cloud.D4mDbQuery;
@@ -87,7 +81,7 @@ public class D4mQueryTest10 {
 			d4m.setLimit(10);
 			d4m.doMatlabQuery(rows, cols, columnFamily, authorizations);
 			d4m.next();
-			print(d4m.getD4m().getResults());
+			print(d4m.getResults());
 
 			rows="b,";
 			cols= ":";
@@ -123,7 +117,7 @@ public class D4mQueryTest10 {
 			d4m.setLimit(0);
 			d4m.doMatlabQuery(rows, cols, columnFamily, authorizations);
 			d4m.next();
-			print(d4m.getD4m().getResults());
+			print(d4m.getResults());
 
 
 				//D4mDbQueryTest.print(d4m);

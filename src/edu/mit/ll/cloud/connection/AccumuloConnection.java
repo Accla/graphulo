@@ -6,33 +6,37 @@ package edu.mit.ll.cloud.connection;
 
 import java.net.InetSocketAddress;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.Map;
 import java.util.SortedSet;
 
-import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
-import org.apache.thrift.transport.TTransportException;
-
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
+import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.TableOperationsImpl;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.Tables;
-import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.master.thrift.MasterClientService;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.ThriftUtil;
-import org.apache.accumulo.core.client.impl.Tables;
-import org.apache.accumulo.core.client.admin.TableOperationsImpl;
+import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
+import org.apache.thrift.transport.TTransportException;
+
+import edu.mit.ll.d4m.db.cloud.D4mException;
 
 /**
  * @author cyee
@@ -173,6 +177,124 @@ public class AccumuloConnection {
 		SortedSet<String> set = tableImpl.list();
 		return set;
 	}
+	
+	// TODO these are just wrappers; why have them when we could expose the TableOperations object directly?
+	public void addIterator(String tableName, IteratorSetting iterSet) throws D4mException
+	{
+		TableOperations tops = this.connector.tableOperations();
+		try {
+			tops.attachIterator(tableName, iterSet); // adds on all scopes: majc, minc, scan 
+		} catch (AccumuloSecurityException e) {
+			log.warn(e);
+			//e.printStackTrace();
+			throw new D4mException(e);
+		} catch (AccumuloException e) {
+			log.warn(e);
+			//e.printStackTrace();
+			throw new D4mException(e);
+		} catch (TableNotFoundException e) {
+			log.warn(e);
+			//e.printStackTrace();
+			throw new D4mException(e);
+		}
+	}
+	
+	public Map<String,EnumSet<IteratorUtil.IteratorScope>> listIterators(String tableName) throws D4mException
+	{
+		TableOperations tops = this.connector.tableOperations();
+		try {
+			return tops.listIterators(tableName);
+		} catch (AccumuloSecurityException e) {
+			log.warn(e);
+			//e.printStackTrace();
+			throw new D4mException(e);
+		} catch (AccumuloException e) {
+			log.warn(e);
+			//e.printStackTrace();
+			throw new D4mException(e);
+		} catch (TableNotFoundException e) {
+			log.warn(e);
+			//e.printStackTrace();
+			throw new D4mException(e);
+		}
+	}
+	
+	public IteratorSetting getIteratorSetting(String tableName, String name, IteratorUtil.IteratorScope scope) throws D4mException
+	{
+		TableOperations tops = this.connector.tableOperations();
+		try {
+			return tops.getIteratorSetting(tableName, name, scope);
+		} catch (AccumuloSecurityException e) {
+			log.warn(e);
+			//e.printStackTrace();
+			throw new D4mException(e);
+		} catch (AccumuloException e) {
+			log.warn(e);
+			//e.printStackTrace();
+			throw new D4mException(e);
+		} catch (TableNotFoundException e) {
+			log.warn(e);
+			//e.printStackTrace();
+			throw new D4mException(e);
+		}
+	}
+	
+	public void removeIterator(String tableName, String name, EnumSet<IteratorUtil.IteratorScope> scopes) throws D4mException
+	{
+		TableOperations tops = this.connector.tableOperations();
+		try {
+			tops.removeIterator(tableName, name, scopes);
+		} catch (AccumuloSecurityException e) {
+			log.warn(e);
+			//e.printStackTrace();
+			throw new D4mException(e);
+		} catch (AccumuloException e) {
+			log.warn(e);
+			//e.printStackTrace();
+			throw new D4mException(e);
+		} catch (TableNotFoundException e) {
+			log.warn(e);
+			//e.printStackTrace();
+			throw new D4mException(e);
+		}
+	}
+
+	public void checkIteratorConflicts(String tableName, IteratorSetting cfg, EnumSet<IteratorScope> scopes) throws D4mException 
+	{
+		TableOperations tops = this.connector.tableOperations();
+		try {
+			tops.checkIteratorConflicts(tableName, cfg, scopes);
+		} catch (AccumuloException e) {
+			log.warn(e);
+			//e.printStackTrace();
+			throw new D4mException(e);
+		} catch (TableNotFoundException e) {
+			log.warn(e);
+			//e.printStackTrace();
+			throw new D4mException(e);
+		}
+		
+	}
+
+	public void merge(String tableName, String startRow, String endRow) throws D4mException {
+		TableOperations tops = this.connector.tableOperations();
+		try {
+			tops.merge(tableName, startRow == null ? null : new Text(startRow), endRow == null ? null : new Text(endRow));
+		} catch (AccumuloException e) {
+			log.warn(e);
+			//e.printStackTrace();
+			throw new D4mException(e);
+		} catch (TableNotFoundException e) {
+			log.warn(e);
+			//e.printStackTrace();
+			throw new D4mException(e);
+		} catch (AccumuloSecurityException e) {
+			log.warn(e);
+			//e.printStackTrace();
+			throw new D4mException(e);
+		}
+	}
+	
 }
 
 /*

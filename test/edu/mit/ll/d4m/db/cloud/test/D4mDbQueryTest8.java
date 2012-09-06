@@ -1,26 +1,12 @@
 package edu.mit.ll.d4m.db.cloud.test;
 
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.regex.Pattern;
-
 import org.apache.log4j.Logger;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import cloudbase.core.client.CBException;
-import cloudbase.core.client.CBSecurityException;
-import cloudbase.core.client.TableNotFoundException;
-
-import edu.mit.ll.d4m.db.cloud.D4mDbInsert;
 import edu.mit.ll.d4m.db.cloud.D4mDbQuery;
-import edu.mit.ll.d4m.db.cloud.D4mDbResultSet;
-import edu.mit.ll.d4m.db.cloud.D4mDbRow;
-import edu.mit.ll.d4m.db.cloud.D4mDbTableOperations;
-import edu.mit.ll.d4m.db.cloud.util.RegExpUtil;
 /**
  * @author cyee
  *

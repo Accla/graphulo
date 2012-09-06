@@ -7,15 +7,16 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
-import java.util.logging.Level;
 
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.transport.TTransportException;
-
 
 import cloudbase.core.client.CBException;
 import cloudbase.core.client.CBSecurityException;
@@ -33,7 +34,6 @@ import cloudbase.core.tabletserver.thrift.TabletClientService;
 import cloudbase.core.tabletserver.thrift.TabletStats;
 import cloudbase.core.util.AddressUtil;
 import cloudbase.core.util.ThriftUtil;
-
 import edu.mit.ll.cloud.connection.CloudbaseConnection;
 import edu.mit.ll.cloud.connection.ConnectionProperties;
 
@@ -179,6 +179,11 @@ public class CloudbaseTableOperations implements D4mTableOpsIF {
 
 		return retVal;
 	}
+	@Override
+	public List<org.apache.accumulo.core.tabletserver.thrift.TabletStats> getTabletStatsForTables(
+			List<String> tableNames) {
+		throw new UnsupportedOperationException("not implemented on Cloudbase");
+	}
 
 	@Override
 	public void setConnProps(ConnectionProperties connProp) {
@@ -317,6 +322,55 @@ public class CloudbaseTableOperations implements D4mTableOpsIF {
 		
 		return list;
 	}
+
+	@Override
+	public void addIterator(String tableName, IteratorSetting cfg) {
+		// TODO Auto-generated method stub
+		throw new UnsupportedOperationException("Cloudbase iterators not supported (yet?)");
+	}
+
+	@Override
+	public Map<String, EnumSet<IteratorScope>> listIterators(String tableName) {
+		// TODO Auto-generated method stub
+		throw new UnsupportedOperationException("Cloudbase iterators not supported (yet?)");
+	}
+
+	@Override
+	public IteratorSetting getIteratorSetting(String tableName,
+			String iterName, IteratorScope scan) {
+		// TODO Auto-generated method stub
+		throw new UnsupportedOperationException("Cloudbase iterators not supported (yet?)");
+	}
+
+	@Override
+	public void removeIterator(String tableName, String name,
+			EnumSet<IteratorScope> allOf) {
+		// TODO Auto-generated method stub
+		throw new UnsupportedOperationException("Cloudbase iterators not supported (yet?)");
+	}
+
+	@Override
+	public void checkIteratorConflicts(String tableName, IteratorSetting cfg,
+			EnumSet<IteratorScope> allOf) throws D4mException {
+		// TODO Auto-generated method stub
+		throw new UnsupportedOperationException("Cloudbase iterators not supported (yet?)");
+	}
+
+	@Override
+	public void merge(String tableName, String startRow, String endRow)
+			throws D4mException {
+		throw new UnsupportedOperationException("Cloudbase merge not supported");
+		
+	}
+
+	
+
+	/*@Override
+	public void addSplits(String tableName, SortedSet<Text> splitsSet)
+			throws D4mException {
+		// TODO Auto-generated method stub
+		throw new UnsupportedOperationException("Cloudbase addSplits not supported");
+	}*/
 
 }
 /*

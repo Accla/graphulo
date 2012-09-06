@@ -1,19 +1,15 @@
 package edu.mit.ll.d4m.db.cloud;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.regex.Pattern;
 import java.util.regex.Matcher;
-//import java.util.logging.Logger;
+import java.util.regex.Pattern;
+
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -37,6 +33,7 @@ import edu.mit.ll.d4m.db.cloud.util.RegExpUtil;
 /**
  * @author William Smith
  */
+@Deprecated
 public class D4mDbQuery extends D4mParent {
 	private static Logger log = Logger.getLogger(D4mDbQuery.class);
 	private String tableName = "";

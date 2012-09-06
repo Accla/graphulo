@@ -3,12 +3,12 @@
  */
 package edu.mit.ll.d4m.db.cloud.util;
 
-import edu.mit.ll.d4m.db.cloud.D4mCbSecurityOperations;
 import cloudbase.core.client.CBException;
 import cloudbase.core.client.CBSecurityException;
 import cloudbase.core.client.TableExistsException;
 import cloudbase.core.client.TableNotFoundException;
 import cloudbase.core.security.TablePermission;
+import edu.mit.ll.d4m.db.cloud.D4mCbSecurityOperations;
 /**
  * This class is used to grant table permissions to a user.
  * If the table does not exist then it would create it.

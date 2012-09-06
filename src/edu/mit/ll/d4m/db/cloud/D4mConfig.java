@@ -4,9 +4,9 @@
 package edu.mit.ll.d4m.db.cloud;
 import java.net.URL;
 
-import org.apache.log4j.Logger;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 /**
  * D4M configuration

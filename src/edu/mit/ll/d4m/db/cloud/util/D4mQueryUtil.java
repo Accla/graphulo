@@ -4,13 +4,9 @@
 package edu.mit.ll.d4m.db.cloud.util;
 
 import java.util.HashMap;
-import java.util.ArrayList;
 
 import org.apache.log4j.Logger;
 
-import cloudbase.core.data.Key;
-
-//import edu.mit.ll.d4m.db.cloud.D4mDbQuery;
 import edu.mit.ll.d4m.db.cloud.QueryMethod;
 
 /**
@@ -35,9 +31,9 @@ public class D4mQueryUtil {
 
 		if ((!rows.equals(":")) && (cols.equals(":"))) {
 
-			HashMap<String, Object> rowMap = processParam(rows);
+//			HashMap<String, Object> rowMap = processParam(rows);
 			//this.rowMap = rowMap;
-			String[] paramContent = (String[]) rowMap.get("content");
+			String[] paramContent = processParam(rows);//(String[]) rowMap.get("content");
 			// System.out.println("this.isRangeQuery(paramContent)="+this.isRangeQuery(paramContent));
 			if (isRangeQuery(paramContent)) {
 				log.debug("MATLAB_RANGE_QUERY_ON_ROWS");
@@ -75,10 +71,10 @@ public class D4mQueryUtil {
 
 	public static HashMap<String, String> assocColumnWithRow(String rows, String cols) {
 
-		HashMap<String, Object> rowMap = processParam(rows);
-		HashMap<String, Object> columnMap = processParam(cols);
-		String[] rowArray = (String[]) rowMap.get("content");
-		String[] columnArray = (String[]) columnMap.get("content");
+//		HashMap<String, Object> rowMap = processParam(rows);
+//		HashMap<String, Object> columnMap = processParam(cols);
+		String[] rowArray = processParam(rows);//(String[]) rowMap.get("content");
+		String[] columnArray = processParam(cols);//(String[]) columnMap.get("content");
 
 		HashMap<String, String> resultMap = new HashMap<String, String>();
 		for (int i = 0; i < rowArray.length; i++) {
@@ -88,13 +84,13 @@ public class D4mQueryUtil {
 	}
 
 	/*
-	 *  A common method called by loadRowMap and loadColumnMap
+	 *  A common method called by loadRowMap and loadColumnMap.
 	 *  
 	 *   queryString   string   eg a comma-delimited list cat,:,rat,
 	 */
 	private static HashMap<String, String>  loadMap(String queryString) {
-		HashMap<String, Object> tmpObjMap = processParam(queryString);
-		String[] contentArray = (String[]) tmpObjMap.get("content");
+		//HashMap<String, Object> tmpObjMap = processParam(queryString);
+		String[] contentArray = processParam(queryString);//(String[]) tmpObjMap.get("content");
 		HashMap<String, String> resultMap = loadMap(contentArray);
 		return resultMap;
 
@@ -181,18 +177,27 @@ public class D4mQueryUtil {
 		}
 		return rangeQueryType;
 	}
-
-	public static HashMap<String, Object> processParam(String param) {
-		HashMap<String, Object> map = new HashMap<String, Object>();
-		String content = param.substring(0, param.length() - 1);
-		String delim = param.replace(content, "");
-		map.put("delimiter", delim);
-		if (delim.equals("|")) {
+	
+	/**
+	 * Refitted by DH to just return the parameter split into an array of strings by the delimiter (the last character)
+	 * @param param The string to split
+	 * @return Array of Strings (w/o the delimiter)
+	 */
+	public static String[] processParam(String param) {
+		if (param == null || param.isEmpty())
+			return null;
+		//HashMap<String, Object> map = new HashMap<String, Object>();
+		int lastIdx = param.length() - 1;
+		String content = param.substring(0, lastIdx);
+		String delim = param.substring(lastIdx);
+		return content.split(delim);
+		//map.put("delimiter", delim);
+		/*if (delim.equals("|")) {
 			delim = "\\" + delim;
-		}
-		map.put("content", content.split(delim));
-		map.put("length", content.length());
-		return map;
+		}*/
+		//map.put("content", content.split(delim));
+		//map.put("length", content.length());
+		//return map;
 	}
 
 	public static boolean isWithInRange(String key, String [] rangeCriteria) {

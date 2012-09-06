@@ -57,7 +57,7 @@
   <!-- must call init_local from the local build.xml file before invoking build_jar which depends on compile -->
   <target name="compile" depends="init_local">
     <javac debug="true" debuglevel="lines,vars,source" compiler="javac1.6" fork="yes" memorymaximumsize="500M" 
-      srcdir="${src.dir}" destdir="${build.dir}/classes" classpathref="master_classpath"/>
+      srcdir="${src.dir}" destdir="${build.dir}/classes" classpathref="master_classpath" />
   </target>
   <target name="compile-test" depends="init_local">
     <javac debug="true" debuglevel="lines,vars,source" compiler="javac1.6" fork="yes" memorymaximumsize="500M" 

@@ -3,16 +3,13 @@
  */
 package edu.mit.ll.d4m.db.cloud;
 
-import java.util.HashMap;
-import org.apache.hadoop.io.Text;
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 import edu.mit.ll.cloud.connection.AccumuloConnection;
@@ -71,7 +68,7 @@ public class AccumuloInsert extends D4mInsertBase {
 
 	}
 
-	private void makeMutations ( ) {
+	/*private void makeMutations ( ) {
 		HashMap<String, Object> rowsMap = D4mQueryUtil.processParam(rows);
 		HashMap<String, Object> colsMap = D4mQueryUtil.processParam(cols);
 		HashMap<String, Object> weightMap = D4mQueryUtil.processParam(vals);
@@ -101,18 +98,18 @@ public class AccumuloInsert extends D4mInsertBase {
 
 
 		}
-	}
+	}*/
 
 	private void makeAndAddMutations() throws TableNotFoundException, MutationsRejectedException {
 		//		AccumuloConnection connection = new AccumuloConnection(super.connProps);
 		BatchWriter bw = this.connection.createBatchWriter(tableName);
-		HashMap<String, Object> rowsMap = D4mQueryUtil.processParam(rows);
-		HashMap<String, Object> colsMap = D4mQueryUtil.processParam(cols);
-		HashMap<String, Object> weightMap = D4mQueryUtil.processParam(vals);
+//		HashMap<String, Object> rowsMap = D4mQueryUtil.processParam(rows);
+//		HashMap<String, Object> colsMap = D4mQueryUtil.processParam(cols);
+//		HashMap<String, Object> weightMap = D4mQueryUtil.processParam(vals);
 
-		rowsArr = (String[]) rowsMap.get("content");
-		String[] colsArr = (String[]) colsMap.get("content");
-		String[] valsArr = (String[]) weightMap.get("content");
+		rowsArr = D4mQueryUtil.processParam(rows);//(String[]) rowsMap.get("content");
+		String[] colsArr = D4mQueryUtil.processParam(cols);//(String[]) colsMap.get("content");
+		String[] valsArr = D4mQueryUtil.processParam(vals);//(String[]) weightMap.get("content");
 
 		ColumnVisibility colVisibility = new ColumnVisibility(super.visibility);
 		Text colFamily = new Text(super.family);
@@ -134,7 +131,7 @@ public class AccumuloInsert extends D4mInsertBase {
 		bw.close();
 
 	}
-	private void addMutations() throws TableNotFoundException, MutationsRejectedException {
+	/*private void addMutations() throws TableNotFoundException, MutationsRejectedException {
 		AccumuloConnection connection = new AccumuloConnection(super.connProps);
 		BatchWriter bw = connection.createBatchWriter(tableName,
 				AccumuloConnection.maxMemory, 
@@ -146,7 +143,7 @@ public class AccumuloInsert extends D4mInsertBase {
 			Mutation m = (Mutation)mutSorter.get(thisRow);
 			bw.addMutation(m);
 		}
-	}
+	}*/
 	private void createTable () {
 		if(connection == null)
 			connection = new AccumuloConnection(super.connProps);

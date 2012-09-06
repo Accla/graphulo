@@ -52,7 +52,7 @@
   </target>
       
 	<target name="build_distribution" depends="get_version">
-<!--          <property name="version.num"  value="1.1.4"/> -->
+         <property name="version.num"  value="1.1.4"/>
           <property name="version.num"  value="${version_number}"/>
 		<zip destfile="${build.dir}/${ant.project.name}_${version.num}.zip">
 			<zipfileset dir="${build.dir}/dist/bin" filemode="755" prefix="${ant.project.name}_${version.num}/bin/">

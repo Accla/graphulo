@@ -3,11 +3,6 @@ package edu.mit.ll.d4m.db.cloud;
 import java.util.ArrayList;
 
 import org.apache.log4j.Logger;
-import org.junit.Test;
-
-import cloudbase.core.client.CBException;
-import cloudbase.core.client.CBSecurityException;
-import cloudbase.core.client.TableNotFoundException;
 
 public class TestD4mDbQuery {
 	private static Logger log = Logger.getLogger(TestD4mDbQuery.class);

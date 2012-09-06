@@ -85,6 +85,7 @@ src/edu/mit/ll/cloud/connection/AccumuloConnection.java -text
 src/edu/mit/ll/cloud/connection/CloudbaseConnection.java -text
 src/edu/mit/ll/cloud/connection/CloudbaseProperties.java -text
 src/edu/mit/ll/cloud/connection/ConnectionProperties.java -text
+src/edu/mit/ll/d4m/db/cloud/AccumuloDelete.java -text
 src/edu/mit/ll/d4m/db/cloud/AccumuloInsert.java -text
 src/edu/mit/ll/d4m/db/cloud/AccumuloTableOperations.java -text
 src/edu/mit/ll/d4m/db/cloud/CloudbaseInsert.java -text
@@ -129,6 +130,7 @@ test/edu/mit/ll/d4m/db/cloud/TestMonitor.java -text
 test/edu/mit/ll/d4m/db/cloud/TestScanner.java -text
 test/edu/mit/ll/d4m/db/cloud/TestTableSplit.java -text
 test/edu/mit/ll/d4m/db/cloud/test/CloudDataLoader.java -text
+test/edu/mit/ll/d4m/db/cloud/test/CombinerTest.java -text
 test/edu/mit/ll/d4m/db/cloud/test/D4mDbQuerySearchRowAndColTest.java -text
 test/edu/mit/ll/d4m/db/cloud/test/D4mDbQueryTest.java -text
 test/edu/mit/ll/d4m/db/cloud/test/D4mDbQueryTest5.java -text
@@ -137,3 +139,5 @@ test/edu/mit/ll/d4m/db/cloud/test/D4mDbQueryTest7.java -text
 test/edu/mit/ll/d4m/db/cloud/test/D4mDbQueryTest8.java -text
 test/edu/mit/ll/d4m/db/cloud/test/D4mDbQueryTest9.java -text
 test/edu/mit/ll/d4m/db/cloud/test/D4mQueryTest10.java -text
+test/edu/mit/ll/d4m/db/cloud/test/SomeTest.java -text
+test/edu/mit/ll/d4m/db/cloud/test/SplitTest.java -text

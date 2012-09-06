@@ -153,6 +153,23 @@ public class D4mDbInsert extends D4mParent {
 		String columnQualifier = "d4mFamilyValue";
 		ci.doProcessing(visibility, family, columnQualifier);
 	}
+	
+	/*
+	 * Package visibility because this is just for debugging for now
+	 * Only use for adding rows with blank column visibility and blank column family
+	 * @param d4mRows
+	 /
+	void doProcessing(List<D4mDbRow> d4mRows)
+	{
+		String rows="", cols="", vals="", family="", visibility="";
+		boolean first = true;
+		for (D4mDbRow d4mRow : d4mRows) {
+			if (!first) {
+				family = d4mRow.columnFamily;
+				visibility = d4mRow.
+			}
+		}
+	}*/
 
 	public void doProcessing(String rows, String cols, String vals, String family, String visibility) throws D4mException {
 		//throws IOException, CBException, CBSecurityException, TableNotFoundException, MutationsRejectedException {

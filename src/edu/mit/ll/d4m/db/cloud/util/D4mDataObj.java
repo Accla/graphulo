@@ -80,6 +80,44 @@ public class D4mDataObj {
 		this.row+"], FAMILY=["+this.colFamily+"], QUALIFIER=["+this.colQualifier+"], VALUE=["+this.value+"]";
 		return s;
 	}
+	/**
+	 * Returns a String with the rows, column qualifiers, and values held in this data object in a nice tabular format.
+	 * @return The printed string.
+	 */
+	public String prettyPrint() {
+		String[] rowsArr = D4mQueryUtil.processParam(row);
+		String[] colsArr = D4mQueryUtil.processParam(colQualifier);
+		String[] valsArr = D4mQueryUtil.processParam(value);
+		if (rowsArr == null || colsArr == null || valsArr == null)
+			return "";
+		assert rowsArr.length == colsArr.length && valsArr.length == colsArr.length;
+		
+		StringBuffer[] bufs = new StringBuffer[rowsArr.length]; // one for each line
+		int maxRow = 0;
+		for (int i = 0; i < bufs.length; i++) {
+			maxRow = rowsArr[i].length() > maxRow ? rowsArr[i].length() : maxRow;
+			bufs[i] = new StringBuffer(rowsArr[i]);
+		}
+		maxRow++; // extra space between columns
+		int maxCol = 0;
+		for (int i = 0; i < bufs.length; i++) {
+			for (int j = maxRow - bufs[i].length(); j > 0; j--)
+				bufs[i].append(' ');
+			bufs[i].append(colsArr[i]);
+			maxCol = bufs[i].length() > maxCol ? bufs[i].length() : maxCol;
+		}
+		maxCol++;
+		StringBuffer result = new StringBuffer(maxCol*bufs.length);
+		for (int i = 0; i < bufs.length; i++) {
+			result.append(bufs[i]);
+			for (int j = maxCol - bufs[i].length(); j > 0; j--)
+				result.append(' ');
+				//bufs[i].append(' ');
+			result.append(valsArr[i]).append('\n');
+			//bufs[i].append(valsArr[i]);
+		}
+		return result.toString();
+	}
 
 	public double getQueryTime() {
 		return queryTime;

@@ -1,38 +1,23 @@
 package edu.mit.ll.d4m.db.cloud;
 
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeMap;
-import java.util.Map.Entry;
-import java.util.Map.Entry;
 import java.util.SortedMap;
+import java.util.TreeMap;
 
-import org.apache.thrift.protocol.TBinaryProtocol;
-import org.apache.thrift.protocol.TProtocol;
-import org.apache.thrift.transport.TTransport;
-
-import cloudbase.core.conf.CBConfiguration;
 import cloudbase.core.client.CBException;
 import cloudbase.core.client.CBSecurityException;
 import cloudbase.core.client.Connector;
-import cloudbase.core.client.TableNotFoundException;
 import cloudbase.core.client.ZooKeeperInstance;
 import cloudbase.core.client.impl.MasterClient;
 import cloudbase.core.client.impl.Tables;
-import cloudbase.core.client.impl.ThriftTransportPool;
+import cloudbase.core.conf.CBConfiguration;
 import cloudbase.core.master.thrift.MasterClientService;
 import cloudbase.core.master.thrift.MasterMonitorInfo;
-import cloudbase.core.master.thrift.TabletInfo;
-import cloudbase.core.master.thrift.TabletServerStatus;
-import cloudbase.core.security.thrift.AuthInfo;
-import cloudbase.core.tabletserver.thrift.TabletClientService;
-import cloudbase.core.util.AddressUtil;
-import cloudbase.core.util.ThriftUtil;
-import cloudbase.core.security.thrift.AuthInfo;
 import cloudbase.core.master.thrift.TableInfo;
+import cloudbase.core.security.thrift.AuthInfo;
+import cloudbase.core.util.ThriftUtil;
 
 //import edu.mit.ll.d4m.db.cloud.D4mDbTableOperations;
 /*

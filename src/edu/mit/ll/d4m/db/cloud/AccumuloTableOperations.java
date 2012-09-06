@@ -2,31 +2,32 @@
  * 
  */
 package edu.mit.ll.d4m.db.cloud;
-
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.nio.ByteBuffer;
 
-import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
-import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransportException;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
+import org.apache.accumulo.core.util.ThriftUtil;
+import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
+import org.apache.thrift.TException;
+import org.apache.thrift.transport.TTransportException;
+
 import edu.mit.ll.cloud.connection.AccumuloConnection;
-import edu.mit.ll.cloud.connection.CloudbaseConnection;
 import edu.mit.ll.cloud.connection.ConnectionProperties;
 
 /**
@@ -116,6 +117,31 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 		
 		return retval;
 	}
+	
+	/**
+	 * Intended to be used for a single table.  Not for public use.
+	 * @param tableNames
+	 * @return
+	 */
+	@Override
+	public List<TabletStats> getTabletStatsForTables(List<String> tableNames) {
+		List<TabletStats> retval = null;
+
+		//Get TServers
+		try {
+			ArrayList<TabletServerStatus> tserverStatusList = getTabletServers();
+			retval = getTabletStatsList(tserverStatusList,  tableNames);
+		} catch (ThriftSecurityException e) {
+			log.warn(e);
+		} catch (TException e) {
+			log.warn(e);
+		}
+		
+		// Connect to each tserver and get numEntries from each tableName
+		//    Get the TabletStat
+
+		return retval;
+	}
 
 	private ArrayList<TabletServerStatus> getTabletServers() throws ThriftSecurityException, TException {
 		ArrayList<TabletServerStatus> list = new ArrayList<TabletServerStatus>();// list of TServer info
@@ -132,7 +158,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 		}
 		return list;
 	}
-	private List<TabletStats> getTabletStatsList(List<TabletServerStatus> tserverNames, ArrayList<String> tableNames) {
+	private List<TabletStats> getTabletStatsList(List<TabletServerStatus> tserverNames, List<String> tableNames) {
 		List<TabletStats> tabStatsList=new ArrayList<TabletStats>();
 		int cnt=0;
 		for(TabletServerStatus tss: tserverNames) {
@@ -147,8 +173,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	/*
 	 * Get numEntries from tserver
 	 */
-	private List<TabletStats> getTabletStatsList(String tserverName, ArrayList<String> tableNames) {
-		long retval=0;
+	private List<TabletStats> getTabletStatsList(String tserverName, List<String> tableNames) {
 		MasterClientService.Iface masterClient= null;
 		TabletClientService.Iface tabClient = null;
 		AuthInfo authInfo  = getAuthInfo();
@@ -261,6 +286,40 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 		}
 		
 		return list;
+	}
+	
+	@Override
+	public void addIterator(String tableName, IteratorSetting cfg) throws D4mException {
+		this.connection.addIterator(tableName, cfg);
+	}
+	@Override
+	public Map<String, EnumSet<IteratorScope>> listIterators(String tableName) throws D4mException {
+		return this.connection.listIterators(tableName);
+	}
+	@Override
+	public IteratorSetting getIteratorSetting(String tableName,
+			String iterName, IteratorScope scope) throws D4mException {
+		return this.connection.getIteratorSetting(tableName, iterName, scope);
+	}
+	@Override
+	public void removeIterator(String tableName, String name,
+			EnumSet<IteratorScope> scopes) throws D4mException {
+		this.connection.removeIterator(tableName, name, scopes);
+	}
+	@Override
+	public void checkIteratorConflicts(String tableName, IteratorSetting cfg,
+			EnumSet<IteratorScope> scopes) throws D4mException {
+		this.connection.checkIteratorConflicts(tableName, cfg, scopes);
+		
+	}
+	/*@Override
+	public void addSplits(String tableName, SortedSet<Text> splitsSet) throws D4mException {
+		this.connection.addSplit(tableName, splitsSet);
+		
+	}*/
+	@Override
+	public void merge(String tableName, String startRow, String endRow) throws D4mException {
+		this.connection.merge(tableName, startRow, endRow);
 	}
 
 }

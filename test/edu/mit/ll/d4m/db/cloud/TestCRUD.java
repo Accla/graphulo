@@ -3,12 +3,6 @@ package edu.mit.ll.d4m.db.cloud;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import edu.mit.ll.d4m.db.cloud.D4mDbInsert;
-import edu.mit.ll.d4m.db.cloud.D4mDbQuery;
-import edu.mit.ll.d4m.db.cloud.D4mDbResultSet;
-import edu.mit.ll.d4m.db.cloud.D4mDbRow;
-import edu.mit.ll.d4m.db.cloud.D4mDbTableOperations;
-
 public class TestCRUD {
 
 	public static void main(String[] args) throws Exception {

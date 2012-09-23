@@ -1,6 +1,4 @@
-External Files (not-written by Lincoln)
-
-
+External Files (not-written by MIT)
 
 Matlab JSON parser
   Role: Needed for D4M I/O
@@ -13,7 +11,7 @@ Matlab JSON parser
 Octave Java Package (not in distribution)
   Role: Needed for D4M to run with Octave
   Copyright: Michael Goffioul
-  License: GPL 2
+  License: GPL 2 (now GPL3 as it will be a part of mainline Octave).
   Pedigree: obtained from Octave forge, code read by Yee
   Reference: http://octave.sourceforge.net/java/index.html
   Files: not a part of D4M distribution
@@ -33,24 +31,51 @@ D4M (internal)
   Pedigree: Lincoln
   Files: lib/d4m-webapp-stubs.jar, lib/d4m_api-0.01.jar
 
-Reuters Data
-  Role: used in regression testing.
+Summaries derived from Reuters Data
+  Role: used in regression testing and examples
   Copyright: Reuters PLC
   License: For R&D purposes only, see use agreement
     http://trec.nist.gov/data/reuters/org_appl_reuters_v3.html
-  Pedigree: downlaoded from NIST website
+  Pedigree: summaries derived from data downlaoded from NIST website
   Reference: http://trec.nist.gov/data/reuters/reuters.html
-  Files: matlab_src/TEST/reuters_entities3/mergedfiles/output_01.txt
+  Files: matlab_src/TEST/reuters_entities3/mergedfiles/output_01.txt, examples/2Apps/1EntityAnalysis/Entity.csv
 
-Cloudbase 1.2.0
-  Role: Needed for D4M interface to Cloudbase
-  Copyright: GFE
-  License: GFE
-  Pedigree: GFE
-  Files: lib/cloudbase-core-1.2.0.jar, lib/cloudbase-server-1.2.0.jar, lib/cloudbase-start-1.2.0.jar
+NCBI Genetic Data
+  Role: Used in examples.
+  Copyright: U.S. Gov't
+  License: Public Domain
+  Pedigree: Downloaded from NCBI website
+  Reference: http://www.ncbi.nlm.nih.gov/About/disclaimer.html 
+  Files: examples/2Apps/4BioBlast/data/bacteria.csv, examples/2Apps/4BioBlast/data/palm.csv
+
+Photo "CK" Painting
+  Role: Used in examples.
+  Copyright: Ann Pibal
+  License: Public Domain?
+  Pedigree: Downloaded from website?
+  Reference: http://www.ncbi.nlm.nih.gov/About/disclaimer.html 
+  Files: docs/Lec01-AssocArrays.pptx
+
+Accumulo
+  Role: Needed for D4M interface to Accumulo
+  Copyright: Apache
+  License: Apache 2.0
+  Pedigree: Downloaded from Apache
+  Reference: http://accumulo.apache.org
+  Files: lib/accumulo-core-1.4.0.jar, lib/accumulo-server-1.4.0.jar, lib/accumulo-start-???.jar?
+
+HBase
+
+JTDC
+  Role: Needed for D4M to interface to SQL databases.
+  Copyright: 
+  License: LGPL
+  Pedigree: Downloaded from SourceForge
+  Reference: http://jtds.sourceforge.net/license.html
+  Files: lib/
 
 Commons
-  Role: Needed by Hadoop  and Cloudbase
+  Role: Needed by Hadoop and Accumulo
   Copyright: Apache
   License: Apache
   Pedigree: downloaded from Apache

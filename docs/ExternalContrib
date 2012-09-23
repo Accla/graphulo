@@ -1,4 +1,12 @@
-External Files (not-written by MIT)
+Associated files and libraries.  
+
+pMatlab
+  Role: Needed to run certain examples in parallel.
+  Copyright: MIT
+  License: MIT License
+  Pedigree: Obtained from MIT Lincoln Lab
+  Reference: http://www.ll.mit.edu/pMatlab/
+  Files: not included
 
 Matlab JSON parser
   Role: Needed for D4M I/O

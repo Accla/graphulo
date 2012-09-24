@@ -9,6 +9,7 @@ SW-Version, Change, BuildDate...
 1.1.5,change log level,Built on Sep 08 2011
 1.1.6,upgrade to cloudbase-1.3.4 jars,Nov 07 2011
 1.2.0,add batching function,Jan 31 2012
-2.0.0, port to accumulo, March 28, 2012
-2.0.1, port to accumulo, May 10, 2012
-2.0.2, upgrade to accumulo-1.4.0, May 16, 2012
+2.0.0, port to accumulo, March 28 2012
+2.0.1, port to accumulo, May 10 2012
+2.0.2, upgrade to accumulo-1.4.0, May 16 2012
+2.1.0, combiners;splits, Sep 24 2012

@@ -14,7 +14,7 @@
     <appender name="FlatFile" class="org.apache.log4j.FileAppender">
       <param name="File" value="@log_4_j_output_file@" />
       <param name="BufferedIO" value="true"/>
-      <param name="Threshold" value="WARN" />
+      <param name="Threshold" value="ERROR" />
 
       <!-- Setting the value of Append to true (the default) will append  -->
       <!-- logging to the end of an existing log file.  If Append is false, -->
@@ -40,10 +40,10 @@
     </appender>
 
     <logger name="org.apache">
-        <level value="WARN"/>
+        <level value="ERROR"/>
     </logger>
     <logger name="org.apache.zookeeper">
-        <level value="WARN"/>
+        <level value="ERROR"/>
     </logger>
 
 
@@ -51,14 +51,14 @@
         <level value="@log_4_j_threshold@" />
     </logger>
     <logger name="cloudbase.core" >  
-        <level value="@log_4_j_threshold@" />
+        <level value="ERROR" />
     </logger>
   
  
     <root>
        <level value="@log_4_j_root_level@"/>
        <appender-ref ref="@log_4_j_appender@"/>
-       <appender-ref ref="CONSOLE"/>
+       <appender-ref ref="CONSOLE"/> 
     </root>
 
 </log4j:configuration>

@@ -20,6 +20,7 @@ public abstract class D4mParentQuery extends D4mParent {
 	 * 
 	 */
 	public D4mParentQuery() {
+	    super();
 		connProps = new ConnectionProperties();
 	}
 

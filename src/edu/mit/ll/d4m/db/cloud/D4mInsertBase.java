@@ -26,9 +26,10 @@ public abstract class D4mInsertBase implements D4mInserterIF {
 	protected MutationSorter mutSorter = new MutationSorter();
 
 	public D4mInsertBase() {
-
+	    super();
 	}
 	public D4mInsertBase(String instanceName,String hostName, String tableName, String username, String password) {
+	    super();
 		init(instanceName,hostName,tableName,username,password);
 	}
 

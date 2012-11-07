@@ -303,10 +303,26 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 
 		return list;
 	}
-
+/*
+ * List of splits and the number of entries in each tablet.
+ * The the splits and the numbers are demarcated by ":" in the List object
+ * For example, list looks like
+ *     split1
+ *     split2
+ *     split3
+ *     split4
+ *     :
+ *     100
+ *     200
+ *     300
+ *     400
+ *     
+ * (non-Javadoc)
+ * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#getSplits(java.lang.String, boolean)
+ */
 	public List<String> getSplits(String tableName, boolean getNumInEachTablet) throws D4mException {
 
-		List<String> list = new ArrayList<String>();
+		//List<String> list = new ArrayList<String>();
 
 		ArgumentChecker.notNull(tableName);
 		//doInit();
@@ -321,6 +337,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 			//	result[0] = sb.toString();
 
 			//	sb = new StringBuffer();
+			splitList.add(":");
 			AccumuloConnection ac = new AccumuloConnection(this.connProp);
 			org.apache.accumulo.core.client.Scanner scanner;
 			try {
@@ -352,7 +369,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 						if ( (erb == null ? tabStat.extent.endRow == null : tabStat.extent.endRow != null && tabStat.extent.endRow.equals(erb) )
 								&&(prb == null ? tabStat.extent.prevEndRow == null : tabStat.extent.prevEndRow != null && tabStat.extent.prevEndRow.equals(prb))) {
 							// found it!
-							list.add(Long.toString(tabStat.numEntries));
+							splitList.add(Long.toString(tabStat.numEntries));
 							//					sb.append(tabStat.numEntries).append(',');
 							foundIt = true;
 							break;
@@ -360,7 +377,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 					}
 					//assert foundIt;
 					if (!foundIt) {
-						list.add("?");
+						splitList.add("?");
 						//					sb.append("?,");
 					}
 				}
@@ -368,7 +385,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 
 			//			result[1] = sb.toString();			
 
-			return list;
+			return splitList;
 		}
 
 	}

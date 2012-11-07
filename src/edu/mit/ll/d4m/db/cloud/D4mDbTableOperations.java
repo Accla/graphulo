@@ -770,22 +770,56 @@ public class D4mDbTableOperations extends D4mParent {
 	{
 		ArgumentChecker.notNull(tableName);
 		doInit();
-		List<String> splitList = this.d4mTableOp.getSplits(tableName, getNumInEachTablet);
+		List<String> splitList = this.d4mTableOp.getSplits(tableName,getNumInEachTablet );
 
 		String [] result = null;
-
-		if(!getNumInEachTablet) {
-			StringBuffer sb = new StringBuffer();
-			for(String split: splitList) {
-				sb.append(split).append(",");
+		StringBuffer sb1 = new StringBuffer();
+		StringBuffer sb2 = new StringBuffer();
+		boolean isFlag=false;
+		for(String split: splitList) {
+			if(split.equals(":") ) { 
+				isFlag= true;
+				continue;
 			}
 
+			if(!split.equals(":") && !isFlag)
+				sb1.append(split).append(",");
+
+			if(isFlag) {
+				//Get number of entries per tablet
+				sb2.append(split).append(",");
+			}
+		}
+		if(sb2.length() ==0) {
+			result = new String[] {sb1.toString()};
+		} else {
+			result = new String[2];
+			result[0] = sb1.toString();
+			result[1] = sb2.toString();
+		}
+		/*
+		StringBuffer sb = new StringBuffer();
+		for(String split: splitList) {
+			sb.append(split).append(",");
+		}
+
+		if(!getNumInEachTablet) {
+			result = new String[] {sb.toString()};
 		} else {
 
 			result = new String[2];
+			result[0] = sb.toString();
+			List<String> list = this.d4mTableOp.getSplitsNumInEachTablet(tableName);
+			sb = new StringBuffer();
+			for(String s : list) {
+				sb.append(s).append(",");
+			}
+			result[1] = sb.toString();
 		}
+		 */
 		return result;
-
+//*************************************************************************************************		
+//*************************************************************************************************
 		//		StringBuffer sb = new StringBuffer();
 		//		for (String split : splitList)
 		//			sb.append(split).append(',');

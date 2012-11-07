@@ -1,14 +1,13 @@
 /**
  * 
  */
-package edu.mit.ll.d4m.db.cloud.util;
+package edu.mit.ll.d4m.db.cloud.cb;
 
 import cloudbase.core.client.CBException;
 import cloudbase.core.client.CBSecurityException;
 import cloudbase.core.client.TableExistsException;
 import cloudbase.core.client.TableNotFoundException;
 import cloudbase.core.security.TablePermission;
-import edu.mit.ll.d4m.db.cloud.D4mCbSecurityOperations;
 /**
  * This class is used to grant table permissions to a user.
  * If the table does not exist then it would create it.
@@ -16,7 +15,7 @@ import edu.mit.ll.d4m.db.cloud.D4mCbSecurityOperations;
  * @author cyee
  *
  */
-public class GrantTablePermissions {
+public class CloudbaseGrantTablePermissions {
 
 	/**
 	 * @param args
@@ -47,8 +46,8 @@ public class GrantTablePermissions {
 
 		TablePermission tabPermiss = TablePermission.valueOf(permission);
 		System.out.println("USER="+username+", permission = "+tabPermiss.toString());
-		D4mCbSecurityOperations d4mSecOp = 
-			new D4mCbSecurityOperations(instanceName,
+		CloudbaseD4mSecurityOperations d4mSecOp = 
+			new CloudbaseD4mSecurityOperations(instanceName,
 					host, rootuser, rootpasswd);
 		d4mSecOp.grantTablePermission(username, tableName, tabPermiss);
 		

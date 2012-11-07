@@ -1,4 +1,4 @@
-package edu.mit.ll.d4m.db.cloud;
+package edu.mit.ll.d4m.db.cloud.cb;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -24,8 +24,12 @@ import cloudbase.core.data.Range;
 import cloudbase.core.data.Value;
 import cloudbase.core.iterators.RegExIterator;
 import cloudbase.core.iterators.filter.RegExFilter;
-import edu.mit.ll.cloud.connection.CloudbaseConnection;
 import edu.mit.ll.cloud.connection.ConnectionProperties;
+import edu.mit.ll.d4m.db.cloud.D4mConfig;
+import edu.mit.ll.d4m.db.cloud.D4mDbResultSet;
+import edu.mit.ll.d4m.db.cloud.D4mDbRow;
+import edu.mit.ll.d4m.db.cloud.D4mException;
+import edu.mit.ll.d4m.db.cloud.D4mParentQuery;
 import edu.mit.ll.d4m.db.cloud.util.CompareUtil;
 import edu.mit.ll.d4m.db.cloud.util.D4mDataObj;
 import edu.mit.ll.d4m.db.cloud.util.RegExpUtil;

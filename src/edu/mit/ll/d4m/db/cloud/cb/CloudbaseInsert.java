@@ -1,7 +1,7 @@
 /**
  * 
  */
-package edu.mit.ll.d4m.db.cloud;
+package edu.mit.ll.d4m.db.cloud.cb;
 
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -14,7 +14,9 @@ import cloudbase.core.client.TableNotFoundException;
 import cloudbase.core.data.Mutation;
 import cloudbase.core.data.Value;
 import cloudbase.core.security.ColumnVisibility;
-import edu.mit.ll.cloud.connection.CloudbaseConnection;
+import edu.mit.ll.d4m.db.cloud.D4mConfig;
+import edu.mit.ll.d4m.db.cloud.D4mDbInfo;
+import edu.mit.ll.d4m.db.cloud.D4mInsertBase;
 import edu.mit.ll.d4m.db.cloud.util.D4mQueryUtil;
 
 /**

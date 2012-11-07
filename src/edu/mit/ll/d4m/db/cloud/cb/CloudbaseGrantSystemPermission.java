@@ -1,12 +1,12 @@
 /**
  * 
  */
-package edu.mit.ll.d4m.db.cloud.util;
+package edu.mit.ll.d4m.db.cloud.cb;
 
 import cloudbase.core.client.CBException;
 import cloudbase.core.client.CBSecurityException;
 import cloudbase.core.security.SystemPermission;
-import edu.mit.ll.d4m.db.cloud.D4mCbSecurityOperations;
+import edu.mit.ll.d4m.db.cloud.cb.CloudbaseD4mSecurityOperations;
 
 /**
  * This class is used to grant system permissions to a user.
@@ -16,7 +16,7 @@ import edu.mit.ll.d4m.db.cloud.D4mCbSecurityOperations;
  * @author cyee
  *
  */
-public class GrantSystemPermission {
+public class CloudbaseGrantSystemPermission {
 
 	/**
 	 * @param args
@@ -44,8 +44,8 @@ public class GrantSystemPermission {
 		
 		System.out.println("User = "+username+", System permission="+sysPerm.toString());
 		
-		D4mCbSecurityOperations d4mSecOp = 
-			new D4mCbSecurityOperations(instanceName,
+		CloudbaseD4mSecurityOperations d4mSecOp = 
+			new CloudbaseD4mSecurityOperations(instanceName,
 					host, rootuser, rootpasswd);
 		//grantSystemPermission(String user, String permission)
 		d4mSecOp.grantSystemPermission(username, permission);

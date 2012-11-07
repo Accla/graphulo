@@ -1,7 +1,7 @@
 /**
  * 
  */
-package edu.mit.ll.d4m.db.cloud;
+package edu.mit.ll.d4m.db.cloud.cb;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -15,21 +15,20 @@ import cloudbase.core.client.TableExistsException;
 import cloudbase.core.client.TableNotFoundException;
 import cloudbase.core.security.SystemPermission;
 import cloudbase.core.security.TablePermission;
-import edu.mit.ll.cloud.connection.CloudbaseConnection;
 import edu.mit.ll.cloud.connection.ConnectionProperties;
 
 /**
  * @author cyee
  *
  */
-public class D4mCbSecurityOperations {
-	private static Logger log = Logger.getLogger(D4mCbSecurityOperations.class);
+public class CloudbaseD4mSecurityOperations {
+	private static Logger log = Logger.getLogger(CloudbaseD4mSecurityOperations.class);
 	private String user="";
 	private String password="";
 	private CloudbaseConnection connection=null;
 	private ConnectionProperties connProps= new ConnectionProperties();
 
-	public D4mCbSecurityOperations(String instanceName, String hostname, String rootuser, String password) {
+	public CloudbaseD4mSecurityOperations(String instanceName, String hostname, String rootuser, String password) {
 		this.user = rootuser;
 		this.password = password;
 		this.connProps.setHost(hostname);
@@ -192,8 +191,8 @@ public class D4mCbSecurityOperations {
 			j++;
 		}
 
-		D4mCbSecurityOperations d4mSecOp = 
-			new D4mCbSecurityOperations(instanceName,
+		CloudbaseD4mSecurityOperations d4mSecOp = 
+			new CloudbaseD4mSecurityOperations(instanceName,
 					host, rootuser, password);
 
 		d4mSecOp.process(params);

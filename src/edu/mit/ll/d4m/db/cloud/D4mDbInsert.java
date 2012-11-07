@@ -8,17 +8,17 @@ import java.util.HashMap;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
-import cloudbase.core.client.BatchWriter;
-import cloudbase.core.client.CBException;
-import cloudbase.core.client.CBSecurityException;
-import cloudbase.core.client.MutationsRejectedException;
-import cloudbase.core.client.TableExistsException;
-import cloudbase.core.client.TableNotFoundException;
-import cloudbase.core.data.Mutation;
-import cloudbase.core.data.Value;
-import cloudbase.core.security.ColumnVisibility;
-import edu.mit.ll.cloud.connection.CloudbaseConnection;
+//import cloudbase.core.client.BatchWriter;
+//import cloudbase.core.client.CBException;
+//import cloudbase.core.client.CBSecurityException;
+//import cloudbase.core.client.MutationsRejectedException;
+//import cloudbase.core.client.TableExistsException;
+//import cloudbase.core.client.TableNotFoundException;
+//import cloudbase.core.data.Mutation;
+//import cloudbase.core.data.Value;
+//import cloudbase.core.security.ColumnVisibility;
 import edu.mit.ll.cloud.connection.ConnectionProperties;
+//import edu.mit.ll.d4m.db.cloud.cb.CloudbaseConnection;
 
 /**
  * @author William Smith
@@ -54,6 +54,7 @@ public class D4mDbInsert extends D4mParent {
 	 * @throws CBSecurityException
 	 * @throws TableExistsException
 	 */
+	/*
 	@Deprecated
 	public D4mDbInsert(ConnectionProperties connProps, String tableName, String rows, String cols, String vals) throws CBException, CBSecurityException, TableExistsException {
 		super();
@@ -64,6 +65,7 @@ public class D4mDbInsert extends D4mParent {
 
 		this.connProps = connProps;
 	}
+	*/
 
 	/**
 	 * @param instanceName
@@ -78,6 +80,7 @@ public class D4mDbInsert extends D4mParent {
 	 * @throws CBSecurityException
 	 * @throws TableExistsException
 	 */
+	/*
 	@Deprecated
 	public D4mDbInsert(String instanceName, String hostName, String tableName, String username, String password, String rows, String cols, String vals) throws CBException, CBSecurityException, TableExistsException {
 		super();
@@ -91,7 +94,7 @@ public class D4mDbInsert extends D4mParent {
 		this.connProps.setUser(username);
 		this.connProps.setPass(password);
 	}
-
+*/
 	/**
 	 * @param instanceName
 	 * @param hostName
@@ -135,7 +138,7 @@ public class D4mDbInsert extends D4mParent {
 		this.connProps.setMaxNumThreads(this.numThreads);
 	}
 
-	public static void main(String[] args) throws FileNotFoundException, IOException, CBException, CBSecurityException, TableNotFoundException, MutationsRejectedException, TableExistsException {
+	public static void main(String[] args) throws Exception {
 
 		if (args.length < 5) {
 			return;
@@ -146,12 +149,13 @@ public class D4mDbInsert extends D4mParent {
 		String rows = args[2];
 		String cols = args[3];
 		String vals = args[4];
-
+/*
 		D4mDbInsert ci = new D4mDbInsert("cloudbase", hostName, tableName, "root", "secret", rows, cols, vals);
 		String visibility = "s|ts|sci";
 		String family = "d4mFamily";
 		String columnQualifier = "d4mFamilyValue";
 		ci.doProcessing(visibility, family, columnQualifier);
+		*/
 	}
 	
 	/*
@@ -195,6 +199,7 @@ public class D4mDbInsert extends D4mParent {
 		//doProcessing();
 	}
 
+	/*
 	//Insert using Cloudbase
 	private void doProcessing() throws IOException, CBException, CBSecurityException, TableNotFoundException, MutationsRejectedException {
 
@@ -237,6 +242,7 @@ public class D4mDbInsert extends D4mParent {
 		long endSeconds = System.currentTimeMillis();
 		System.out.println("Time = " + elapsed / 1000 + "," + start / 1000 + "," + endSeconds / 1000 + "," + startDate + "," + endDate);
 	}
+	*/
 
 	private HashMap<String, Object> processParam(String param) {
 		HashMap<String, Object> map = new HashMap<String, Object>();
@@ -250,7 +256,7 @@ public class D4mDbInsert extends D4mParent {
 		map.put("length", content.length());
 		return map;
 	}
-
+/*
 	public void createTable() throws CBException, CBSecurityException {
 
 		if (this.doesTableExistFromMetadata(tableName) == false) {
@@ -263,7 +269,7 @@ public class D4mDbInsert extends D4mParent {
 			}
 		}
 	}
-
+*/
 	public boolean doesTableExistFromMetadata(String tableName) {
 		boolean exist = false;
 		D4mDbInfo info = new D4mDbInfo(this.connProps);
@@ -302,6 +308,7 @@ public class D4mDbInsert extends D4mParent {
 		System.out.println("Completed creation of test data for " + loops + " entries.");
 	}
 
+	/*
 	@Deprecated
 	public void doProcessing(String rows, String cols, String vals) throws IOException, CBException, CBSecurityException, TableNotFoundException, MutationsRejectedException {
 		this.rows = rows;
@@ -310,6 +317,7 @@ public class D4mDbInsert extends D4mParent {
 		doProcessing();
 
 	}
+	*/
 	/*
 	 * Set cloud type - Cloudbase or Accumulo
 	 */

@@ -64,7 +64,17 @@ public interface D4mTableOpsIF {
 	public void connect();
 	
 	public List<String> getSplits(String tableName);
-	
+	public List<String> getSplits(String tableName, boolean getNumInEachTablet) throws D4mException;
+	public List<String> getSplitsNumInEachTablet(String tableName) throws D4mException;
+
+	/**
+	 * Ensures that newSplitsString represents the state of splits of the table by merging away any splits present in the table not in newSplitsString.
+	 * Merges away all splits if newSplitsString is null or empty
+	 * @param tableName
+	 * @param newSplitsString
+	 * @throws Exception TableNotFoundException
+	 */
+	public void putSplits(String tableName, String newSplitsString) throws D4mException;
 	public void addIterator(String tableName, IteratorSetting cfg) throws D4mException;
 	public Map<String, EnumSet<IteratorScope>> listIterators(String tableName) throws D4mException;
 	public IteratorSetting getIteratorSetting(String tableName, String iterName, IteratorScope scan) throws D4mException;
@@ -72,6 +82,11 @@ public interface D4mTableOpsIF {
 	public void checkIteratorConflicts(String tableName, IteratorSetting cfg, EnumSet<IteratorScope> allOf) throws D4mException;
 	//public void addSplits(String tableName, SortedSet<Text> splitsSet) throws D4mException;
 	public void merge(String tableName, String startRow, String endRow) throws D4mException;
-	List<TabletStats> getTabletStatsForTables(List<String> tableNames);
+	public List<TabletStats> getTabletStatsForTables(List<String> tableNames);
 	
+	//10-23-2012 YEE - add for Combiner functionality
+	public void designateCombiningColumns(String tableName, String columnStrAll, String combineType, String columnFamily) throws D4mException;
+	public String listCombiningColumns(String tableName) throws D4mException;
+	public void revokeCombiningColumns(String tableName, String columnStr, String columnFamily) throws D4mException;
+
 }

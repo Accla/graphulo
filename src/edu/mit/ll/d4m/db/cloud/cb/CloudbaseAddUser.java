@@ -1,9 +1,9 @@
-package edu.mit.ll.d4m.db.cloud.util;
+package edu.mit.ll.d4m.db.cloud.cb;
 
 import cloudbase.core.client.CBException;
 import cloudbase.core.client.CBSecurityException;
-import edu.mit.ll.d4m.db.cloud.D4mCbSecurityOperations;
-public class AddUser {
+import edu.mit.ll.d4m.db.cloud.cb.CloudbaseD4mSecurityOperations;
+public class CloudbaseAddUser {
 
 	/**
 	 * @param args
@@ -25,8 +25,8 @@ public class AddUser {
 		String instanceName = args[3];
 		String  username    = args[4];
 		String user_passwd  = args[5];
-		D4mCbSecurityOperations d4mSecOp = 
-			new D4mCbSecurityOperations(instanceName,
+		CloudbaseD4mSecurityOperations d4mSecOp = 
+			new CloudbaseD4mSecurityOperations(instanceName,
 					host, rootuser, rootpasswd);
 
 		//Setup the user's authorizations

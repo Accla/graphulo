@@ -17,28 +17,29 @@ import java.util.NavigableSet;
 import java.util.TreeSet;
 import java.util.logging.Logger;
 
-import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.Combiner;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.IteratorUtil;
-import org.apache.accumulo.core.iterators.LongCombiner;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.TypedValueCombiner;
-import org.apache.accumulo.core.iterators.ValueFormatException;
-import org.apache.accumulo.core.iterators.conf.ColumnSet;
-import org.apache.accumulo.core.iterators.user.MaxCombiner;
-import org.apache.accumulo.core.iterators.user.MinCombiner;
-import org.apache.accumulo.core.iterators.user.SummingCombiner;
-import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.util.ArgumentChecker;
-import org.apache.accumulo.core.util.Pair;
+//import org.apache.accumulo.core.client.IteratorSetting;
+//import org.apache.accumulo.core.data.Key;
+//import org.apache.accumulo.core.data.Value;
+//import org.apache.accumulo.core.iterators.Combiner;
+//import org.apache.accumulo.core.iterators.IteratorEnvironment;
+//import org.apache.accumulo.core.iterators.IteratorUtil;
+//import org.apache.accumulo.core.iterators.LongCombiner;
+//import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+//import org.apache.accumulo.core.iterators.TypedValueCombiner;
+//import org.apache.accumulo.core.iterators.ValueFormatException;
+//import org.apache.accumulo.core.iterators.conf.ColumnSet;
+//import org.apache.accumulo.core.iterators.user.MaxCombiner;
+//import org.apache.accumulo.core.iterators.user.MinCombiner;
+//import org.apache.accumulo.core.iterators.user.SummingCombiner;
+//import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
+//import org.apache.accumulo.core.util.ArgumentChecker;
+//import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 
-import edu.mit.ll.cloud.connection.AccumuloConnection;
+//import edu.mit.ll.cloud.connection.AccumuloConnection;
 import edu.mit.ll.cloud.connection.ConnectionProperties;
 import edu.mit.ll.d4m.db.cloud.util.D4mQueryUtil;
+import edu.mit.ll.d4m.db.cloud.util.ArgumentChecker;
 
 
 
@@ -98,58 +99,11 @@ public class D4mDbTableOperations extends D4mParent {
 	public void createTable(String tableName) {
 		doInit();
 		this.d4mTableOp.createTable(tableName);
-		//		CloudbaseConnection cbConnection = null;
-		//		try {
-		//			cbConnection = new CloudbaseConnection(this.connProps);
-		//		}
-		//		catch (CBException ex) {
-		//			Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.SEVERE, null, ex);
-		//		}
-		//		catch (CBSecurityException ex) {
-		//			Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.SEVERE, null, ex);
-		//		}
-		//		try {
-		//			cbConnection.createTable(tableName);
-		//			System.out.println("The " + tableName + " table was created.");
-		//		}
-		//		catch (CBException ex) {
-		//			Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.SEVERE, null, ex);
-		//		}
-		//		catch (CBSecurityException ex) {
-		//			Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.SEVERE, null, ex);
-		//		}
-		//		catch (TableExistsException ex) {
-		//			System.out.println("The " + tableName + " table already Exists.");
-		//		}
 	}
 
 	public void deleteTable(String tableName) {
 		doInit();
-
 		this.d4mTableOp.deleteTable(tableName);
-		//		CloudbaseConnection cbConnection = null;
-		//		try {
-		//			cbConnection = new CloudbaseConnection(this.connProps);
-		//		}
-		//		catch (CBException ex) {
-		//			Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.SEVERE, null, ex);
-		//		}
-		//		catch (CBSecurityException ex) {
-		//			Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.SEVERE, null, ex);
-		//		}
-		//		try {
-		//			cbConnection.deleteTable(tableName);
-		//			System.out.println("The " + tableName + " table was deleted.");
-		//		}
-		//		catch (CBException ex) {
-		//			Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.SEVERE, null, ex);
-		//		}
-		//		catch (CBSecurityException ex) {
-		//			Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.SEVERE, null, ex);
-		//		}
-		//		catch (TableNotFoundException ex) {
-		//			Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.SEVERE, null, ex);
-		//		}
 	}
 
 	/*
@@ -437,74 +391,75 @@ public class D4mDbTableOperations extends D4mParent {
 	}
 	private static int priorityCounter = 1;*/
 
-	public static enum CombiningType { 
-		/*****************************************************************************************/
-		/*************************** ADD NEW COMBINER CLASS TYPES HERE ***************************/
-		/*****************************************************************************************/
-		// The second number is the statically assigned priority of the combiner (lower is higher).
-		//		Only matters if more than one combiner is set on a column.
-		//		Note that 20 is the VersioningIterator combiner's priority -- don't go above that!
-		SUM(SummingCombiner.class, 7),
-		MAX(MaxCombiner.class, 8),
-		MIN(MinCombiner.class, 9),
-		SUM_DECIMAL(BigDecimalSummingCombiner.class, 10), 
-		MAX_DECIMAL(BigDecimalMaxCombiner.class, 11),
-		MIN_DECIMAL(BigDecimalMinCombiner.class, 12);
+	//	public static enum CombiningType { 
+	/*****************************************************************************************/
+	/*************************** ADD NEW COMBINER CLASS TYPES HERE ***************************/
+	/*****************************************************************************************/
+	// The second number is the statically assigned priority of the combiner (lower is higher).
+	//		Only matters if more than one combiner is set on a column.
+	//		Note that 20 is the VersioningIterator combiner's priority -- don't go above that!
+	//		SUM(SummingCombiner.class, 7),
+	//		MAX(MaxCombiner.class, 8),
+	//		MIN(MinCombiner.class, 9),
+	//		SUM_DECIMAL(BigDecimalSummingCombiner.class, 10), 
+	//		MAX_DECIMAL(BigDecimalMaxCombiner.class, 11),
+	//		MIN_DECIMAL(BigDecimalMinCombiner.class, 12);
 
-		private Class<? extends Combiner> cl;
-		private int combinerPriority;
+	//		private Class<? extends Combiner> cl;
+	//		private int combinerPriority;
+	//
+	//		static final String PREFIX = "CombiningType_";
+	//		private static Map<String,CombiningType> nameMap;
+	//		private static Map<Class<? extends Combiner>, CombiningType> classMap;
+	//
+	//		static {
+	//			nameMap = new HashMap<String,CombiningType>();
+	//			classMap = new HashMap<Class<? extends Combiner>, CombiningType>();
+	//			for (CombiningType ct : CombiningType.values()) {
+	//				nameMap.put(ct.name().toUpperCase(), ct);
+	//				classMap.put(ct.cl, ct);
+	//			}
+	//		}
+	//
+	//		CombiningType(Class<? extends Combiner> cl, int combinerPriority) {
+	//			this.cl = cl;
+	//			this.combinerPriority = combinerPriority;
+	//		}
 
-		static final String PREFIX = "CombiningType_";
-		private static Map<String,CombiningType> nameMap;
-		private static Map<Class<? extends Combiner>, CombiningType> classMap;
+	/**
+	 * Lookup a CombiningType by name (case insensitive)
+	 * @param name
+	 * @return null if name not present, or the CombiningType if present
+	 */
+	//		public static CombiningType getByName(final String name) {
+	//			return nameMap.get(name.toUpperCase());
+	//		}
+	//		public static CombiningType getByClass(final Class<?> name) {
+	//			return classMap.get(name);
+	//		}
+	//		public static CombiningType getByClass(final String className) {
+	//			try {
+	//				return getByClass(Class.forName(className));
+	//			} catch(ClassNotFoundException e) {
+	//				return null;
+	//			}
+	//		}
+	//
+	//		public Class<? extends Combiner> getCl() {
+	//			return cl;
+	//		}
+	//
+	//		public int getCombinerPriority() {
+	//			return combinerPriority;
+	//		}
+	//		public String getIteratorName() {
+	//			return PREFIX+this.name();
+	//		}
 
-		static {
-			nameMap = new HashMap<String,CombiningType>();
-			classMap = new HashMap<Class<? extends Combiner>, CombiningType>();
-			for (CombiningType ct : CombiningType.values()) {
-				nameMap.put(ct.name().toUpperCase(), ct);
-				classMap.put(ct.cl, ct);
-			}
-		}
-
-		CombiningType(Class<? extends Combiner> cl, int combinerPriority) {
-			this.cl = cl;
-			this.combinerPriority = combinerPriority;
-		}
-
-		/**
-		 * Lookup a CombiningType by name (case insensitive)
-		 * @param name
-		 * @return null if name not present, or the CombiningType if present
-		 */
-		public static CombiningType getByName(final String name) {
-			return nameMap.get(name.toUpperCase());
-		}
-		public static CombiningType getByClass(final Class<?> name) {
-			return classMap.get(name);
-		}
-		public static CombiningType getByClass(final String className) {
-			try {
-				return getByClass(Class.forName(className));
-			} catch(ClassNotFoundException e) {
-				return null;
-			}
-		}
-
-		public Class<? extends Combiner> getCl() {
-			return cl;
-		}
-
-		public int getCombinerPriority() {
-			return combinerPriority;
-		}
-		public String getIteratorName() {
-			return PREFIX+this.name();
-		}
-		
-		/* *************************************************************************************************
-		 * Begin Combiner Class Definitions
-		 */
+	/* *************************************************************************************************
+	 * Begin Combiner Class Definitions
+	 */
+	/*
 		public static class BigDecimalSummingCombiner extends TypedValueCombiner<BigDecimal>
 		{
 			private final static BigDecimalEncoder BDE = new BigDecimalEncoder();
@@ -565,17 +520,18 @@ public class D4mDbTableOperations extends D4mParent {
 				return min;
 			}
 		}
-		
-		
-		
-		
-	} // end CombiningType enum
-	
+
+	 */
+
+
+	//	} // end CombiningType enum
+
 	/**
 	 * Provides the ability to encode scientific notation.
 	 * @author dy23798
 	 *
 	 */
+	/*
 	public static class BigDecimalEncoder implements org.apache.accumulo.core.iterators.TypedValueCombiner.Encoder<BigDecimal> {
 		@Override
 		public byte[] encode(BigDecimal v) {
@@ -591,7 +547,7 @@ public class D4mDbTableOperations extends D4mParent {
 			}
 		}
 	}
-
+	 */
 	/**
 	 * Designates columns (which do not have to exist yet) with a Combiner. 
 	 * Note: Do not add more than one combiner on a column.
@@ -603,53 +559,58 @@ public class D4mDbTableOperations extends D4mParent {
 	 */
 	public void designateCombiningColumns(String tableName, String columnStrAll, String combineType, String columnFamily) throws D4mException
 	{
-		ArgumentChecker.notNull(tableName, columnStrAll, combineType);
-		if (columnFamily == null)
-			columnFamily = "";
 		doInit();
-		CombiningType ct; // the type of the combiner, e.g. SUM 
-		String[] columnStrArr = D4mQueryUtil.processParam(columnStrAll); // the columns we want to combine
+		this.d4mTableOp.designateCombiningColumns(tableName, columnStrAll, combineType, columnFamily);
+	}
+	//	public void designateCombiningColumns(String tableName, String columnStrAll, String combineType, String columnFamily) throws D4mException
+	//	{
+	//		ArgumentChecker.notNull(tableName, columnStrAll, combineType);
+	//		if (columnFamily == null)
+	//			columnFamily = "";
+	//		doInit();
+	//		CombiningType ct; // the type of the combiner, e.g. SUM 
+	//		String[] columnStrArr = D4mQueryUtil.processParam(columnStrAll); // the columns we want to combine
+	//
+	//		ct = CombiningType.getByName(combineType);
+	//		if (ct == null) // user did not specify "sum", "min", or "max"
+	//			throw new IllegalArgumentException("user did not specify \"sum\", \"min\", or \"max\"");
 
-		ct = CombiningType.getByName(combineType);
-		if (ct == null) // user did not specify "sum", "min", or "max"
-			throw new IllegalArgumentException("user did not specify \"sum\", \"min\", or \"max\"");
+	// we will get an exception if there is already a combiner on a column - let it propagate to the user
+	// first, check to see if the iterator exists in this table
+	//		IteratorSetting itSet = this.d4mTableOp.getIteratorSetting(tableName, ct.getIteratorName(), IteratorUtil.IteratorScope.scan); // any scope is ok
+	//		if (itSet == null) {
+	//			// iterator does not exist yet - create it and set it equal to the given columns
+	//			itSet = new IteratorSetting(ct.getCombinerPriority(), ct.getIteratorName(), ct.cl);
+	//			
+	//			if (LongCombiner.class.isAssignableFrom(ct.cl)) // if using one of the Long Combiner classes, use the String en-/de-coder
+	//				LongCombiner.setEncodingType(itSet, LongCombiner.Type.STRING);
+	//LongCombiner.setEncodingType(itSet, BigDecimalEncoder.class);
+	//			TypedValueCombiner.setLossyness(itSet, true); // silently ignore bad values
+	//			
+	//			List<IteratorSetting.Column> combineColumns = new LinkedList<IteratorSetting.Column>();
+	//			for (String column : columnStrArr)
+	//				combineColumns.add(new IteratorSetting.Column(columnFamily, column));
+	//			Combiner.setColumns(itSet, combineColumns);
+	//			this.d4mTableOp.addIterator(tableName, itSet); // add to majc, minc, scan
+	//		}
+	//		else {
+	// iterator already exists - get it and add to the columns it already has
+	//			String allColumnString = itSet.getOptions().get("columns"); // use ColumnSet.decodeColumns if we want the original text
+	//			assert allColumnString != null && !allColumnString.isEmpty();
 
-		// we will get an exception if there is already a combiner on a column - let it propagate to the user
-		// first, check to see if the iterator exists in this table
-		IteratorSetting itSet = this.d4mTableOp.getIteratorSetting(tableName, ct.getIteratorName(), IteratorUtil.IteratorScope.scan); // any scope is ok
-		if (itSet == null) {
-			// iterator does not exist yet - create it and set it equal to the given columns
-			itSet = new IteratorSetting(ct.getCombinerPriority(), ct.getIteratorName(), ct.cl);
-			
-			if (LongCombiner.class.isAssignableFrom(ct.cl)) // if using one of the Long Combiner classes, use the String en-/de-coder
-				LongCombiner.setEncodingType(itSet, LongCombiner.Type.STRING);
-			//LongCombiner.setEncodingType(itSet, BigDecimalEncoder.class);
-			TypedValueCombiner.setLossyness(itSet, true); // silently ignore bad values
-			
-			List<IteratorSetting.Column> combineColumns = new LinkedList<IteratorSetting.Column>();
-			for (String column : columnStrArr)
-				combineColumns.add(new IteratorSetting.Column(columnFamily, column));
-			Combiner.setColumns(itSet, combineColumns);
-			this.d4mTableOp.addIterator(tableName, itSet); // add to majc, minc, scan
-		}
-		else {
-			// iterator already exists - get it and add to the columns it already has
-			String allColumnString = itSet.getOptions().get("columns"); // use ColumnSet.decodeColumns if we want the original text
-			assert allColumnString != null && !allColumnString.isEmpty();
+	// ensure the column is not already in there
+	//			StringBuffer sb = new StringBuffer(allColumnString);
+	//			for (String column : columnStrArr)
+	//				if (!allColumnString.contains(ColumnSet.encodeColumns(new Text(columnFamily), new Text(column))))
+	//					sb.append(',').append(ColumnSet.encodeColumns(new Text(columnFamily), new Text(column)));
+	//			itSet.addOption("columns", sb.toString()); // overwrite previous column setting
 
-			// ensure the column is not already in there
-			StringBuffer sb = new StringBuffer(allColumnString);
-			for (String column : columnStrArr)
-				if (!allColumnString.contains(ColumnSet.encodeColumns(new Text(columnFamily), new Text(column))))
-					sb.append(',').append(ColumnSet.encodeColumns(new Text(columnFamily), new Text(column)));
-			itSet.addOption("columns", sb.toString()); // overwrite previous column setting
+	// remove old iterator and add new one with same priority
+	//			this.d4mTableOp.removeIterator(tableName, ct.getIteratorName(), EnumSet.allOf(IteratorUtil.IteratorScope.class));
+	//			this.d4mTableOp.addIterator(tableName, itSet); // add to majc, minc, scan
+	//		}
 
-			// remove old iterator and add new one with same priority
-			this.d4mTableOp.removeIterator(tableName, ct.getIteratorName(), EnumSet.allOf(IteratorUtil.IteratorScope.class));
-			this.d4mTableOp.addIterator(tableName, itSet); // add to majc, minc, scan
-		}
-
-		/*Map<String,IteratorSetting> cfgMap = new HashMap<String,IteratorSetting>(columnStrArr.length);
+	/*Map<String,IteratorSetting> cfgMap = new HashMap<String,IteratorSetting>(columnStrArr.length);
 		// first, check for any conflicts - we don't want to add some but not all iterators
 		for (String column : columnStrArr) {
 			IteratorSetting cfg = new IteratorSetting(priorityCounter++, "CombiningType_"+column, cl); // remember only one iterator can take a priority slot
@@ -676,7 +637,7 @@ public class D4mDbTableOperations extends D4mParent {
 			Combiner.setColumns(cfg, combineColumns);
 			this.d4mTableOp.addIterator(tableName, cfg); // add to majc, minc, scan
 		}*/
-	}
+	//	}
 
 	/**
 	 * 
@@ -686,28 +647,34 @@ public class D4mDbTableOperations extends D4mParent {
 	 */
 	public String listCombiningColumns(String tableName) throws D4mException
 	{
-		ArgumentChecker.notNull(tableName);
 		doInit();
-		StringBuffer sb = new StringBuffer();
-
-		// for each combiningtype
-		for (CombiningType ct : CombiningType.values())
-		{
-			IteratorSetting itSet = this.d4mTableOp.getIteratorSetting(tableName, ct.getIteratorName(), IteratorUtil.IteratorScope.scan); // any scope is ok
-			if (itSet == null) {
-				// combiner does not exist in table
-				continue;
-			}
-			else {
-				sb.append(ct.name()).append('\t');
-				// combiner exists in table; get the columns it combines
-				String allColumnString = itSet.getOptions().get("columns"); // use ColumnSet.decodeColumns if we want the original text
-				assert allColumnString != null && !allColumnString.isEmpty();
-				sb.append(allColumnString).append('\n');
-			}
-		}
-		return sb.toString();
+		String columnsList = this.d4mTableOp.listCombiningColumns(tableName); 
+		return columnsList;
 	}
+	//	public String listCombiningColumns(String tableName) throws D4mException
+	//	{
+	//		ArgumentChecker.notNull(tableName);
+	//		doInit();
+	//		StringBuffer sb = new StringBuffer();
+	//
+	// for each combiningtype
+	//		for (CombiningType ct : CombiningType.values())
+	//		{
+	//			IteratorSetting itSet = this.d4mTableOp.getIteratorSetting(tableName, ct.getIteratorName(), IteratorUtil.IteratorScope.scan); // any scope is ok
+	//			if (itSet == null) {
+	//				// combiner does not exist in table
+	//				continue;
+	//			}
+	//			else {
+	//				sb.append(ct.name()).append('\t');
+	//				// combiner exists in table; get the columns it combines
+	//				String allColumnString = itSet.getOptions().get("columns"); // use ColumnSet.decodeColumns if we want the original text
+	//				assert allColumnString != null && !allColumnString.isEmpty();
+	//				sb.append(allColumnString).append('\n');
+	//			}
+	//		}
+	//		return sb.toString();
+	//	}
 
 	/**
 	 * Removes whatever Combiner is present on the given columns in the given table.
@@ -718,53 +685,58 @@ public class D4mDbTableOperations extends D4mParent {
 	 */
 	public void revokeCombiningColumns(String tableName, String columnStr, String columnFamily) throws D4mException
 	{
-		ArgumentChecker.notNull(tableName, columnStr);
 		doInit();
+		this.d4mTableOp.revokeCombiningColumns(tableName, columnStr, columnFamily);
+	}
+	//	public void revokeCombiningColumns(String tableName, String columnStr, String columnFamily) throws D4mException
+	//	{
+	//		ArgumentChecker.notNull(tableName, columnStr);
+	//		doInit();
 
-		// split the columns with processParam(columnStr)
-		String[] columnStrArrToRemove = D4mQueryUtil.processParam(columnStr);
-		/*// prepend column families if present
+	// split the columns with processParam(columnStr)
+	//		String[] columnStrArrToRemove = D4mQueryUtil.processParam(columnStr);
+	/*// prepend column families if present
 		if (!columnFamily.isEmpty()) {
 			for (int i = 0; i < columnStrArrToRemove.length; i++)
 				columnStrArrToRemove[i] = columnFamily+':'+columnStrArrToRemove[i];
 		}*/
-		Arrays.sort(columnStrArrToRemove);
+	//		Arrays.sort(columnStrArrToRemove);
 
-		// METHOD: For each CombiningType:
-		//	For each column that CombiningType is active on:
-		//		If the column should be removed, don't add it back to sb
-		//	Re-add the CombiningType with the reduced column set from sb (if there are any columns left)
-		for (CombiningType ct : CombiningType.values())
-		{
-			IteratorSetting itSet = this.d4mTableOp.getIteratorSetting(tableName, ct.getIteratorName(), IteratorUtil.IteratorScope.scan); // any scope is ok
-			if (itSet == null)
-				continue; // combiner not present
-			String allColumnString = itSet.getOptions().get("columns"); // use ColumnSet.decodeColumns if we want the original text
-			StringBuffer sb = new StringBuffer(); // holds the new columns to add back
-			boolean firstAppend = true;
-			for (String columnPairStr : allColumnString.split(",")) {
-				Pair<Text,Text> columnPair = ColumnSet.decodeColumns(columnPairStr);
-				if (!columnPair.getFirst().toString().equals(columnFamily))
-					continue; // column families don't match; leave it in
-				if (Arrays.binarySearch(columnStrArrToRemove, columnPair.getSecond().toString()) >= 0)
-					continue; // this is one of the columns we want to remove
-				// we want to keep this column
-				sb.append(columnPairStr);
-				if (firstAppend)
-					firstAppend = false;
-				else
-					sb.append(',');
-			}
-
-			// sb has the columns we want to keep
-			String sToKeep = sb.toString();
-			this.d4mTableOp.removeIterator(tableName, ct.getIteratorName(), EnumSet.allOf(IteratorUtil.IteratorScope.class));
-			if (!sToKeep.isEmpty()) {
-				itSet.addOption("columns", sToKeep);
-				this.d4mTableOp.addIterator(tableName, itSet); // add to majc, minc, scan
-			}
-		}
-	}
+	// METHOD: For each CombiningType:
+	//	For each column that CombiningType is active on:
+	//		If the column should be removed, don't add it back to sb
+	//	Re-add the CombiningType with the reduced column set from sb (if there are any columns left)
+	//		for (CombiningType ct : CombiningType.values())
+	//		{
+	//			IteratorSetting itSet = this.d4mTableOp.getIteratorSetting(tableName, ct.getIteratorName(), IteratorUtil.IteratorScope.scan); // any scope is ok
+	//			if (itSet == null)
+	//				continue; // combiner not present
+	//			String allColumnString = itSet.getOptions().get("columns"); // use ColumnSet.decodeColumns if we want the original text
+	//			StringBuffer sb = new StringBuffer(); // holds the new columns to add back
+	//			boolean firstAppend = true;
+	//			for (String columnPairStr : allColumnString.split(",")) {
+	//				Pair<Text,Text> columnPair = ColumnSet.decodeColumns(columnPairStr);
+	//				if (!columnPair.getFirst().toString().equals(columnFamily))
+	//					continue; // column families don't match; leave it in
+	//				if (Arrays.binarySearch(columnStrArrToRemove, columnPair.getSecond().toString()) >= 0)
+	//					continue; // this is one of the columns we want to remove
+	//				// we want to keep this column
+	//				sb.append(columnPairStr);
+	//				if (firstAppend)
+	//					firstAppend = false;
+	//				else
+	//					sb.append(',');
+	//			}
+	//
+	//			// sb has the columns we want to keep
+	//			String sToKeep = sb.toString();
+	//			this.d4mTableOp.removeIterator(tableName, ct.getIteratorName(), EnumSet.allOf(IteratorUtil.IteratorScope.class));
+	//			if (!sToKeep.isEmpty()) {
+	//				itSet.addOption("columns", sToKeep);
+	//				this.d4mTableOp.addIterator(tableName, itSet); // add to majc, minc, scan
+	//			}
+	//		}
+	//	}
 
 	/**
 	 * Adds the splits specified to the table (does nothing if they are already there)
@@ -785,10 +757,10 @@ public class D4mDbTableOperations extends D4mParent {
 	public String getSplits(String tableName) throws Exception {
 		return getSplits(tableName, false)[0];
 	}
-	
+
 	/**
 	 * Gets the current splits or the table.  If the optional second boolean is true, returns an additional comma-delimited string that holds N+1 numbers
-     * where N is the number of splits and the (i)th number is the number of entries in tablet holding the (i-1)st split and the (i)th split.
+	 * where N is the number of splits and the (i)th number is the number of entries in tablet holding the (i-1)st split and the (i)th split.
 	 * @param tableName
 	 * @param getNumInEachTablet Optional 2nd boolean - default false
 	 * @return One or two strings in an array
@@ -798,41 +770,56 @@ public class D4mDbTableOperations extends D4mParent {
 	{
 		ArgumentChecker.notNull(tableName);
 		doInit();
-		List<String> splitList = this.d4mTableOp.getSplits(tableName);
-		StringBuffer sb = new StringBuffer();
-		for (String split : splitList)
-			sb.append(split).append(',');
-		
-		if (!getNumInEachTablet) {
-			return new String[] {sb.toString()};
+		List<String> splitList = this.d4mTableOp.getSplits(tableName, getNumInEachTablet);
+
+		String [] result = null;
+
+		if(!getNumInEachTablet) {
+			StringBuffer sb = new StringBuffer();
+			for(String split: splitList) {
+				sb.append(split).append(",");
+			}
+
+		} else {
+
+			result = new String[2];
 		}
-		else {
-			String[] result = new String[2];
-			result[0] = sb.toString();
-			
-			sb = new StringBuffer();
-			AccumuloConnection ac = new AccumuloConnection(this.connProps);
-			final org.apache.accumulo.core.client.Scanner scanner = ac.createScanner(org.apache.accumulo.core.Constants.METADATA_TABLE_NAME/*, org.apache.accumulo.core.Constants.NO_AUTHS*/);
-			org.apache.accumulo.core.util.ColumnFQ.fetch(scanner, org.apache.accumulo.core.Constants.METADATA_PREV_ROW_COLUMN);
-			final Text start = new Text(ac.getNameToIdMap().get(tableName)); // check
-			final Text end = new Text(start);
-			end.append(new byte[] {'<'}, 0, 1);
-			scanner.setRange(new org.apache.accumulo.core.data.Range(start, end));
-			
-			List<TabletStats> tabStats = this.d4mTableOp.getTabletStatsForTables(Collections.singletonList(tableName));
-			
-			for (Iterator<Entry<org.apache.accumulo.core.data.Key, org.apache.accumulo.core.data.Value>> iterator = scanner.iterator(); iterator.hasNext();) {
-				final Entry<org.apache.accumulo.core.data.Key, org.apache.accumulo.core.data.Value> next = iterator.next();
-				if (org.apache.accumulo.core.Constants.METADATA_PREV_ROW_COLUMN.hasColumns(next.getKey())) {
-					org.apache.accumulo.core.data.KeyExtent extent = new org.apache.accumulo.core.data.KeyExtent(next.getKey().getRow(), next.getValue());
-					final Text pr = extent.getPrevEndRow();
-					final Text er = extent.getEndRow();
-					//final String line = String.format("%-26s (%s, %s%s", extent.toString()/*.getTableId()*/, pr == null ? "-inf" : pr.toString(), er == null ? "+inf" : er.toString(),
-						//	er == null ? ") Default Tablet " : "]");
-					//sb.append(line).append('\n');
-					
-					// query for the entries between pr and er
-					/*Scanner scanTableData = ac.createScanner(tableName);
+		return result;
+
+		//		StringBuffer sb = new StringBuffer();
+		//		for (String split : splitList)
+		//			sb.append(split).append(',');
+		//		
+		//		if (!getNumInEachTablet) {
+		//			return new String[] {sb.toString()};
+		//		}
+		//		else {
+		//			String[] result = new String[2];
+		//			result[0] = sb.toString();
+		//			
+		//			sb = new StringBuffer();
+		//			AccumuloConnection ac = new AccumuloConnection(this.connProps);
+		//			final org.apache.accumulo.core.client.Scanner scanner = ac.createScanner(org.apache.accumulo.core.Constants.METADATA_TABLE_NAME/*, org.apache.accumulo.core.Constants.NO_AUTHS*/);
+		//			org.apache.accumulo.core.util.ColumnFQ.fetch(scanner, org.apache.accumulo.core.Constants.METADATA_PREV_ROW_COLUMN);
+		//			final Text start = new Text(ac.getNameToIdMap().get(tableName)); // check
+		//			final Text end = new Text(start);
+		//			end.append(new byte[] {'<'}, 0, 1);
+		//			scanner.setRange(new org.apache.accumulo.core.data.Range(start, end));
+		//			
+		//			List<TabletStats> tabStats = this.d4mTableOp.getTabletStatsForTables(Collections.singletonList(tableName));
+		//			
+		//			for (Iterator<Entry<org.apache.accumulo.core.data.Key, org.apache.accumulo.core.data.Value>> iterator = scanner.iterator(); iterator.hasNext();) {
+		//				final Entry<org.apache.accumulo.core.data.Key, org.apache.accumulo.core.data.Value> next = iterator.next();
+		//				if (org.apache.accumulo.core.Constants.METADATA_PREV_ROW_COLUMN.hasColumns(next.getKey())) {
+		//					org.apache.accumulo.core.data.KeyExtent extent = new org.apache.accumulo.core.data.KeyExtent(next.getKey().getRow(), next.getValue());
+		//					final Text pr = extent.getPrevEndRow();
+		//					final Text er = extent.getEndRow();
+		//final String line = String.format("%-26s (%s, %s%s", extent.toString()/*.getTableId()*/, pr == null ? "-inf" : pr.toString(), er == null ? "+inf" : er.toString(),
+		//	er == null ? ") Default Tablet " : "]");
+		//sb.append(line).append('\n');
+
+		// query for the entries between pr and er
+		/*Scanner scanTableData = ac.createScanner(tableName);
 					scanTableData.setRange(new Range(pr, er));
 					//scanTableData.fetchColumnFamily( ); // todo column family in getSplits???
 					//System.err.println("debug batch size: "+scanTableData.getBatchSize());
@@ -846,35 +833,52 @@ public class D4mDbTableOperations extends D4mParent {
 					}
 					notFirstScan = true;
 					sb.append(count).append(',');*/
-					
-					final ByteBuffer prb = pr == null ? null : ByteBuffer.wrap(pr.getBytes());
-					final ByteBuffer erb = er == null ? null : ByteBuffer.wrap(er.getBytes());
-					boolean foundIt = false;
-					// find the TabletStats object that matches the current KeyExtent
-					for (TabletStats tabStat : tabStats) {
-						assert tabStat.extent.table.equals(ByteBuffer.wrap(tableName.getBytes()));
-						if ( (erb == null ? tabStat.extent.endRow == null : tabStat.extent.endRow != null && tabStat.extent.endRow.equals(erb) )
-						   &&(prb == null ? tabStat.extent.prevEndRow == null : tabStat.extent.prevEndRow != null && tabStat.extent.prevEndRow.equals(prb))) {
-							// found it!
-							sb.append(tabStat.numEntries).append(',');
-							foundIt = true;
-							break;
-						}
-					}
-					//assert foundIt;
-					if (!foundIt)
-						sb.append("?,");
-					
-				}
-			}
-			
-			result[1] = sb.toString();			
-			
-			return result;
-		}
+
+		//					final ByteBuffer prb = pr == null ? null : ByteBuffer.wrap(pr.getBytes());
+		//					final ByteBuffer erb = er == null ? null : ByteBuffer.wrap(er.getBytes());
+		//					boolean foundIt = false;
+		//					// find the TabletStats object that matches the current KeyExtent
+		//					for (TabletStats tabStat : tabStats) {
+		//						assert tabStat.extent.table.equals(ByteBuffer.wrap(tableName.getBytes()));
+		//						if ( (erb == null ? tabStat.extent.endRow == null : tabStat.extent.endRow != null && tabStat.extent.endRow.equals(erb) )
+		//						   &&(prb == null ? tabStat.extent.prevEndRow == null : tabStat.extent.prevEndRow != null && tabStat.extent.prevEndRow.equals(prb))) {
+		//							// found it!
+		//							sb.append(tabStat.numEntries).append(',');
+		//							foundIt = true;
+		//							break;
+		//						}
+		//					}
+		//					//assert foundIt;
+		//					if (!foundIt)
+		//						sb.append("?,");
+		//					
+		//				}
+		//			}
+		//			
+		//			result[1] = sb.toString();			
+		//			
+		//			return result;
+		//		}
 
 	}
 
+	/**
+	 * Get the number of splits in each tablet.
+	 * N+1 numbers where N is the number of splits and the (i)th number is the number of entries in
+	 *  tablet holding the (i-1)st split and the (i)th split.
+	 * Return a comma-delimited list
+	 *  @param tableName
+	 */
+	public String [] getSplitsNumInEachTablet(String tableName) throws D4mException {
+		List<String> list = this.d4mTableOp.getSplitsNumInEachTablet(tableName);
+		StringBuffer sb = new StringBuffer();
+		for(String s : list) {
+			sb.append(s).append(",");
+		}
+		String [] result = new String [1];
+		result[0] = sb.toString();
+		return result;
+	}
 
 	/**
 	 * Merge tablets between (startRow, endRow] on the table. 
@@ -892,7 +896,7 @@ public class D4mDbTableOperations extends D4mParent {
 			endRow = null;
 		this.d4mTableOp.merge(tableName, startRow, endRow);
 	}
-	
+
 	/**
 	 * Ensures that newSplitsString represents the state of splits of the table by merging away any splits present in the table not in newSplitsString.
 	 * Merges away all splits if newSplitsString is null or empty
@@ -909,13 +913,13 @@ public class D4mDbTableOperations extends D4mParent {
 			return;
 		}
 		String oldSplitsString = getSplits(tableName);
-		
+
 		List<String> newSplitsList = Arrays.asList(D4mQueryUtil.processParam(newSplitsString));
 		NavigableSet<String> oldSplitsSet = new TreeSet<String>();
-		
+
 		if (!oldSplitsString.isEmpty())
 			oldSplitsSet.addAll(Arrays.asList(D4mQueryUtil.processParam(oldSplitsString)));
-		
+
 		// algorithm: first go through old list and merge anything not in new
 		// then add the new set
 		for (Iterator<String> iter = oldSplitsSet.iterator(); iter.hasNext(); ) {
@@ -929,7 +933,7 @@ public class D4mDbTableOperations extends D4mParent {
 			}
 		}
 		addSplits(tableName, newSplitsString);
-		
+
 	}
 
 

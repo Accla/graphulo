@@ -1,7 +1,7 @@
 /**
  * 
  */
-package edu.mit.ll.d4m.db.cloud;
+package edu.mit.ll.d4m.db.cloud.cb;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -34,8 +34,9 @@ import cloudbase.core.tabletserver.thrift.TabletClientService;
 import cloudbase.core.tabletserver.thrift.TabletStats;
 import cloudbase.core.util.AddressUtil;
 import cloudbase.core.util.ThriftUtil;
-import edu.mit.ll.cloud.connection.CloudbaseConnection;
 import edu.mit.ll.cloud.connection.ConnectionProperties;
+import edu.mit.ll.d4m.db.cloud.D4mException;
+import edu.mit.ll.d4m.db.cloud.D4mTableOpsIF;
 
 /**
  * Table operations for Cloudbase
@@ -125,16 +126,12 @@ public class CloudbaseTableOperations implements D4mTableOpsIF {
 		try {
 			splitTable(tableName, list);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (CBException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (CBSecurityException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (TableNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -163,16 +160,12 @@ public class CloudbaseTableOperations implements D4mTableOpsIF {
 				retVal += getNumberOfEntries(status.name, tableNames);
 			}
 		} catch (TTransportException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (CBException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (CBSecurityException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (TableNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
@@ -265,10 +258,8 @@ public class CloudbaseTableOperations implements D4mTableOpsIF {
 			try {
 				this.cbConnection = new CloudbaseConnection(connProp);
 			} catch (CBException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (CBSecurityException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -293,13 +284,10 @@ public class CloudbaseTableOperations implements D4mTableOpsIF {
 		try {
 			this.cbConnection.splitTable(tableName, partitions);
 		} catch (CBException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (CBSecurityException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (TableNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -361,6 +349,49 @@ public class CloudbaseTableOperations implements D4mTableOpsIF {
 			throws D4mException {
 		throw new UnsupportedOperationException("Cloudbase merge not supported");
 		
+	}
+
+	@Override
+	public void designateCombiningColumns(String tableName,
+			String columnStrAll, String combineType, String columnFamily)
+			throws D4mException {
+		throw new UnsupportedOperationException("Cloudbase  DesignateCombiningColumns is not supported");
+
+		
+	}
+
+	@Override
+	public String listCombiningColumns(String tableName) throws D4mException {
+		throw new UnsupportedOperationException("Cloudbase ListCombiningColumns is not supported");
+
+	}
+
+	@Override
+	public void revokeCombiningColumns(String tableName, String columnStr,
+			String columnFamily) throws D4mException {
+		// TODO Auto-generated method stub
+		throw new UnsupportedOperationException("Cloudbase RevokeCombiningColumns is not supported");
+
+	}
+
+	@Override
+	public List<String> getSplits(String tableName, boolean getNumInEachTablet)
+			throws D4mException {
+		throw new UnsupportedOperationException("Cloudbase GetSplits is not supported");
+	}
+
+	@Override
+	public void putSplits(String tableName, String newSplitsString)
+			throws D4mException {
+		throw new UnsupportedOperationException("Cloudbase PutSplits is not supported");
+		
+	}
+
+	@Override
+	public List<String> getSplitsNumInEachTablet(String tableName)
+			throws D4mException {
+		throw new UnsupportedOperationException("Cloudbase GetSplitsNumInEachTablet is not supported");
+
 	}
 
 	

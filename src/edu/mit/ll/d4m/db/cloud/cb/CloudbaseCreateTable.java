@@ -1,9 +1,8 @@
-package edu.mit.ll.d4m.db.cloud.util;
+package edu.mit.ll.d4m.db.cloud.cb;
 
 import cloudbase.core.client.CBException;
 import cloudbase.core.client.CBSecurityException;
 import cloudbase.core.client.TableExistsException;
-import edu.mit.ll.d4m.db.cloud.D4mCbSecurityOperations;
 
 /**
  *  Create table
@@ -11,7 +10,7 @@ import edu.mit.ll.d4m.db.cloud.D4mCbSecurityOperations;
  *
  */
 		
-public class CreateTable {
+public class CloudbaseCreateTable {
 
 	/**
 	 * @param args
@@ -36,8 +35,8 @@ public class CreateTable {
 		String host         = args[2];
 		String instanceName = args[3];
 		String tableName    = args[4];
-		D4mCbSecurityOperations d4mSecOp = 
-			new D4mCbSecurityOperations(instanceName,
+		CloudbaseD4mSecurityOperations d4mSecOp = 
+			new CloudbaseD4mSecurityOperations(instanceName,
 					host, rootuser, rootpasswd);
 
 		d4mSecOp.createTable(tableName);

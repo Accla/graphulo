@@ -13,3 +13,4 @@ SW-Version, Change, BuildDate...
 2.0.1, port to accumulo, May 10 2012
 2.0.2, upgrade to accumulo-1.4.0, May 16 2012
 2.1.0, combiners;splits, Sep 24 2012
+2.2.0, separate cloudbase and accumulo, Nov 08 2012

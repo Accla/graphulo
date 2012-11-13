@@ -1,3 +1,28 @@
+Nov 13, 2012
+Version 2.2.0
+
+Needed to separate Accumulo and Cloudbase references in order to make
+ 2 different releases of D4M (accumulo only and cloudbase only).
+   - Remove any references to Accumulo and Cloudbase package names from D4mDbTableOperations.java.
+   - Move the Combining Column code out of D4mDbTableOperations, since these are Accumulo specific.
+   - Changes to DbInfoIF - add setConnectionProp method
+   - Changes D4mTableOpsIF - add the Combining columns functions
+     - Combining columns functionalities are not implemented in CloudbaseTableOperations.
+
+   - Refactor packages names - add edu.mit.ll.dm4.db.cloud.accumulo and edu.mit.ll.d4m.db.cloud.cb
+      - Moved all Accumulo and Cloudbase specific classes to the appropriate packages.
+
+   - The build system will make 3  jars - D4M_API_JAVA,  D4M_API_JAVA_AC (accumulo) and D4M_API_JAVA_CB (cloudbase). 
+      - D4M_API_JAVA.jar is the common jar.
+      - D4M_API_JAVA_AC.jar contains the accumulo specific classes.
+      - D4M_API_JAVA_CB.jar contains the cloudbase specific classes.
+
+
+
+
+
+==============================================
+
 May 16, 2012
 Version 2.0.2
 

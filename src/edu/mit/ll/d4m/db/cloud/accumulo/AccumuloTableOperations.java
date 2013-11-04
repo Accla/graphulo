@@ -32,9 +32,11 @@ import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ThriftUtil;
+import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
@@ -115,7 +117,10 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 			retval = getNumberOfEntries(tabletStatsList);
 		} catch (ThriftSecurityException e) {
 			log.warn(e);
-		} catch (TException e) {
+		} catch ( D4mException e)  {
+		    log.warn(e);    
+		}
+		catch (TException e) {
 			log.warn(e);
 		}
 
@@ -150,7 +155,10 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 			retval = getTabletStatsList(tserverStatusList,  tableNames);
 		} catch (ThriftSecurityException e) {
 			log.warn(e);
-		} catch (TException e) {
+		} catch ( D4mException e)  {
+		    log.warn(e);    
+		}
+		catch (TException e) {
 			log.warn(e);
 		}
 
@@ -162,27 +170,34 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 
 	private ArrayList<TabletServerStatus> getTabletServers() throws ThriftSecurityException, TException {
 		ArrayList<TabletServerStatus> list = new ArrayList<TabletServerStatus>();// list of TServer info
-		MasterClientService.Iface client=null;
+		MasterClientService.Client client=null;
+		//		MasterClientService.Iface client=null;
 		try {
 			MasterMonitorInfo mmi=null; 
 			client = this.connection.getMasterClient();
 			//changed in accumulo-1.4
-			mmi = client.getMasterStats(null, getAuthInfo());
-
+			//			mmi = client.getMasterStats(null, getAuthInfo());
+                        TInfo tinfo = new TInfo();
+                        mmi = client.getMasterStats(tinfo,this.connection.getCredentials() );
+                         
 			list.addAll(mmi.getTServerInfo());
+		} catch(D4mException e) {
+		    log.warn(e);
 		} finally {
 			ThriftUtil.returnClient(client);
 		}
 		return list;
 	}
-	private List<TabletStats> getTabletStatsList(List<TabletServerStatus> tserverNames, List<String> tableNames) {
+	private List<TabletStats> getTabletStatsList(List<TabletServerStatus> tserverNames, List<String> tableNames) throws D4mException {
 		List<TabletStats> tabStatsList=new ArrayList<TabletStats>();
 		int cnt=0;
 		for(TabletServerStatus tss: tserverNames) {
 			cnt++;
 			String tserverName = tss.name;
 			log.debug("["+cnt+"] - Tserver name = "+tserverName);
+			
 			List<TabletStats> tlist = getTabletStatsList(tserverName, tableNames);
+			
 			tabStatsList.addAll(tlist);
 		}
 		return tabStatsList;
@@ -190,10 +205,10 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	/*
 	 * Get numEntries from tserver
 	 */
-	private List<TabletStats> getTabletStatsList(String tserverName, List<String> tableNames) {
+	private List<TabletStats> getTabletStatsList(String tserverName, List<String> tableNames) throws D4mException {
 		MasterClientService.Iface masterClient= null;
 		TabletClientService.Iface tabClient = null;
-		AuthInfo authInfo  = getAuthInfo();
+		//AuthInfo authInfo  = getAuthInfo();
 		List<TabletStats> tabStatsList = new ArrayList<TabletStats>();
 		try {
 			masterClient = this.connection.getMasterClient();
@@ -204,7 +219,10 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 
 				String tableId = nameToIdMap.get(tableName);
 				log.debug(tserverName+"-Tablet INFO ("+tableName+","+tableId+")");
-				tabStatsList.addAll(tabClient.getTabletStats(null, authInfo, tableId));
+				TInfo tinfo = new TInfo();
+
+				tabStatsList.addAll(tabClient.getTabletStats(tinfo, this.connection.getCredentials() , tableId));
+				//		tabStatsList.addAll(tabClient.getTabletStats(null, authInfo, tableId));
 			}
 
 		} catch (TTransportException e) {
@@ -214,8 +232,8 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 		} catch (TException e) {
 			log.warn(e);
 		} finally {
-			ThriftUtil.returnClient(masterClient);
-			ThriftUtil.returnClient(tabClient);
+		    ThriftUtil.returnClient((MasterClientService.Client)masterClient);
+			ThriftUtil.returnClient((TabletClientService.Client)tabClient);
 		}
 
 
@@ -259,6 +277,8 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 		AuthInfo authinfo=new AuthInfo(user, pwbuffer, instanceId);
 		return authinfo;
 	}
+
+    public TCredentials tCred=null;
 	/*
 	 *    private AuthInfo authInfo() throws CBException, TableNotFoundException, CBSecurityException {
 	String user = this.connProps.getUser();

@@ -695,7 +695,11 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 				// System.out.println("queryType="+this.REGEX_RANGE+
 				// " rowArray[0]="+rowArray[0]);
 				String regexParams = this.regexMapper(rowArray[0]);
-				bscanner.setRowRegex(regexParams);
+                                int priority = 25;
+                                IteratorSetting regex = new IteratorSetting(priority, "regex", RegExFilter.class);
+                                RegExFilter.setRegexs(regex,regexParams ,null,null,null, false);
+				bscanner.addScanIterator(regex);
+				//bscanner.setRowRegex(regexParams);
 				Range range = new Range();
 				ranges.add(range);
 				bscanner.setRanges(ranges);

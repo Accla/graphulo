@@ -25,10 +25,14 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TableOperationsImpl;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.Credentials;
+import org.apache.accumulo.core.security.CredentialHelper;
+import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.ThriftUtil;
@@ -52,14 +56,17 @@ public class AccumuloConnection {
 	private Authorizations auth= org.apache.accumulo.core.Constants.NO_AUTHS;
 	public static long maxMemory= 1024000L;
 	public static long maxLatency = 30;
+    private PasswordToken passwordToken;
 	/**
 	 * 
 	 */
 	public AccumuloConnection(ConnectionProperties conn) {
 		this.conn = conn;
 		this.instance = new ZooKeeperInstance(conn.getInstanceName(), conn.getHost(), conn.getSessionTimeOut());
+                this.passwordToken = new PasswordToken(this.conn.getPass());
 		try {
-			this.connector = this.instance.getConnector(this.conn.getUser(), this.conn.getPass().getBytes());
+		    //principal = username = this.conn.getUser()
+			this.connector = this.instance.getConnector(this.conn.getUser(), this.passwordToken);
 			String [] sAuth = conn.getAuthorizations();
 			if (sAuth != null && sAuth.length > 0) {
 				auth = new Authorizations(sAuth);
@@ -151,7 +158,7 @@ public class AccumuloConnection {
 		return connector.getInstance();
 	}
 	
-	public MasterClientService.Iface getMasterClient() throws TTransportException {
+	public MasterClientService.Client getMasterClient() throws TTransportException {
 		return MasterClient.getConnection(getInstance());
 	}
 	
@@ -295,7 +302,18 @@ public class AccumuloConnection {
 			throw new D4mException(e);
 		}
 	}
-	
+
+    public  TCredentials getCredentials() throws D4mException {
+	TCredentials tCred = null;
+	try {
+	    tCred =  CredentialHelper.create(this.conn.getUser(), this.passwordToken, this.instance.getInstanceID() );
+	} catch (AccumuloSecurityException e) {
+	    log.warn(e);
+	    //e.printStackTrace();
+	    throw new D4mException(e);
+	}
+	return tCred;
+    }
 }
 
 /*

@@ -57,10 +57,12 @@
   <!-- must call init_local from the local build.xml file before invoking build_jar which depends on compile -->
   <target name="compile" depends="init_local">
     <javac debug="true" debuglevel="lines,vars,source" compiler="javac1.6" fork="yes" memorymaximumsize="500M" 
+      source="1.6" target="1.6" 
       srcdir="${src.dir}" destdir="${build.dir}/classes" classpathref="master_classpath" />
   </target>
   <target name="compile-test" depends="init_local">
-    <javac debug="true" debuglevel="lines,vars,source" compiler="javac1.6" fork="yes" memorymaximumsize="500M" 
+    <javac debug="true" debuglevel="lines,vars,source" source="1.6" target="1.6"
+      compiler="javac1.6" fork="yes" memorymaximumsize="500M" 
       srcdir="${test_src.dir}" destdir="${build.dir}/classes" classpathref="master_classpath"/>
     <antcall target="build_jar">
         <param name="jar.name" value="${ant.project.name}-test"/>

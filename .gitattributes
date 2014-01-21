@@ -43,6 +43,7 @@ lib/hadoop-core-1.1.2.jar -text
 lib/hadoop-tools-1.1.2.jar -text
 lib/json.jar -text
 lib/junit-4.9.jar -text
+lib/libthrift-0.6.1.jar -text
 lib/libthrift-0.9.1.jar -text
 lib/ll-octave4j-1.0.jar -text
 lib/log4j-1.2.15.jar -text

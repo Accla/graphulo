@@ -53,7 +53,7 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 	private static final String NEGATIVE_INFINITY_RANGE = "NEGATIVE_INFINITY_RANGE";
 
 	//private ConnectionProperties connProps = new ConnectionProperties();
-	private String family = "";
+	private String family = super.columnFamily;
 	//private int limit=0; // number of elements (column)
 	private int numRows=0; //number of rows
 	private int count=0;
@@ -373,7 +373,8 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 	@Override
 	public D4mDbResultSet doMatlabQuery(String rows, String cols, String family, String authorizations) throws D4mException {
 		//throws CBException, CBSecurityException, TableNotFoundException {
-		this.family = family;
+		super.columnFamily = family;
+		this.family = super.columnFamily;
 		connProps.setAuthorizations(authorizations.split(","));
 		clearBuffers();
 		reset();
@@ -480,7 +481,8 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 	}
 
 	public D4mDbResultSet doMatlabQueryOnRows(String rows, String cols, String family, String authorizations) throws CBException, CBSecurityException, TableNotFoundException {
-		this.family = family;
+		super.columnFamily = family;
+		this.family = super.columnFamily;
 		connProps.setAuthorizations(authorizations.split(","));
 		return doMatlabQueryOnRows(rows, cols);
 	}
@@ -726,7 +728,8 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 	}
 
 	public D4mDbResultSet doMatlabQueryOnColumns(String rows, String cols, String family, String authorizations) throws CBException, CBSecurityException, TableNotFoundException {
-		this.family = family;
+		super.columnFamily = family;
+		this.family = super.columnFamily;
 		connProps.setAuthorizations(authorizations.split(","));
 		return doMatlabQueryOnColumns(rows, cols);
 	}
@@ -850,6 +853,9 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 	 */
 	public D4mDbResultSet searchByRowAndColumn(String rows, String cols, String family, String authorizations)  {
 		//	boolean useBatchSearch=false;
+		super.columnFamily = family;
+		this.family = super.columnFamily;
+
 		clearBuffers();
 		D4mDbResultSet results = null;
 		HashMap<String, Object> rowMap = null;
@@ -1327,7 +1333,8 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 	}
 
 	private void setFamilyAndAuthorizations(String family, String authorizations) {
-		this.family = family;
+		super.columnFamily = family;
+		this.family = super.columnFamily;
 		connProps.setAuthorizations(authorizations.split(","));
 	}
 
@@ -1623,10 +1630,10 @@ public class D4mDbQueryCloudbase extends D4mParentQuery {
 
 	}
 	public String getFamily() {
-		return family;
+		return super.columnFamily;
 	}
 	public void setFamily(String family) {
-		this.family = family;
+		super.columnFamily= family;
 	}
 	public int getNumRows() {
 		return numRows;

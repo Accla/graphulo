@@ -107,8 +107,8 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	 */
 	public D4mDbQueryAccumulo(ConnectionProperties connProps, String table) {
 		this();
-		this.tableName = table;
-		this.connProps = connProps;
+		super.tableName = table;
+		super.connProps = connProps;
 		this.numberOfThreads = this.connProps.getMaxNumThreads();
 	}
 
@@ -123,11 +123,11 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	 */
 	public D4mDbQueryAccumulo(String instanceName, String host, String table, String username, String password) {
 		this();
-		this.tableName = table;
-		this.connProps.setHost(host);
-		this.connProps.setInstanceName(instanceName);
-		this.connProps.setUser(username);
-		this.connProps.setPass(password);
+		super.tableName = table;
+		super.connProps.setHost(host);
+		super.connProps.setInstanceName(instanceName);
+		super.connProps.setUser(username);
+		super.connProps.setPass(password);
 	}
 
 	public D4mDbResultSet getAllData() throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
@@ -372,11 +372,19 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		return rangeQueryType;
 	}
 
+
 	public D4mDbResultSet doMatlabQuery(String rows, String cols, String family, String authorizations) throws D4mException {
 		//throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-		this.family = family;
-		if(authorizations != null && authorizations.length() > 0)
-			connProps.setAuthorizations(authorizations.split(","));
+		super.columnFamily = family;
+		this.family = super.columnFamily;
+		super.setSecurity(authorizations);
+		//if(authorizations != null && authorizations.length() > 0) {
+		//	super.setSecurity(authorizations);
+			//super.connProps.setAuthorizations(authorizations.split(","));
+			
+		//}  else if(authorizations == null || ( authorizations != null && authorizations.length() == 0)){
+		//	super.setSecurity(null);
+		//}
 		clearBuffers();
 		reset();
 		this.rowsQuery = rows;
@@ -484,8 +492,10 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	}
 
 	public D4mDbResultSet doMatlabQueryOnRows(String rows, String cols, String family, String authorizations) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-		this.family = family;
+		super.columnFamily = family;
+		this.family = super.columnFamily;
 		connProps.setAuthorizations(authorizations.split(","));
+                reset();
 		return doMatlabQueryOnRows(rows, cols);
 	}
 
@@ -633,7 +643,8 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		paramContent[0] = rowKey;
 	}
 	public D4mDbResultSet doMatlabRangeQueryOnRows(String rows, String cols, String family, String authorizations) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-		this.family = family;
+        super.columnFamily = family;
+		this.family = super.columnFamily;
 		connProps.setAuthorizations(authorizations.split(","));
 		return doMatlabRangeQueryOnRows(rows, cols);
 	}
@@ -734,8 +745,10 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	}
 
 	public D4mDbResultSet doMatlabQueryOnColumns(String rows, String cols, String family, String authorizations) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-		this.family = family;
+		super.columnFamily = family;
+		this.family = super.columnFamily;
 		connProps.setAuthorizations(authorizations.split(","));
+                reset();
 		return doMatlabQueryOnColumns(rows, cols);
 	}
 
@@ -1642,13 +1655,15 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		this.scannerIter = null;
 
 		clearBuffers();
+                if(this.cbConnection != null)
+                   this.cbConnection.setAuthorizations(connProps);
 
 	}
 	public String getFamily() {
-		return family;
+		return super.columnFamily;
 	}
 	public void setFamily(String family) {
-		this.family = family;
+		super.columnFamily = family;
 	}
 	public int getNumRows() {
 		return numRows;

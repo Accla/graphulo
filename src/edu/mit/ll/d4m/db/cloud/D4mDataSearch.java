@@ -115,7 +115,6 @@ public class D4mDataSearch extends D4mParentQuery {
 
 	@Override
 	public boolean hasNext() {
-		// TODO Auto-generated method stub
 		return this.d4m.hasNext();
 	}
 	
@@ -124,6 +123,27 @@ public class D4mDataSearch extends D4mParentQuery {
 		super.setLimit(limit);
 		if(this.d4m != null)
 		this.d4m.setLimit(limit);
+	}
+	
+	public void setSecurity(String authorizations) {
+		this.d4m.setSecurity(authorizations);
+	}
+	
+	public String getSecurity() {
+		String s= this.d4m.getSecurity();
+		return s;
+	}
+	
+	public String getColumnFamily() {
+		
+		String cf = this.d4m.getColumnFamily();
+		return cf;
+	}
+	public void putColumnFamily(String columnFamily) {
+		this.setColumnFamily(columnFamily);
+	}
+	public void setColumnFamily(String columnFamily) {
+		this.d4m.setColumnFamily(columnFamily);
 	}
 }
 

@@ -15,12 +15,13 @@ public abstract class D4mParentQuery extends D4mParent {
 	protected String tableName=null;
 	protected ConnectionProperties connProps=null;
 	protected int limit=0;
-	
+
+	protected String columnFamily = "";
 	/**
 	 * 
 	 */
 	public D4mParentQuery() {
-	    super();
+		super();
 		connProps = new ConnectionProperties();
 	}
 
@@ -37,10 +38,10 @@ public abstract class D4mParentQuery extends D4mParent {
 	abstract public boolean hasNext();
 	abstract public D4mDataObj getResults();
 	abstract public void reset();
-//	public void setCloudType(String cloudType) {
-//		D4mConfig d4mConfig = D4mConfig.getInstance();
-//		d4mConfig.setCloudType(cloudType);
-//	}
+	//	public void setCloudType(String cloudType) {
+	//		D4mConfig d4mConfig = D4mConfig.getInstance();
+	//		d4mConfig.setCloudType(cloudType);
+	//	}
 
 	public String getTableName() {
 		return tableName;
@@ -65,4 +66,48 @@ public abstract class D4mParentQuery extends D4mParent {
 	public void setLimit(int limit) {
 		this.limit = limit;
 	}
+
+	public String getSecurity() {
+		String s = null;
+		if(this.connProps != null) {
+			String [] auths = this.connProps.getAuthorizations();
+			StringBuffer sb = new StringBuffer();
+			for(String a: auths) {
+				sb.append(a).append(",");
+			}
+			s = sb.toString();
+		}
+		return s;
+	}
+
+	/*
+	 *    Pass in a comma-separated list of Authorizations
+	 *    eg U,S,FOUO
+	 */
+	public void setSecurity(String sAuth) {
+
+		if(sAuth != null && sAuth.length() > 0) {
+
+			String [] s = sAuth.split(",");
+			if(this.connProps != null) {
+				this.connProps.setAuthorizations(s);
+			}
+
+		}
+		else {
+			this.connProps.setAuthorizations(null);
+		}
+	}
+	public String getColumnFamily() {
+		return columnFamily;
+	}
+
+	public void setColumnFamily(String columnFamily) {
+		this.columnFamily = columnFamily;
+	}
+
+	public void putColumnFamily(String columnFamily) {
+		this.setColumnFamily(columnFamily);
+	}
+
 }

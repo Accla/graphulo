@@ -8,9 +8,6 @@
 	<classpathentry exported="true" kind="lib" path="lib/cloudbase-server-1.3.4.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/cloudtrace-0.1.3.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/junit-4.9.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/accumulo-core-1.4.0.jar" sourcepath="C:/Users/dy23798/Documents/CloudStack/accumulo-1.4.0/src/core/src"/>
-	<classpathentry exported="true" kind="lib" path="lib/accumulo-server-1.4.0.jar" sourcepath="C:/Users/dy23798/Documents/CloudStack/accumulo-1.4.0/src/server/src"/>
-	<classpathentry kind="lib" path="lib/cloudtrace-1.4.0.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/hadoop-core-0.20.205.0.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/commons-logging-1.0.4.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/zookeeper-3.3.5.jar"/>
@@ -19,5 +16,9 @@
 	<classpathentry kind="lib" path="lib/slf4j-log4j12-1.6.1.jar"/>
 	<classpathentry kind="lib" path="lib/commons-configuration-1.5.jar"/>
 	<classpathentry kind="lib" path="lib/commons-lang-2.4.jar"/>
+	<classpathentry kind="lib" path="/home/cyee/workspace/d4m_api_java/lib/accumulo-core-1.5.0.jar"/>
+	<classpathentry kind="lib" path="/home/cyee/workspace/d4m_api_java/lib/accumulo-trace-1.5.0.jar"/>
+	<classpathentry kind="lib" path="/home/cyee/workspace/d4m_api_java/lib/hadoop-core-1.1.2.jar"/>
+	<classpathentry kind="lib" path="/home/cyee/workspace/d4m_api_java/lib/hadoop-tools-1.1.2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

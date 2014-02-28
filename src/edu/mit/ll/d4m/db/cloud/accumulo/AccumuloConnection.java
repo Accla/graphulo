@@ -56,20 +56,22 @@ public class AccumuloConnection {
 	private Authorizations auth= org.apache.accumulo.core.Constants.NO_AUTHS;
 	public static long maxMemory= 1024000L;
 	public static long maxLatency = 30;
-    private PasswordToken passwordToken;
+	private PasswordToken passwordToken;
 	/**
 	 * 
 	 */
 	public AccumuloConnection(ConnectionProperties conn) {
 		this.conn = conn;
 		this.instance = new ZooKeeperInstance(conn.getInstanceName(), conn.getHost(), conn.getSessionTimeOut());
-                this.passwordToken = new PasswordToken(this.conn.getPass());
+		this.passwordToken = new PasswordToken(this.conn.getPass());
 		try {
-		    //principal = username = this.conn.getUser()
+			//principal = username = this.conn.getUser()
 			this.connector = this.instance.getConnector(this.conn.getUser(), this.passwordToken);
 			String [] sAuth = conn.getAuthorizations();
 			if (sAuth != null && sAuth.length > 0) {
-				auth = new Authorizations(sAuth);
+				this.auth = new Authorizations(sAuth);
+			} else {
+				this.auth= org.apache.accumulo.core.Constants.NO_AUTHS;
 			}
 
 		} catch (AccumuloException e) {
@@ -79,7 +81,7 @@ public class AccumuloConnection {
 			log.warn(e);
 			e.printStackTrace();
 		}
-		
+
 		if(log.isDebugEnabled()) {
 			String message="!!!WHOAMI="+this.connector.whoami();
 			log.debug(message);
@@ -157,23 +159,23 @@ public class AccumuloConnection {
 	public Instance getInstance() {	
 		return connector.getInstance();
 	}
-	
+
 	public MasterClientService.Client getMasterClient() throws TTransportException {
 		return MasterClient.getConnection(getInstance());
 	}
-	
+
 	public TabletClientService.Iface getTabletClient (String tserverAddress) throws TTransportException {
 		InetSocketAddress address = AddressUtil.parseAddress(tserverAddress, -1);
 		TabletClientService.Iface client = null;
 		client = ThriftUtil.getTServerClient( tserverAddress, connector.getInstance().getConfiguration());
 		return client;
 	}
-	
+
 	public Map<String, String> getNameToIdMap() {
 		//Map<String, String> nameToIdMap = Tables.getNameToIdMap(instance);
 		Map<String,String> _nameToIdMap = Tables.getNameToIdMap(getInstance());
-		
-		
+
+
 		return _nameToIdMap;
 	}
 	public Collection<Text> getSplits(String tableName) throws TableNotFoundException {
@@ -185,7 +187,7 @@ public class AccumuloConnection {
 		SortedSet<String> set = tableImpl.list();
 		return set;
 	}
-	
+
 	// TODO these are just wrappers; why have them when we could expose the TableOperations object directly?
 	public void addIterator(String tableName, IteratorSetting iterSet) throws D4mException
 	{
@@ -206,7 +208,7 @@ public class AccumuloConnection {
 			throw new D4mException(e);
 		}
 	}
-	
+
 	public Map<String,EnumSet<IteratorUtil.IteratorScope>> listIterators(String tableName) throws D4mException
 	{
 		TableOperations tops = this.connector.tableOperations();
@@ -226,7 +228,7 @@ public class AccumuloConnection {
 			throw new D4mException(e);
 		}
 	}
-	
+
 	public IteratorSetting getIteratorSetting(String tableName, String name, IteratorUtil.IteratorScope scope) throws D4mException
 	{
 		TableOperations tops = this.connector.tableOperations();
@@ -246,7 +248,7 @@ public class AccumuloConnection {
 			throw new D4mException(e);
 		}
 	}
-	
+
 	public void removeIterator(String tableName, String name, EnumSet<IteratorUtil.IteratorScope> scopes) throws D4mException
 	{
 		TableOperations tops = this.connector.tableOperations();
@@ -281,7 +283,7 @@ public class AccumuloConnection {
 			//e.printStackTrace();
 			throw new D4mException(e);
 		}
-		
+
 	}
 
 	public void merge(String tableName, String startRow, String endRow) throws D4mException {
@@ -303,17 +305,42 @@ public class AccumuloConnection {
 		}
 	}
 
-    public  TCredentials getCredentials() throws D4mException {
-	TCredentials tCred = null;
-	try {
-	    tCred =  CredentialHelper.create(this.conn.getUser(), this.passwordToken, this.instance.getInstanceID() );
-	} catch (AccumuloSecurityException e) {
-	    log.warn(e);
-	    //e.printStackTrace();
-	    throw new D4mException(e);
+	public  TCredentials getCredentials() throws D4mException {
+		TCredentials tCred = null;
+		try {
+			tCred =  CredentialHelper.create(this.conn.getUser(), this.passwordToken, this.instance.getInstanceID() );
+		} catch (AccumuloSecurityException e) {
+			log.warn(e);
+			//e.printStackTrace();
+			throw new D4mException(e);
+		}
+		return tCred;
 	}
-	return tCred;
-    }
+
+	public void setConnectionProperties(ConnectionProperties connProp) {
+		this.conn = connProp;
+	}
+	/*
+	 *   auths    comma-separated list of authorizations
+	 */	
+	public void setAuthorizations(String auths) {
+		if(auths == null) {
+			this.auth= org.apache.accumulo.core.Constants.NO_AUTHS;
+			return;
+		}
+		this.auth = new Authorizations(auths.split(","));
+	}
+	public void setAuthorizations(ConnectionProperties connProp) {
+
+		String [] sAuth = connProp.getAuthorizations();
+
+		if(sAuth != null && sAuth.length > 0 )
+			this.auth = new Authorizations(sAuth);
+		else if( sAuth == null ){
+			this.auth= org.apache.accumulo.core.Constants.NO_AUTHS;
+		}
+	}
+
 }
 
 /*

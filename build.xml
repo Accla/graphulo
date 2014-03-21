@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 
 <project name="D4M_API_JAVA" default="all" basedir=".">
   <property file="${basedir}/default_build.properties"/>
@@ -57,11 +57,11 @@
   <!-- must call init_local from the local build.xml file before invoking build_jar which depends on compile -->
   <target name="compile" depends="init_local">
     <javac debug="true" debuglevel="lines,vars,source" compiler="javac1.6" fork="yes" memorymaximumsize="500M" 
-      source="1.6" target="1.6" includeantruntime="false"
+      source="1.6" target="1.6" includeantruntime="false" encoding="UTF-8"
       srcdir="${src.dir}" destdir="${build.dir}/classes" classpathref="master_classpath" />
   </target>
   <target name="compile-test" depends="init_local">
-    <javac debug="true" debuglevel="lines,vars,source" source="1.6" target="1.6"
+    <javac debug="true" debuglevel="lines,vars,source" source="1.6" target="1.6"  encoding="UTF-8"
       compiler="javac1.6" fork="yes" memorymaximumsize="500M" includeantruntime="false"  
       srcdir="${test_src.dir}" destdir="${build.dir}/classes" classpathref="master_classpath"/>
     <antcall target="build_jar">
@@ -297,5 +297,27 @@
     </junitreport>
   </target>
 
+  <target name="junit-accumulo-split-info" depends="compile,compile-test"  description="Test for split information : splits, number of splits,tablet server containing splits">
+    <mkdir dir="${test.reports}"/>
+
+    <junit fork="no" printsummary="yes" haltonfailure="no" showoutput="yes">
+      <jvmarg value="-Dlogging.path=${logging.path}"/>
+      <jvmarg value="-Xms256m"/>
+      <jvmarg value="-Xmx1024m"/>
+      <classpath refid="accumulo_classpath"/>
+      <formatter type="plain"/>
+      <test name="edu.mit.ll.d4m.db.cloud.test.TestAccumuloSplitInfo" fork="yes" todir="${test.reports}">
+         <formatter type="plain"/>
+      </test>
+
+    </junit>
+    <junitreport todir="${test.reports}">
+      <fileset dir="${test.reports}">
+        <include name="TEST-*.txt"/>
+      </fileset>
+      <report todir="${test.reports}"/>
+    </junitreport>
+  </target>
+  
 
 </project>

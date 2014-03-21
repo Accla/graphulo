@@ -22,6 +22,17 @@
   <path id="master_classpath">
      <fileset dir="${lib.dir}">
        <include name="**/*.jar"/>
+       <exclude name="**/thrift-0.3.jar"/>
+     </fileset>
+     <pathelement path="${build.dir}/classes"/>
+     <pathelement path="${dist.dir}/conf"/>
+  </path>
+  <path id="accumulo_classpath">
+     <fileset dir="${lib.dir}">
+       <include name="**/*.jar"/>
+       <exclude name="**/libthrift-0.6.1.jar"/>
+       <exclude name="**/thrift-0.3.jar"/>
+
      </fileset>
      <pathelement path="${build.dir}/classes"/>
      <pathelement path="${dist.dir}/conf"/>

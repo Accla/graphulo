@@ -25,6 +25,7 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TableOperationsImpl;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -57,6 +58,7 @@ public class AccumuloConnection {
 	public static long maxMemory= 1024000L;
 	public static long maxLatency = 30;
 	private PasswordToken passwordToken;
+	Credentials creds= null;
 	/**
 	 * 
 	 */
@@ -64,6 +66,8 @@ public class AccumuloConnection {
 		this.conn = conn;
 		this.instance = new ZooKeeperInstance(conn.getInstanceName(), conn.getHost(), conn.getSessionTimeOut());
 		this.passwordToken = new PasswordToken(this.conn.getPass());
+		this.creds = new Credentials(this.instance,this.conn.getUser(), this.passwordToken);
+
 		try {
 			//principal = username = this.conn.getUser()
 			this.connector = this.instance.getConnector(this.conn.getUser(), this.passwordToken);
@@ -341,6 +345,31 @@ public class AccumuloConnection {
 		}
 	}
 
+	public String locateTablet(String tableName, String splitName) {
+		String tabletName = null;
+		TabletLocator tc = null;
+		try {
+			tc = TabletLocator.getInstance(this.instance, new Text(Tables.getTableId(this.instance, tableName)));
+			
+			org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation loc =
+					tc.locateTablet(new Text(splitName), false, false, 
+							creds.toThrift());
+			tabletName = loc.tablet_location;
+			log.debug("TableName="+tableName+", TABLET_NAME = "+tabletName);
+		} catch (TableNotFoundException e) {
+			log.warn(e);
+			e.printStackTrace();
+		} catch (AccumuloException e) {
+			log.warn(e);
+			e.printStackTrace();
+		} catch (AccumuloSecurityException e) {
+			log.warn(e);
+			e.printStackTrace();
+		}
+
+
+		return tabletName;
+	}
 }
 
 /*

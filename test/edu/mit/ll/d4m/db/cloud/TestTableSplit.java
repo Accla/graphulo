@@ -68,7 +68,7 @@ public class TestTableSplit {
 		for (int i=0; i < batches; i++) {
 			generateEntries();
 
-			d4mdb.doProcessing(startVertexString,endVertexString,weightString);
+			d4mdb.doProcessing(startVertexString,endVertexString,weightString,"","");
 
 			Thread.sleep(10000L);
 		}

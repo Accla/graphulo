@@ -66,6 +66,14 @@ public interface D4mTableOpsIF {
 	public List<String> getSplits(String tableName);
 	public List<String> getSplits(String tableName, boolean getNumInEachTablet) throws D4mException;
 	public List<String> getSplitsNumInEachTablet(String tableName) throws D4mException;
+	/*
+	 *  GetTabletLocationsForSplits  will get the list of tablet server names that correspond
+	 *  to the list of split names.
+	 *  INPUT   tableName  table name of splits
+	 *          splits     the list of splits
+	 *  OUTPUT    list of tablet servers
+	 */
+	public List<String> getTabletLocationsForSplits(String tableName,List<String> splits) throws D4mException;
 
 	/**
 	 * Ensures that newSplitsString represents the state of splits of the table by merging away any splits present in the table not in newSplitsString.

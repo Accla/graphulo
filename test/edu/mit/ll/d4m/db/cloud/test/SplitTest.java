@@ -8,7 +8,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import edu.mit.ll.cloud.connection.AccumuloConnection;
+import edu.mit.ll.d4m.db.cloud.accumulo.AccumuloConnection;
 import edu.mit.ll.cloud.connection.ConnectionProperties;
 import edu.mit.ll.d4m.db.cloud.D4mConfig;
 import edu.mit.ll.d4m.db.cloud.D4mDataSearch;

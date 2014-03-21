@@ -25,6 +25,7 @@ docs/Copyright -text
 docs/ExternalContrib -text
 docs/RELEASES -text
 lib/accumulo-core-1.5.0.jar -text
+lib/accumulo-fate-1.5.0.jar -text
 lib/accumulo-trace-1.5.0.jar -text
 lib/cloudbase-core-1.3.4.jar -text
 lib/cloudbase-server-1.3.4.jar -text
@@ -146,3 +147,4 @@ test/edu/mit/ll/d4m/db/cloud/test/D4mDbQueryTest9.java -text
 test/edu/mit/ll/d4m/db/cloud/test/D4mQueryTest10.java -text
 test/edu/mit/ll/d4m/db/cloud/test/SomeTest.java -text
 test/edu/mit/ll/d4m/db/cloud/test/SplitTest.java -text
+test/edu/mit/ll/d4m/db/cloud/test/TestAccumuloSplitInfo.java -text

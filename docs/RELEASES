@@ -1,3 +1,24 @@
+March 17, 2014
+ver ???
+  - D4mTableOpsIF: add new method
+	public List<String> getTabletLocationsForSplits(String tableName,List<String> splits) throws D4mException;
+
+  - D4mDbTableOperations:
+    - Modified getSplits(String tableName) to return String [], instead of String
+        String [0]  is string with splits names, as comma-delimited list
+        String [1]  is the number of splits per split name,as a comma-delimited list
+        String [2]  is the names of the tablet servers associated to split names, a comma-delimited list
+
+    -  A new method
+       public String[] getAllSplitsInfo(String tableName)
+
+
+  - Modify AccumuloTableOperations.java
+     - Get the tablet servers names associated to splits -
+	public List<String> getTabletLocationsForSplits(String tableName,List<String> splits) throws D4mException;
+
+
+
 Nov 13, 2012
 Version 2.2.0
 

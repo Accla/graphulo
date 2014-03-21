@@ -17,6 +17,8 @@ import java.util.NavigableSet;
 import java.util.TreeSet;
 import java.util.logging.Logger;
 
+
+
 //import org.apache.accumulo.core.client.IteratorSetting;
 //import org.apache.accumulo.core.data.Key;
 //import org.apache.accumulo.core.data.Value;
@@ -35,6 +37,8 @@ import java.util.logging.Logger;
 //import org.apache.accumulo.core.util.ArgumentChecker;
 //import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
+
+
 
 //import edu.mit.ll.cloud.connection.AccumuloConnection;
 import edu.mit.ll.cloud.connection.ConnectionProperties;
@@ -73,7 +77,7 @@ public class D4mDbTableOperations extends D4mParent {
 	}
 
 	public D4mDbTableOperations(String instanceName, String host, String username, String password, String cloudType) {
-
+		super();
 		init(instanceName, host,username,password,cloudType);
 
 	}
@@ -106,275 +110,18 @@ public class D4mDbTableOperations extends D4mParent {
 		this.d4mTableOp.deleteTable(tableName);
 	}
 
-	/*
-	 *  tableName  name of table to split
-	 *  partitionKey     a string or comma-separated list
-	 /
-	public void splitTable(String tableName, String partitionKey)  throws IOException, CBException, CBSecurityException, TableNotFoundException {
-		//	String [] pKeys = partitionKey.split(",");
-		//	//System.out.println(" *** Number of partition keys = "+ pKeys.length);
-		//	splitTable(tableName,pKeys);
-		doInit();
-		this.d4mTableOp.splitTable(tableName, partitionKey);
-	}
-
-	/*
-	 *  tableName  name of table to split
-	 *  partitionKeys  array of strings
-	 /
-	public void splitTable(String tableName, String [] partitionKeys)  throws IOException, CBException, CBSecurityException, TableNotFoundException {
-//		ArrayList<String> list = new ArrayList<String>();
-//		for(int i =0; i < partitionKeys.length; i++) {
-//			list.add(partitionKeys[i]);
-//		}
-//		splitTable(tableName, list);
-		doInit();		
-		this.d4mTableOp.splitTable(tableName, partitionKeys);
-	}
-
-	/*
-	 *  tableName  name of table to split
-	 *   partitionKeys   - list of keys (eg.  java.util.ArrayList)
-	 /
-	public void splitTable(String tableName, List<String> partitionKeys) throws IOException, CBException, CBSecurityException, TableNotFoundException {
-		TreeSet<Text> tset = new TreeSet<Text>();
-
-		for(String pt : partitionKeys) {
-			tset.add(new Text(pt));
-		}
-		doInit();
-
-		this.d4mTableOp.splitTable(tableName, tset);
-//		CloudbaseConnection  cbConnection = new CloudbaseConnection(this.connProps);
-//		cbConnection.splitTable(tableName, partitionKeys);
-	}
-
-//	public void setCloudType(String cloudType) {
-//		D4mConfig d4mconf = D4mConfig.getInstance();
-//		d4mconf.setCloudType(cloudType);
-//	}
-	/*
-	 *
-	 *  tserverAddress    host:port
-	 *  tableNamesList   list of the table names
-	 *
-	 */
-
-	/*
-	public List<TabletStats> getTabletStatsList(String tserverAddress, List<String> tableNamesList) throws CBException, CBSecurityException, TableNotFoundException  {
-		InetSocketAddress address = AddressUtil.parseAddress(tserverAddress, -1);
-		List<TabletStats> tsStats = new ArrayList<TabletStats>();
-		Instance instance = connection().getInstance();
-
-		Map<String, String> nameToIdMap = Tables.getNameToIdMap(instance);    
-		CBConfiguration cbConf = CBConfiguration.getSystemConfiguration(instance);
-
-		try {
-			TabletClientService.Iface client = ThriftUtil.getClient(new TabletClientService.Client.Factory(),
-					address, cbConf);
-			try {
-				for(String tableName: tableNamesList) {
-					String tableId = nameToIdMap.get(tableName);
-					//		for (String tableId : mmi.tableMap.keySet()) {
-					tsStats.addAll(client.getTabletStats(null, authInfo(), tableId));
-				}
-
-			} finally {
-				ThriftUtil.returnClient(client);
-			}
-		} catch (Exception e) {
-			log.fine( e.toString());
-
-		}
-
-		return tsStats;
-	}
-	 */
-
-	/*
-	 *  Return the number of entries in this cloud instance.
-	 *  This method will give a total number of entries from all tables in this cloud instance
-	 *
-	 *   tserverAddress   address (host:port) of tserver 
-	 */
-	/*
-	public long getNumberOfEntries(String tserverAddress) throws CBException, CBSecurityException, TableNotFoundException  {
-
-		long retValue=0;
-
-		AuthInfo authInfo = authInfo();
-		CloudbaseConnection connector = connection();
-		Instance instance = connector.getInstance();
-		CBConfiguration cbConf = CBConfiguration.getSystemConfiguration(instance);
-
-		InetSocketAddress address = AddressUtil.parseAddress(tserverAddress, -1);
-		MasterMonitorInfo mmi = getMmi();
-		TabletClientService.Iface client=null;
-		List<TabletStats> tsStats = new ArrayList<TabletStats>();
-
-		try {
-			client = ThriftUtil.getClient(new TabletClientService.Client.Factory(),
-					address, cbConf);
-
-			for (String tableId : mmi.tableMap.keySet()) {
-				System.out.println("Get TableId="+tableId);
-
-				tsStats.addAll(client.getTabletStats(null, authInfo, tableId));
 
 
-			}
-			for (TabletStats info : tsStats) {	      
-				retValue = info.numEntries;
-			}
-		}
-		catch(TException e) {
-			log.fine(e.toString());
-		}
 
-		catch(ThriftSecurityException e) {
-			log.fine(e.toString());
-		}
-		finally {
-			ThriftUtil.returnClient(client);
-		}
-		return retValue;
-	}
 
-	 */
-	/*
-	private MasterMonitorInfo getMmi() {
-		MasterMonitorInfo mmi = null;
-		MasterClientService.Iface masterclient = null;
-		try {
-			CloudbaseConnection connector = connection();
-			Instance instance = connector.getInstance();
-			masterclient = MasterClient.getConnection(instance);
-			mmi=  masterclient.getMasterStats(null, authInfo());
-		}
-		catch(Exception e) {
-			log.fine(e.toString());
-		}
-		finally {
-			ThriftUtil.returnClient(masterclient);
-		}
-		return mmi;
-	}
-	 */
-	//	private String getTableName(String tabletId) throws CBException, CBSecurityException, TableNotFoundException  {
-	//		CloudbaseConnection connector = connection();
-	//		return Tables.getTableName(connector.getInstance(), tabletId);
-	//	}
-
-	/*
-	 *
-	 * tserverAddress   tablet server  address (by name) IP:port
-	 * tableName    table name
-	 *
-	 *  RETURN a negative (-1) if there is an error, otherwise 
-	 */
-	//	public long getNumberOfEntries(String tserverAddress, String tableName) throws CBException, CBSecurityException, TableNotFoundException  {
-	//		long retValue=0;
-	//		ArrayList<String> tmpList = new ArrayList<String>();
-	//		tmpList.add(tableName);
-	//		retValue = getNumberOfEntries(tserverAddress, tmpList);
-	//
-	//		return retValue;
-	//	}
-
-	/**
-	 *  Return the number of entries in this cloud instance.
-	 *  This method will give a total number of entries from all tablets in this cloud instance.
-	 */
-	/*
-	public long getNumberOfEntries() throws CBException, CBSecurityException, TableNotFoundException {
-		//The MasterMonitorInfo holds the tserver's info
-		//mmi will have a list of tservers
-		MasterMonitorInfo mmi=null;  
-		AuthInfo authInfo = authInfo();
-		CloudbaseConnection connector = connection();
-		Instance instance = connector.getInstance();
-		long retValue= 0l;
-		SortedMap<String, TableInfo> tableStats = new TreeMap<String, TableInfo>();
-		Map<String, String> tidToNameMap = Tables.getIdToNameMap(instance);
-
-		try {
-			mmi = getMmi();
-			for (Entry<String, TableInfo> te : mmi.tableMap.entrySet())
-				tableStats.put(Tables.getPrintableTableNameFromId(tidToNameMap, te.getKey()), te.getValue());
-
-			for (Entry<String, String> tableName_tableId : Tables.getNameToIdMap(instance).entrySet()) {
-				String tableName = tableName_tableId.getKey();
-				String tableId = tableName_tableId.getValue();
-				TableInfo tableInfo = tableStats.get(tableName);
-				retValue += tableInfo.recs;
-				log.fine("TABLE_NAME="+tableName+", TABLE_ID="+tableId+",NumRecs="+tableInfo.recs);
-			}
-			log.fine("tss numRecords = "+ retValue);
-		}	
-		catch (Exception e) {
-			mmi = null;
-
-		}
-
-		return retValue;
-	}
-	 */
-	/*
-	 *  Get a list of tablet servers
-	 *
-	 */
-	/*
-	private ArrayList<TabletServerStatus> getTabletServers()  throws CBException, CBSecurityException, TableNotFoundException,TTransportException {
-		MasterMonitorInfo mmi=null;  
-		AuthInfo authInfo = authInfo();
-		CloudbaseConnection connector = connection();
-
-		MasterClientService.Iface client = null;
-		ArrayList<TabletServerStatus> tservers = new ArrayList<TabletServerStatus>();
-		try {
-			client = MasterClient.getConnection(connector.getInstance());
-			mmi = client.getMasterStats(null,authInfo);
-			if (mmi != null)
-				tservers.addAll(mmi.tServerInfo);
-
-		} catch (Exception e) {
-			mmi = null;
-
-		} finally {
-			if (client != null)
-				ThriftUtil.returnClient(client);
-		}
-		return tservers;
-	}
-	 */
-	/*
-	 *
-	 *
-	 *
-	 */
-	//	public long getNumberOfEntries(String tserverAddress, ArrayList<String>  tableNames) throws CBException, CBSecurityException, TableNotFoundException {
-	//		long retval =0l;
-	//		List<TabletStats> tsStats = getTabletStatsList(tserverAddress, tableNames);
-	//		for(TabletStats info : tsStats) {
-	//			retval += info.numEntries;
-	//		}
-	//
-	//		return retval;
-	//	}
+	
 	/*  
 	 *  Get the total number of entries for the specified table names
 	 *  tableNames   list of table names of interest	
 	 */
 	public long getNumberOfEntries(ArrayList<String>  tableNames)  {
-		//throws CBException, CBSecurityException, TableNotFoundException, TTransportException {
 		doInit();
 		long retVal= this.d4mTableOp.getNumberOfEntries(tableNames);
-
-		//		ArrayList<TabletServerStatus> tservers = getTabletServers();
-		//		for (TabletServerStatus status : tservers) {
-		//			Logger.getLogger(D4mDbTableOperations.class.getName()).log(Level.FINE,"TabletServer status ::  name = "+status.name);
-		//			retVal += getNumberOfEntries(status.name, tableNames);
-		//		}
 
 		return retVal;
 	}
@@ -754,19 +501,77 @@ public class D4mDbTableOperations extends D4mParent {
 
 	}
 
-	public String getSplits(String tableName) throws Exception {
-		return getSplits(tableName, false)[0];
+
+	/**
+	 * @param tableName  name of table to find splits information
+	 * @return  String [0]  name of splits
+	 *          String [1]  number of splits per split name
+	 *          String [2]  name of tablet servers that contain the splits
+	 *          
+	 */
+	public String[] getAllSplitsInfo(String tableName) {
+		String []  results = new String[]{"","",""};
+
+		List<String>  splitNames = this.d4mTableOp.getSplits(tableName);
+		if(splitNames.isEmpty() ) return results;
+
+		try {
+			List<String>  listNumSplits = this.d4mTableOp.getSplitsNumInEachTablet(tableName);
+			List<String>  listTabletOfSplits = this.d4mTableOp.getTabletLocationsForSplits(tableName, splitNames);
+
+			results[0] = concatStringListToCommaSeparatedString(splitNames);
+			results[1] = concatStringListToCommaSeparatedString(listNumSplits);
+			results[2] = concatStringListToCommaSeparatedString(listTabletOfSplits);
+
+
+		} catch (D4mException e) {
+			e.printStackTrace();
+		}
+
+
+		return results;
+	}
+	/*
+	 *   Returns only the names of the splits as comma-delimited string
+	 */
+	public String []  getSplits(String tableName) throws Exception {
+		return getSplits(tableName, true);
 	}
 
+	/*
+	 *  Return the list of split names a comma-delimited string
+	 *  eg   124,234,2334,5664,
+	 */	
+	public String getSplitsString(String tableName) throws Exception {
+		String result = "";
+		List<String> splitList = this.d4mTableOp.getSplits(tableName);
+		result = concatStringListToCommaSeparatedString(splitList);
+		return result;
+		
+	}
 	/**
 	 * Gets the current splits or the table.  If the optional second boolean is true, returns an additional comma-delimited string that holds N+1 numbers
 	 * where N is the number of splits and the (i)th number is the number of entries in tablet holding the (i-1)st split and the (i)th split.
 	 * @param tableName
 	 * @param getNumInEachTablet Optional 2nd boolean - default false
-	 * @return One or two strings in an array
+	 * @return An array of strings where 
+	 * 		index 0 holds a string of the split names (comma-delimited)
+	 *      index 1 holds the number of splits per split name
+	 *      index 2 holds the name of tablet servers of each split
+	 *      eg [0]  1122,1223,233,4444,
+	 *         [1]   1,3,4,5,
+	 *         [2]   host1,host2,host3,host4,
 	 * @throws Exception
 	 */
-	public String[] getSplits(String tableName, boolean getNumInEachTablet) throws Exception
+	public String[] getSplits(String tableName, boolean getNumInEachTablet) throws Exception {
+		ArgumentChecker.notNull(tableName);
+		doInit();
+
+		String [] results = getAllSplitsInfo(tableName);
+		return results;
+
+	}
+	public String[] SAVE_getSplits(String tableName, boolean getNumInEachTablet) throws Exception
 	{
 		ArgumentChecker.notNull(tableName);
 		doInit();
@@ -818,8 +623,8 @@ public class D4mDbTableOperations extends D4mParent {
 		}
 		 */
 		return result;
-//*************************************************************************************************		
-//*************************************************************************************************
+		//*************************************************************************************************		
+		//*************************************************************************************************
 		//		StringBuffer sb = new StringBuffer();
 		//		for (String split : splitList)
 		//			sb.append(split).append(',');
@@ -946,7 +751,7 @@ public class D4mDbTableOperations extends D4mParent {
 			mergeSplits(tableName, null, null);
 			return;
 		}
-		String oldSplitsString = getSplits(tableName);
+		String oldSplitsString = getSplitsString(tableName);
 
 		List<String> newSplitsList = Arrays.asList(D4mQueryUtil.processParam(newSplitsString));
 		NavigableSet<String> oldSplitsSet = new TreeSet<String>();
@@ -970,6 +775,18 @@ public class D4mDbTableOperations extends D4mParent {
 
 	}
 
+	/*
+	 * Concatenate the string to a comma-delimited string
+	 */
+	private String  concatStringListToCommaSeparatedString(List<String> strList) {
+		StringBuffer sb = new StringBuffer();
+
+		for(int i = 0; i < strList.size() ; i++) {
+			String s = strList.get(i);
+			sb.append(s).append(",");
+		}
+		return sb.toString();
+	}
 
 
 }

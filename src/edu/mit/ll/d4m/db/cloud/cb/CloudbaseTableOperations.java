@@ -394,6 +394,13 @@ public class CloudbaseTableOperations implements D4mTableOpsIF {
 
 	}
 
+	@Override
+	public List<String> getTabletLocationsForSplits(String tableName,
+			List<String> splits) throws D4mException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 	
 
 	/*@Override

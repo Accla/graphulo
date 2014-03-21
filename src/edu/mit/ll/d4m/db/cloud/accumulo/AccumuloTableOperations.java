@@ -17,8 +17,13 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.client.impl.TabletLocator;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.LongCombiner;
@@ -28,8 +33,9 @@ import org.apache.accumulo.core.iterators.conf.ColumnSet;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
-import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.security.Credentials;
+//import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.security.thrift.TCredentials;
@@ -118,7 +124,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 		} catch (ThriftSecurityException e) {
 			log.warn(e);
 		} catch ( D4mException e)  {
-		    log.warn(e);    
+			log.warn(e);    
 		}
 		catch (TException e) {
 			log.warn(e);
@@ -156,7 +162,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 		} catch (ThriftSecurityException e) {
 			log.warn(e);
 		} catch ( D4mException e)  {
-		    log.warn(e);    
+			log.warn(e);    
 		}
 		catch (TException e) {
 			log.warn(e);
@@ -177,12 +183,12 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 			client = this.connection.getMasterClient();
 			//changed in accumulo-1.4
 			//			mmi = client.getMasterStats(null, getAuthInfo());
-                        TInfo tinfo = new TInfo();
-                        mmi = client.getMasterStats(tinfo,this.connection.getCredentials() );
-                         
+			TInfo tinfo = new TInfo();
+			mmi = client.getMasterStats(tinfo,this.connection.getCredentials() );
+
 			list.addAll(mmi.getTServerInfo());
 		} catch(D4mException e) {
-		    log.warn(e);
+			log.warn(e);
 		} finally {
 			ThriftUtil.returnClient(client);
 		}
@@ -195,9 +201,9 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 			cnt++;
 			String tserverName = tss.name;
 			log.debug("["+cnt+"] - Tserver name = "+tserverName);
-			
+
 			List<TabletStats> tlist = getTabletStatsList(tserverName, tableNames);
-			
+
 			tabStatsList.addAll(tlist);
 		}
 		return tabStatsList;
@@ -232,7 +238,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 		} catch (TException e) {
 			log.warn(e);
 		} finally {
-		    ThriftUtil.returnClient((MasterClientService.Client)masterClient);
+			ThriftUtil.returnClient((MasterClientService.Client)masterClient);
 			ThriftUtil.returnClient((TabletClientService.Client)tabClient);
 		}
 
@@ -268,17 +274,17 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	public void connect() {
 		this.connection = new AccumuloConnection(connProp);
 	}
-	public AuthInfo getAuthInfo() {
-		String user = this.connProp.getUser();
-		byte [] pw = this.connProp.getPass().getBytes();
-		String instanceId = this.connection.getInstance().getInstanceID();
-		//Accumulo-1.4 use ByteBuffer for the password in AuthInfo constructor
-		ByteBuffer pwbuffer = ByteBuffer.wrap(pw);
-		AuthInfo authinfo=new AuthInfo(user, pwbuffer, instanceId);
-		return authinfo;
-	}
+//	public AuthInfo getAuthInfo() {
+//		String user = this.connProp.getUser();
+//		byte [] pw = this.connProp.getPass().getBytes();
+//		String instanceId = this.connection.getInstance().getInstanceID();
+//		//Accumulo-1.4 use ByteBuffer for the password in AuthInfo constructor
+//		ByteBuffer pwbuffer = ByteBuffer.wrap(pw);
+//		AuthInfo authinfo=new AuthInfo(user, pwbuffer, instanceId);
+//		return authinfo;
+//	}
 
-    public TCredentials tCred=null;
+	public TCredentials tCred=null;
 	/*
 	 *    private AuthInfo authInfo() throws CBException, TableNotFoundException, CBSecurityException {
 	String user = this.connProps.getUser();
@@ -323,23 +329,23 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 
 		return list;
 	}
-/*
- * List of splits and the number of entries in each tablet.
- * The the splits and the numbers are demarcated by ":" in the List object
- * For example, list looks like
- *     split1
- *     split2
- *     split3
- *     split4
- *     :
- *     100
- *     200
- *     300
- *     400
- *     
- * (non-Javadoc)
- * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#getSplits(java.lang.String, boolean)
- */
+	/*
+	 * List of splits and the number of entries in each tablet.
+	 * The the splits and the numbers are demarcated by ":" in the List object
+	 * For example, list looks like
+	 *     split1
+	 *     split2
+	 *     split3
+	 *     split4
+	 *     :
+	 *     100
+	 *     200
+	 *     300
+	 *     400
+	 *     
+	 * (non-Javadoc)
+	 * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#getSplits(java.lang.String, boolean)
+	 */
 	public List<String> getSplits(String tableName, boolean getNumInEachTablet) throws D4mException {
 
 		//List<String> list = new ArrayList<String>();
@@ -365,7 +371,8 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 			} catch (TableNotFoundException e) {
 				throw new D4mException("Table not found - "+org.apache.accumulo.core.Constants.METADATA_TABLE_NAME,e);
 			}
-			org.apache.accumulo.core.util.ColumnFQ.fetch(scanner, org.apache.accumulo.core.Constants.METADATA_PREV_ROW_COLUMN);
+			org.apache.accumulo.core.Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
+			//			org.apache.accumulo.core.util.ColumnFQ.fetch(scanner, org.apache.accumulo.core.Constants.METADATA_PREV_ROW_COLUMN);
 			final Text start = new Text(ac.getNameToIdMap().get(tableName)); // check
 			final Text end = new Text(start);
 			end.append(new byte[] {'<'}, 0, 1);
@@ -410,8 +417,14 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 
 	}
 
-	
-	
+	/**
+	 * This will return a list containing number of splits per split.
+	 * 
+	 * @param tableName   name of table related to list of splits
+	 * @param splitList  list of split names
+	 * @return
+	 */
+
 
 	@Override
 	public void addIterator(String tableName, IteratorSetting cfg) throws D4mException {
@@ -599,7 +612,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 		List<String> newSplitsList = Arrays.asList(D4mQueryUtil.processParam(newSplitsString));
 		if(oldSplitsString != null ) {
 			NavigableSet<String> oldSplitsSet = new TreeSet<String>(oldSplitsString);
-			
+
 			// algorithm: first go through old list and merge anything not in new
 			// then add the new set
 			for (Iterator<String> iter = oldSplitsSet.iterator(); iter.hasNext(); ) {
@@ -619,7 +632,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	private void addSplits(String tableName, String splitsStr) throws D4mException
 	{
 		ArgumentChecker.notNull(tableName, splitsStr);
-		
+
 		String[] splitStrArr = D4mQueryUtil.processParam(splitsStr);
 
 		splitTable(tableName, splitStrArr);
@@ -669,13 +682,42 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 				//assert foundIt;
 				if (!foundIt) {
 					list.add("?");
-					//					sb.append("?,");
 				}
 			}
 		}
 
 		return list;
 	}
+	@Override
+	public List<String> getTabletLocationsForSplits(String tableName,
+			List<String> splits) throws D4mException {
+		List<String>  results = new ArrayList<String>();
 
+		try {
+
+			for(String splitName : splits) {
+				String tablet_location = this.connection.locateTablet(tableName, splitName);
+				results.add(tablet_location);
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		} 
+
+		return results;
+	}
+
+	/*
+	 * Concatenate the string to a comma-delimited string
+	 */
+	private String  concatString(List<String> strList) {
+		StringBuffer sb = new StringBuffer();
+		
+		for(int i = 0; i < strList.size() ; i++) {
+			String s = strList.get(i);
+			sb.append(s).append(",");
+		}
+		return sb.toString();
+	}
 
 }

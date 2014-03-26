@@ -28,7 +28,7 @@ public class TestAccumuloSplitInfo {
 	private String instanceName = "txg-scaletest-4n32c";
 	private String host = "txg-scaletest-4n32c.cloud.llgrid.ll.mit.edu:2181";
 	private String username = "AccumuloUser";
-	private String password = "ZcIn_EBHdVzF5J4Dvn3AIpwck";
+	private String password = "BrOYzU4BE^kPy8ySiiMR^aA0O";
 	
 	private String tableName = "kepner_GraphAnalysisTEST";
 

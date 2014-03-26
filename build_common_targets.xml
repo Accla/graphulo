@@ -27,6 +27,7 @@
      <pathelement path="${build.dir}/classes"/>
      <pathelement path="${dist.dir}/conf"/>
   </path>
+
   <path id="accumulo_classpath">
      <fileset dir="${lib.dir}">
        <include name="**/*.jar"/>
@@ -37,6 +38,7 @@
      <pathelement path="${build.dir}/classes"/>
      <pathelement path="${dist.dir}/conf"/>
   </path>
+
        
   <target name="clean">
      <delete dir="${build.dir}"/>

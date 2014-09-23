@@ -22,21 +22,22 @@ ver ???
 Nov 13, 2012
 Version 2.2.0
 
-Needed to separate Accumulo and Cloudbase references in order to make
- 2 different releases of D4M (accumulo only and cloudbase only).
-   - Remove any references to Accumulo and Cloudbase package names from D4mDbTableOperations.java.
+Needed to separate Accumulo and BigTableLike references in order to make
+ 2 different releases of D4M (accumulo only and BigTableLike only).
+   - Remove any references to Accumulo and BigTableLike package names from D4mDbTableOperations.java.
    - Move the Combining Column code out of D4mDbTableOperations, since these are Accumulo specific.
    - Changes to DbInfoIF - add setConnectionProp method
    - Changes D4mTableOpsIF - add the Combining columns functions
-     - Combining columns functionalities are not implemented in CloudbaseTableOperations.
+     - Combining columns functionalities are not implemented in BigTableLikeTableOperations.
 
-   - Refactor packages names - add edu.mit.ll.dm4.db.cloud.accumulo and edu.mit.ll.d4m.db.cloud.cb
-      - Moved all Accumulo and Cloudbase specific classes to the appropriate packages.
+   - Refactor packages names - add edu.mit.ll.dm4.db.cloud.accumulo and edu.mit.ll.d4m.db.cloud.bigtablelike
+      - Moved all Accumulo and BigTableLike specific classes to the appropriate packages.
 
-   - The build system will make 3  jars - D4M_API_JAVA,  D4M_API_JAVA_AC (accumulo) and D4M_API_JAVA_CB (cloudbase). 
+   - The build system will make 3  jars - D4M_API_JAVA,  D4M_API_JAVA_AC (accumulo) and 
+     D4M_API_JAVA_BigTableLike (BigTableLike). 
       - D4M_API_JAVA.jar is the common jar.
       - D4M_API_JAVA_AC.jar contains the accumulo specific classes.
-      - D4M_API_JAVA_CB.jar contains the cloudbase specific classes.
+      - D4M_API_JAVA_BigTableLike.jar contains the BigTableLike specific classes.
 
 
 
@@ -73,9 +74,9 @@ March 28, 2012
 
 Version 2.0.0
 -  Port code to Accumulo
-   - Implement new interfaces to allow switching between Cloudbase or Accumulo.
+   - Implement new interfaces to allow switching between BigTableLike or Accumulo.
      - D4mConfig
-        - configuration class to switch between Cloudbase or Accumulo.
+        - configuration class to switch between BigTableLike or Accumulo.
         - setCloudType method
      - D4mParent: base class
 
@@ -86,25 +87,25 @@ Version 2.0.0
             - D4mParentQuery  base class for query objects
 
               - D4mDbQueryAccumulo
-              - D4mDbQueryCloudbase
+              - D4mDbQueryBigTableLike
 
             - D4mDataSearch :  replaces D4mDbQuery
                - This class is called from d4m_api matlab code to execute queries
                - This class acts like a wrapper class to wrap the functionality of 
-                 D4mDbQueryCloudbase and D4mDbQueryAccumulo
+                 D4mDbQueryBigTableLike and D4mDbQueryAccumulo
 
 
      - AccumuloConnection
-       - Similar to Cloudbase connection
+       - Similar to BigTableLike connection
        - use the ConnectionProperties class to hold info to access cloud
 
      - D4mInsertBase   base class
         - AccumuloInsert
-        - CloudbaseInsert
+        - BigTableLikeInsert
 
      - D4mFactory; factory class to create the child classes for inserting, querying, table operations
  
-     - CloudbaseTableOperations
+     - BigTableLikeTableOperations
      - AccumuloTableOperations
     
 ================================================================

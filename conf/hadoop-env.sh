@@ -12,14 +12,14 @@ export JAVA_HOME=/home/wi20909/java/jdk1.6.0_11
 # Extra Java CLASSPATH elements.  Optional.
 # export HADOOP_CLASSPATH=
 
-export CLOUDBASE_HOME=/home/wi20909/cloudbase/cloudbase
+export ACCUMULO_HOME=/home/wi20909/accumulo/accumulo
 export HBASE_HOME=/home/wi20909/hadoopdev/hbase-0.19.0
-export HJOBS_HOME=/home/wi20909/hadoopdev/cloudbase_tool_api/build/cloudbase_tool_api-1.0
+export HJOBS_HOME=/home/wi20909/hadoopdev/accumulo_tool_api/build/accumulo_tool_api-1.0
 
 
 #$HBASE_HOME/conf:$HBASE_HOME/hbase-0.19.0.jar:$HBASE_HOME/hbase-0.19.0-test.jar:$HJOBS_HOME/build/hjobs-0.19.1-dev.jar
 
-export HADOOP_CLASSPATH=$CLOUDBASE_HOME/conf:$HJOBS_HOME/cloudbase_tool_api-1.0.jar:$CLOUDBASE_HOME/lib/cloudbase.jar:$HJOBS_HOME/lib/lucene-core-2.4.1.jar:$HJOBS_HOME/lib/lucene-demos-2.4.1.jar:$HJOBS_HOME/lib/poi-3.2-FINAL-20081019.jar:$HJOBS_HOME/lib/poi-contrib-3.2-FINAL-20081019.jar:$HJOBS_HOME/lib/poi-scratchpad-3.2-FINAL-20081019.jar
+export HADOOP_CLASSPATH=$ACCUMULO_HOME/conf:$HJOBS_HOME/accumulo_tool_api-1.0.jar:$ACCUMULO_HOME/lib/accumulo.jar:$HJOBS_HOME/lib/lucene-core-2.4.1.jar:$HJOBS_HOME/lib/lucene-demos-2.4.1.jar:$HJOBS_HOME/lib/poi-3.2-FINAL-20081019.jar:$HJOBS_HOME/lib/poi-contrib-3.2-FINAL-20081019.jar:$HJOBS_HOME/lib/poi-scratchpad-3.2-FINAL-20081019.jar
 
 
 # The maximum amount of heap to use, in MB. Default is 1000.

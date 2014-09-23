@@ -32,12 +32,6 @@ MatlabControl
   Reference: http://code.google.com/p/matlabcontrol
   Files: lib/matlabcontrol-3.01.jar
 
-D4M (internal)
-  Role: needed by D4M to connect to Cloudbase
-  Copyright: MIT
-  License: GFE
-  Pedigree: Lincoln
-  Files: lib/d4m-webapp-stubs.jar, lib/d4m_api-0.01.jar
 
 Summaries derived from Reuters Data
   Role: used in regression testing and examples
@@ -95,16 +89,9 @@ Commons
          lib/commons-lang-2.4.jar
 
 
-Hadoop
-  Role: needed by Cloudbase
-  Copyright: Apache
-  License: Apache
-  Pedigree: downloaded from Apache
-  Reference: http://hadoop.apache.org/
-  Files: lib/hadoop-0.20.2-core.jar, lib/hadoop-0.20.2-tools.jar
 
 Log4j
-  Role: needed by Cloudbase
+  Role: needed by Accumulo
   Copyright: Apache
   License: Apache
   Pedigree: downloaded from Apache
@@ -112,7 +99,7 @@ Log4j
   Files: lib/log4j-1.2.15.jar
 
 Slf4j
-  Role: needed by Cloudbase
+  Role: needed by Accumulo
   Copyright: QOS.ch  (http://www.qos.ch)
   License: MIT License
   Pedigree: downloaded from www.slf4j.org
@@ -122,17 +109,17 @@ Slf4j
 
 
 Thrift
-  Role: needed by Cloudbase
+  Role: needed by Accumulo
   Copyright: Apache
   License: Apache
   Pedigree: downloaded from Apache
-  Reference: http://incubator.apache.org/thrift/
-  Files: lib/thrift-0.2.jar
+  Reference: http://thrift.apache.org/
+  Files: lib/libthrift-0.9.1.jar
 
 Zookeeper
-  Role: needed by Cloudbase
+  Role: needed by Accumulo
   Copyright: Apache
   License: Apache
   Pedigree: downloaded from Apache
   Reference: http://hadoop.apache.org/zookeeper/
-  Files: lib/zookeeper-3.2.2.jar
+  Files: lib/zookeeper-3.3.5.jar

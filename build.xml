@@ -35,12 +35,11 @@
         <fileset dir="${basedir}/conf">
           <include name="**/log4j.xml"/>
           <include name="**/*.properties"/>
-          <include name="**/cloudbase-site.xml"/>
         </fileset>
     </copy>
     <copy todir="${build.dir}/classes/" filtering="true">
         <fileset dir="${basedir}/conf">
-          <include name="**/cloudbase-site.xml"/>
+
         </fileset>
     </copy>
     <copy todir="${dist.dir}/docs">

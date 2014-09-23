@@ -50,9 +50,7 @@
     <logger name="edu.mit.ll.d4m" >  
         <level value="@log_4_j_threshold@" />
     </logger>
-    <logger name="cloudbase.core" >  
-        <level value="ERROR" />
-    </logger>
+
   
  
     <root>

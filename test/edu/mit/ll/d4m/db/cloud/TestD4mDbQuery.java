@@ -3,17 +3,18 @@ package edu.mit.ll.d4m.db.cloud;
 import java.util.ArrayList;
 
 import org.apache.log4j.Logger;
+import edu.mit.ll.d4m.db.cloud.accumulo.D4mDbQueryAccumulo;
 
 public class TestD4mDbQuery {
 	private static Logger log = Logger.getLogger(TestD4mDbQuery.class);
 	private static int count=0;
 	
-	public void testQueryForAll() {
-		String row = ":";
-		String col = ":";
-		D4mDbQuery d4m=null;
+	// public void testQueryForAll() {
+	// 	String row = ":";
+	// 	String col = ":";
+	// 	D4mDbQueryAccumulo d4m=null;
 
-	}
+	// }
 	public static void main(String[] args) throws Exception	{
 		String instanceName = args[0];
 		String host = args[1];
@@ -21,7 +22,7 @@ public class TestD4mDbQuery {
 		String password = args[3];
 		String table = args[4];
 
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		String rows=":";
 		String cols = ":";
 		String family= "";
@@ -44,7 +45,7 @@ public class TestD4mDbQuery {
 		System.out.println("Cumulative count = "+d4m.getCumCount());
 	}
 
-	public static void print(D4mDbQuery d4m) {
+	public static void print(D4mDbQueryAccumulo d4m) {
 //		String rowresults = d4m.rowReturnString;
 //		String colresults = d4m.columnReturnString;
 //		log.info(rowresults+","+colresults);

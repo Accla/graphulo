@@ -13,7 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import edu.mit.ll.d4m.db.cloud.D4mDbInsert;
-import edu.mit.ll.d4m.db.cloud.D4mDbQuery;
+import edu.mit.ll.d4m.db.cloud.accumulo.D4mDbQueryAccumulo;
 import edu.mit.ll.d4m.db.cloud.D4mDbResultSet;
 import edu.mit.ll.d4m.db.cloud.D4mDbRow;
 import edu.mit.ll.d4m.db.cloud.D4mDbTableOperations;
@@ -40,8 +40,8 @@ public class D4mQueryTest10 {
 	@Before
 	public void setUp() throws Exception {
 
-		System.setProperty(D4mFactory.PROPERTY_D4M_CLOUD_TYPE,"BigTableLike");
-		instanceName               ="cloudbase";
+		System.setProperty(D4mFactory.PROPERTY_D4M_CLOUD_TYPE,"Accumulo");
+		instanceName               ="accumulo";
 		host                       = "bullet.llan.ll.mit.edu:2181";
 		username                   =  "root";
 		password                   = "secret";
@@ -73,9 +73,9 @@ public class D4mQueryTest10 {
 		String authorizations="";
 		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
 
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
-		D4mDbQuery.TEST_ACCUMULO_PORT = true;
+		
 		try {
 			//First query
 			d4m.setLimit(10);
@@ -109,9 +109,8 @@ public class D4mQueryTest10 {
 		String authorizations="";
 		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
 
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
-		D4mDbQuery.TEST_ACCUMULO_PORT = true;
 		try {
 			//First query
 			d4m.setLimit(0);
@@ -143,9 +142,9 @@ public class D4mQueryTest10 {
 		String authorizations="";
 
 		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
-		D4mDbQuery.TEST_ACCUMULO_PORT = true;
+		
 
 		try {
 			d4m.setLimit(1);
@@ -192,9 +191,9 @@ public class D4mQueryTest10 {
 		String authorizations="";
 
 		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
-		D4mDbQuery.TEST_ACCUMULO_PORT = true;
+		
 
 		try {
 			d4m.setLimit(1);

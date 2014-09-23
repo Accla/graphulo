@@ -6,7 +6,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import edu.mit.ll.d4m.db.cloud.D4mDbQuery;
+import edu.mit.ll.d4m.db.cloud.accumulo.D4mDbQueryAccumulo;
 /**
  * @author cyee
  *
@@ -29,10 +29,10 @@ public class D4mDbQueryTest8 {
 	 */
 	@Before
 	public void setUp() throws Exception {
-		instanceName               ="cloudbase";
+		instanceName               ="accumulo";
 		host                       = "f-2-6.llgrid.ll.mit.edu:2181";
-		username                   =  "cbuser";
-		password                   = "cbuser123";
+		username                   =  "AccumuloUser";
+		password                   = "";
 		table                      = "YAHOO_STANFORD_TEMPORALROW_NORMAL_TRANS";
 	}
 	@After
@@ -49,7 +49,7 @@ public class D4mDbQueryTest8 {
 		String authorizations="";
 		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
 
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
 		d4m.setLimit(20);
 		long start = System.currentTimeMillis();
@@ -74,7 +74,7 @@ public class D4mDbQueryTest8 {
 		String authorizations="";
 		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
 
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
 		d4m.setLimit(100);
 		long start = System.currentTimeMillis();

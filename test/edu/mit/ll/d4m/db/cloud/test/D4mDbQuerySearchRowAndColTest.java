@@ -9,7 +9,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import edu.mit.ll.d4m.db.cloud.D4mDbInsert;
-import edu.mit.ll.d4m.db.cloud.D4mDbQuery;
+import edu.mit.ll.d4m.db.cloud.accumulo.D4mDbQueryAccumulo;
 import edu.mit.ll.d4m.db.cloud.D4mDbTableOperations;
 
 /**
@@ -30,10 +30,10 @@ public class D4mDbQuerySearchRowAndColTest {
 	 */
 	@Before
 	public void setUp() throws Exception {
-		instanceName               ="cloudbase";
+		instanceName               ="accumulo";
 		host                       = "f-2-6.llgrid.ll.mit.edu:2181";
-		username                   =  "cbuser";
-		password                   = "cbuser123";
+		username                   =  "AccumuloUser";
+		password                   = "";
 		table                      = "iTest8";
 		columnFamily        = "";
 		
@@ -88,7 +88,7 @@ bbb :bbb []    bbb-bbb
 		String cols= "a ";
 		String authorizations="";
 
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
 		try {
 			//First query

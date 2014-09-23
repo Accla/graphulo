@@ -16,7 +16,7 @@ import org.junit.Test;
 
 import edu.mit.ll.d4m.db.cloud.D4mConfig;
 import edu.mit.ll.d4m.db.cloud.D4mDbInsert;
-import edu.mit.ll.d4m.db.cloud.D4mDbQuery;
+import edu.mit.ll.d4m.db.cloud.accumulo.D4mDbQueryAccumulo;
 import edu.mit.ll.d4m.db.cloud.D4mDbResultSet;
 import edu.mit.ll.d4m.db.cloud.D4mDbRow;
 import edu.mit.ll.d4m.db.cloud.D4mDbTableOperations;
@@ -56,7 +56,7 @@ public class D4mDbQueryTest7 {
 	 */
 	@Before
 	public void setUp() throws Exception {
-		instanceName               ="cloudbase";
+		instanceName               ="accumulo";
 		host                       = "bullet:2181";
 //		host                       = "f-2-6.llgrid.ll.mit.edu:2181";
 
@@ -89,7 +89,7 @@ bbb :bbb []    bbb-bbb
 		if(!isReady) {
 		
 		D4mConfig d4mConfig = D4mConfig.getInstance();
-		d4mConfig.setCloudType(D4mConfig.CLOUDBASE);
+		d4mConfig.setCloudType(D4mConfig.ACCUMULO);
 		String row = "a,a,a,a,a,a,aa,aa,aaa,aaa,b,b,bb,bb,bbb,bbb,";
 		String col = "a,aa,aaa,b,bb,bbb,a,aa,a,aaa,a,b,a,bb,a,bbb,";
 		String val = "a-a,a-aa,a-aaa,a-b,a-bb,a-bbb,aa-a,aa-aa,aaa-a,aaa-aaa,b-a,b-b,bb-a,bb-bb,bbb-a,bbb-bbb,";
@@ -104,16 +104,6 @@ bbb :bbb []    bbb-bbb
 	/**
 	 * @throws java.lang.Exception
 	 */
-//	@After
-//	public void tearDown() throws Exception {
-//		//Delete table
-//		D4mDbTableOperations dbTable = new D4mDbTableOperations(instanceName,host,username,password);
-//		D4mConfig d4mConfig = D4mConfig.getInstance();
-//
-//		dbTable.init(instanceName, host, username, password, d4mConfig.getCloudType());
-//	
-//		dbTable.deleteTable(table);
-//	}
 
 	/*
 	 * Do  successive test queries 
@@ -128,10 +118,10 @@ bbb :bbb []    bbb-bbb
 		String authorizations="";
 		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
 
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
-		d4m.setCloudType("BigTableLike");
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
+		d4m.setCloudType(D4mConfig.ACCUMULO);
 		d4m.doTest = true;
-		D4mDbQuery.TEST_ACCUMULO_PORT = true;
+
 
 		try {
 			//First query
@@ -167,7 +157,7 @@ bbb :bbb []    bbb-bbb
 		String authorizations="";
 		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
 
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
 		try {
 			d4m.doMatlabQuery(rows, cols, columnFamily, authorizations);
@@ -199,7 +189,7 @@ bbb :bbb []    bbb-bbb
 		String authorizations="";
 		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
 
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
 		try {
 			d4m.doMatlabQuery(rows, cols, columnFamily, authorizations);
@@ -239,7 +229,7 @@ bbb :bbb []    bbb-bbb
 		String authorizations="";
 		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
 
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
 		int repeat=3;
 		try {
@@ -282,7 +272,7 @@ bbb :bbb []    bbb-bbb
 		String authorizations="";
 
 		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
 		int repeat=3;
 		try {
@@ -328,7 +318,7 @@ bbb :bbb []    bbb-bbb
 		String authorizations="";
 
 		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
 		int repeat=3;
 		try {
@@ -380,7 +370,7 @@ bbb :bbb []    bbb-bbb
 		String authorizations="";
 
 		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
 		
 		try {
@@ -428,7 +418,7 @@ bbb :bbb []    bbb-bbb
 		String authorizations="";
 
 		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
 		
 		try {
@@ -479,7 +469,7 @@ bbb :bbb []    bbb-bbb
 		String authorizations="";
 
 		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
 		
 		try {
@@ -529,7 +519,7 @@ bbb :bbb []    bbb-bbb
 		String authorizations="";
 
 		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
 		
 		try {
@@ -575,7 +565,7 @@ bbb :bbb []    bbb-bbb
 		String authorizations="";
 
 		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
 		
 		try {
@@ -624,7 +614,7 @@ bbb :bbb []    bbb-bbb
 		String authorizations="";
 
 		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
 		
 		try {
@@ -673,7 +663,7 @@ bbb :bbb []    bbb-bbb
 		String authorizations="";
 
 		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
 		
 		try {
@@ -722,7 +712,7 @@ bbb :bbb []    bbb-bbb
 		String authorizations="";
 
 		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
 		
 		try {
@@ -772,7 +762,7 @@ bbb :bbb []    bbb-bbb
 		String authorizations="";
 
 		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
 		
 		try {
@@ -823,7 +813,7 @@ bbb :bbb []    bbb-bbb
 		String authorizations="";
 
 		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
-		D4mDbQuery d4m = new D4mDbQuery(instanceName, host, table, username, password);
+		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
 		
 		try {

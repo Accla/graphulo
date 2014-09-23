@@ -19,7 +19,7 @@ import edu.mit.ll.cloud.connection.ConnectionProperties;
 public class D4mFactory {
 	private static Logger log = Logger.getLogger(D4mFactory.class);
 
-	public static String ACCUMULO="Accumulo";
+	public static String ACCUMULO= D4mConfig.ACCUMULO;
 	public static String PROPERTY_D4M_CLOUD_TYPE="d4m.cloud.type";
 	public static String CLOUD_TYPE="BigTableLike"; // BigTableLike or Accumulo
 

@@ -2,6 +2,7 @@ package edu.mit.ll.d4m.db.cloud;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import edu.mit.ll.d4m.db.cloud.accumulo.D4mDbQueryAccumulo;
 
 public class TestCRUD {
 
@@ -17,7 +18,7 @@ public class TestCRUD {
 		// create D4m Objects
 		D4mDbTableOperations tblOps = new D4mDbTableOperations(instanceName, host, username, password);
 		D4mDbInsert dbIn = new D4mDbInsert(instanceName, host, tableName, username, password);
-		D4mDbQuery dbQuery = new D4mDbQuery(instanceName, host, tableName, username, password);
+		D4mDbQueryAccumulo dbQuery = new D4mDbQueryAccumulo(instanceName, host, tableName, username, password);
 
 		// create table
 		tblOps.createTable(tableName);

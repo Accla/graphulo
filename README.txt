@@ -24,10 +24,10 @@ REQUIREMENTS
   -Matlab (or GNU ctave 3.2.2+ with Java package 1.2.6+)
 
   D4M (w/database)
-    -CLOUDBASE
+    -Accumulo
       -Zookeeper
       -Hadoop File system
-      -Cloudbase database
+      -Accumulo database
     -HBASE (TBD)
     -OTHERS (TBD)
 
@@ -44,7 +44,7 @@ INSTALLING AND RUNNING FULL OR LLONLY DISTRIBUTION:
 
        The ExternalContrib file also contains brief description of the jars.
 
-  - Edit d4m_api/matlab_src/TEST/DBsetup.m so it points to your Cloudbase server.
+  - Edit d4m_api/matlab_src/TEST/DBsetup.m so it points to your Zookeeper server.
 
   - Start Matlab (or octave --traditional).
 

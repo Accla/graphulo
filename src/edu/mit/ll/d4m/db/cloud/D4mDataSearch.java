@@ -12,9 +12,7 @@ import edu.mit.ll.d4m.db.cloud.util.D4mDataObj;
 public class D4mDataSearch extends D4mParentQuery {
 
 	protected D4mDataObj result = new D4mDataObj();
-	//protected ConnectionProperties connProps = new ConnectionProperties();
 	private D4mParentQuery d4m=null;
-	//private String tableName=null;
 
 	public String rowReturnString = "";
 	public String columnReturnString = "";

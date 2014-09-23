@@ -72,26 +72,20 @@
   <target name="build_jar" depends="compile">
     <property name="jar.name" value="${ant.project.name}"/>
     <echo message="Build D4M common jar "/>
-    <jar destfile="${dist.dir}/lib/${jar.name}.jar">
+    <jar destfile="${dist.dir}/lib/${jar.name}.jar" encoding="UTF-8">
          <fileset dir="${build.dir}/classes">
             <include name="**/*.class"/>
             <exclude name="**/cloud/accumulo/*Accumulo*.class"/>
-            <exclude name="**/cloud/cb/*Cloudbase*.class"/>
          </fileset>
          <fileset file="${dist.dir}/VERSION"/>  
     </jar>
     <echo message="Build D4M accumulo jar "/>
-    <jar destfile="${dist.dir}/lib/${jar.name}_AC.jar">
+    <jar destfile="${dist.dir}/lib/${jar.name}_AC.jar" encoding="UTF-8">
          <fileset dir="${build.dir}/classes" includes="**/accumulo/*Accumulo*.class"/>
          <fileset file="${dist.dir}/VERSION"/>  
          <fileset file="${build.dir}/classes/log4j.xml"/>  
     </jar>
-    <echo message="Build D4M cloudbase jar "/>
-    <jar destfile="${dist.dir}/lib/${jar.name}_CB.jar">
-         <fileset dir="${build.dir}/classes" includes="**/cb/*.class, *Cloudbase*.class"/>
-         <fileset file="${dist.dir}/VERSION"/>  
-         <fileset file="${build.dir}/classes/log4j.xml"/>  
-    </jar>
+
   </target>
 
 	<target name="all" depends="clean, build_jar, build_distribution" description="Build a distribution of the whole software package"/>
@@ -171,12 +165,6 @@
       <test name="edu.mit.ll.d4m.db.cloud.test.D4mDbQueryTest7" fork="yes" todir="${test.reports}">
          <formatter type="plain"/>
       </test>
-<!--       <test name="edu.mit.ll.d4m.db.cloud.test.D4mDbQueryTest5" fork="yes" todir="${test.reports}"> -->
-<!--          <formatter type="plain"/> -->
-<!--       </test> -->
-<!--       <test name="edu.mit.ll.d4m.db.cloud.test.D4mDbQueryTest6" fork="yes" todir="${test.reports}"> -->
-<!--          <formatter type="plain"/> -->
-<!--       </test> -->
 
     </junit>
     <junitreport todir="${test.reports}">
@@ -251,12 +239,6 @@
       <test name="edu.mit.ll.d4m.db.cloud.test.D4mDbQuerySearchRowAndColTest" fork="yes" todir="${test.reports}">
          <formatter type="plain"/>
       </test>
-<!--       <test name="edu.mit.ll.d4m.db.cloud.test.D4mDbQueryTest5" fork="yes" todir="${test.reports}"> -->
-<!--          <formatter type="plain"/> -->
-<!--       </test> -->
-<!--       <test name="edu.mit.ll.d4m.db.cloud.test.D4mDbQueryTest6" fork="yes" todir="${test.reports}"> -->
-<!--          <formatter type="plain"/> -->
-<!--       </test> -->
 
     </junit>
     <junitreport todir="${test.reports}">

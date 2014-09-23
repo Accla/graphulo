@@ -285,16 +285,6 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 //	}
 
 	public TCredentials tCred=null;
-	/*
-	 *    private AuthInfo authInfo() throws CBException, TableNotFoundException, CBSecurityException {
-	String user = this.connProps.getUser();
-	byte[] pass = this.connProps.getPass().getBytes();
-	CloudbaseConnection connector = connection();
-	return 	 new AuthInfo(user,pass, connector.getInstanceID());
-
-    }
-
-	 */
 
 	@Override
 	public void splitTable(String tableName, String[] partitions) {

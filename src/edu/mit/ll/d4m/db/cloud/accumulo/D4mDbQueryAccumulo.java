@@ -90,7 +90,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	private int index = 0;
 	private LinkedList<Range> rangesList= new LinkedList<Range>();
 	private CompareUtil compareUtil=null;
-	AccumuloConnection cbConnection=null;
+	AccumuloConnection connection=null;
 	//private ConcurrentLinkedQueue <Entry<Key, Value>> dataQue=new ConcurrentLinkedQueue<Entry<Key,Value>>();
 	public D4mDbQueryAccumulo() {
 		super();
@@ -135,7 +135,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		this.methodName="getAllData";
 		D4mDbResultSet results = new D4mDbResultSet();
 		if(this.scannerIter == null) {
-			Scanner scanner = getScanner(); //cbConnection.getScanner(tableName);
+			Scanner scanner = getScanner(); //connection.getScanner(tableName);
 			if(this.startRange == null) {
 				//			this.startKey = new Key();
 				this.startRange = new Range(this.startKey,null);
@@ -453,7 +453,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 
 		if(this.scannerIter == null) {
 			HashSet<Range> ranges = this.loadRanges(this.rowKeys);
-			BatchScanner scanner =  getBatchScanner(); // cbConnection.getBatchScanner(this.tableName, this.numberOfThreads);
+			BatchScanner scanner =  getBatchScanner(); // connection.getBatchScanner(this.tableName, this.numberOfThreads);
 			scanner.fetchColumnFamily(new Text(this.family));
 			scanner.setRanges(ranges);
 			scannerIter = scanner.iterator();
@@ -588,11 +588,11 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		}
 		D4mDbResultSet results = new D4mDbResultSet();
 		//ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();
-		//CloudbaseConnection cbConnection = new CloudbaseConnection(this.connProps);
+
 		BatchScanner scanner =null;
 		if(this.bscanner == null) {
 			HashSet<Range> ranges = this.loadRanges(this.rowKeys);
-			scanner = getBatchScanner();//cbConnection.getBatchScanner(this.tableName, this.numberOfThreads);
+			scanner = getBatchScanner();
 			scanner.setRanges(ranges);
 			scanner.fetchColumnFamily(new Text(this.family));
 
@@ -664,9 +664,9 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 
 		HashSet<Range> ranges = new HashSet<Range>();
 		if(!this.hasNext) {
-			//CloudbaseConnection cbConnection = new CloudbaseConnection(this.connProps);
+
 			if(this.bscanner == null)
-				this.bscanner = getBatchScanner();//cbConnection.getBatchScanner(this.tableName, this.numberOfThreads);
+				this.bscanner = getBatchScanner();
 
 			if (this.getRangeQueryType(rowArray).equals(D4mDbQueryAccumulo.KEY_RANGE)) {
 				// System.out.println("queryType="+this.KEY_RANGE+
@@ -769,7 +769,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 
 			//Scanner scanner = null;
 			//	if(this.scanner == null) {
-			scanner = getScanner();//cbConnection.getScanner(tableName);
+			scanner = getScanner();//connection.getScanner(tableName);
 			//if( this.startKey != null)
 			//{
 			//Set the range to start search
@@ -836,17 +836,17 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	}
 
 	private Scanner getScanner() throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-		if(this.cbConnection == null)
-		this.cbConnection = new AccumuloConnection(this.connProps);
+		if(this.connection == null)
+		this.connection = new AccumuloConnection(this.connProps);
 		if(this.scanner == null)
-			this.scanner = cbConnection.createScanner(tableName);
+			this.scanner = connection.createScanner(tableName);
 		return scanner;
 	}
 	private BatchScanner getBatchScanner() throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-		if(this.cbConnection == null)
-		cbConnection = new AccumuloConnection(this.connProps);
+		if(this.connection == null)
+		connection = new AccumuloConnection(this.connProps);
 		if(this.bscanner == null)
-			this.bscanner = cbConnection.getBatchScanner(this.tableName, this.numberOfThreads);
+			this.bscanner = connection.getBatchScanner(this.tableName, this.numberOfThreads);
 		return this.bscanner;
 	}
 
@@ -1655,8 +1655,8 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		this.scannerIter = null;
 
 		clearBuffers();
-                if(this.cbConnection != null)
-                   this.cbConnection.setAuthorizations(connProps);
+                if(this.connection != null)
+                   this.connection.setAuthorizations(connProps);
 
 	}
 	public String getFamily() {

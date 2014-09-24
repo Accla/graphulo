@@ -11,6 +11,7 @@
     <filter token="version_number" value="${version_number}"/>
   	
     <mkdir dir="${build.dir}/classes"/>
+    <mkdir dir="${dist.dir}/bin"/>
     <copy todir="${build.dir}/classes" filtering="true">
       <fileset dir="${src.dir}">
         <exclude name="**/*.java"/>
@@ -45,11 +46,7 @@
     <copy todir="${dist.dir}/docs">
       <fileset dir="${basedir}/docs" />
     </copy>
-    <copy todir="${dist.dir}/bin" >
-       <fileset dir="${basedir}/scripts">
-           <include name="**"/>
-       </fileset>
-    </copy>    
+
     <chmod dir="${dist.dir}/bin" perm="uag+x" includes="**/*.sh"/>
   </target>
 

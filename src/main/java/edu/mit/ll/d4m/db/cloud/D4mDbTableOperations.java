@@ -510,6 +510,7 @@ public class D4mDbTableOperations extends D4mParent {
 	 *          
 	 */
 	public String[] getAllSplitsInfo(String tableName) {
+	    doInit();
 		String []  results = new String[]{"","",""};
 
 		List<String>  splitNames = this.d4mTableOp.getSplits(tableName);

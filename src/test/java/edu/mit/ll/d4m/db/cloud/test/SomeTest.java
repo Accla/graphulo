@@ -9,6 +9,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import edu.mit.ll.cloud.connection.ConnectionProperties;
+import edu.mit.ll.d4m.db.cloud.D4mConfig;
 import edu.mit.ll.d4m.db.cloud.D4mDbTableOperations;
 import edu.mit.ll.d4m.db.cloud.D4mException;
 import edu.mit.ll.d4m.db.cloud.accumulo.AccumuloTableOperations;
@@ -55,12 +56,33 @@ public class SomeTest {
         List<String> splits = ato.getSplits(tableName, true);
         printList(splits,"splits");
 
-        D4mDbTableOperations dbtop = new D4mDbTableOperations(connprops);
+	D4mConfig.getInstance().setCloudType(D4mConfig.ACCUMULO);
+	D4mDbTableOperations dbtop = new D4mDbTableOperations(instanceName,zookeeperHost,username,password); //= new D4mDbTableOperations(connprops);
         String[] infos = dbtop.getAllSplitsInfo(tableName);
         System.out.println("SplitNames: "+infos[0]);
         System.out.println("SplitNums : "+infos[1]);
         System.out.println("SplitTSs  : "+infos[2]);
 
+	/*
+	  Running edu.mit.ll.d4m.db.cloud.test.SomeTest
+	  master_locations: 10.211.55.100:9999,
+	  TabletStat name:2
+	  Expected   name:2
+	  TabletStat name:2
+	  Expected   name:2
+	  TabletStat name:2
+	  Expected   name:2
+	  splits: f, :, 0, 3,
+	  TabletStat name:2
+	  Expected   name:2
+	  TabletStat name:2
+	  Expected   name:2
+	  TabletStat name:2
+	  Expected   name:2
+	  SplitNames: f,
+	  SplitNums : 0,3,
+	  SplitTSs  : 10.211.55.101:9997,
+	 */
 
     }
 

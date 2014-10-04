@@ -588,7 +588,8 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 		} catch (TableNotFoundException e) {
 			throw new D4mException("Table not found - "+METADATA_TABLE_NAME,e);
 		}
-        METADATA_PREV_ROW_COLUMN.fetch(scanner);
+		METADATA_PREV_ROW_COLUMN.fetch(scanner);
+		final String internalTableName = ac.getNameToIdMap().get(tableName);
 		final Text start = new Text(ac.getNameToIdMap().get(tableName)); // check
 		final Text end = new Text(start);
 		end.append(new byte[] {'<'}, 0, 1);
@@ -599,16 +600,18 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 		for (Iterator<Entry<org.apache.accumulo.core.data.Key, org.apache.accumulo.core.data.Value>> iterator = scanner.iterator(); iterator.hasNext();) {
 			final Entry<org.apache.accumulo.core.data.Key, org.apache.accumulo.core.data.Value> next = iterator.next();
 			if (METADATA_PREV_ROW_COLUMN.hasColumns(next.getKey())) { // may not be necessary
-				org.apache.accumulo.core.data.KeyExtent extent = new org.apache.accumulo.core.data.KeyExtent(next.getKey().getRow(), next.getValue());
-				final Text pr = extent.getPrevEndRow();
-				final Text er = extent.getEndRow();
+			    org.apache.accumulo.core.data.KeyExtent extent = new org.apache.accumulo.core.data.KeyExtent(next.getKey().getRow(), next.getValue());
+			    final Text pr = extent.getPrevEndRow();
+			    final Text er = extent.getEndRow();
 
-				final ByteBuffer prb = pr == null ? null : ByteBuffer.wrap(pr.getBytes());
-				final ByteBuffer erb = er == null ? null : ByteBuffer.wrap(er.getBytes());
-				boolean foundIt = false;
-				// find the TabletStats object that matches the current KeyExtent
-				for (TabletStats tabStat : tabStats) {
-					assert tabStat.extent.table.equals(ByteBuffer.wrap(tableName.getBytes()));
+			    final ByteBuffer prb = pr == null ? null : ByteBuffer.wrap(pr.getBytes());
+			    final ByteBuffer erb = er == null ? null : ByteBuffer.wrap(er.getBytes());
+			    boolean foundIt = false;
+			    // find the TabletStats object that matches the current KeyExtent
+			    for (TabletStats tabStat : tabStats) {
+				//System.out.println("TabletStat name:" + new String(tabStat.extent.table.array()));
+				//System.out.println("Expected   name:"+internalTableName);
+				assert tabStat.extent.table.equals(ByteBuffer.wrap(internalTableName.getBytes()));
 					if ( (erb == null ? tabStat.extent.endRow == null : tabStat.extent.endRow != null && tabStat.extent.endRow.equals(erb) )
 							&&(prb == null ? tabStat.extent.prevEndRow == null : tabStat.extent.prevEndRow != null && tabStat.extent.prevEndRow.equals(prb))) {
 						// found it!

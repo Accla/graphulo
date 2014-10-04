@@ -6,9 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.List;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 
 import edu.mit.ll.cloud.connection.ConnectionProperties;
 import edu.mit.ll.d4m.db.cloud.D4mConfig;
@@ -16,7 +14,11 @@ import edu.mit.ll.d4m.db.cloud.D4mDbTableOperations;
 import edu.mit.ll.d4m.db.cloud.D4mException;
 import edu.mit.ll.d4m.db.cloud.accumulo.AccumuloTableOperations;
 import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.hadoop.io.Text;
 import org.junit.Rule;
@@ -33,7 +35,7 @@ public class SomeTest {
     private String password = "secret";
     private String tableName = "test1";
 
-    private void printList(List<?> list, String prefix) {
+    private void printList(Collection<?> list, String prefix) {
         System.out.print(prefix+": ");
         for (Object o : list) {
             System.out.print(o+", ");
@@ -79,6 +81,9 @@ public class SomeTest {
         D4mConfig.getInstance().setCloudType(D4mConfig.ACCUMULO);
         D4mDbTableOperations dbtop = new D4mDbTableOperations(connprops);
 
+        printList(conn.tableOperations().list(), "tables");
+
+
         printList(instance.getMasterLocations(), "master_locations");
 
         if (!conn.tableOperations().exists(tableName))
@@ -87,6 +92,13 @@ public class SomeTest {
         SortedSet<Text> splitset = new TreeSet<Text>();
         splitset.add(new Text("f"));
         conn.tableOperations().addSplits(tableName, splitset);
+
+        Scanner scan = conn.createScanner(AccumuloTableOperations.METADATA_TABLE_NAME, Authorizations.EMPTY);
+        System.out.println(AccumuloTableOperations.METADATA_TABLE_NAME+" table:");
+        for (Map.Entry<Key, Value> kv : scan) {
+            System.out.println(kv);
+        }
+
 
         AccumuloTableOperations ato = new AccumuloTableOperations(connprops);
         List<String> splits = ato.getSplits(tableName, true);

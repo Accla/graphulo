@@ -574,8 +574,8 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 
 	}
 
-    public final String METADATA_TABLE_NAME = "!METADATA";
-    public final ColumnFQ METADATA_PREV_ROW_COLUMN = new ColumnFQ(new Text("~tab"), new Text("~pr"));
+    public final static String METADATA_TABLE_NAME = "accumulo.metadata"; // changed from 1.5 "!METADATA"
+    public final static ColumnFQ METADATA_PREV_ROW_COLUMN = new ColumnFQ(new Text("~tab"), new Text("~pr"));
 
 	@Override
 	public List<String> getSplitsNumInEachTablet(String tableName)

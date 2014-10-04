@@ -32,7 +32,6 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
-import org.apache.accumulo.core.security.CredentialHelper;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.AddressUtil;
@@ -66,7 +65,7 @@ public class AccumuloConnection {
 		this.conn = conn;
 		this.instance = new ZooKeeperInstance(conn.getInstanceName(), conn.getHost(), conn.getSessionTimeOut());
 		this.passwordToken = new PasswordToken(this.conn.getPass());
-		this.creds = new Credentials(this.instance,this.conn.getUser(), this.passwordToken);
+		this.creds = new Credentials(this.conn.getUser(), this.passwordToken);
 
 		try {
 			//principal = username = this.conn.getUser()
@@ -169,7 +168,7 @@ public class AccumuloConnection {
 	}
 
 	public TabletClientService.Iface getTabletClient (String tserverAddress) throws TTransportException {
-		InetSocketAddress address = AddressUtil.parseAddress(tserverAddress, -1);
+        //HostAndPort address = AddressUtil.parseAddress(tserverAddress, -1);
 		TabletClientService.Iface client = null;
 		client = ThriftUtil.getTServerClient( tserverAddress, connector.getInstance().getConfiguration());
 		return client;
@@ -312,8 +311,8 @@ public class AccumuloConnection {
 	public  TCredentials getCredentials() throws D4mException {
 		TCredentials tCred = null;
 		try {
-			tCred =  CredentialHelper.create(this.conn.getUser(), this.passwordToken, this.instance.getInstanceID() );
-		} catch (AccumuloSecurityException e) {
+			tCred =  this.creds.toThrift(this.instance);  //.create(this.conn.getUser(), this.passwordToken, this.instance.getInstanceID() );
+		} catch (Exception e) {
 			log.warn(e);
 			//e.printStackTrace();
 			throw new D4mException(e);
@@ -349,11 +348,10 @@ public class AccumuloConnection {
 		String tabletName = null;
 		TabletLocator tc = null;
 		try {
-			tc = TabletLocator.getInstance(this.instance, new Text(Tables.getTableId(this.instance, tableName)));
+			tc = TabletLocator.getLocator(this.instance, new Text(Tables.getTableId(this.instance, tableName))); // change to getLocator for 1.6
 			
 			org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation loc =
-					tc.locateTablet(new Text(splitName), false, false, 
-							creds.toThrift());
+					tc.locateTablet(this.creds, new Text(splitName), false, false);
 			tabletName = loc.tablet_location;
 			log.debug("TableName="+tableName+", TABLET_NAME = "+tabletName);
 		} catch (TableNotFoundException e) {

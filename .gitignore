@@ -20,6 +20,8 @@
 .idea/dynamic.xml
 .idea/uiDesigner.xml
 
+.idea/libraries/
+
 # Gradle:
 # .idea/gradle.xml
 # .idea/libraries

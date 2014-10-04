@@ -40,6 +40,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
+import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.trace.thrift.TInfo;
@@ -337,77 +338,21 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	 * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#getSplits(java.lang.String, boolean)
 	 */
 	public List<String> getSplits(String tableName, boolean getNumInEachTablet) throws D4mException {
-
-		//List<String> list = new ArrayList<String>();
-
 		ArgumentChecker.notNull(tableName);
 		//doInit();
 		List<String> splitList = getSplits(tableName);
-		//StringBuffer sb = new StringBuffer();
 
 		if (!getNumInEachTablet) {
 			return splitList;
 		}
 		else {
-			//String[] result = new String[2];
-			//	result[0] = sb.toString();
-
-			//	sb = new StringBuffer();
 			splitList.add(":");
-			AccumuloConnection ac = new AccumuloConnection(this.connProp);
-			org.apache.accumulo.core.client.Scanner scanner;
-			try {
-				scanner = ac.createScanner(org.apache.accumulo.core.Constants.METADATA_TABLE_NAME/*, org.apache.accumulo.core.Constants.NO_AUTHS*/);
-			} catch (TableNotFoundException e) {
-				throw new D4mException("Table not found - "+org.apache.accumulo.core.Constants.METADATA_TABLE_NAME,e);
-			}
-			org.apache.accumulo.core.Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
-			//			org.apache.accumulo.core.util.ColumnFQ.fetch(scanner, org.apache.accumulo.core.Constants.METADATA_PREV_ROW_COLUMN);
-			final Text start = new Text(ac.getNameToIdMap().get(tableName)); // check
-			final Text end = new Text(start);
-			end.append(new byte[] {'<'}, 0, 1);
-			scanner.setRange(new org.apache.accumulo.core.data.Range(start, end));
-
-			List<TabletStats> tabStats = getTabletStatsForTables(Collections.singletonList(tableName));
-
-			for (Iterator<Entry<org.apache.accumulo.core.data.Key, org.apache.accumulo.core.data.Value>> iterator = scanner.iterator(); iterator.hasNext();) {
-				final Entry<org.apache.accumulo.core.data.Key, org.apache.accumulo.core.data.Value> next = iterator.next();
-				if (org.apache.accumulo.core.Constants.METADATA_PREV_ROW_COLUMN.hasColumns(next.getKey())) {
-					org.apache.accumulo.core.data.KeyExtent extent = new org.apache.accumulo.core.data.KeyExtent(next.getKey().getRow(), next.getValue());
-					final Text pr = extent.getPrevEndRow();
-					final Text er = extent.getEndRow();
-
-					final ByteBuffer prb = pr == null ? null : ByteBuffer.wrap(pr.getBytes());
-					final ByteBuffer erb = er == null ? null : ByteBuffer.wrap(er.getBytes());
-					boolean foundIt = false;
-					// find the TabletStats object that matches the current KeyExtent
-					for (TabletStats tabStat : tabStats) {
-						assert tabStat.extent.table.equals(ByteBuffer.wrap(tableName.getBytes()));
-						if ( (erb == null ? tabStat.extent.endRow == null : tabStat.extent.endRow != null && tabStat.extent.endRow.equals(erb) )
-								&&(prb == null ? tabStat.extent.prevEndRow == null : tabStat.extent.prevEndRow != null && tabStat.extent.prevEndRow.equals(prb))) {
-							// found it!
-							splitList.add(Long.toString(tabStat.numEntries));
-							//					sb.append(tabStat.numEntries).append(',');
-							foundIt = true;
-							break;
-						}
-					}
-					//assert foundIt;
-					if (!foundIt) {
-						splitList.add("?");
-						//					sb.append("?,");
-					}
-				}
-			}
-
-			//			result[1] = sb.toString();			
-
+            splitList.addAll(getSplitsNumInEachTablet(tableName));
 			return splitList;
 		}
-
 	}
 
-	/**
+	/*
 	 * This will return a list containing number of splits per split.
 	 * 
 	 * @param tableName   name of table related to list of splits
@@ -628,6 +573,10 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 		splitTable(tableName, splitStrArr);
 
 	}
+
+    public final String METADATA_TABLE_NAME = "!METADATA";
+    public final ColumnFQ METADATA_PREV_ROW_COLUMN = new ColumnFQ(new Text("~tab"), new Text("~pr"));
+
 	@Override
 	public List<String> getSplitsNumInEachTablet(String tableName)
 			throws D4mException {
@@ -635,11 +584,11 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 		AccumuloConnection ac = new AccumuloConnection(this.connProp);
 		org.apache.accumulo.core.client.Scanner scanner;
 		try {
-			scanner = ac.createScanner(org.apache.accumulo.core.Constants.METADATA_TABLE_NAME/*, org.apache.accumulo.core.Constants.NO_AUTHS*/);
+			scanner = ac.createScanner(METADATA_TABLE_NAME/*, org.apache.accumulo.core.Constants.NO_AUTHS*/);
 		} catch (TableNotFoundException e) {
-			throw new D4mException("Table not found - "+org.apache.accumulo.core.Constants.METADATA_TABLE_NAME,e);
+			throw new D4mException("Table not found - "+METADATA_TABLE_NAME,e);
 		}
-		org.apache.accumulo.core.util.ColumnFQ.fetch(scanner, org.apache.accumulo.core.Constants.METADATA_PREV_ROW_COLUMN);
+        METADATA_PREV_ROW_COLUMN.fetch(scanner);
 		final Text start = new Text(ac.getNameToIdMap().get(tableName)); // check
 		final Text end = new Text(start);
 		end.append(new byte[] {'<'}, 0, 1);
@@ -649,7 +598,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 
 		for (Iterator<Entry<org.apache.accumulo.core.data.Key, org.apache.accumulo.core.data.Value>> iterator = scanner.iterator(); iterator.hasNext();) {
 			final Entry<org.apache.accumulo.core.data.Key, org.apache.accumulo.core.data.Value> next = iterator.next();
-			if (org.apache.accumulo.core.Constants.METADATA_PREV_ROW_COLUMN.hasColumns(next.getKey())) {
+			if (METADATA_PREV_ROW_COLUMN.hasColumns(next.getKey())) { // may not be necessary
 				org.apache.accumulo.core.data.KeyExtent extent = new org.apache.accumulo.core.data.KeyExtent(next.getKey().getRow(), next.getValue());
 				final Text pr = extent.getPrevEndRow();
 				final Text er = extent.getEndRow();

@@ -55,6 +55,10 @@ public class SomeTest {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
+    static {
+        org.apache.accumulo.core.client.ClientConfiguration.loadDefault();
+    }
+
     @Test
     public void mini() throws AccumuloSecurityException, AccumuloException, D4mException, TableNotFoundException, TableExistsException, IOException, InterruptedException {
 

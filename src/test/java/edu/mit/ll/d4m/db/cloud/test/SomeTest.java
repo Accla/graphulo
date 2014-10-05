@@ -4,8 +4,6 @@ import static org.junit.Assert.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.*;
 
 import edu.mit.ll.cloud.connection.ConnectionProperties;
@@ -17,6 +15,7 @@ import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
@@ -82,24 +81,41 @@ public class SomeTest {
         D4mDbTableOperations dbtop = new D4mDbTableOperations(connprops);
 
         printList(conn.tableOperations().list(), "tables");
-
-
         printList(instance.getMasterLocations(), "master_locations");
 
+	// create tableName
         if (!conn.tableOperations().exists(tableName))
             conn.tableOperations().create(tableName);
 
+	// make a table split in tableName
         SortedSet<Text> splitset = new TreeSet<Text>();
         splitset.add(new Text("f"));
         conn.tableOperations().addSplits(tableName, splitset);
 
+
+	// write some values to tableName
+        BatchWriterConfig config = new BatchWriterConfig();
+        config.setMaxMemory(10000000L); // bytes available to batchwriter for buffering mutations
+        BatchWriter writer = conn.createBatchWriter(tableName,config);
+        Text[] rows = new Text[] {new Text("ccc"), new Text("ddd"), new Text("pogo")};
+        Text cf = new Text("");
+        Text cq = new Text("cq");
+        Value v = new Value("7".getBytes());
+        for (int i=0; i<rows.length; i++) {
+            Mutation m = new Mutation(rows[i]);
+            m.put(cf,cq,v);
+            writer.addMutation(m);
+        }
+        writer.flush();
+
+	// read from Metadata table
         Scanner scan = conn.createScanner(AccumuloTableOperations.METADATA_TABLE_NAME, Authorizations.EMPTY);
         System.out.println(AccumuloTableOperations.METADATA_TABLE_NAME+" table:");
         for (Map.Entry<Key, Value> kv : scan) {
             System.out.println(kv);
         }
 
-
+	// get the split information
         AccumuloTableOperations ato = new AccumuloTableOperations(connprops);
         List<String> splits = ato.getSplits(tableName, true);
         printList(splits,"splits");

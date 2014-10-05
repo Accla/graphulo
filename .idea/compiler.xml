@@ -25,6 +25,9 @@
         <module name="d4m_api_java" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="d4m_api_java" target="1.7" />
+    </bytecodeTargetLevel>
   </component>
 </project>
 

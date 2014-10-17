@@ -2,8 +2,7 @@ package edu.mit.ll.d4m.db.cloud.test;
 
 import static org.junit.Assert.*;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 
 import edu.mit.ll.cloud.connection.ConnectionProperties;
@@ -19,7 +18,11 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
+import org.apache.accumulo.server.util.FileUtil;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.io.Text;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -34,6 +37,14 @@ public class SomeTest {
     private String password = "secret";
     private String tableName = "test1";
 
+    private static ClientConfiguration txe1config;
+    static {
+        String instance = "classdb51";
+        String host = "classdb51.cloud.llgrid.txe1.mit.edu:2181";
+        int timeout = 100000;
+        txe1config = ClientConfiguration.loadDefault().withInstance(instance).withZkHosts(host).withZkTimeout(timeout);
+    }
+
     private void printList(Collection<?> list, String prefix) {
         System.out.print(prefix+": ");
         for (Object o : list) {
@@ -41,6 +52,28 @@ public class SomeTest {
         }
         System.out.println();
 
+    }
+
+    private String[] getTXE1UserPass() throws IOException {
+        String user = "AccumuloUser";
+        BufferedReader f = new BufferedReader(new FileReader("clouddb51_pass.txt"));
+        String pass = f.readLine();
+        f.close();
+        return new String[] { user, pass};
+    }
+
+    @Test
+    public void testTXE1() throws AccumuloSecurityException, AccumuloException, D4mException, TableNotFoundException, TableExistsException, IOException {
+        Assume.assumeTrue("Test requires TXE1", new File("clouddb51_pass.txt").exists());
+
+        Instance instance = new ZooKeeperInstance(txe1config.get(ClientConfiguration.ClientProperty.INSTANCE_NAME), txe1config.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST));
+        String[] tmp = getTXE1UserPass();
+        String user = tmp[0];
+        String pass = tmp[1];
+        Connector conn = instance.getConnector(user, new PasswordToken(pass));
+        ConnectionProperties connprops = new ConnectionProperties(txe1config.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST),user,pass,txe1config.get(ClientConfiguration.ClientProperty.INSTANCE_NAME),null);
+
+        innerTest(instance,conn,connprops);
     }
 
     @Test

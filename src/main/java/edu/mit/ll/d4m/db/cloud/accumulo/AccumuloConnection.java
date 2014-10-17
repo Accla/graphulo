@@ -10,17 +10,7 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.SortedSet;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableExistsException;
-import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TableOperationsImpl;
 import org.apache.accumulo.core.client.impl.MasterClient;
@@ -63,7 +53,8 @@ public class AccumuloConnection {
 	 */
 	public AccumuloConnection(ConnectionProperties conn) {
 		this.conn = conn;
-		this.instance = new ZooKeeperInstance(conn.getInstanceName(), conn.getHost(), conn.getSessionTimeOut());
+		ClientConfiguration cconfig = new ClientConfiguration().withInstance(conn.getInstanceName()).withZkHosts(conn.getHost()).withZkTimeout(conn.getSessionTimeOut());
+		this.instance = new ZooKeeperInstance(cconfig);
 		this.passwordToken = new PasswordToken(this.conn.getPass());
 		this.creds = new Credentials(this.conn.getUser(), this.passwordToken);
 

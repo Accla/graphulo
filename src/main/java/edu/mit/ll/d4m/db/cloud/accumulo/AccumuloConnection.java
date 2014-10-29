@@ -60,7 +60,10 @@ public class AccumuloConnection {
 
 		try {
 			//principal = username = this.conn.getUser()
+			System.out.println("about to make connector");
+			// PROBLEM HERE
 			this.connector = this.instance.getConnector(this.conn.getUser(), this.passwordToken);
+			System.out.println("made connector");
 			String [] sAuth = conn.getAuthorizations();
 			if (sAuth != null && sAuth.length > 0) {
 				this.auth = new Authorizations(sAuth);
@@ -85,8 +88,7 @@ public class AccumuloConnection {
 
 	public void createTable(String tableName) {
 		try {
-			TableOperationsImpl tableImpl = (TableOperationsImpl)connector.tableOperations();
-			tableImpl.create(tableName);
+			connector.tableOperations().create(tableName);
 		} catch (AccumuloException e) {		
 			log.warn(e);
 		} catch (AccumuloSecurityException e) {
@@ -117,8 +119,7 @@ public class AccumuloConnection {
 
 	public void deleteTable (String tableName)  {
 		try {
-			TableOperationsImpl tableImpl = (TableOperationsImpl)connector.tableOperations();
-			tableImpl.delete(tableName);
+			connector.tableOperations().delete(tableName);
 		} catch (AccumuloException e) {
 			// TODO Auto-generated catch block
 			log.warn(e);
@@ -130,15 +131,13 @@ public class AccumuloConnection {
 	}
 
 	public boolean tableExist(String tableName) {
-		TableOperationsImpl tableImpl = (TableOperationsImpl)connector.tableOperations();
-		return tableImpl.exists(tableName);
+		return connector.tableOperations().exists(tableName);
 
 	}
 
 	public void addSplit(String tableName, SortedSet<Text> partitions) {
 		try {
-			TableOperationsImpl tableImpl = (TableOperationsImpl)connector.tableOperations();
-			tableImpl.addSplits(tableName, partitions);
+			connector.tableOperations().addSplits(tableName, partitions);
 		} catch (TableNotFoundException e) {
 
 			log.warn(e);
@@ -177,9 +176,7 @@ public class AccumuloConnection {
 		return splits;
 	}
 	public SortedSet<String> getTableList() {
-		TableOperationsImpl tableImpl = (TableOperationsImpl)this.connector.tableOperations();
-		SortedSet<String> set = tableImpl.list();
-		return set;
+		return this.connector.tableOperations().list();
 	}
 
 	// TODO these are just wrappers; why have them when we could expose the TableOperations object directly?

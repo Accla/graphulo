@@ -11,6 +11,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorUtil;
@@ -41,20 +42,26 @@ public class CombinerTest {
 	private String columnFamily="";
 	private String columnVisibility="";
 	private AccumuloConnection connection;
-	
+
+	private static ClientConfiguration txe1config;
+	static {
+		String instance = "classdb51";
+		String host = "classdb51.cloud.llgrid.txe1.mit.edu:2181";
+		int timeout = 100000;
+		txe1config = ClientConfiguration.loadDefault().withInstance(instance).withZkHosts(host).withZkTimeout(timeout);
+	}
+
 	@Before
 	public void setUp() throws Exception {
 		
 		// Setup Connection
 		D4mConfig.getInstance().setCloudType(D4mConfig.ACCUMULO);
+		String[] tmp = SomeTest.getTXE1UserPass();
+		String user = tmp[0];
+		String pass = tmp[1];
 		ConnectionProperties cp;
-		cp = new ConnectionProperties();
-		cp.setInstanceName(instanceName);
-		cp.setHost(host);
-		cp.setPass(password);
-		cp.setUser(username);
+		cp = new ConnectionProperties(txe1config.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST),user,pass,txe1config.get(ClientConfiguration.ClientProperty.INSTANCE_NAME),null);
 		connection = new AccumuloConnection(cp);
-		
 		// Create Table (delete if already existing)
 		if (connection.tableExist(tableName))
 			connection.deleteTable(tableName);
@@ -164,6 +171,7 @@ public class CombinerTest {
 		
 		System.out.println("Designating maxc1,maxc2 as max columns ---");
 		dbTops.designateCombiningColumns(tableName, "maxc1,maxc2,", "max", columnFamily);
+		System.out.println("test after designateCombiningColumns");
 		System.out.println(dbTops.listCombiningColumns(tableName));
 		
 		System.out.println("Initial add ---");

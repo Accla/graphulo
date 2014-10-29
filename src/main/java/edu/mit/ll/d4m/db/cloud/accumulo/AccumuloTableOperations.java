@@ -401,7 +401,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 		if (columnFamily == null)
 			columnFamily = "";
 		//doInit();
-		CombiningType ct; // the type of the combiner, e.g. SUM 
+		CombiningType ct; // the type of the combiner, e.g. SUM
 		String[] columnStrArr = D4mQueryUtil.processParam(columnStrAll); // the columns we want to combine
 
 		ct = CombiningType.getByName(combineType);

@@ -54,7 +54,7 @@ public class SomeTest {
 
     }
 
-    private String[] getTXE1UserPass() throws IOException {
+    static String[] getTXE1UserPass() throws IOException {
         String user = "AccumuloUser";
         BufferedReader f = new BufferedReader(new FileReader("clouddb51_pass.txt"));
         String pass = f.readLine();

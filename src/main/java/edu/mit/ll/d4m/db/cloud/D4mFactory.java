@@ -133,7 +133,9 @@ public class D4mFactory {
 	}
 	public static D4mTableOpsIF createTableOperations(String instanceName, String host, String username, String password) {
 		D4mTableOpsIF d4m = null;
+		System.out.println("about to make table ops");
 		d4m = createTableOperations();
+		System.out.println("made table ops");
 		ConnectionProperties connProp = new ConnectionProperties();
 		connProp.setInstanceName(instanceName);
 		connProp.setHost(host);
@@ -141,6 +143,7 @@ public class D4mFactory {
 		connProp.setPass(password);
 		d4m.setConnProps(connProp);
 		d4m.connect();
+		System.out.println("after connect");
 
 		return d4m;
 	}

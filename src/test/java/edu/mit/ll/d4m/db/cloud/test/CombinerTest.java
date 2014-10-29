@@ -33,11 +33,12 @@ import edu.mit.ll.d4m.db.cloud.D4mException;
 
 public class CombinerTest {
 	
-	private String instanceName = "accumulo";
-	private String host = "D4Muser.llgrid.ll.mit.edu:2181";
-	private String username = "AccumuloUser";
-	private String password = "9P20WV666KK119YY";
-	
+//	private String instanceName = "accumulo";
+//	private String host = "D4Muser.llgrid.ll.mit.edu:2181";
+//	private String username = "AccumuloUser";
+//	private String password = "9P20WV666KK119YY";
+
+	private ConnectionProperties cp;
 	private String tableName = "TestTableIterator";
 	private String columnFamily="";
 	private String columnVisibility="";
@@ -59,7 +60,6 @@ public class CombinerTest {
 		String[] tmp = SomeTest.getTXE1UserPass();
 		String user = tmp[0];
 		String pass = tmp[1];
-		ConnectionProperties cp;
 		cp = new ConnectionProperties(txe1config.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST),user,pass,txe1config.get(ClientConfiguration.ClientProperty.INSTANCE_NAME),null);
 		connection = new AccumuloConnection(cp);
 		// Create Table (delete if already existing)
@@ -71,7 +71,7 @@ public class CombinerTest {
 	
 	@After
 	public void tearDown() throws Exception {
-		D4mDbTableOperations dbTable = new D4mDbTableOperations(instanceName,host,username,password);
+		D4mDbTableOperations dbTable = new D4mDbTableOperations(cp.getInstanceName(),cp.getHost(),cp.getUser(),cp.getPass());
 		dbTable.deleteTable(tableName);
 	}
 	
@@ -99,8 +99,8 @@ public class CombinerTest {
 		//assertEquals(cfg, retSetting); // IteratorSetting has no equals method, but this will be true (verified manually)
 		
 		
-		D4mDbInsert dbInsert = new D4mDbInsert(instanceName,host,tableName,username,password);
-		D4mDataSearch dbQuery = new D4mDataSearch(instanceName, host, tableName, username, password);
+		D4mDbInsert dbInsert = new D4mDbInsert(cp.getInstanceName(),cp.getHost(),tableName,cp.getUser(),cp.getPass());
+		D4mDataSearch dbQuery = new D4mDataSearch(cp.getInstanceName(),cp.getHost(),tableName,cp.getUser(),cp.getPass());
 		D4mDbResultSet dbResults;
 		/*ArrayList<D4mDbRow> dbResultRows;*/
 		
@@ -165,9 +165,9 @@ public class CombinerTest {
 	public void testcolumnCombine() throws Exception
 	{
 		String s;
-		D4mDbInsert dbInsert = new D4mDbInsert(instanceName,host,tableName,username,password);
-		D4mDataSearch dbQuery = new D4mDataSearch(instanceName, host, tableName, username, password);
-		D4mDbTableOperations dbTops = new edu.mit.ll.d4m.db.cloud.D4mDbTableOperations(instanceName, host, username, password, D4mConfig.ACCUMULO);
+		D4mDbInsert dbInsert = new D4mDbInsert(cp.getInstanceName(),cp.getHost(),tableName,cp.getUser(),cp.getPass());
+		D4mDataSearch dbQuery = new D4mDataSearch(cp.getInstanceName(),cp.getHost(),tableName,cp.getUser(),cp.getPass());
+		D4mDbTableOperations dbTops = new edu.mit.ll.d4m.db.cloud.D4mDbTableOperations(cp.getInstanceName(),cp.getHost(),cp.getUser(),cp.getPass(), D4mConfig.ACCUMULO);
 		
 		System.out.println("Designating maxc1,maxc2 as max columns ---");
 		dbTops.designateCombiningColumns(tableName, "maxc1,maxc2,", "max", columnFamily);
@@ -221,7 +221,7 @@ public class CombinerTest {
 	@Test //(expected=IllegalArgumentException.class)
 	public void testMultipleItertatorsOnColumnIsOk() throws D4mException
 	{
-		D4mDbTableOperations dbTops = new edu.mit.ll.d4m.db.cloud.D4mDbTableOperations(instanceName, host, username, password, D4mConfig.ACCUMULO);
+		D4mDbTableOperations dbTops = new edu.mit.ll.d4m.db.cloud.D4mDbTableOperations(cp.getInstanceName(),cp.getHost(),cp.getUser(),cp.getPass(), D4mConfig.ACCUMULO);
 		dbTops.designateCombiningColumns(tableName, "maxc1,", "max", columnFamily);
 		dbTops.designateCombiningColumns(tableName, "maxc1,", "max", columnFamily);
 	}
@@ -230,9 +230,9 @@ public class CombinerTest {
 	public void testScientificNotationAndFloatsAreOk() throws D4mException
 	{
 		String s;
-		D4mDbInsert dbInsert = new D4mDbInsert(instanceName,host,tableName,username,password);
-		D4mDataSearch dbQuery = new D4mDataSearch(instanceName, host, tableName, username, password);
-		D4mDbTableOperations dbTops = new edu.mit.ll.d4m.db.cloud.D4mDbTableOperations(instanceName, host, username, password, D4mConfig.ACCUMULO);
+		D4mDbInsert dbInsert = new D4mDbInsert(cp.getInstanceName(),cp.getHost(),tableName,cp.getUser(),cp.getPass());
+		D4mDataSearch dbQuery = new D4mDataSearch(cp.getInstanceName(),cp.getHost(),tableName,cp.getUser(),cp.getPass());
+		D4mDbTableOperations dbTops = new edu.mit.ll.d4m.db.cloud.D4mDbTableOperations(cp.getInstanceName(),cp.getHost(),cp.getUser(),cp.getPass(), D4mConfig.ACCUMULO);
 		
 		System.out.println("Designating maxc1 as max column, sumc1 as sum column ---");
 		dbTops.designateCombiningColumns(tableName, "sumc1,", "sum_decimal", columnFamily);

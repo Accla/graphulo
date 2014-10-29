@@ -4,15 +4,10 @@
  */
 package edu.mit.ll.d4m.db.cloud.accumulo;
 
-import java.net.InetSocketAddress;
-import java.util.Collection;
-import java.util.EnumSet;
-import java.util.Map;
-import java.util.SortedSet;
-
+import edu.mit.ll.cloud.connection.ConnectionProperties;
+import edu.mit.ll.d4m.db.cloud.D4mException;
 import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.admin.TableOperationsImpl;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
@@ -24,14 +19,15 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.transport.TTransportException;
 
-import edu.mit.ll.cloud.connection.ConnectionProperties;
-import edu.mit.ll.d4m.db.cloud.D4mException;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.Map;
+import java.util.SortedSet;
 
 /**
  * @author cyee
@@ -60,7 +56,7 @@ public class AccumuloConnection {
 
 		try {
 			//principal = username = this.conn.getUser()
-			System.out.println("about to make connector");
+			System.out.println("about to make connector: user="+this.conn.getUser()+"   password="+ new String(this.passwordToken.getPassword()));
 			// PROBLEM HERE
 			this.connector = this.instance.getConnector(this.conn.getUser(), this.passwordToken);
 			System.out.println("made connector");
@@ -85,6 +81,8 @@ public class AccumuloConnection {
 			//System.out.println(message);
 		}
 	}
+
+
 
 	public void createTable(String tableName) {
 		try {

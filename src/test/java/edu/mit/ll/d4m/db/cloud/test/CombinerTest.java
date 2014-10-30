@@ -29,7 +29,6 @@ import edu.mit.ll.d4m.db.cloud.D4mDataSearch;
 import edu.mit.ll.d4m.db.cloud.D4mDbInsert;
 import edu.mit.ll.d4m.db.cloud.D4mDbResultSet;
 import edu.mit.ll.d4m.db.cloud.D4mDbTableOperations;
-import edu.mit.ll.d4m.db.cloud.D4mException;
 
 public class CombinerTest {
 	
@@ -219,7 +218,7 @@ public class CombinerTest {
 	}
 	
 	@Test //(expected=IllegalArgumentException.class)
-	public void testMultipleItertatorsOnColumnIsOk() throws D4mException
+	public void testMultipleItertatorsOnColumnIsOk() throws Exception
 	{
 		D4mDbTableOperations dbTops = new edu.mit.ll.d4m.db.cloud.D4mDbTableOperations(cp.getInstanceName(),cp.getHost(),cp.getUser(),cp.getPass(), D4mConfig.ACCUMULO);
 		dbTops.designateCombiningColumns(tableName, "maxc1,", "max", columnFamily);
@@ -227,7 +226,7 @@ public class CombinerTest {
 	}
 	
 	@Test
-	public void testScientificNotationAndFloatsAreOk() throws D4mException
+	public void testScientificNotationAndFloatsAreOk() throws Exception
 	{
 		String s;
 		D4mDbInsert dbInsert = new D4mDbInsert(cp.getInstanceName(),cp.getHost(),tableName,cp.getUser(),cp.getPass());

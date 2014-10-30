@@ -90,7 +90,7 @@ public class D4mDbTableOperations extends D4mParent {
 		setCloudType(cloudType);
 		//		doInit();
 	}
-	private void doInit() {
+	private void doInit() throws Exception{
 		String instanceName = this.connProps.getInstanceName();
 		String host = this.connProps.getHost();
 		String username = this.connProps.getUser();
@@ -100,12 +100,12 @@ public class D4mDbTableOperations extends D4mParent {
 
 	}
 
-	public void createTable(String tableName) {
+	public void createTable(String tableName) throws Exception{
 		doInit();
 		this.d4mTableOp.createTable(tableName);
 	}
 
-	public void deleteTable(String tableName) {
+	public void deleteTable(String tableName) throws Exception{
 		doInit();
 		this.d4mTableOp.deleteTable(tableName);
 	}
@@ -119,7 +119,7 @@ public class D4mDbTableOperations extends D4mParent {
 	 *  Get the total number of entries for the specified table names
 	 *  tableNames   list of table names of interest	
 	 */
-	public long getNumberOfEntries(ArrayList<String>  tableNames)  {
+	public long getNumberOfEntries(ArrayList<String>  tableNames)  throws Exception{
 		doInit();
 		long retVal= this.d4mTableOp.getNumberOfEntries(tableNames);
 
@@ -304,8 +304,8 @@ public class D4mDbTableOperations extends D4mParent {
 	 * @param columnFamily An optional column family (default = "")
 	 * @throws D4mException if table doesn't exist, user doesn't have permissions, or something else goes wrong
 	 */
-	public void designateCombiningColumns(String tableName, String columnStrAll, String combineType, String columnFamily) throws D4mException
-	{
+	public void designateCombiningColumns(String tableName, String columnStrAll, String combineType, String columnFamily) throws Exception
+    {
 		doInit();
 		System.out.println("after init");
 		this.d4mTableOp.designateCombiningColumns(tableName, columnStrAll, combineType, columnFamily);
@@ -391,38 +391,13 @@ public class D4mDbTableOperations extends D4mParent {
 	 * 
 	 * @param tableName
 	 * @return A nice tabular view of the Combiners present with each column they are active on in the given table
-	 * @throws D4mException if table doesn't exist, user doesn't have permissions, or something else goes wrong
+	 * @throws Exception if table doesn't exist, user doesn't have permissions, or something else goes wrong
 	 */
-	public String listCombiningColumns(String tableName) throws D4mException
+	public String listCombiningColumns(String tableName) throws Exception
 	{
 		doInit();
-		String columnsList = this.d4mTableOp.listCombiningColumns(tableName); 
-		return columnsList;
+		return this.d4mTableOp.listCombiningColumns(tableName);
 	}
-	//	public String listCombiningColumns(String tableName) throws D4mException
-	//	{
-	//		ArgumentChecker.notNull(tableName);
-	//		doInit();
-	//		StringBuffer sb = new StringBuffer();
-	//
-	// for each combiningtype
-	//		for (CombiningType ct : CombiningType.values())
-	//		{
-	//			IteratorSetting itSet = this.d4mTableOp.getIteratorSetting(tableName, ct.getIteratorName(), IteratorUtil.IteratorScope.scan); // any scope is ok
-	//			if (itSet == null) {
-	//				// combiner does not exist in table
-	//				continue;
-	//			}
-	//			else {
-	//				sb.append(ct.name()).append('\t');
-	//				// combiner exists in table; get the columns it combines
-	//				String allColumnString = itSet.getOptions().get("columns"); // use ColumnSet.decodeColumns if we want the original text
-	//				assert allColumnString != null && !allColumnString.isEmpty();
-	//				sb.append(allColumnString).append('\n');
-	//			}
-	//		}
-	//		return sb.toString();
-	//	}
 
 	/**
 	 * Removes whatever Combiner is present on the given columns in the given table.
@@ -431,60 +406,11 @@ public class D4mDbTableOperations extends D4mParent {
 	 * @param columnStr In the format: "col1,col2,col3," where ',' can be any separator
 	 * @throws D4mException if table doesn't exist, user doesn't have permissions, or something else goes wrong
 	 */
-	public void revokeCombiningColumns(String tableName, String columnStr, String columnFamily) throws D4mException
+	public void revokeCombiningColumns(String tableName, String columnStr, String columnFamily) throws Exception
 	{
 		doInit();
 		this.d4mTableOp.revokeCombiningColumns(tableName, columnStr, columnFamily);
 	}
-	//	public void revokeCombiningColumns(String tableName, String columnStr, String columnFamily) throws D4mException
-	//	{
-	//		ArgumentChecker.notNull(tableName, columnStr);
-	//		doInit();
-
-	// split the columns with processParam(columnStr)
-	//		String[] columnStrArrToRemove = D4mQueryUtil.processParam(columnStr);
-	/*// prepend column families if present
-		if (!columnFamily.isEmpty()) {
-			for (int i = 0; i < columnStrArrToRemove.length; i++)
-				columnStrArrToRemove[i] = columnFamily+':'+columnStrArrToRemove[i];
-		}*/
-	//		Arrays.sort(columnStrArrToRemove);
-
-	// METHOD: For each CombiningType:
-	//	For each column that CombiningType is active on:
-	//		If the column should be removed, don't add it back to sb
-	//	Re-add the CombiningType with the reduced column set from sb (if there are any columns left)
-	//		for (CombiningType ct : CombiningType.values())
-	//		{
-	//			IteratorSetting itSet = this.d4mTableOp.getIteratorSetting(tableName, ct.getIteratorName(), IteratorUtil.IteratorScope.scan); // any scope is ok
-	//			if (itSet == null)
-	//				continue; // combiner not present
-	//			String allColumnString = itSet.getOptions().get("columns"); // use ColumnSet.decodeColumns if we want the original text
-	//			StringBuffer sb = new StringBuffer(); // holds the new columns to add back
-	//			boolean firstAppend = true;
-	//			for (String columnPairStr : allColumnString.split(",")) {
-	//				Pair<Text,Text> columnPair = ColumnSet.decodeColumns(columnPairStr);
-	//				if (!columnPair.getFirst().toString().equals(columnFamily))
-	//					continue; // column families don't match; leave it in
-	//				if (Arrays.binarySearch(columnStrArrToRemove, columnPair.getSecond().toString()) >= 0)
-	//					continue; // this is one of the columns we want to remove
-	//				// we want to keep this column
-	//				sb.append(columnPairStr);
-	//				if (firstAppend)
-	//					firstAppend = false;
-	//				else
-	//					sb.append(',');
-	//			}
-	//
-	//			// sb has the columns we want to keep
-	//			String sToKeep = sb.toString();
-	//			this.d4mTableOp.removeIterator(tableName, ct.getIteratorName(), EnumSet.allOf(IteratorUtil.IteratorScope.class));
-	//			if (!sToKeep.isEmpty()) {
-	//				itSet.addOption("columns", sToKeep);
-	//				this.d4mTableOp.addIterator(tableName, itSet); // add to majc, minc, scan
-	//			}
-	//		}
-	//	}
 
 	/**
 	 * Adds the splits specified to the table (does nothing if they are already there)
@@ -492,7 +418,7 @@ public class D4mDbTableOperations extends D4mParent {
 	 * @param splitsStr In the format: "row1,row2,row3," where ',' can be any separator
 	 * @throws D4mException 
 	 */
-	public void addSplits(String tableName, String splitsStr) throws D4mException
+	public void addSplits(String tableName, String splitsStr) throws Exception
 	{
 		ArgumentChecker.notNull(tableName, splitsStr);
 		doInit();
@@ -510,7 +436,7 @@ public class D4mDbTableOperations extends D4mParent {
 	 *          String [2]  name of tablet servers that contain the splits
 	 *          
 	 */
-	public String[] getAllSplitsInfo(String tableName) {
+	public String[] getAllSplitsInfo(String tableName) throws Exception {
 	    doInit();
 		String []  results = new String[]{"","",""};
 
@@ -604,103 +530,7 @@ public class D4mDbTableOperations extends D4mParent {
 			result[0] = sb1.toString();
 			result[1] = sb2.toString();
 		}
-		/*
-		StringBuffer sb = new StringBuffer();
-		for(String split: splitList) {
-			sb.append(split).append(",");
-		}
-
-		if(!getNumInEachTablet) {
-			result = new String[] {sb.toString()};
-		} else {
-
-			result = new String[2];
-			result[0] = sb.toString();
-			List<String> list = this.d4mTableOp.getSplitsNumInEachTablet(tableName);
-			sb = new StringBuffer();
-			for(String s : list) {
-				sb.append(s).append(",");
-			}
-			result[1] = sb.toString();
-		}
-		 */
 		return result;
-		//*************************************************************************************************		
-		//*************************************************************************************************
-		//		StringBuffer sb = new StringBuffer();
-		//		for (String split : splitList)
-		//			sb.append(split).append(',');
-		//		
-		//		if (!getNumInEachTablet) {
-		//			return new String[] {sb.toString()};
-		//		}
-		//		else {
-		//			String[] result = new String[2];
-		//			result[0] = sb.toString();
-		//			
-		//			sb = new StringBuffer();
-		//			AccumuloConnection ac = new AccumuloConnection(this.connProps);
-		//			final org.apache.accumulo.core.client.Scanner scanner = ac.createScanner(org.apache.accumulo.core.Constants.METADATA_TABLE_NAME/*, org.apache.accumulo.core.Constants.NO_AUTHS*/);
-		//			org.apache.accumulo.core.util.ColumnFQ.fetch(scanner, org.apache.accumulo.core.Constants.METADATA_PREV_ROW_COLUMN);
-		//			final Text start = new Text(ac.getNameToIdMap().get(tableName)); // check
-		//			final Text end = new Text(start);
-		//			end.append(new byte[] {'<'}, 0, 1);
-		//			scanner.setRange(new org.apache.accumulo.core.data.Range(start, end));
-		//			
-		//			List<TabletStats> tabStats = this.d4mTableOp.getTabletStatsForTables(Collections.singletonList(tableName));
-		//			
-		//			for (Iterator<Entry<org.apache.accumulo.core.data.Key, org.apache.accumulo.core.data.Value>> iterator = scanner.iterator(); iterator.hasNext();) {
-		//				final Entry<org.apache.accumulo.core.data.Key, org.apache.accumulo.core.data.Value> next = iterator.next();
-		//				if (org.apache.accumulo.core.Constants.METADATA_PREV_ROW_COLUMN.hasColumns(next.getKey())) {
-		//					org.apache.accumulo.core.data.KeyExtent extent = new org.apache.accumulo.core.data.KeyExtent(next.getKey().getRow(), next.getValue());
-		//					final Text pr = extent.getPrevEndRow();
-		//					final Text er = extent.getEndRow();
-		//final String line = String.format("%-26s (%s, %s%s", extent.toString()/*.getTableId()*/, pr == null ? "-inf" : pr.toString(), er == null ? "+inf" : er.toString(),
-		//	er == null ? ") Default Tablet " : "]");
-		//sb.append(line).append('\n');
-
-		// query for the entries between pr and er
-		/*Scanner scanTableData = ac.createScanner(tableName);
-					scanTableData.setRange(new Range(pr, er));
-					//scanTableData.fetchColumnFamily( ); // todo column family in getSplits???
-					//System.err.println("debug batch size: "+scanTableData.getBatchSize());
-					long count = 0;
-					boolean firstResult = true;
-					for (Entry<Key, Value> entry : scanTableData) {
-						if (notFirstScan && firstResult)
-							firstResult = false;
-						else
-							count++;
-					}
-					notFirstScan = true;
-					sb.append(count).append(',');*/
-
-		//					final ByteBuffer prb = pr == null ? null : ByteBuffer.wrap(pr.getBytes());
-		//					final ByteBuffer erb = er == null ? null : ByteBuffer.wrap(er.getBytes());
-		//					boolean foundIt = false;
-		//					// find the TabletStats object that matches the current KeyExtent
-		//					for (TabletStats tabStat : tabStats) {
-		//						assert tabStat.extent.table.equals(ByteBuffer.wrap(tableName.getBytes()));
-		//						if ( (erb == null ? tabStat.extent.endRow == null : tabStat.extent.endRow != null && tabStat.extent.endRow.equals(erb) )
-		//						   &&(prb == null ? tabStat.extent.prevEndRow == null : tabStat.extent.prevEndRow != null && tabStat.extent.prevEndRow.equals(prb))) {
-		//							// found it!
-		//							sb.append(tabStat.numEntries).append(',');
-		//							foundIt = true;
-		//							break;
-		//						}
-		//					}
-		//					//assert foundIt;
-		//					if (!foundIt)
-		//						sb.append("?,");
-		//					
-		//				}
-		//			}
-		//			
-		//			result[1] = sb.toString();			
-		//			
-		//			return result;
-		//		}
-
 	}
 
 	/**
@@ -710,7 +540,7 @@ public class D4mDbTableOperations extends D4mParent {
 	 * Return a comma-delimited list
 	 *  @param tableName
 	 */
-	public String [] getSplitsNumInEachTablet(String tableName) throws D4mException {
+	public String [] getSplitsNumInEachTablet(String tableName) throws Exception {
 		List<String> list = this.d4mTableOp.getSplitsNumInEachTablet(tableName);
 		StringBuffer sb = new StringBuffer();
 		for(String s : list) {
@@ -727,7 +557,7 @@ public class D4mDbTableOperations extends D4mParent {
 	 * @param startRow single row name or the empty string/null to start at first tablet server
 	 * @param endRow single row name or the empty string/null to end at last tablet server
 	 */
-	public void mergeSplits(String tableName, String startRow, String endRow) throws D4mException
+	public void mergeSplits(String tableName, String startRow, String endRow) throws Exception
 	{
 		ArgumentChecker.notNull(tableName);
 		doInit();

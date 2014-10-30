@@ -3,9 +3,7 @@
  */
 package edu.mit.ll.d4m.db.cloud.accumulo;
 
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -44,7 +42,7 @@ public class AccumuloInsert extends D4mInsertBase {
 	 * @see edu.mit.ll.d4m.db.cloud.D4mInsertBase#doProcessing()
 	 */
 	@Override
-	public void doProcessing() {
+	public void doProcessing() throws AccumuloException,AccumuloSecurityException,TableNotFoundException{
 		if(connection == null)
 			connection = new AccumuloConnection(super.connProps);
 
@@ -61,9 +59,11 @@ public class AccumuloInsert extends D4mInsertBase {
 			makeAndAddMutations();
 			//}
 		} catch (MutationsRejectedException e) {
-			log.warn(e);
+			log.error(e);
+            throw(e);
 		} catch (TableNotFoundException e) {
-			log.warn(e);
+			log.error(e);
+            throw(e);
 		}
 
 	}
@@ -144,7 +144,7 @@ public class AccumuloInsert extends D4mInsertBase {
 			bw.addMutation(m);
 		}
 	}*/
-	private void createTable () {
+	private void createTable () throws AccumuloException,AccumuloSecurityException{
 		if(connection == null)
 			connection = new AccumuloConnection(super.connProps);
 		if(!connection.tableExist(super.tableName)) {

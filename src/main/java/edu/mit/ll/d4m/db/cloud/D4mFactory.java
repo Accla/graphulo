@@ -131,7 +131,7 @@ public class D4mFactory {
 
 		return d4m;
 	}
-	public static D4mTableOpsIF createTableOperations(String instanceName, String host, String username, String password) {
+	public static D4mTableOpsIF createTableOperations(String instanceName, String host, String username, String password) throws Exception{
 		D4mTableOpsIF d4m = null;
 		System.out.println("about to make table ops");
 		d4m = createTableOperations();

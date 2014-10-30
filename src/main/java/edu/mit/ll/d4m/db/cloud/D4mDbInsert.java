@@ -91,7 +91,7 @@ public class D4mDbInsert extends D4mParent {
 	}
 	
 
-	public void doProcessing(String rows, String cols, String vals, String family, String visibility) throws D4mException {
+	public void doProcessing(String rows, String cols, String vals, String family, String visibility) throws Exception {
 
 		this.rows = rows;
 		this.cols = cols;

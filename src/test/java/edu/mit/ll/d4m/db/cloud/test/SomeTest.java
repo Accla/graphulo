@@ -63,7 +63,7 @@ public class SomeTest {
     }
 
     @Test
-    public void testTXE1() throws AccumuloSecurityException, AccumuloException, D4mException, TableNotFoundException, TableExistsException, IOException {
+    public void testTXE1() throws AccumuloSecurityException, AccumuloException, Exception, TableNotFoundException, TableExistsException, IOException {
         Assume.assumeTrue("Test requires TXE1", new File("clouddb51_pass.txt").exists());
 
         Instance instance = new ZooKeeperInstance(txe1config.get(ClientConfiguration.ClientProperty.INSTANCE_NAME), txe1config.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST));
@@ -77,7 +77,7 @@ public class SomeTest {
     }
 
     @Test
-    public void testNormal() throws AccumuloSecurityException, AccumuloException, D4mException, TableNotFoundException, TableExistsException {
+    public void testNormal() throws AccumuloSecurityException, AccumuloException, Exception, TableNotFoundException, TableExistsException {
         Instance instance = new ZooKeeperInstance(instanceName,zookeeperHost);
         Connector conn = instance.getConnector(username, new PasswordToken(password));
         ConnectionProperties connprops = new ConnectionProperties(zookeeperHost,username,password,instanceName,null);
@@ -94,7 +94,7 @@ public class SomeTest {
     }
 
     @Test
-    public void mini() throws AccumuloSecurityException, AccumuloException, D4mException, TableNotFoundException, TableExistsException, IOException, InterruptedException {
+    public void mini() throws AccumuloSecurityException, AccumuloException, Exception, TableNotFoundException, TableExistsException, IOException, InterruptedException {
 
         File tempDir = tempFolder.newFolder();
         MiniAccumuloCluster accumulo = new MiniAccumuloCluster(tempDir, "password");
@@ -109,7 +109,7 @@ public class SomeTest {
         tempDir.delete();
     }
 
-    private void innerTest(Instance instance, Connector conn, ConnectionProperties connprops) throws AccumuloSecurityException, AccumuloException, D4mException, TableNotFoundException, TableExistsException {
+    private void innerTest(Instance instance, Connector conn, ConnectionProperties connprops) throws AccumuloSecurityException, AccumuloException, Exception, TableNotFoundException, TableExistsException {
         D4mConfig.getInstance().setCloudType(D4mConfig.ACCUMULO);
         D4mDbTableOperations dbtop = new D4mDbTableOperations(connprops);
 

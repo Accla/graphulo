@@ -1,8 +1,6 @@
 package edu.mit.ll.d4m.db.cloud.accumulo;
 
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.ArgumentChecker;
@@ -21,7 +19,7 @@ public class AccumuloDelete {
 	private ConnectionProperties connectProps;
 	private AccumuloConnection connection;
 	
-	public AccumuloDelete(String instanceName, String host, String user, String pass) {
+	public AccumuloDelete(String instanceName, String host, String user, String pass) throws AccumuloSecurityException,AccumuloException {
 		connectProps = new ConnectionProperties(host, user, pass, instanceName, null); // let null inputs go
 		connection = new AccumuloConnection(connectProps);
 	}

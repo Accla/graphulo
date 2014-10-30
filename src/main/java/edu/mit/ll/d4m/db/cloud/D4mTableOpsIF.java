@@ -61,11 +61,11 @@ public interface D4mTableOpsIF {
 	/**
 	 *  Make connection to cloud
 	 */
-	public void connect();
+	public void connect() throws Exception;
 	
 	public List<String> getSplits(String tableName);
-	public List<String> getSplits(String tableName, boolean getNumInEachTablet) throws D4mException;
-	public List<String> getSplitsNumInEachTablet(String tableName) throws D4mException;
+	public List<String> getSplits(String tableName, boolean getNumInEachTablet) throws Exception;
+	public List<String> getSplitsNumInEachTablet(String tableName) throws Exception;
 	/*
 	 *  GetTabletLocationsForSplits  will get the list of tablet server names that correspond
 	 *  to the list of split names.

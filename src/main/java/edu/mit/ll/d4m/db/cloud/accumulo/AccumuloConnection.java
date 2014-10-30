@@ -47,7 +47,7 @@ public class AccumuloConnection {
 	/**
 	 * 
 	 */
-	public AccumuloConnection(ConnectionProperties conn) {
+	public AccumuloConnection(ConnectionProperties conn) throws AccumuloException,AccumuloSecurityException {
 		this.conn = conn;
 		ClientConfiguration cconfig = new ClientConfiguration().withInstance(conn.getInstanceName()).withZkHosts(conn.getHost()).withZkTimeout(conn.getSessionTimeOut());
 		this.instance = new ZooKeeperInstance(cconfig);
@@ -68,18 +68,16 @@ public class AccumuloConnection {
 			}
 
 		} catch (AccumuloException e) {
-			log.warn("",e);
+			log.error("",e);
 			e.printStackTrace();
+            throw new AccumuloException("Error in AccumuloConnection constructor",e);
 		} catch (AccumuloSecurityException e) {
-			log.warn(e);
+			log.fatal("User: " + e.getUser() + " SecurityErrorCode:" + e.getSecurityErrorCode());
 			e.printStackTrace();
+            throw e;
 		}
 
-		if(log.isDebugEnabled()) {
-			String message="!!!WHOAMI="+this.connector.whoami();
-			log.debug(message);
-			//System.out.println(message);
-		}
+        log.debug("!!!WHOAMI="+this.connector.whoami());
 	}
 
 

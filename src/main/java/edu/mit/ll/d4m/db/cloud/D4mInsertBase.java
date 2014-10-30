@@ -47,7 +47,7 @@ public abstract class D4mInsertBase implements D4mInserterIF {
 
 	@Override
 	public void doProcessing(String rows, String cols, String vals,
-			String family, String visibility) {
+			String family, String visibility)throws Exception {
 		// TODO Auto-generated method stub
 		this.rows = rows;
 		this.cols = cols;
@@ -64,7 +64,7 @@ public abstract class D4mInsertBase implements D4mInserterIF {
 		}
 	}
 
-	abstract public void doProcessing();
+	abstract public void doProcessing() throws Exception;
 
 	public void setConnProps(ConnectionProperties connProps) {
 		this.connProps = connProps;

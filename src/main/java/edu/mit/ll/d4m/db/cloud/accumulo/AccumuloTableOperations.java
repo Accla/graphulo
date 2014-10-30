@@ -72,7 +72,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	public AccumuloTableOperations() {
 
 	}
-	public AccumuloTableOperations(ConnectionProperties connProp) {
+	public AccumuloTableOperations(ConnectionProperties connProp) throws AccumuloSecurityException,AccumuloException {
 		this.connProp = connProp;
 		connect();
 	}
@@ -272,7 +272,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	 * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#connect()
 	 */
 	@Override
-	public void connect() {
+	public void connect() throws AccumuloException,AccumuloSecurityException {
 		this.connection = new AccumuloConnection(connProp);
 	}
 //	public AuthInfo getAuthInfo() {
@@ -337,7 +337,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	 * (non-Javadoc)
 	 * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#getSplits(java.lang.String, boolean)
 	 */
-	public List<String> getSplits(String tableName, boolean getNumInEachTablet) throws D4mException {
+	public List<String> getSplits(String tableName, boolean getNumInEachTablet) throws Exception {
 		ArgumentChecker.notNull(tableName);
 		//doInit();
 		List<String> splitList = getSplits(tableName);
@@ -579,7 +579,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 
 	@Override
 	public List<String> getSplitsNumInEachTablet(String tableName)
-			throws D4mException {
+			throws Exception {
 		List<String> list = new ArrayList<String>();
 		AccumuloConnection ac = new AccumuloConnection(this.connProp);
 		org.apache.accumulo.core.client.Scanner scanner;

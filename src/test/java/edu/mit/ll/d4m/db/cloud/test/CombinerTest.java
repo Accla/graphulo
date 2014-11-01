@@ -20,6 +20,12 @@ import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.Assert;
+
+import org.apache.commons.configuration.Configuration;
+import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.PropertiesConfiguration;
+
 
 import edu.mit.ll.d4m.db.cloud.accumulo.AccumuloConnection;
 
@@ -32,34 +38,40 @@ import edu.mit.ll.d4m.db.cloud.D4mDbTableOperations;
 
 public class CombinerTest {
 	
-//	private String instanceName = "accumulo";
-//	private String host = "D4Muser.llgrid.ll.mit.edu:2181";
-//	private String username = "AccumuloUser";
-//	private String password = "9P20WV666KK119YY";
-
 	private ConnectionProperties cp;
 	private String tableName = "TestTableIterator";
 	private String columnFamily="";
 	private String columnVisibility="";
 	private AccumuloConnection connection;
 
-	private static ClientConfiguration txe1config;
-	static {
-		String instance = "classdb51";
-		String host = "classdb51.cloud.llgrid.txe1.mit.edu:2181";
-		int timeout = 100000;
-		txe1config = ClientConfiguration.loadDefault().withInstance(instance).withZkHosts(host).withZkTimeout(timeout);
-	}
+	private ClientConfiguration config;
+    private Configuration properties;
 
 	@Before
 	public void setUp() throws Exception {
 		
 		// Setup Connection
 		D4mConfig.getInstance().setCloudType(D4mConfig.ACCUMULO);
-		String[] tmp = SomeTest.getTXE1UserPass();
-		String user = tmp[0];
-		String pass = tmp[1];
-		cp = new ConnectionProperties(txe1config.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST),user,pass,txe1config.get(ClientConfiguration.ClientProperty.INSTANCE_NAME),null);
+        try {
+            properties = new PropertiesConfiguration("CombinerTest.conf");
+            String instancename = properties.getString("instancename");
+            String zooserver = properties.getString("zooserver");
+            int timeout = Integer.parseInt(properties.getString("timeout"));
+            config = ClientConfiguration.loadDefault().withInstance(instancename).withZkHosts(zooserver).withZkTimeout(timeout);
+
+        } catch (ConfigurationException e) {
+            Assert.fail("Couldn't find a valid properties file named CombinerTest.conf");
+        }
+        String user,pass;
+        user = properties.getString("user");
+        pass = properties.getString("pw");
+        /*
+        try {
+        } catch (ConfigurationException e) {
+            Assert.fail("Configuration file missing user or pw!");
+        }
+        */
+		cp = new ConnectionProperties(config.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST),user,pass,config.get(ClientConfiguration.ClientProperty.INSTANCE_NAME),null);
 		connection = new AccumuloConnection(cp);
 		// Create Table (delete if already existing)
 		if (connection.tableExist(tableName))

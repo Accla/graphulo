@@ -48,8 +48,10 @@ public class CombinerTest {
     private Configuration properties;
 
 	@Before
-	public void setUp() throws Exception {
-		
+	public void setUp() {
+
+        AccumuloTestConnection testConnection = new AccumuloTestConnection("CombinerTest.conf");
+        /*
 		// Setup Connection
 		D4mConfig.getInstance().setCloudType(D4mConfig.ACCUMULO);
         try {
@@ -65,14 +67,11 @@ public class CombinerTest {
         String user,pass;
         user = properties.getString("user");
         pass = properties.getString("pw");
-        /*
-        try {
-        } catch (ConfigurationException e) {
-            Assert.fail("Configuration file missing user or pw!");
-        }
-        */
 		cp = new ConnectionProperties(config.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST),user,pass,config.get(ClientConfiguration.ClientProperty.INSTANCE_NAME),null);
 		connection = new AccumuloConnection(cp);
+		*/
+        cp = testConnection.getConnectionProperties();
+        connection = testConnection.getAccumuloConnection();
 		// Create Table (delete if already existing)
 		if (connection.tableExist(tableName))
 			connection.deleteTable(tableName);

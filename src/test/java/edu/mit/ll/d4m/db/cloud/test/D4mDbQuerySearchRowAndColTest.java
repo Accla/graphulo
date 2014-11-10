@@ -4,6 +4,7 @@
 package edu.mit.ll.d4m.db.cloud.test;
 
 
+import edu.mit.ll.cloud.connection.ConnectionProperties;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,10 +31,12 @@ public class D4mDbQuerySearchRowAndColTest {
 	 */
 	@Before
 	public void setUp() throws Exception {
-		instanceName               ="accumulo";
-		host                       = "f-2-6.llgrid.ll.mit.edu:2181";
-		username                   =  "AccumuloUser";
-		password                   = "";
+        AccumuloTestConnection testConnection = new AccumuloTestConnection("local.conf");
+        ConnectionProperties cp = testConnection.getConnectionProperties();
+		instanceName               = cp.getInstanceName();
+		host                       = cp.getHost();
+		username                   = cp.getUser();
+		password                   = cp.getPass();
 		table                      = "iTest8";
 		columnFamily        = "";
 		

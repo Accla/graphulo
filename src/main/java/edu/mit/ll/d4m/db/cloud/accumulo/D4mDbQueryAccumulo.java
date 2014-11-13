@@ -378,13 +378,6 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		super.columnFamily = family;
 		this.family = super.columnFamily;
 		super.setSecurity(authorizations);
-		//if(authorizations != null && authorizations.length() > 0) {
-		//	super.setSecurity(authorizations);
-			//super.connProps.setAuthorizations(authorizations.split(","));
-			
-		//}  else if(authorizations == null || ( authorizations != null && authorizations.length() == 0)){
-		//	super.setSecurity(null);
-		//}
 		clearBuffers();
 		reset();
 		this.rowsQuery = rows;
@@ -1416,12 +1409,10 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 			String rowNumber = row.getRow();
 			String column = row.getColumn();
 			String value = row.getValue();
-			String modified = row.getModified();
 			if (counter < rowsToPrint) {
 				System.out.println("Row; " + rowNumber);
 				System.out.println("Column; " + column);
 				System.out.println("Value; " + value);
-				System.out.println("Modified; " + modified);
 				System.out.println("");
 				System.out.println("");
 			}
@@ -1455,10 +1446,10 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	//		this.limit = limit;
 	//	}
 
-	public HashMap<String, Object> processParam(String param) {
+	private HashMap<String, Object> processParam(final String param) {
 		HashMap<String, Object> map = new HashMap<String, Object>();
 		String content = param.substring(0, param.length() - 1);
-		String delim = param.replace(content, "");
+		String delim = param.substring(param.length()-1);
 		map.put("delimiter", delim);
 		if (delim.equals("|")) {
 			delim = "\\" + delim;

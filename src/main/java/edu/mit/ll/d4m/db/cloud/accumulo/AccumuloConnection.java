@@ -54,29 +54,16 @@ public class AccumuloConnection {
 		this.passwordToken = new PasswordToken(this.conn.getPass());
 		this.creds = new Credentials(this.conn.getUser(), this.passwordToken);
 
-		try {
-			//principal = username = this.conn.getUser()
-			System.out.println("about to make connector: user="+this.conn.getUser()+"   password="+ new String(this.passwordToken.getPassword()));
-			// PROBLEM HERE
-			this.connector = this.instance.getConnector(this.conn.getUser(), this.passwordToken);
-			System.out.println("made connector");
-			String [] sAuth = conn.getAuthorizations();
-			if (sAuth != null && sAuth.length > 0) {
-				this.auth = new Authorizations(sAuth);
-			} else {
-				this.auth= org.apache.accumulo.core.Constants.NO_AUTHS;
-			}
-
-		} catch (AccumuloException e) {
-			log.error("",e);
-			e.printStackTrace();
-            throw new AccumuloException("Error in AccumuloConnection constructor",e);
-		} catch (AccumuloSecurityException e) {
-			log.fatal("User: " + e.getUser() + " SecurityErrorCode:" + e.getSecurityErrorCode());
-			e.printStackTrace();
-            throw e;
-		}
-
+        //principal = username = this.conn.getUser()
+        System.out.println("about to make connector: user="+this.conn.getUser()+"   password="+ new String(this.passwordToken.getPassword()));
+        this.connector = this.instance.getConnector(this.conn.getUser(), this.passwordToken);
+        System.out.println("made connector");
+        String [] sAuth = conn.getAuthorizations();
+        if (sAuth != null && sAuth.length > 0) {
+            this.auth = new Authorizations(sAuth);
+        } else {
+            this.auth= org.apache.accumulo.core.Constants.NO_AUTHS;
+        }
         log.debug("!!!WHOAMI="+this.connector.whoami());
 	}
 

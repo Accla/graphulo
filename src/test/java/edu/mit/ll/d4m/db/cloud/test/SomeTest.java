@@ -41,7 +41,7 @@ public class SomeTest {
     static {
         String instance = "classdb51";
         String host = "classdb51.cloud.llgrid.txe1.mit.edu:2181";
-        int timeout = 100000;
+        int timeout = 10000;
         txe1config = ClientConfiguration.loadDefault().withInstance(instance).withZkHosts(host).withZkTimeout(timeout);
     }
 
@@ -72,6 +72,20 @@ public class SomeTest {
         String pass = tmp[1];
         Connector conn = instance.getConnector(user, new PasswordToken(pass));
         ConnectionProperties connprops = new ConnectionProperties(txe1config.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST),user,pass,txe1config.get(ClientConfiguration.ClientProperty.INSTANCE_NAME),null);
+
+        innerTest(instance,conn,connprops);
+    }
+
+    @Test
+    public void testlocal() throws AccumuloSecurityException, AccumuloException, Exception, TableNotFoundException, TableExistsException, IOException {
+        String instanceName = "Dev";
+        String host = "localhost:2181";
+        int timeout = 10000;
+        ClientConfiguration local = ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(host).withZkTimeout(timeout);
+        Instance instance = new ZooKeeperInstance(local.get(ClientConfiguration.ClientProperty.INSTANCE_NAME), local.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST));
+        String user = "root";
+        Connector conn = instance.getConnector(user, new PasswordToken("secret"));
+        ConnectionProperties connprops = new ConnectionProperties(local.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST),user,"secret",local.get(ClientConfiguration.ClientProperty.INSTANCE_NAME),null);
 
         innerTest(instance,conn,connprops);
     }

@@ -1,6 +1,7 @@
 package edu.mit.ll.d4m.db.cloud.test;
 
 
+import edu.mit.ll.cloud.connection.ConnectionProperties;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
@@ -13,6 +14,7 @@ import edu.mit.ll.d4m.db.cloud.accumulo.D4mDbQueryAccumulo;
  */
 public class D4mDbQueryTest8 {
 	private static Logger log = Logger.getLogger(D4mDbQueryTest8.class);
+
 
 	String instanceName = "";
 	String host = "";
@@ -29,10 +31,12 @@ public class D4mDbQueryTest8 {
 	 */
 	@Before
 	public void setUp() throws Exception {
-		instanceName               ="accumulo";
-		host                       = "f-2-6.llgrid.ll.mit.edu:2181";
-		username                   =  "AccumuloUser";
-		password                   = "";
+        AccumuloTestConnection testConnection = new AccumuloTestConnection("local.conf");
+        ConnectionProperties cp = testConnection.getConnectionProperties();
+        instanceName               = cp.getInstanceName();
+        host                       = cp.getHost();
+        username                   = cp.getUser();
+        password                   = cp.getPass();
 		table                      = "YAHOO_STANFORD_TEMPORALROW_NORMAL_TRANS";
 	}
 	@After

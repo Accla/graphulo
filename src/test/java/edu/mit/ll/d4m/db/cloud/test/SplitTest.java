@@ -16,11 +16,10 @@ import edu.mit.ll.d4m.db.cloud.D4mDbInsert;
 import edu.mit.ll.d4m.db.cloud.D4mDbTableOperations;
 
 public class SplitTest {
-	private String instanceName = "accumulo";
-	private String host = "D4Muser.llgrid.ll.mit.edu:2181";
-	private String username = "AccumuloUser";
-	private String password = "9P20WV666KK119YY";
-	
+	private String instanceName;
+	private String host;
+	private String username;
+    private String password;
 	private String tableName = "TestTableRandom";
 	private String columnFamily="fam";
 	private String columnVisibility="";
@@ -30,14 +29,13 @@ public class SplitTest {
 	public void setUp() throws Exception {
 		
 		// Setup Connection
-		D4mConfig.getInstance().setCloudType(D4mConfig.ACCUMULO);
-		ConnectionProperties cp;
-		cp = new ConnectionProperties();
-		cp.setInstanceName(instanceName);
-		cp.setHost(host);
-		cp.setPass(password);
-		cp.setUser(username);
-		connection = new AccumuloConnection(cp);
+        AccumuloTestConnection testConnection = new AccumuloTestConnection("CombinerTest.conf");
+        ConnectionProperties cp = testConnection.getConnectionProperties();
+        instanceName               = cp.getInstanceName();
+        host                       = cp.getHost();
+        username                   = cp.getUser();
+        password                   = cp.getPass();
+        connection = testConnection.getAccumuloConnection();
 		
 		// Create Table (delete if already existing)
 		if (connection.tableExist(tableName))

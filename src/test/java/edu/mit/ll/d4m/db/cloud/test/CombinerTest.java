@@ -51,25 +51,6 @@ public class CombinerTest {
 	public void setUp() {
 
         AccumuloTestConnection testConnection = new AccumuloTestConnection("CombinerTest.conf");
-        /*
-		// Setup Connection
-		D4mConfig.getInstance().setCloudType(D4mConfig.ACCUMULO);
-        try {
-            properties = new PropertiesConfiguration("CombinerTest.conf");
-            String instancename = properties.getString("instancename");
-            String zooserver = properties.getString("zooserver");
-            int timeout = Integer.parseInt(properties.getString("timeout"));
-            config = ClientConfiguration.loadDefault().withInstance(instancename).withZkHosts(zooserver).withZkTimeout(timeout);
-
-        } catch (ConfigurationException e) {
-            Assert.fail("Couldn't find a valid properties file named CombinerTest.conf");
-        }
-        String user,pass;
-        user = properties.getString("user");
-        pass = properties.getString("pw");
-		cp = new ConnectionProperties(config.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST),user,pass,config.get(ClientConfiguration.ClientProperty.INSTANCE_NAME),null);
-		connection = new AccumuloConnection(cp);
-		*/
         cp = testConnection.getConnectionProperties();
         connection = testConnection.getAccumuloConnection();
 		// Create Table (delete if already existing)

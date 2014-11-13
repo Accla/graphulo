@@ -6,6 +6,7 @@ package edu.mit.ll.d4m.db.cloud.test;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import edu.mit.ll.cloud.connection.ConnectionProperties;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Assert;
@@ -41,10 +42,12 @@ public class D4mQueryTest10 {
 	public void setUp() throws Exception {
 
 		System.setProperty(D4mFactory.PROPERTY_D4M_CLOUD_TYPE,"Accumulo");
-		instanceName               ="accumulo";
-		host                       = "bullet.llan.ll.mit.edu:2181";
-		username                   =  "root";
-		password                   = "secret";
+        AccumuloTestConnection testConnection = new AccumuloTestConnection("local.conf");
+        ConnectionProperties cp = testConnection.getConnectionProperties();
+        instanceName               = cp.getInstanceName();
+        host                       = cp.getHost();
+        username                   = cp.getUser();
+        password                   = cp.getPass();
 		table                      = "iTest10";
 		String row = "a,a,a,a,a,a,aa,aa,aaa,aaa,b,b,bb,bb,bbb,bbb,";
 		String col = "a,aa,aaa,b,bb,bbb,a,aa,a,aaa,a,b,a,bb,a,bbb,";

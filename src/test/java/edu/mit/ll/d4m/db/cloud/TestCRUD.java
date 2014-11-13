@@ -48,12 +48,10 @@ public class TestCRUD {
 				String rowNumber = row.getRow();
 				String column = row.getColumn();
 				String value = row.getValue();
-				String modified = row.getModified();
 				if (counter < rowsToPrint) {
 					System.out.println("Row; " + rowNumber);
 					System.out.println("Column; " + column);
 					System.out.println("Value; " + value);
-					System.out.println("Modified; " + modified);
 					System.out.println("");
 					System.out.println("");
 				}

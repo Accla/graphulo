@@ -131,19 +131,7 @@ public class AccumuloInsert extends D4mInsertBase {
 		bw.close();
 
 	}
-	/*private void addMutations() throws TableNotFoundException, MutationsRejectedException {
-		AccumuloConnection connection = new AccumuloConnection(super.connProps);
-		BatchWriter bw = connection.createBatchWriter(tableName,
-				AccumuloConnection.maxMemory, 
-				AccumuloConnection.maxLatency,
-				super.connProps.getMaxNumThreads());
-		for(int i = 0; i < rowsArr.length; i++) {
-			String thisRow = rowsArr[i];
-			log.debug(i+" - INSERTING row = "+ thisRow);
-			Mutation m = (Mutation)mutSorter.get(thisRow);
-			bw.addMutation(m);
-		}
-	}*/
+
 	private void createTable () throws AccumuloException,AccumuloSecurityException{
 		if(connection == null)
 			connection = new AccumuloConnection(super.connProps);

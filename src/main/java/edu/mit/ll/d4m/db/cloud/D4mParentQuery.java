@@ -67,37 +67,6 @@ public abstract class D4mParentQuery extends D4mParent {
 		this.limit = limit;
 	}
 
-	public String getSecurity() {
-		String s = null;
-		if(this.connProps != null) {
-			String [] auths = this.connProps.getAuthorizations();
-			StringBuffer sb = new StringBuffer();
-			for(String a: auths) {
-				sb.append(a).append(",");
-			}
-			s = sb.toString();
-		}
-		return s;
-	}
-
-	/*
-	 *    Pass in a comma-separated list of Authorizations
-	 *    eg U,S,FOUO
-	 */
-	public void setSecurity(String sAuth) {
-
-		if(sAuth != null && sAuth.length() > 0) {
-
-			String [] s = sAuth.split(",");
-			if(this.connProps != null) {
-				this.connProps.setAuthorizations(s);
-			}
-
-		}
-		else {
-			this.connProps.setAuthorizations(null);
-		}
-	}
 	public String getColumnFamily() {
 		return columnFamily;
 	}
@@ -106,8 +75,35 @@ public abstract class D4mParentQuery extends D4mParent {
 		this.columnFamily = columnFamily;
 	}
 
-	public void putColumnFamily(String columnFamily) {
-		this.setColumnFamily(columnFamily);
-	}
+    public String getSecurity() {
+        String s = null;
+        if(this.connProps != null) {
+            String [] auths = this.connProps.getAuthorizations();
+            StringBuffer sb = new StringBuffer();
+            for(String a: auths) {
+                sb.append(a).append(",");
+            }
+            s = sb.toString();
+        }
+        return s;
+    }
 
+    /*
+     *    Pass in a comma-separated list of Authorizations
+     *    eg U,S,FOUO
+     */
+    public void setSecurity(String sAuth) {
+
+        if(sAuth != null && sAuth.length() > 0) {
+
+            String [] s = sAuth.split(",");
+            if(this.connProps != null) {
+                this.connProps.setAuthorizations(s);
+            }
+
+        }
+        else {
+            this.connProps.setAuthorizations(null);
+        }
+    }
 }

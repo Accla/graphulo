@@ -26,7 +26,7 @@ public class AccumuloTestConnection {
         Configuration properties;
         String user,pass;
         try {
-            properties = new PropertiesConfiguration("CombinerTest.conf");
+            properties = new PropertiesConfiguration(filename);
             String instancename = properties.getString("instancename");
             String zooserver = properties.getString("zooserver");
             user = properties.getString("user");

@@ -1,2 +1,9 @@
 language: java
 script: mvn test -Dtest=SomeTest#mini
+notifications:
+     email:
+         recipients:
+             - dhutchis@stevens.edu
+             - Daniel.Hook@ll.mit.edu
+         on_success: change
+         on_failure: always

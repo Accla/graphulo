@@ -1,5 +1,6 @@
 language: java
 script: mvn test -Dtest=SomeTest#mini
+after_script: ./post-test.bash
 notifications:
      email:
          recipients:

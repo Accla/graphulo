@@ -14,3 +14,5 @@ Branch to1.6:
 `mvn package -DskipTests=true` to compile and build JARs.
 
 `mvn test -Dtest=SomeTest#mini` to run a test on [MiniAccumulo](https://accumulo.apache.org/1.6/accumulo_user_manual.html#_mini_accumulo_cluster).
+
+`post-test.bash` is a utility script to output test results to the console.

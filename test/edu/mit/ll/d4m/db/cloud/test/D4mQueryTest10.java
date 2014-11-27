@@ -269,7 +269,7 @@ public class D4mQueryTest10 {
 				Assert.assertTrue(map.contains(col));
 			}
 			D4mDbQueryTest.print(d4m);
-			Assert.assertTrue(size == 4);
+			Assert.assertTrue(size == 3);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

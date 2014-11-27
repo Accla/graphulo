@@ -51,7 +51,7 @@ public class D4mQueryTest10 {
 		String row = "a,a,a,a,a,a,aa,aa,aaa,aaa,b,b,bb,bb,bbb,bbb,";
 		String col = "a,aa,aaa,b,bb,bbb,a,aa,a,aaa,a,b,a,bb,a,bbb,";
 		String val = "a-a,a-aa,a-aaa,a-b,a-bb,a-bbb,aa-a,aa-aa,aaa-a,aaa-aaa,b-a,b-b,bb-a,bb-bb,bbb-a,bbb-bbb,";
-	//	tearDown();
+		//	tearDown();
 		D4mDbInsert dbInsert = new D4mDbInsert(instanceName,host,table,username,password);
 
 		dbInsert.doProcessing(row, col, val,"","");
@@ -75,44 +75,44 @@ public class D4mQueryTest10 {
 		String authorizations="";
 		log.debug("Test1::QUERY = ['"+ rows + "', '"+cols+"']");
 
-                D4mConfig.DEBUG=true;
+		D4mConfig.DEBUG=true;
 		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
-		
+
 		try {
 			//First query
 			d4m.setLimit(10);
 			d4m.doMatlabQuery(rows, cols, columnFamily, authorizations);
 			d4m.next();
 
-                        D4mDbResultSet results = d4m.testResultSet;
-                        ArrayList<D4mDbRow> rowList = results.getMatlabDbRow();
-                        int size = rowList.size();
+			D4mDbResultSet results = d4m.testResultSet;
+			ArrayList<D4mDbRow> rowList = results.getMatlabDbRow();
+			int size = rowList.size();
 
-                        HashSet<String> map = new HashSet<String>();
-                        String [] rowArray = rows.split(",");
-                        map.add(rowArray[0]);
-                        
-                        // Only 'a' should be a row value
-                        for(D4mDbRow row : rowList) {
-                                String rowkey = row.getRow();
-                                Assert.assertTrue(map.contains(rowkey));
-                        }
-                        // There should be 6 results
-                        Assert.assertTrue(size == 6);
+			HashSet<String> map = new HashSet<String>();
+			String [] rowArray = rows.split(",");
+			map.add(rowArray[0]);
+
+			// Only 'a' should be a row value
+			for(D4mDbRow row : rowList) {
+				String rowkey = row.getRow();
+				Assert.assertTrue(map.contains(rowkey));
+			}
+			// There should be 6 results
+			Assert.assertTrue(size == 6);
 
 			print(d4m.getResults());
 
 			//rows="b,";
 			//cols= ":";
 			//Second query
-		        //log.debug("Test1::QUERY = ['"+ rows + "', '"+cols+"']");
+			//log.debug("Test1::QUERY = ['"+ rows + "', '"+cols+"']");
 			//d4m.doMatlabQuery(rows, cols, columnFamily, authorizations);
 			//d4m.next();
-                        //D4mDbResultSet resultsB = d4m.testResultSet;
-                        //ArrayList<D4mDbRow> rowListB = resultsB.getMatlabDbRow();
-                        //size = rowListB.size();
-                        //Assert.assertTrue(size == 2);
+			//D4mDbResultSet resultsB = d4m.testResultSet;
+			//ArrayList<D4mDbRow> rowListB = resultsB.getMatlabDbRow();
+			//size = rowListB.size();
+			//Assert.assertTrue(size == 2);
 
 			//d4m.doNewMatlabQuery(rows, cols, columnFamily, authorizations);
 			//d4m.nextNewMatlabQuery();
@@ -132,6 +132,7 @@ public class D4mQueryTest10 {
 		String cols= ":";
 		String authorizations="";
 		System.out.println("Test2::QUERY = ['"+ rows + "', '"+cols+"']");
+		D4mConfig.DEBUG=true;
 
 		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
@@ -140,10 +141,27 @@ public class D4mQueryTest10 {
 			d4m.setLimit(0);
 			d4m.doMatlabQuery(rows, cols, columnFamily, authorizations);
 			d4m.next();
+			D4mDbResultSet results = d4m.testResultSet;
+			ArrayList<D4mDbRow> rowList = results.getMatlabDbRow();
+			int size = rowList.size();
+
+			HashSet<String> map = new HashSet<String>();
+			String [] rowArray = rows.split(",");
+			map.add(rowArray[0]);
+
+			// Only 'a' should be a row value
+			for(D4mDbRow row : rowList) {
+				String rowkey = row.getRow();
+				Assert.assertTrue(map.contains(rowkey));
+			}
+			// There should be 6 results
+			Assert.assertTrue(size == 16);
+
+			
 			print(d4m.getResults());
 
 
-				//D4mDbQueryTest.print(d4m);
+			//D4mDbQueryTest.print(d4m);
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -164,16 +182,16 @@ public class D4mQueryTest10 {
 		String cols= "a,:,a";
 		cols = cols+ascii127+",";
 		String authorizations="";
-
+		D4mConfig.DEBUG=true;
 		System.out.println("Test3::QUERY = ['"+ rows + "', '"+cols+"']");
 		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
-		
+
 
 		try {
 			d4m.setLimit(1);
 			d4m.doMatlabQuery(rows, cols, columnFamily, authorizations);
-			
+
 			while(d4m.hasNext()) {
 				d4m.next();
 			}
@@ -185,13 +203,13 @@ public class D4mQueryTest10 {
 			String [] rowArray = cols.split(",");
 			map.put(rowArray[0], rowArray[0]);
 			//map.put(rowArray[1], rowArray[1]);
-			
+
 			for(D4mDbRow row : rowList) {
 				String rowkey = row.getColumn();
 				Assert.assertTrue(map.containsKey(rowkey));
 			}
 			D4mDbQueryTest.print(d4m);
-			Assert.assertTrue(size == 6);
+			Assert.assertTrue(size == 1);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -217,12 +235,12 @@ public class D4mQueryTest10 {
 		System.out.println("Test4QUERY = ['"+ rows + "', '"+cols+"']");
 		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
-		
+
 
 		try {
 			d4m.setLimit(1);
 			d4m.doMatlabQuery(rows, cols, columnFamily, authorizations);
-			
+
 			while(d4m.hasNext()) {
 				d4m.next();
 			}
@@ -234,7 +252,7 @@ public class D4mQueryTest10 {
 			String [] rowArray = cols.split(",");
 			map.put(rowArray[0], rowArray[0]);
 			//map.put(rowArray[1], rowArray[1]);
-			
+
 			for(D4mDbRow row : rowList) {
 				String rowkey = row.getColumn();
 				Assert.assertTrue(map.containsKey(rowkey));

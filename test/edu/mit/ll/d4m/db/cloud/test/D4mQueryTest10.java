@@ -147,15 +147,23 @@ public class D4mQueryTest10 {
 
 			HashSet<String> map = new HashSet<String>();
 			String [] rowArray = rows.split(",");
-			map.add(rowArray[0]);
+			map.add("a");
+			map.add("aa");
 
+			map.add("aaa");
+			map.add("b");
+			map.add("bb");
+			map.add("bbb");
 			// Only 'a' should be a row value
+			int cnt = 0;
 			for(D4mDbRow row : rowList) {
 				String rowkey = row.getRow();
+				
 				Assert.assertTrue(map.contains(rowkey));
+				cnt++;
 			}
 			// There should be 6 results
-			Assert.assertTrue(size == 16);
+			Assert.assertTrue(size == cnt);
 
 			
 			print(d4m.getResults());

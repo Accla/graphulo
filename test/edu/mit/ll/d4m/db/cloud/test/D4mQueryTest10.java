@@ -207,14 +207,16 @@ public class D4mQueryTest10 {
 			ArrayList<D4mDbRow> rowList = results.getMatlabDbRow();
 			int size = rowList.size();
 
-			HashMap<String,String> map = new HashMap<String,String>();
+			HashSet<String> map = new HashSet<String>();
 			String [] rowArray = cols.split(",");
-			map.put(rowArray[0], rowArray[0]);
+			map.add("a");
+			map.add("aa");
+			map.add("aaa");
 			//map.put(rowArray[1], rowArray[1]);
 
 			for(D4mDbRow row : rowList) {
 				String rowkey = row.getColumn();
-				Assert.assertTrue(map.containsKey(rowkey));
+				Assert.assertTrue(map.contains(rowkey));
 			}
 			D4mDbQueryTest.print(d4m);
 			Assert.assertTrue(size == 3);
@@ -256,14 +258,15 @@ public class D4mQueryTest10 {
 			ArrayList<D4mDbRow> rowList = results.getMatlabDbRow();
 			int size = rowList.size();
 
-			HashMap<String,String> map = new HashMap<String,String>();
-			String [] rowArray = cols.split(",");
-			map.put(rowArray[0], rowArray[0]);
-			//map.put(rowArray[1], rowArray[1]);
+			HashSet<String> map = new HashSet<String>();
+			//String [] rowArray = cols.split(",");
+			map.add("a");
+			map.add("aa");
+			map.add("aaa");//map.put(rowArray[1], rowArray[1]);
 
 			for(D4mDbRow row : rowList) {
-				String rowkey = row.getColumn();
-				Assert.assertTrue(map.containsKey(rowkey));
+				String col = row.getColumn();
+				Assert.assertTrue(map.contains(col));
 			}
 			D4mDbQueryTest.print(d4m);
 			Assert.assertTrue(size == 4);

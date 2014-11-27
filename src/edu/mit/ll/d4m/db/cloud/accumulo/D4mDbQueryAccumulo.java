@@ -226,7 +226,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	 * 
 	 */
 	public void next() {
-		this.count=0;
+		//this.count=0;
 		clearBuffers();
 		try {
 			if(hasNext()) {
@@ -1130,9 +1130,9 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	private  Entry<Key, Value> iterateOverEntries(Iterator<Entry<Key, Value>> scannerIter, CompareUtil compUtil) {
 		Entry<Key, Value> entry =null;
 		String rowKey = null;
-		int count=0;
+		//this.count=0;
 		while ((this.hasNext =scannerIter.hasNext())) {
-			if(this.limit == 0 || this.count < this.limit) {
+			if(super.limit == 0 || this.count < super.limit) {
 				entry = (Entry<Key, Value>) scannerIter.next();
 				this.startKey = entry.getKey();
 				rowKey = entry.getKey().getRow().toString();
@@ -1146,23 +1146,24 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 						break;
 					}
 
-					count++;
+				//	this.count++;
+
 				}
 			}
 			else {
 				break;
 			}
 		}
-		log.debug("Number of entries = "+count);
+		log.debug("Number of entries = "+this.count);
 		return entry;
 	}
 
 	private  Entry<Key, Value> iterateOverEntries(Iterator<Entry<Key, Value>> scannerIter) {
 		Entry<Key, Value> entry =null;
 		String rowKey = null;
-		int count=0;
+		//this.count=0;
 		while ((this.hasNext =scannerIter.hasNext())) {
-			if(this.limit == 0 || this.count < this.limit) {
+			if( super.limit == 0 || this.count < super.limit) {
 				entry = scannerIter.next();
 				startKey = entry.getKey();
 				rowKey = startKey.getRow().toString();
@@ -1172,13 +1173,13 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 				if(this.buildReturnString(startKey,rowKey, column, value)) {
 					break;
 				}
-				count++;
+				//this.count++;
 			}
 			else {
 				break;
 			}
 		}
-		log.debug("Number of entries = "+count);
+		log.debug("Number of entries = "+this.count);
 		return entry;
 	}
 

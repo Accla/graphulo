@@ -25,6 +25,7 @@
        <exclude name="**/thrift-0.3.jar"/>
      </fileset>
      <pathelement path="${build.dir}/classes"/>
+     <pathelement location="${build.dir}/classes"/>
      <pathelement path="${dist.dir}/conf"/>
   </path>
 

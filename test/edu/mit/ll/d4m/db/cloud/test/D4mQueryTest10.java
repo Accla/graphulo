@@ -4,6 +4,7 @@
 package edu.mit.ll.d4m.db.cloud.test;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.HashMap;
 
 import org.apache.log4j.Logger;
@@ -12,6 +13,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import edu.mit.ll.d4m.db.cloud.D4mConfig;
 import edu.mit.ll.d4m.db.cloud.D4mDbInsert;
 import edu.mit.ll.d4m.db.cloud.accumulo.D4mDbQueryAccumulo;
 import edu.mit.ll.d4m.db.cloud.D4mDbResultSet;
@@ -41,10 +43,10 @@ public class D4mQueryTest10 {
 	public void setUp() throws Exception {
 
 		System.setProperty(D4mFactory.PROPERTY_D4M_CLOUD_TYPE,"Accumulo");
-		instanceName               ="accumulo";
-		host                       = "bullet.llan.ll.mit.edu:2181";
-		username                   =  "root";
-		password                   = "secret";
+		instanceName               ="classdb01";
+		host                       = "classdb01.cloud.llgrid.ll.mit.edu:2181";
+		username                   =  "AccumuloUser";
+		password                   = "e^A0P^DxN0fI%4EgRRl8Yo6DQ";
 		table                      = "iTest10";
 		String row = "a,a,a,a,a,a,aa,aa,aaa,aaa,b,b,bb,bb,bbb,bbb,";
 		String col = "a,aa,aaa,b,bb,bbb,a,aa,a,aaa,a,b,a,bb,a,bbb,";
@@ -67,12 +69,13 @@ public class D4mQueryTest10 {
 	}
 
 	@Test
-	public void test() {
+	public void test1() {
 		String rows="a,";
 		String cols= ":";
 		String authorizations="";
-		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
+		log.debug("Test1::QUERY = ['"+ rows + "', '"+cols+"']");
 
+                D4mConfig.DEBUG=true;
 		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
 		
@@ -81,14 +84,35 @@ public class D4mQueryTest10 {
 			d4m.setLimit(10);
 			d4m.doMatlabQuery(rows, cols, columnFamily, authorizations);
 			d4m.next();
+
+                        D4mDbResultSet results = d4m.testResultSet;
+                        ArrayList<D4mDbRow> rowList = results.getMatlabDbRow();
+                        int size = rowList.size();
+
+                        HashSet<String> map = new HashSet<String>();
+                        String [] rowArray = rows.split(",");
+                        map.add(rowArray[0]);
+                        
+                        // Only 'a' should be a row value
+                        for(D4mDbRow row : rowList) {
+                                String rowkey = row.getRow();
+                                Assert.assertTrue(map.contains(rowkey));
+                        }
+                        // There should be 6 results
+                        Assert.assertTrue(size == 6);
+
 			print(d4m.getResults());
 
-			rows="b,";
-			cols= ":";
+			//rows="b,";
+			//cols= ":";
 			//Second query
-			System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
-			d4m.doMatlabQuery(rows, cols, columnFamily, authorizations);
-			d4m.next();
+		        //log.debug("Test1::QUERY = ['"+ rows + "', '"+cols+"']");
+			//d4m.doMatlabQuery(rows, cols, columnFamily, authorizations);
+			//d4m.next();
+                        //D4mDbResultSet resultsB = d4m.testResultSet;
+                        //ArrayList<D4mDbRow> rowListB = resultsB.getMatlabDbRow();
+                        //size = rowListB.size();
+                        //Assert.assertTrue(size == 2);
 
 			//d4m.doNewMatlabQuery(rows, cols, columnFamily, authorizations);
 			//d4m.nextNewMatlabQuery();
@@ -107,7 +131,7 @@ public class D4mQueryTest10 {
 		String rows=":";
 		String cols= ":";
 		String authorizations="";
-		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
+		System.out.println("Test2::QUERY = ['"+ rows + "', '"+cols+"']");
 
 		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
@@ -141,7 +165,7 @@ public class D4mQueryTest10 {
 		cols = cols+ascii127+",";
 		String authorizations="";
 
-		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
+		System.out.println("Test3::QUERY = ['"+ rows + "', '"+cols+"']");
 		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
 		
@@ -190,7 +214,7 @@ public class D4mQueryTest10 {
 		//cols = cols+ascii127+",";
 		String authorizations="";
 
-		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
+		System.out.println("Test4QUERY = ['"+ rows + "', '"+cols+"']");
 		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
 		

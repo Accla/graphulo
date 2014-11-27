@@ -209,7 +209,7 @@ public class D4mQueryTest10 {
 				Assert.assertTrue(map.containsKey(rowkey));
 			}
 			D4mDbQueryTest.print(d4m);
-			Assert.assertTrue(size == 1);
+			Assert.assertTrue(size == 3);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -231,7 +231,7 @@ public class D4mQueryTest10 {
 		String cols= "a,:,aaa,";
 		//cols = cols+ascii127+",";
 		String authorizations="";
-
+		D4mConfig.DEBUG=true;
 		System.out.println("Test4QUERY = ['"+ rows + "', '"+cols+"']");
 		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
 		d4m.doTest = true;
@@ -258,7 +258,7 @@ public class D4mQueryTest10 {
 				Assert.assertTrue(map.containsKey(rowkey));
 			}
 			D4mDbQueryTest.print(d4m);
-			Assert.assertTrue(size == 6);
+			Assert.assertTrue(size == 4);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

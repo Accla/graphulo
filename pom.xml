@@ -22,6 +22,10 @@
         </license>
     </licenses>
 
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
     <build>
         <plugins>
             <plugin> <!-- This plugin forces the build process to create a single JAR file with every dependency. -->

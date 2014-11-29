@@ -33,7 +33,8 @@
                 <artifactId>maven-assembly-plugin</artifactId>
                 <executions>
                     <execution>
-                        <phase>package</phase>
+                        <id>make-assembly</id> <!-- this is used for inheritance merges -->
+                        <phase>package</phase> <!-- bind to the packaging phase -->
                         <goals>
                             <goal>single</goal>
                         </goals>
@@ -53,6 +54,50 @@
                     <source>1.7</source> <!-- Compile against JDK 1.7 -->
                     <target>1.7</target>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <!-- Copy all original dependency JARs (including recursive dependencies into target/depJars
+                    Note that the original JARs will have overlapping code, e.g.,
+                    Explicit deps accumulo-core and hadoop-hdfs may have a transitive dep commons-math. The commons-math dep is stored twice.
+                    To store the dep once, use the build-single method. -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>2.9</version>
+                <executions>
+                    <execution>
+                        <id>copy-dependencies</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/depJars</outputDirectory>
+                            <type>jar</type>
+                            <includeScope>runtime</includeScope>  <!-- Don't include the test scope - we don't need those classes for dependencies. -->
+                            <!--<includeScope>compile</includeScope> Only adds the dep jdk-tools.jar, which has useless stuff provided by any jdk installation. -->
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin> <!-- Create a super-JAR out of the JARs for every dependncy in target/depJars -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.5</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <classesDirectory>${project.build.directory}/depJars</classesDirectory>
+                            <outputDirectory>${project.build.directory}</outputDirectory>
+                            <finalName>${project.build.finalName}-deps</finalName>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

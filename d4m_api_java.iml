@@ -13,6 +13,10 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="Maven: org.apache.accumulo:accumulo-core:1.6.1" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.accumulo:accumulo-fate:1.6.1" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.accumulo:accumulo-start:1.6.1" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.accumulo:accumulo-trace:1.6.1" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.accumulo:accumulo-core:1.6.1" level="project" />
     <orderEntry type="library" name="Maven: com.beust:jcommander:1.32" level="project" />
     <orderEntry type="library" name="Maven: commons-io:commons-io:2.1" level="project" />
     <orderEntry type="library" name="Maven: commons-lang:commons-lang:2.4" level="project" />

@@ -59,9 +59,9 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	private long cumCount=0; //cumulative count of results retrieved
 	private String rowsQuery=null;
 	private String colsQuery=null;
-	private HashMap<String, Object> rowMap=null;
+	private ParsedInfo rowInfo =null;
 	private HashMap<String, String> rowStringMap=null;
-	private HashMap<String, Object> colMap=null;
+	private ParsedInfo colInfo =null;
 	private String [] rowsArray = null;
 	private ArrayList<Key> rowKeys=null;
 	private StringBuilder sbRowReturn = new StringBuilder();
@@ -242,12 +242,35 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		}
 
 	}
+
+    private class ParsedInfo {
+        private String delimiter;
+        private String[] content;
+
+        ParsedInfo(String delimiter, String raw_content){
+            this.delimiter = delimiter;
+            this.content = raw_content.split(delimiter);
+        }
+
+        public String getDelimiter() {
+            return delimiter;
+        }
+
+        public void setDelimiter(String delimiter) {
+            this.delimiter = delimiter;
+        }
+
+        public String[] getContent() {
+            return content;
+        }
+    }
+
 	public HashMap<String, String> assocColumnWithRow(String rows, String cols) {
 
-		HashMap<String, Object> rowMap = this.processParam(rows);
-		HashMap<String, Object> columnMap = this.processParam(cols);
-		String[] rowArray = (String[]) rowMap.get("content");
-		String[] columnArray = (String[]) columnMap.get("content");
+		ParsedInfo rowInfo = this.processParam(rows);
+		ParsedInfo columnInfo = this.processParam(cols);
+		String[] rowArray = rowInfo.getContent();
+		String[] columnArray = columnInfo.getContent();
 
 		HashMap<String, String> resultMap = new HashMap<String, String>();
 		for (int i = 0; i < rowArray.length; i++) {
@@ -256,74 +279,30 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		return resultMap;
 	}
 
-	/*
-	 *  A common method called by loadRowMap and loadColumnMap
-	 */
+	/**
+	 *  Parse queryString and run the result through {@link #loadMap(String[])}
+     *  @param queryString a valid D4M query string
+     *  @return
+     *
+	 **/
 	private HashMap<String, String>  loadMap(String queryString) {
-		HashMap<String, Object> tmpObjMap = this.processParam(queryString);
-		String[] contentArray = (String[]) tmpObjMap.get("content");
-
-		//		HashMap<String, String> resultMap = new HashMap<String, String>();
-		//		for (int i = 0; i < contentArray.length; i++) {
-		//			resultMap.put(contentArray[i], contentArray[i]);
-		//		}
+		ParsedInfo parsedInfo = this.processParam(queryString);
+		String[] contentArray = parsedInfo.getContent();
 		HashMap<String, String> resultMap = loadMap(contentArray);
 		return resultMap;
-
 	}
 
+    //TODO: Add overload that takes two String Arrays.
+
+    /**
+     * @param contentArray
+     * @return A HashMap\<String,String\> where each key and value is the same and drawn from contentArray
+     */
 	private HashMap<String,String> loadMap (String [] contentArray) {
 		HashMap<String, String> resultMap = new HashMap<String, String>();
 		for (int i = 0; i < contentArray.length; i++) {
 			resultMap.put(contentArray[i], contentArray[i]);
 		}
-		return resultMap;
-	}
-	public HashMap<String, String> loadColumnMap(String cols) {
-
-		//		HashMap<String, Object> columnMap = this.processParam(cols);
-		//		String[] columnArray = (String[]) columnMap.get("content");
-		//			HashMap<String, String> resultMap = new HashMap<String, String>();
-		//		for (int i = 0; i < columnArray.length; i++) {
-		//			resultMap.put(columnArray[i], columnArray[i]);
-		//		}
-		HashMap<String, String> resultMap = loadMap(cols);
-
-		return resultMap;
-	}
-
-	public HashMap<String, String> loadColumnMap(String [] cols) {
-		HashMap<String, String> resultMap = loadMap(cols);
-		return resultMap;
-	}
-
-	public HashMap<String, String> loadColumnMap(HashMap<String,Object> colMap) {
-		String[] contentArray = (String[]) colMap.get("content");
-		HashMap<String,String> resultMap = loadMap(contentArray);
-		return resultMap;
-	}
-
-	public HashMap<String, String> loadRowMap(String rows) {
-
-		//		HashMap<String, Object> rowMap = this.processParam(rows);
-		//		String[] rowArray = (String[]) rowMap.get("content");
-		//
-		//		HashMap<String, String> resultMap = new HashMap<String, String>();
-		//		for (int i = 0; i < rowArray.length; i++) {
-		//			resultMap.put(rowArray[i], rowArray[i]);
-		//		}
-		HashMap<String, String> resultMap = loadMap(rows);
-		return resultMap;
-	}
-
-	public HashMap<String, String> loadRowMap(HashMap<String, Object> rowMap) {
-
-		String[] rowArray = (String[]) rowMap.get("content");
-		//		HashMap<String, String> resultMap = new HashMap<String, String>();
-		//		for (int i = 0; i < rowArray.length; i++) {
-		//			resultMap.put(rowArray[i], rowArray[i]);
-		//		}
-		HashMap<String, String> resultMap = loadMap(rowArray);
 		return resultMap;
 	}
 
@@ -384,18 +363,12 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		this.colsQuery = cols;
 		try {
 			this.testResultSet = doMatlabQuery(rows, cols);
-		} catch (AccumuloException e) {
-			e.printStackTrace();
-			throw new D4mException(e);
-		} catch (AccumuloSecurityException e) {
-			e.printStackTrace();
-			throw new D4mException(e);
-		} catch (TableNotFoundException e) {
+		} catch (AccumuloSecurityException|TableNotFoundException|AccumuloException e) {
 			e.printStackTrace();
 			throw new D4mException(e);
 		} catch (NullPointerException e) {
 			throw new D4mException("NULLPOINTER =  rows ="+rows+", cols="+cols+"\n"+e.toString());
-		}
+        }
 
 		return this.testResultSet;
 	}
@@ -404,9 +377,9 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 
 		if ((!rows.equals(":")) && (cols.equals(":"))) {
 
-			HashMap<String, Object> rowMap = this.processParam(rows);
-			this.rowMap = rowMap;
-			String[] paramContent = (String[]) rowMap.get("content");
+			ParsedInfo rowInfo = this.processParam(rows);
+			this.rowInfo = rowInfo;
+			String[] paramContent = rowInfo.getContent();
 			// System.out.println("this.isRangeQuery(paramContent)="+this.isRangeQuery(paramContent));
 			if (this.isRangeQuery(paramContent)) {
 				log.debug("MATLAB_RANGE_QUERY_ON_ROWS");
@@ -430,13 +403,12 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 			return this.searchByRowAndColumn(rows, cols, null,null);
 		}
 
-		//FIXME - this.rowMap<String,Object> is incompatible with rowMap<String,String>
 		//String [] rowsArray = null;
 		log.debug("==== AssocColumnWithRow ====");
 		if(this.rowStringMap == null) {
 			this.rowStringMap = this.assocColumnWithRow(rows, cols);
-			this.rowMap = processParam(rows);
-			String [] rowsArray = (String[])this.rowMap.get("content");
+			this.rowInfo = processParam(rows);
+			String [] rowsArray = this.rowInfo.getContent();
 			this.rowKeys = param2keys(rowsArray);
 		}
 		HashMap<String, String> rowMap = this.rowStringMap;
@@ -506,81 +478,25 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		return null;
 	}
 
-	//	private D4mDbResultSet doScanMatlabQueryOnRows(String rows, String cols) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-	//		HashMap<String, String> rowMap = null;
-	//		String [] rowsArray = null;
-	//		long start = System.currentTimeMillis();
-	//
-	//		if( this.rowMap == null) {	
-	//			this.rowMap = processParam(rows);
-	//			rowsArray = (String[])this.rowMap.get("content");
-	//			this.rowKeys = param2keys(rowsArray);
-	//			rowMap = this.loadRowMap(rows);
-	//		}
-	//		else {
-	//
-	//			rowMap = loadRowMap(this.rowMap);
-	//
-	//			rowsArray = (String[])this.rowMap.get("content");
-	//			this.rowKeys = param2keys(rowsArray);
-	//
-	//		}
-	//		D4mDbResultSet results = new D4mDbResultSet();
-	//
-	//		Range range =null;
-	//		if(this.rangesList.size() == 0) {
-	//			makeRangesList(rowsArray);
-	//		}
-	//
-	//		if(this.scanner == null || !this.hasNext) {
-	//			this.scanner = getScanner();
-	//			range = this.rangesList.poll();
-	//			this.scanner.setRange(range);
-	//			this.scanner.fetchColumnFamily(new Text(this.family));
-	//			this.scannerIter = this.scanner.iterator();
-	//		}
-	//		Entry<Key, Value> entry = iterateMatlabQueryOnRows(scannerIter, rowMap);
-	//		this.setRowReturnString(sbRowReturn.toString());
-	//		this.setColumnReturnString(sbColumnReturn.toString());
-	//		this.setValueReturnString(sbValueReturn.toString());
-	//
-	//		double elapsed = (System.currentTimeMillis() - start);
-	//		results.setQueryTime(elapsed / 1000);
-	//		results.setMatlabDbRow(rowList);
-	//		this.testResultSet = results;
-	//
-	//		if(entry == null || !this.hasNext) {
-	//			log.debug("Increment index and null startKey.");
-	//			index++;
-	//			this.startKey = null;
-	//		}
-	//
-	//		//close();
-	//		return results;
-	//	}
-	/*
-	 * use BatchScanner to get data
-	 */
 	private D4mDbResultSet doBatchMatlabQueryOnRows(String rows, String cols) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
 		HashMap<String, String> rowMap = null;
 
-		if( this.rowMap == null) {	
-			this.rowMap = processParam(rows);
-			String [] rowsArray = (String[])this.rowMap.get("content");
+		if( this.rowInfo == null) {
+			this.rowInfo = processParam(rows);
+			String [] rowsArray = this.rowInfo.getContent();
 			this.rowKeys = param2keys(rowsArray);
-			rowMap = this.loadRowMap(rows);
+			rowMap = this.loadMap(rows);
 		}
 		else {
 
-			rowMap = loadRowMap(rows);
+			rowMap = loadMap(rows);
 			if(this.rowKeys == null) {
-				String [] rowsArray = (String[])this.rowMap.get("content");
+				String [] rowsArray = this.rowInfo.getContent();
 				this.rowKeys = param2keys(rowsArray);
 			}
 		}
 		D4mDbResultSet results = new D4mDbResultSet();
-		//ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();
 
 		BatchScanner scanner =null;
 		if(this.bscanner == null) {
@@ -592,7 +508,6 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		}
 		long start = System.currentTimeMillis();
 
-		//Iterator<Entry<Key, Value>> scannerIter = scanner.iterator();
 		if(this.scannerIter == null) {
 			this.scannerIter = scanner.iterator();
 		}
@@ -631,8 +546,8 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		}
 		return entry;
 	}
-	private void setNewRowKeyInMap(String rowKey, HashMap<String, Object> contentMap) {
-		String[] paramContent = (String[]) contentMap.get("content");
+	private void setNewRowKeyInMap(String rowKey, ParsedInfo info) {
+		String[] paramContent = info.getContent();
 		paramContent[0] = rowKey;
 	}
 	public D4mDbResultSet doMatlabRangeQueryOnRows(String rows, String cols, String family, String authorizations) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
@@ -644,16 +559,16 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 
 	private D4mDbResultSet doMatlabRangeQueryOnRows(String rows, String cols) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 		log.debug("%%%% doMatlabRangeQueryOnRows %%%%");
-		HashMap<String, Object> rowMap = null;
+		ParsedInfo rowInfo;
 
-		if(this.rowMap == null) {
-			rowMap =this.processParam(rows);
-			this.rowMap = rowMap;
+		if(this.rowInfo == null) {
+			rowInfo =this.processParam(rows);
+			this.rowInfo = rowInfo;
 		}
 		else {
-			rowMap = this.rowMap;
+			rowInfo = this.rowInfo;
 		}
-		String[] rowArray = (String[]) rowMap.get("content");
+		String[] rowArray = rowInfo.getContent();
 
 		HashSet<Range> ranges = new HashSet<Range>();
 		if(!this.hasNext) {
@@ -722,7 +637,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 
 		//Set the new row key to start next search
 		if(entry != null) {
-			setNewRowKeyInMap(entry.getKey().getRow().toString(), this.rowMap);
+			setNewRowKeyInMap(entry.getKey().getRow().toString(), this.rowInfo);
 		}
 
 		// *********************************************
@@ -739,11 +654,10 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 
 	private D4mDbResultSet doMatlabQueryOnColumns(String rows, String cols) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 		log.debug(" <<<< doMatlabQueryOnColumns >>>> ");
-		HashMap<?, ?> rowMap = this.loadColumnMap(cols);
-		HashMap<String,Object> objColMap = this.processParam(cols);
+		ParsedInfo objColInfo = this.processParam(cols);
 
 
-		String [] colArray = (String []) objColMap.get("content");
+		String [] colArray = objColInfo.getContent();
 		compareUtil = new CompareUtil(colArray);
 
 		log.debug("LENGTH_OF_COL_ARRAY = "+colArray.length);
@@ -858,32 +772,32 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		//boolean useBatchSearch=false;
 		clearBuffers();
 		D4mDbResultSet results = null;
-//		HashMap<String, Object> rowMap = null;
-		if( this.rowMap == null) {
-			this.rowMap = this.processParam(rows);
-//			rowMap = this.rowMap;
+//		HashMap<String, Object> rowInfo = null;
+		if( this.rowInfo == null) {
+			this.rowInfo = this.processParam(rows);
+//			rowInfo = this.rowInfo;
 		}
 //		else
-//			rowMap = this.rowMap;
-		HashMap<String, Object> columnMap = null;
-		if(this.colMap == null) {
-			columnMap =this.processParam(cols);
-			this.colMap = columnMap;
+//			rowInfo = this.rowInfo;
+		ParsedInfo columnInfo;
+		if(this.colInfo == null) {
+			columnInfo =this.processParam(cols);
+			this.colInfo = columnInfo;
 		} 
 		//else
-			//columnMap = this.colMap;
+			//columnMap = this.colInfo;
 
-		results = searchByRowAndColumn(this.rowMap,colMap);
+		results = searchByRowAndColumn(this.rowInfo, colInfo);
 
 		return results;
 	}
 
-	private D4mDbResultSet searchByRowAndColumn (HashMap<String, Object> rowMap,HashMap<String, Object> columnMap) {
+	private D4mDbResultSet searchByRowAndColumn (ParsedInfo rowInfo,ParsedInfo columnInfo) {
 		D4mDbResultSet results = new D4mDbResultSet();
 		HashSet<Range> ranges = null;
 		Range range = null;
-		String[] rowArray = (String[]) rowMap.get("content");
-		String[] columnArray = (String[]) columnMap.get("content");
+		String[] rowArray = rowInfo.getContent();
+		String[] columnArray = columnInfo.getContent();
 		int length=rowArray.length;
 		String rowkey1 = null;
 		String rowkey2 = null;
@@ -901,8 +815,8 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 			// Query for rows with 'a' and 'c'
 			// Then, we should do use BatchScanner
 			// Set up HashSet<Range> ranges
-			//HashMap<String, String> loadRowMap(HashMap<String, Object> rowMap)
-			//HashMap<String,String> rowMapString = loadRowMap(rowMap);
+			//HashMap<String, String> loadRowMap(HashMap<String, Object> rowInfo)
+			//HashMap<String,String> rowMapString = loadRowMap(rowInfo);
 			ranges = loadRanges(rowArray);
 			SearchIt(ranges,columnArray);
 
@@ -1104,37 +1018,6 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		return entry;
 	}
 
-	/*
-	private  Entry<Key, Value> iterateOverEntries(Iterator<Entry<Key, Value>> scannerIter, Pattern col) {
-		Entry<Key, Value> entry =null;
-		String rowKey = null;
-		int count=0;
-		while ((this.hasNext =scannerIter.hasNext())) {
-			if(this.limit == 0 || this.count < this.limit) {
-				entry = (Entry<Key, Value>) scannerIter.next();
-				this.startKey = entry.getKey();
-				rowKey = entry.getKey().getRow().toString();
-				String column = entry.getKey().getColumnQualifier().toString();
-
-				Matcher match = col.matcher(column);
-				if(match.matches()) {
-					//System.out.println(count+"BEFORE_ENTRY="+rowKey+","+column);
-					String value = new String(entry.getValue().get());
-					if(this.buildReturnString(entry.getKey(),rowKey, column, value)) {
-						break;
-					}
-					count++;
-				}
-			}
-			else {
-				break;
-			}
-		}
-		log.debug("Number of entries = "+count);
-		return entry;
-	}
-	 */
-
 	private void SearchIt(HashSet<Range> ranges, String [] columnArray) {
 		//String colRegex = "";
 		if(compareUtil == null) {
@@ -1223,7 +1106,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 			e.printStackTrace();
 		}
 		finally {
-			setNewRowKeyInMap(rowKey, this.rowMap);
+			setNewRowKeyInMap(rowKey, this.rowInfo);
 			if(!this.hasNext)
 				close();
 		}
@@ -1276,17 +1159,12 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 			e.printStackTrace();
 		}
 		finally {
-			setNewRowKeyInMap(rowKey, this.rowMap);
+			setNewRowKeyInMap(rowKey, this.rowInfo);
 			if(!this.hasNext)
 				close();
 		}
 
 	}
-
-	/*private void setFamilyAndAuthorizations(String family, String authorizations) {
-		this.family = family;
-		connProps.setAuthorizations(authorizations.split(","));
-	}*/
 
 	private void saveTestResults(String rowKey, String columnFamily, String finalColumn, String value) {
 		D4mDbRow row = new D4mDbRow();
@@ -1375,17 +1253,18 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	//		this.limit = limit;
 	//	}
 
-	private HashMap<String, Object> processParam(final String param) {
-		HashMap<String, Object> map = new HashMap<String, Object>();
+	private ParsedInfo processParam(final String param) {
 		String content = param.substring(0, param.length() - 1);
-		String delim = param.substring(param.length()-1);
-		map.put("delimiter", delim);
-		if (delim.equals("|")) {
-			delim = "\\" + delim;
+		String delimiter = param.substring(param.length()-1);
+        //FIXME: Previously the delimiter was stored before prefixing
+        //with slashes.  I'm not doing that now, but it doesn't seem important
+        //since the delimited is not used later.
+		//map.put("delimiter", delimiter);
+		if (delimiter.equals("|")) {
+			delimiter = "\\" + delimiter;
 		}
-		map.put("content", content.split(delim));
-		map.put("length", content.length());
-		return map;
+        ParsedInfo parsedInfo = new ParsedInfo(delimiter, content);
+		return parsedInfo;
 	}
 
 	private ArrayList<Key> param2keys(String [] params) {
@@ -1551,8 +1430,8 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		this.startKey   = null;
 		this.rowsQuery = null;
 		this.colsQuery = null;
-		this.colMap = null;
-		this.rowMap = null;
+		this.colInfo = null;
+		this.rowInfo = null;
 		this.rowStringMap = null;
 		this.hasNext=false;
 		this.getNext = false;

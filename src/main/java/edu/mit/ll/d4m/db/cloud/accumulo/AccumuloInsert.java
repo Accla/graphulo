@@ -20,7 +20,6 @@ import edu.mit.ll.d4m.db.cloud.util.D4mQueryUtil;
 public class AccumuloInsert extends D4mInsertBase {
 	private static Logger log = Logger.getLogger(AccumuloInsert.class);
 
-	String[] rowsArr=null;
 	AccumuloConnection connection=null;
 	public AccumuloInsert() {
 		super();
@@ -68,38 +67,6 @@ public class AccumuloInsert extends D4mInsertBase {
 
 	}
 
-	/*private void makeMutations ( ) {
-		HashMap<String, Object> rowsMap = D4mQueryUtil.processParam(rows);
-		HashMap<String, Object> colsMap = D4mQueryUtil.processParam(cols);
-		HashMap<String, Object> weightMap = D4mQueryUtil.processParam(vals);
-
-		rowsArr = (String[]) rowsMap.get("content");
-		String[] colsArr = (String[]) colsMap.get("content");
-		String[] valsArr = (String[]) weightMap.get("content");
-
-		ColumnVisibility colVisibility = new ColumnVisibility(super.visibility);
-		Text colFamily = new Text(super.family);
-		for(int i =0; i < rowsArr.length; i++) {
-			String thisRow = rowsArr[i];
-			String thisCol = colsArr[i];
-			String thisVal = valsArr[i];
-			Mutation m=null;
-			Text column = new Text(thisCol);
-
-			Value value = new Value(thisVal.getBytes());
-
-			if(!mutSorter.hasMutation(thisRow)) {
-				m = new Mutation(new Text(thisRow));
-				mutSorter.add(thisRow, m);
-			} else {
-				m = (Mutation)mutSorter.get(thisRow);
-			}
-			m.put(colFamily, column, colVisibility, value);
-
-
-		}
-	}*/
-
 	private void makeAndAddMutations() throws TableNotFoundException, MutationsRejectedException {
 		//		AccumuloConnection connection = new AccumuloConnection(super.connProps);
 		BatchWriter bw = this.connection.createBatchWriter(tableName);
@@ -107,7 +74,7 @@ public class AccumuloInsert extends D4mInsertBase {
 //		HashMap<String, Object> colsMap = D4mQueryUtil.processParam(cols);
 //		HashMap<String, Object> weightMap = D4mQueryUtil.processParam(vals);
 
-		rowsArr = D4mQueryUtil.processParam(rows);//(String[]) rowsMap.get("content");
+		String[] rowsArr = D4mQueryUtil.processParam(rows);//(String[]) rowsMap.get("content");
 		String[] colsArr = D4mQueryUtil.processParam(cols);//(String[]) colsMap.get("content");
 		String[] valsArr = D4mQueryUtil.processParam(vals);//(String[]) weightMap.get("content");
 

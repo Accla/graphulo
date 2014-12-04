@@ -115,26 +115,27 @@ public class D4mDbInsert extends D4mParent {
 		//doProcessing();
 	}
 
+//	/** Create a weird map out of an Assoc string - never used */
+//	private HashMap<String, Object> processParam(String param) {
+//		HashMap<String, Object> map = new HashMap<String, Object>();
+//		String content = param.substring(0, param.length() - 1);
+//		String delimiter = param.substring(param.length()-1);  //.replace(content, ""); // DH: Just take the last character
+//		map.put("delimiter", delimiter);
+//		if (delimiter.equals("|")) {
+//			delimiter = "\\" + delimiter;
+//		}
+//		map.put("content", content.split(delimiter));
+//		map.put("length", content.length());
+//		return map;
+//	}
 
-	private HashMap<String, Object> processParam(String param) {
-		HashMap<String, Object> map = new HashMap<String, Object>();
-		String content = param.substring(0, param.length() - 1);
-		String delimiter = param.replace(content, "");
-		map.put("delimiter", delimiter);
-		if (delimiter.equals("|")) {
-			delimiter = "\\" + delimiter;
-		}
-		map.put("content", content.split(delimiter));
-		map.put("length", content.length());
-		return map;
-	}
-
+	/** calls to AccumuloInfo.getTableList() to retrieve the table list from the connector   */
 	public boolean doesTableExistFromMetadata(String tableName) {
 		boolean exist = false;
 		D4mDbInfo info = new D4mDbInfo(this.connProps);
 		String tableNames = "";
 		try {
-			tableNames = info.getTableList();
+			tableNames = info.getTableList();		//
 			if (tableNames.contains(tableName)) {
 				exist = true;
 			}

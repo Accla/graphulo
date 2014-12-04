@@ -133,7 +133,6 @@ public class D4mDbTableOperations extends D4mParent {
 	public void designateCombiningColumns(String tableName, String columnStrAll, String combineType, String columnFamily) throws Exception
     {
 		doInit();
-		System.out.println("after init");
 		this.d4mTableOp.designateCombiningColumns(tableName, columnStrAll, combineType, columnFamily);
 	}
 	/**

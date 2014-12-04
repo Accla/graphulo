@@ -44,7 +44,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	public String rowReturnString = "";
 	public String columnReturnString = "";
 	public String valueReturnString = "";
-	public final String newline =   "\n"; // "\n" is necessary for correct parsing. //System.getProperty("line.separator");
+	public static final String NEWLINE =   "\n"; // "\n" is necessary for correct parsing. //System.getProperty("line.separator");
 	public boolean doTest = false;
 	private static final String KEY_RANGE = "KEY_RANGE";
 	private static final String REGEX_RANGE = "REGEX_RANGE";
@@ -175,9 +175,9 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 
 		if(super.limit == 0 || this.count < super.limit) {
 			log.debug("  +++ ROW="+rowKey+",COL="+column+",VAL="+value+" +++");
-			this.sbRowReturn.append(rowKey + newline);
-			this.sbColumnReturn.append(column.replace(this.family, "") + newline);
-			this.sbValueReturn.append(value + newline);
+			this.sbRowReturn.append(rowKey + NEWLINE);
+			this.sbColumnReturn.append(column.replace(this.family, "") + NEWLINE);
+			this.sbValueReturn.append(value + NEWLINE);
 			this.count++;
 			this.cumCount++;
 			if(super.limit > 0 && this.count == super.limit) {
@@ -737,14 +737,6 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		return results;
 	}
 
-	public D4mDbResultSet doMatlabQueryOnColumns(String rows, String cols, String family, String authorizations) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-		super.columnFamily = family;
-		this.family = super.columnFamily;
-		connProps.setAuthorizations(authorizations.split(","));
-                reset();
-		return doMatlabQueryOnColumns(rows, cols);
-	}
-
 	private D4mDbResultSet doMatlabQueryOnColumns(String rows, String cols) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 		log.debug(" <<<< doMatlabQueryOnColumns >>>> ");
 		HashMap<?, ?> rowMap = this.loadColumnMap(cols);
@@ -956,70 +948,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		this.testResultSet = results;
 		return results;
 	}
-	/*
-	public D4mDbResultSet batchSearchByRowAndColumn(HashMap<String, Object> rowMap,HashMap<String, Object> columnMap ,
-			String family, String authorizations)  {
-		clearBuffers();
 
-		String[] rowArray = (String[]) rowMap.get("content");
-		String[] columnArray = (String[]) columnMap.get("content");
-		D4mDbResultSet results = new D4mDbResultSet();
-		//ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();
-		long start = System.currentTimeMillis();
-
-		//Set up ranges
-		HashSet<Range> ranges = new HashSet<Range>();
-		Range range = null;
-		if(rowArray.length == 3 && rowArray[1].equals(":")) {
-			if(rowArray[0].compareTo(rowArray[2]) < 0)
-				range = new Range(new Text(rowArray[0]), true, new Text(rowArray[2]), true);
-			else 
-				range = new Range(new Text(rowArray[2]), true, new Text(rowArray[0]), true);
-			//System.out.println("RANGE = "+range.toString());
-			if(log.isDebugEnabled())
-				log.debug("RANGE = "+range.toString());
-			ranges.add(range);
-		} else {
-			int cnt=0;
-			for(String rowKey : rowArray) {
-				range = new Range(new Text(rowKey));
-				if(log.isDebugEnabled())
-					log.debug(cnt+" :: RANGE = "+range.toString());
-				cnt++;
-				ranges.add(range);
-			}
-		}
-
-		if(family != null || authorizations != null)
-			setFamilyAndAuthorizations(family,authorizations);
-
-		//loop over columns
-		//reset column by scanner.clearColumns()s
-		//set new columns fetchColumn(fam,col)
-		//iterate
-		//fill output buffer
-		String colRegex = "";
-		if(columnArray.length == 3 && columnArray[1].equals(":")) {
-			String colStart1 = columnArray[0].substring(0, 1);
-			String colEnd1 = columnArray[2].substring(0,1);
-			colRegex = "^["+colStart1+"-"+colEnd1+"].*";
-			SearchIt(ranges,colRegex);
-		} else {
-			for(String colKey : columnArray) {
-				SearchIt(ranges,colKey);
-			}
-		}
-		this.setRowReturnString(sbRowReturn.toString());
-		this.setColumnReturnString(sbColumnReturn.toString());
-		this.setValueReturnString(sbValueReturn.toString());
-
-		double elapsed = (System.currentTimeMillis() - start);
-		results.setQueryTime(elapsed / 1000);
-		results.setMatlabDbRow(rowList);
-		this.testResultSet = results;
-		return results;
-	}
-	 */
 	private void SearchIt(Range range, String [] columnArray) {
 		String colRegex = RegExpUtil.makeRegex(columnArray);
 		if(compareUtil == null) {

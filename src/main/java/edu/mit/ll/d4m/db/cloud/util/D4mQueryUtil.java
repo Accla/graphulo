@@ -133,13 +133,12 @@ public class D4mQueryUtil {
 		return resultMap;
 	}
 
+	/**
+	 * Range Queries are the following 'a,:,b,',  'a,:,end,',  ',:,b,'.
+	 *  Note: Negative infinity Range a*,
+	 */
 	public static boolean isRangeQuery(String[] paramContent) {
 		boolean rangeQuery = false;
-		/*
-		 * Range Queries are the following 'a,:,b,',  'a,:,end,',  ',:,b,'.
-		 *  Note: Negative infinity Range a*,
-		 */
-
 		if (paramContent.length == 1) {
 			if (paramContent[0].contains("*")) {
 				rangeQuery = true;

@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>edu.mit.ll</groupId>
-    <artifactId>d4m</artifactId>
+    <artifactId>d4m_api_java</artifactId>
     <version>2.5.6-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>d4m_api_java</name>
@@ -28,24 +28,6 @@
 
     <build>
         <plugins>
-            <plugin> <!-- This plugin forces the build process to create a single JAR file with every dependency. -->
-                <!-- alternative command: mvn assembly:assembly -DdescriptorId=jar-with-dependencies -DskipTests=true -->
-                <artifactId>maven-assembly-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>make-assembly</id> <!-- this is used for inheritance merges -->
-                        <phase>package</phase> <!-- bind to the packaging phase -->
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                </configuration>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -94,7 +76,7 @@
                         <configuration>
                             <classesDirectory>${project.build.directory}/depJars</classesDirectory>
                             <outputDirectory>${project.build.directory}</outputDirectory>
-                            <finalName>${project.build.finalName}-deps</finalName>
+                            <finalName>libext_${project.version}</finalName>
                         </configuration>
                     </execution>
                 </executions>

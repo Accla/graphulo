@@ -39,9 +39,9 @@
             </plugin>
 
             <plugin>
-                <!-- Copy all original dependency JARs (including recursive dependencies into target/depJars
+                <!-- Copy all original dependency JARs (including recursive dependencies) into target/libext
                     Note that the original JARs will have overlapping code, e.g.,
-                    Explicit deps accumulo-core and hadoop-hdfs may have a transitive dep commons-math. The commons-math dep is stored twice.
+                    explicit deps accumulo-core and hadoop-hdfs may have a transitive dep commons-math. The commons-math dep is stored twice.
                     To store the dep once, use the build-single method. -->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
@@ -54,7 +54,7 @@
                             <goal>copy-dependencies</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${project.build.directory}/depJars</outputDirectory>
+                            <outputDirectory>${project.build.directory}/libext</outputDirectory>
                             <type>jar</type>
                             <includeScope>runtime</includeScope>  <!-- Don't include the test scope - we don't need those classes for dependencies. -->
                             <!--<includeScope>compile</includeScope> Only adds the dep jdk-tools.jar, which has useless stuff provided by any jdk installation. -->
@@ -63,20 +63,23 @@
                 </executions>
             </plugin>
 
-            <plugin> <!-- Create a super-JAR out of the JARs for every dependncy in target/depJars -->
+            <plugin> <!-- Create a super-JAR out of the JARs for every dependncy in target/libext -->
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>2.5</version>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.5.3</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
                         <goals>
-                            <goal>jar</goal>
+                            <goal>single</goal>
                         </goals>
                         <configuration>
-                            <classesDirectory>${project.build.directory}/depJars</classesDirectory>
+                            <descriptors>
+                                <descriptor>libext_assembly.xml</descriptor>
+                            </descriptors>
                             <outputDirectory>${project.build.directory}</outputDirectory>
                             <finalName>libext_${project.version}</finalName>
+                            <appendAssemblyId>false</appendAssemblyId>
                         </configuration>
                     </execution>
                 </executions>

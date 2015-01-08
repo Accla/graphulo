@@ -75,7 +75,7 @@
                         </goals>
                         <configuration>
                             <descriptors>
-                                <descriptor>libext_assembly.xml</descriptor>
+                                <descriptor>${project.build.outputDirectory}/building/libext_assembly.xml</descriptor>
                             </descriptors>
                             <outputDirectory>${project.build.directory}</outputDirectory>
                             <finalName>libext_${project.version}</finalName>

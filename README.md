@@ -1,7 +1,17 @@
 d4m_api_java
 ============
 
-Java connector between Accumulo and D4M Matlab library 
+Java connector between Accumulo and D4M Matlab library.
+
+To add to a D4M installation:
+
+1. Copy `target/d4m_api_java-VERSION.jar` into `d4m_api/lib`.
+2. Extract target/libext_VERSION.zip into `d4m_api`.
+3. Move `d4m_api/DBinit.m` into `d4m_api/matlab_src`.
+
+### Building
+Note that an additional script is required to run after the Maven build in order to create DBinit.m.
+The path to the script is shown at the end of a `mvn package` build.
 
 Master: 
 [![Build Status](https://travis-ci.org/Accla/d4m_api_java.svg?branch=master)](https://travis-ci.org/Accla/d4m_api_java)

@@ -84,12 +84,13 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin> <!-- Create DBinit.m -->
+	    <!-- Create DBinit.m -->
+            <plugin> 
                 <artifactId>exec-maven-plugin</artifactId>
                 <groupId>org.codehaus.mojo</groupId>
                 <version>1.3.2</version>
                 <executions>
-                    <execution><!-- Run our version calculation script -->
+                    <execution>
                         <id>Build DBinit</id>
                         <phase>package</phase>
                         <goals>
@@ -100,7 +101,9 @@
                             <workingDirectory>${project.build.outputDirectory}/building/build_DBinit/</workingDirectory>
                             <arguments>
                                 <argument>${project.build.finalName}</argument>
-                                <argument>libext</argument>
+                                <argument>../../libext/</argument>
+				<argument>build_DBinit.m</argument>
+				<argument>DBinit.m</argument>
                             </arguments>
                         </configuration>
                     </execution>

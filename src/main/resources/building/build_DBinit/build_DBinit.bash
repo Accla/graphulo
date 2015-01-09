@@ -19,3 +19,4 @@ while read -u 10 p; do
 	fi		
 done 10<"$c"
 zip -g -j "$e" "$d"
+echo "${DBinit.path.outputFile} built successfully and placed inside ${DBinit.path.libextZip}"

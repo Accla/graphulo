@@ -1,18 +1,21 @@
 # example: ./build_DBinit d4m_api_java-2.5.6-SNAPSHOT.jar libext
-echo "1 is $1" #DO_REPLACE_JAR_NAME
-echo "2 is $2" #libext/ for DO_REPLACE_MANY_LIBEXT_NAME
-echo "3 is $3" #input file path : build_DBinit.m
-echo "4 is $4" #output file path: DBinit.m
-deps="`ls -1 $2`"
-echo "" > "$4"
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+a="${project.build.finalName}" #DO_REPLACE_JAR_NAME
+b="$DIR/../../../${DBinit.path.libextFolder}" #libext/ for DO_REPLACE_MANY_LIBEXT_NAME
+c="$DIR/${DBinit.path.template}" #input file path : build_DBinit.m
+d="$DIR/../../../${DBinit.path.outputFile}" #output file path: DBinit.m
+e="$DIR/../../../${DBinit.path.libextZip}" #location of libext zip archive to add result to
+deps="`ls -1 $b`"
+echo "" > "$d"
 while read -u 10 p; do
 	if echo "$p" | grep -q "DO_REPLACE_JAR_NAME"; then
-		echo "$p" | perl -pwe "s/DO_REPLACE_JAR_NAME/$1/g;" >> "$4"
+		echo "$p" | perl -pwe "s/DO_REPLACE_JAR_NAME/$a/g;" >> "$d"
 	elif echo "$p" | grep -q "DO_REPLACE_MANY_LIBEXT_NAME"; then
 		while read -r line; do
-			echo "$p" | perl -pwe "s/DO_REPLACE_MANY_LIBEXT_NAME/$line/g;" >> "$4"
-		done <<< "$list"
+			echo "$p" | perl -pwe "s/DO_REPLACE_MANY_LIBEXT_NAME/$line/g;" >> "$d"
+		done <<< "$deps"
 	else
-		echo "$p" >> "$4"
+		echo "$p" >> "$d"
 	fi		
-done 10<"$3"
+done 10<"$c"
+zip -g -j "$e" "$d"

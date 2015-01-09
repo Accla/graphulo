@@ -24,9 +24,32 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	<DBinit.path.libextFolder>libext/</DBinit.path.libextFolder>
+	<DBinit.path.template>build_DBinit.m</DBinit.path.template>
+	<DBinit.path.outputFile>DBinit.m</DBinit.path.outputFile>
+	<DBinit.path.libextZip>libext_${project.version}.zip</DBinit.path.libextZip>
     </properties>
 
+    
+
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>**/build_DBinit.bash</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>**/build_DBinit.bash</exclude>
+                </excludes>
+            </resource>
+        </resources>
+
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -85,7 +108,7 @@
                 </executions>
             </plugin>
 	    <!-- Create DBinit.m -->
-            <plugin> 
+            <!--<plugin> 
                 <artifactId>exec-maven-plugin</artifactId>
                 <groupId>org.codehaus.mojo</groupId>
                 <version>1.3.2</version>
@@ -108,7 +131,27 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>-->
+
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <tasks>
+                                <chmod file="${project.build.outputDirectory}/building/build_DBinit/build_DBinit.bash" perm="u+x"/>
+                                <echo>To finish build and generate DBinit.m, please execute once:</echo>
+                                <echo>  ${project.build.outputDirectory}/building/build_DBinit/build_DBinit.bash</echo>
+                            </tasks>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
+
         </plugins>
     </build>
 

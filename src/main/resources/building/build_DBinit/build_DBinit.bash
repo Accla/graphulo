@@ -1,3 +1,4 @@
+#!/bin/bash
 # example: ./build_DBinit d4m_api_java-2.5.6-SNAPSHOT.jar libext
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 a="${project.build.finalName}" #DO_REPLACE_JAR_NAME

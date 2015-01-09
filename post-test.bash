@@ -1,5 +1,6 @@
 #!/bin/bash
-for i in $( ls shippable/testresults/*-output.txt ); do
+DIR=$( cd "$(dirname "$0")" ; pwd -P )
+for i in $( ls "$DIR/shippable/testresults/"*-output.txt ); do
     echo FILE: $i
     cat $i
 done

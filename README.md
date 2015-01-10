@@ -7,7 +7,7 @@ Java connector between Accumulo and D4M Matlab library.
 To add to a D4M installation:
 
 1. Copy `target/d4m_api_java-VERSION.jar` into `d4m_api/lib`.
-2. Extract target/libext_VERSION.zip into `d4m_api`.
+2. Extract target/libext-VERSION.zip into `d4m_api`.
 3. Move `d4m_api/DBinit.m` into `d4m_api/matlab_src`.
 
 ### Building
@@ -20,7 +20,7 @@ On non-linux systems, DBinit.m may not be built. See the message in the build af
 
 `post-test.bash` is a utility script to output test results to the console.
 
-Master: 
+Master (old version):
 [![Build Status](https://travis-ci.org/Accla/d4m_api_java.svg?branch=master)](https://travis-ci.org/Accla/d4m_api_java)
 [![Build Status](https://api.shippable.com/projects/5430748880088cee586d4466/badge?branchName=master)](https://app.shippable.com/projects/5430748880088cee586d4466/builds/latest)
 

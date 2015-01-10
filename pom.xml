@@ -61,6 +61,24 @@
                     <target>1.7</target>
                 </configuration>
             </plugin>
+            <!--Output test results to files so that they can be read by continuous integration servers-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.17</version>
+                <configuration>
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                    <reportsDirectory>shippable/testresults</reportsDirectory>
+                    <!--<argLine>-agentlib:jdwp=transport=dt_socket,server=n,address=127.0.0.1:5005,suspend=y</argLine>-->
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.maven.surefire</groupId>
+                        <artifactId>surefire-junit4</artifactId>
+                        <version>2.17</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
 
             <plugin>
                 <!-- Copy all original dependency JARs (including recursive dependencies) into target/libext

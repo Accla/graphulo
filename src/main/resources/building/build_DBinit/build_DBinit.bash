@@ -1,7 +1,7 @@
 #!/bin/bash
 # example: ./build_DBinit d4m_api_java-2.5.6-SNAPSHOT.jar libext
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-a="${project.build.finalName}" #DO_REPLACE_JAR_NAME
+a="${project.build.finalName}.jar" #DO_REPLACE_JAR_NAME
 b="$DIR/../../../${DBinit.path.libextFolder}" #libext/ for DO_REPLACE_MANY_LIBEXT_NAME
 c="$DIR/${DBinit.path.template}" #input file path : build_DBinit.m
 d="$DIR/../../../${DBinit.path.outputFile}" #output file path: DBinit.m

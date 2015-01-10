@@ -55,9 +55,9 @@ public class AccumuloConnection {
 		this.creds = new Credentials(this.conn.getUser(), this.passwordToken);
 
         //principal = username = this.conn.getUser()
-        System.out.println("about to make connector: user="+this.conn.getUser()+"   password="+ new String(this.passwordToken.getPassword()));
+        //System.out.println("about to make connector: user="+this.conn.getUser()+"   password="+ new String(this.passwordToken.getPassword()));
         this.connector = this.instance.getConnector(this.conn.getUser(), this.passwordToken);
-        System.out.println("made connector");
+        //System.out.println("made connector");
         String [] sAuth = conn.getAuthorizations();
         if (sAuth != null && sAuth.length > 0) {
             this.auth = new Authorizations(sAuth);

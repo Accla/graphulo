@@ -1,26 +1,3 @@
-d4m_api_java
-============
-
-NOTE: This is the Accumulo 1.6.0+ version.
-*This build will not work against Accumulo 1.5 and previous.*
-
-To add to a D4M installation:
-
-1. Copy `target/d4m_api_java-VERSION.jar` into `d4m_api/lib`.
-2. Extract target/libext-VERSION.zip into `d4m_api`.
-3. Move `d4m_api/DBinit.m` into `d4m_api/matlab_src`.
-
-### Building
-The maven script will build everything completely on linux.
-On non-linux systems, DBinit.m may not be built. See the message in the build after running `mvn package`.
-
-`mvn package -DskipTests=true` to compile and build JARs.
-
-`mvn test -Dtest=SomeTest#mini` to run a test on [MiniAccumulo](https://accumulo.apache.org/1.6/accumulo_user_manual.html#_mini_accumulo_cluster).
-
-`post-test.bash` is a utility script to output test results to the console.
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % D4M: Dynamic Distributed Dimensional Data Model
 % Architect: Dr. Jeremy Kepner (kepner@ll.mit.edu)
@@ -33,6 +10,7 @@ On non-linux systems, DBinit.m may not be built. See the message in the build af
 % MIT Lincoln Laboratory
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % (c) <2010> Massachusetts Institute of Technology
+% FOUO
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 INTRODUCTION

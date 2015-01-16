@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>edu.mit.ll</groupId>
+    <artifactId>d4m_api_java</artifactId>
+    <version>2.6.1-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <name>d4m_api_java</name>
+    <description>Java connector between Accumulo and D4M Matlab library.</description>
+    <url>http://www.mit.edu/~kepner/D4M/</url>
+    <organization>
+        <name>MIT Lincoln Laboratory</name>
+        <url>https://www.ll.mit.edu/</url>
+    </organization>
+    <licenses>
+        <license>
+            <name>GNU General Public License, Version 3</name>
+            <url>https://www.gnu.org/licenses/gpl.html</url>
+            <comments>Yep, we're open source. Please cite where credit is due.</comments>
+        </license>
+    </licenses>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	<DBinit.path.libextFolder>libext/</DBinit.path.libextFolder>
+	<DBinit.path.template>build_DBinit.m</DBinit.path.template>
+	<DBinit.path.outputFile>DBinit.m</DBinit.path.outputFile>
+	<DBinit.path.libextZip>libext-${project.version}.zip</DBinit.path.libextZip>
+    </properties>
+
+    
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>**/build_DBinit.bash</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>**/build_DBinit.bash</exclude>
+                </excludes>
+            </resource>
+        </resources>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.1</version>
+                <configuration>
+                    <source>1.7</source> <!-- Compile against JDK 1.7 -->
+                    <target>1.7</target>
+                </configuration>
+            </plugin>
+            <!--Output test results to files so that they can be read by continuous integration servers-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.17</version>
+                <configuration>
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                    <reportsDirectory>shippable/testresults</reportsDirectory>
+                    <!--<argLine>-agentlib:jdwp=transport=dt_socket,server=n,address=127.0.0.1:5005,suspend=y</argLine>-->
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.maven.surefire</groupId>
+                        <artifactId>surefire-junit4</artifactId>
+                        <version>2.17</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
+            <plugin>
+                <!-- Copy all original dependency JARs (including recursive dependencies) into target/libext
+                    Note that the original JARs will have overlapping code, e.g.,
+                    explicit deps accumulo-core and hadoop-hdfs may have a transitive dep commons-math. The commons-math dep is stored twice.
+                    To store the dep once, use the build-single method. -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>2.9</version>
+                <executions>
+                    <execution>
+                        <id>copy-dependencies</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/libext</outputDirectory>
+                            <type>jar</type>
+                            <includeScope>runtime</includeScope>  <!-- Don't include the test scope - we don't need those classes for dependencies. -->
+                            <!--<includeScope>compile</includeScope> Only adds the dep jdk-tools.jar, which has useless stuff provided by any jdk installation. -->
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin> <!-- Create a super-JAR out of the JARs for every dependncy in target/libext -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.5.3</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>${project.build.outputDirectory}/building/libext_assembly.xml</descriptor>
+                            </descriptors>
+                            <outputDirectory>${project.build.directory}</outputDirectory>
+                            <finalName>libext-${project.version}</finalName>
+                            <appendAssemblyId>false</appendAssemblyId>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Ensure this is the last step before the linux-specific profile for the message to be seen by non-linux users. -->
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <tasks>
+                                <chmod file="${project.build.outputDirectory}/building/build_DBinit/build_DBinit.bash" perm="u+x"/>
+                                <echo>If you are on linux, DBinit will build automatically.</echo>
+                                <echo>If not building on linux, you may not be able to build DBinit.m.</echo>
+				<echo>Try and execute the following script once: (do not move the file)</echo>
+                                <echo>  ${project.build.outputDirectory}/building/build_DBinit/build_DBinit.bash</echo>
+                            </tasks>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+          </plugins>
+	</build>
+
+    <profiles>
+        <profile>
+            <id>linux-build-DBinit</id>
+            <activation>
+                <os>
+                    <family>unix</family>
+                </os>
+            </activation>
+            <build>
+                <plugins>
+                    <!-- Create DBinit.m on linux systems. -->
+                    <plugin>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <version>1.3.2</version>
+                        <executions>
+                            <execution>
+                                <id>Build DBinit</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>${project.build.outputDirectory}/building/build_DBinit/build_DBinit.bash</executable>
+                                    <workingDirectory>${project.build.outputDirectory}</workingDirectory>
+                                    <!--<arguments>
+                                        <argument>${project.build.finalName}</argument>
+                                        <argument>../../libext/</argument>
+                                        <argument>build_DBinit.m</argument>
+                                        <argument>DBinit.m</argument>
+                                      </arguments>-->
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.accumulo</groupId>
+            <artifactId>accumulo-core</artifactId>
+            <version>1.6.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>2.3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.11</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.accumulo</groupId>
+            <artifactId>accumulo-minicluster</artifactId>
+            <version>1.6.1</version>
+            <scope>test</scope>
+        </dependency>
+	<!-- Used by some matlab JSON functions. -->
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>org.json</artifactId>
+            <version>chargebee-1.0</version>
+            <scope>runtime</scope>
+        </dependency>
+    </dependencies>
+
+</project>

@@ -13,11 +13,7 @@ d4m_home = fileparts(fileparts(mfilename('fullpath')));
 
 if 1
 
-if ispc
- fd = '\';
-else
- fd = '/';
-end
+fd = filesep;
 
 % USER: Add external files *NOT* included in LLONLY distribution.
 % Find the files and put them in lib or change these

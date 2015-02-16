@@ -25,11 +25,11 @@ public class InjectIterator extends WrappingIterator implements OptionDescriber 
         private static SortedMap<Key,Value> allEntriesToInject;
         {
             allEntriesToInject = new TreeMap<>();
-            allEntriesToInject.put(new Key(new Text("row1"), new Text("colF3"), new Text("colQ3")),
+            allEntriesToInject.put(new Key(new Text("row1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
                     new Value("1".getBytes()));
-            allEntriesToInject.put(new Key(new Text("row4"), new Text("colF3"), new Text("colQ3")),
+            allEntriesToInject.put(new Key(new Text("row4"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
                     new Value("1".getBytes()));
-            allEntriesToInject.put(new Key(new Text("row7"), new Text("colF3"), new Text("colQ3")),
+            allEntriesToInject.put(new Key(new Text("row7"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
                     new Value("1".getBytes()));
             allEntriesToInject = Collections.unmodifiableSortedMap(allEntriesToInject); // for safety
         }

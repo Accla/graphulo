@@ -25,6 +25,9 @@ public class ACCUMULO_TEST_CONFIG {
             case "mini":
                 AccumuloTester = new MiniAccumuloTester();
                 break;
+            case "mini2": // 2 tablet server MiniAccumuloCluster
+                AccumuloTester = new MiniAccumuloTester(2);
+                break;
             default:
                 log.warn("Using \"mini\" due to unrecognized TEST_ACCUMULO option: "+s);
                 AccumuloTester = new MiniAccumuloTester();

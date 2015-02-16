@@ -3,6 +3,7 @@ package edu.mit.ll.graphulo;
 import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
+import org.apache.accumulo.minicluster.MiniAccumuloConfig;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.rules.ExternalResource;
@@ -24,6 +25,15 @@ public class MiniAccumuloTester extends ExternalResource implements IAccumuloTes
     private Instance instance;
     private static final String USER = "root";
     private static final String PASSWORD = "password";
+    private int numTservers;
+
+    public MiniAccumuloTester() {
+        this(1);
+    }
+
+    public MiniAccumuloTester(int numTservers) {
+        this.numTservers = numTservers;
+    }
 
     public Connector getConnector() {
         Connector c = null;
@@ -39,7 +49,9 @@ public class MiniAccumuloTester extends ExternalResource implements IAccumuloTes
     @Override
     protected void before() throws Throwable {
         tempDir = Files.createTempDirectory("tempMini",new FileAttribute<?>[] {}).toFile();
-        miniaccumulo = new MiniAccumuloCluster(tempDir, PASSWORD);
+        MiniAccumuloConfig mac = new MiniAccumuloConfig(tempDir, PASSWORD)
+                .setNumTservers(numTservers);
+        miniaccumulo = new MiniAccumuloCluster(mac);
         miniaccumulo.start();
         instance = new ZooKeeperInstance(miniaccumulo.getInstanceName(), miniaccumulo.getZooKeepers());
         log.debug("setUp ok - instance: " + instance.getInstanceName());

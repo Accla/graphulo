@@ -1,4 +1,4 @@
-package testing;
+package edu.mit.ll.graphulo;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;

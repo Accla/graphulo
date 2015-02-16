@@ -1,4 +1,4 @@
-package testing;
+package edu.mit.ll.graphulo;
 
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.log4j.LogManager;

@@ -1,4 +1,4 @@
-package testing;
+package edu.mit.ll.graphulo;
 
 import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;

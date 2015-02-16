@@ -1,10 +1,9 @@
-package testing;
+package edu.mit.ll.graphulo;
 
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.*;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
@@ -12,10 +11,7 @@ import org.apache.log4j.Logger;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import java.util.Iterator;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -33,7 +29,7 @@ public class ATest extends MiniAccumuloTester {
 
     @Test
     public void testInsertScan() throws Exception {
-        final String tableName = "test_"+ATest.class.getSimpleName();
+        final String tableName = "test_"+ATest.class.getSimpleName()+"_testInsertScan";
         Connector conn = tester.getConnector();
         // create tableName
         if (!conn.tableOperations().exists(tableName))
@@ -84,5 +80,44 @@ public class ATest extends MiniAccumuloTester {
         // delete test data
         conn.tableOperations().delete(tableName);
 
+    }
+
+    @Test
+    public void testInjectOnScan() throws Exception {
+        final String tableName = "test_"+ATest.class.getSimpleName()+"_testInjectOnScan";
+        Connector conn = tester.getConnector();
+        // create tableName
+        if (!conn.tableOperations().exists(tableName))
+            conn.tableOperations().create(tableName);
+
+        // attach InjectIterator
+        IteratorSetting itset = new IteratorSetting(15, InjectIterator.class);
+        conn.tableOperations().attachIterator(tableName, itset, EnumSet.of(IteratorUtil.IteratorScope.scan));
+
+        // add a couple entries
+        BatchWriterConfig config = new BatchWriterConfig();
+        config.setMaxMemory(10000000L); // bytes available to batchwriter for buffering mutations
+        BatchWriter writer = conn.createBatchWriter(tableName,config);
+        Text[] rows = new Text[] {new Text("row2"), new Text("row4"), new Text("row8")};
+        Text cf = new Text("colF3");
+        Text cq = new Text("colQ3");
+        Value v = new Value("7".getBytes());
+        for (int i=0; i<rows.length; i++) {
+            Mutation m = new Mutation(rows[i]);
+            m.put(cf, cq, v);
+            writer.addMutation(m);
+        }
+        writer.flush();
+
+        // scan table
+        Scanner scan = conn.createScanner(tableName, Authorizations.EMPTY);
+
+        log.debug("Begin results of scan on table "+tableName+':');
+        for (Map.Entry<Key, Value> kv : scan) {
+            log.debug(kv);
+        }
+
+        // delete test data
+        conn.tableOperations().delete(tableName);
     }
 }

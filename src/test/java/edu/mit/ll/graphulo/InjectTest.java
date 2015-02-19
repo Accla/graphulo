@@ -19,10 +19,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Example tests.
+ * Tests to inject entries into the Accumulo iterator stream.
  */
-public class ATest extends MiniAccumuloTester {
-    private static final Logger log = LogManager.getLogger(ATest.class);
+public class InjectTest {
+    private static final Logger log = LogManager.getLogger(InjectTest.class);
 
     /** This is setup once for the entire class. */
     @ClassRule
@@ -38,7 +38,7 @@ public class ATest extends MiniAccumuloTester {
 
     @Test
     public void testInsertScan() throws Exception {
-        final String tableName = "test_"+ATest.class.getSimpleName()+"_testInsertScan";
+        final String tableName = "test_"+InjectTest.class.getSimpleName()+"_testInsertScan";
         Connector conn = tester.getConnector();
         if (conn.tableOperations().exists(tableName)) {
             conn.tableOperations().delete(tableName);
@@ -94,7 +94,7 @@ public class ATest extends MiniAccumuloTester {
 
     @Test
     public void testInjectOnScan() throws Exception {
-        final String tableName = "test_"+ATest.class.getSimpleName()+"_testInjectOnScan";
+        final String tableName = "test_"+InjectTest.class.getSimpleName()+"_testInjectOnScan";
         Connector conn = tester.getConnector();
         if (conn.tableOperations().exists(tableName)) {
             conn.tableOperations().delete(tableName);
@@ -145,7 +145,7 @@ public class ATest extends MiniAccumuloTester {
 
     @Test
     public void testInjectOnCompact() throws Exception {
-        final String tableName = "test_"+ATest.class.getSimpleName()+"_testInjectOnCompact";
+        final String tableName = "test_"+InjectTest.class.getSimpleName()+"_testInjectOnCompact";
         Connector conn = tester.getConnector();
         if (conn.tableOperations().exists(tableName)) {
             conn.tableOperations().delete(tableName);

@@ -23,6 +23,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -51,7 +52,6 @@ public class SomeTest {
             System.out.print(o+", ");
         }
         System.out.println();
-
     }
 
     static String[] getTXE1UserPass() throws IOException {
@@ -62,6 +62,7 @@ public class SomeTest {
         return new String[] { user, pass};
     }
 
+    @Ignore
     @Test
     public void testTXE1() throws AccumuloSecurityException, AccumuloException, Exception, TableNotFoundException, TableExistsException, IOException {
         Assume.assumeTrue("Test requires TXE1", new File("clouddb51_pass.txt").exists());
@@ -76,6 +77,7 @@ public class SomeTest {
         innerTest(instance,conn,connprops);
     }
 
+    @Ignore
     @Test
     public void testlocal() throws AccumuloSecurityException, AccumuloException, Exception, TableNotFoundException, TableExistsException, IOException {
         String instanceName = "Dev";
@@ -90,6 +92,7 @@ public class SomeTest {
         innerTest(instance,conn,connprops);
     }
 
+    @Ignore
     @Test
     public void testNormal() throws AccumuloSecurityException, AccumuloException, Exception, TableNotFoundException, TableExistsException {
         Instance instance = new ZooKeeperInstance(instanceName,zookeeperHost);

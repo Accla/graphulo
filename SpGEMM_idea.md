@@ -29,62 +29,79 @@ priority 0 / system iterators that read from the actual table data and emit tupl
 of the form **(row,colF,colQ,visibility,ts,val)** to a child iterator, going up priorities
 until we reach the last iterator (kind of priority infinity) which sends tuples to the client.
 
-Create the new table C and seed it by writing the dummy tuple ("","","","",Pts,""),
-where Pts is the timestamp of inserting the dummy tuple.
-The client performs this single entry write to table C.
+Create the new table C if it does not already exist.
+Implement the following iterator stack.
 
-If C already exists, need to experiment 
+    RemoteRowIterator from Table A
+	| emits whole rows of A
+	v
+	DotRemoteIterator from Table BT
+	| emits entries after multiplication
+	|
+	v      NormalTableEntries after VersioningIterator
+	o<____/ (merge)
+	|
+	v
+	SummingIterator
+	|
+	v
+	FinalResult
+	
+
 
 The first iterator `RemoteRowIterator`
 
-1. Receive the dummy tuple, or existing entries from C.
-If an existing entry, pass it alongside the computation so it can be added in later. Details todo.
-Involves encoding the current value of C alongside the whole row returned in the next step.
-2. Scans whole rows from remote table A of the form
+1. Scan whole rows from remote table A of the form
 (Arow,"","","",Ats,Ablob)
 where Ablob is a sorted list of all the tuples in an entire row from remote table A,
 i.e., Ablob expands to a list of (Arow,AcolF,AcolQ,Avis,Ats,Aval) entries.
 We get this whole row by attaching a scan-time `WholeRowIterator` to the scanner for table A.
-3. Emits tuples of the form
-(Arow,"","","",Pts,Ablob)
-copying in A's whole row encoding, except for the timestamp which is from the parent iterator.
-4. Continue scanning whole rows from A until there are no more, then finish.
+2. Emite the whole row tuples unchanged.
+3. Continue scanning whole rows from A until there are no more, then finish.
 
-The second iterator `DotRemoteRowIterator`
+The second iterator `DotRemoteIterator`
 
-1. Receives tuples from its parent iterator
-2. Scans whole rows from remote table BT of the form
-(BTrow,"","","",BTts,BTblob)
-where BTblob expands to a sorted list of entries of the form
+1. Receive whole row A tuples from its parent iterator.  Decode it.
+2. Set `fetchColumns(...)` on a BatchScanner for table BT to only receive the columns that exist in the whole row A.
+3. Scan entries from remote table BT of the form
 (BTrow,BTcolF,BTcolQ,BTvis,BTts,BTval).
-3. Dot product Ablob with BTblob. That is, for each pair of entries in Ablob and BTblob
-that have the same colF and colQ, *multiply* their values and *sum* all such values.
-4. Emit tuples of the form
-(Arow,"",BTrow,"",Pts, dot(Ablob,BTblob) ).
-5. Continue scanning whole rows from BT until there are no more,
+4. Multiply BTval with Aval as they match AcolF==BTcolF and AcolQ==BTcolQ.
+5. Emit the entry
+(Arow,colF,BTrow,"",ts,multval)
+where colF is the matching column family, "" means empty visibility,
+ts is a newly generated timestamp via `System.currentTimeMillis()`,
+and multval is the value after multiplication.
+6. Continue scanning entries from BT until there are no more,
 then receive a new whole row from A from the parent iterator until there are no more,
-then finish.
+then finish. (this is a two-level loop)
 
 We run these iterators once by manually initiating a compaction on table C
-(after adding the dummy value) with the iterators set for one-time execution.
+with the iterators set for one-time execution.
 
 If Accumulo kills an iterator, Accumulo restarts it with a seek command to its last returned value.
 We need to implement the iterators to recover their state from that information.
 For RemoteRowIterator, start scanning the row after the last one emitted.
-For DotRemoteRowIterator, get a whole row for table A from the parent and
+For DotRemoteIterator, get a whole row for table A from the parent and
 start scanning at the next whole row from table BT.
 
 ### Options
 We can store options for both iterators in their configuration on table C.
 
 1. Options for which remote table to connect to.
- * DB address and port
- * Table name
+ * `zookeeperHost` address and port
+ * `timeout` Zookeeper timeout between 1000 and 300000 (enforced in Accumulo source code)
+ * `instanceName` instance name
+ * `tableName` Remote Table name
+ * `username`
+ * **`password`** !!! Need a better option; stored in plaintext.
  * Username and password (or some other way of authenticating)
 2. Which rows of the table to scan, i.e. a list of Ranges.
+ * `doWholeRow` boolean
+ * `rowRanges` Matlab format
 3. (Maybe) Which columns of the table to scan. If included, it cannot have ranges
 (or at least, we would have to scan all the columns and then ignore the ones outside the range,
 so less efficient than taking a subset of rows).
+ * `colQFilter`
 4. Which *plusOp* and *multOp* to use.
 
 
@@ -105,24 +122,31 @@ seem more likely to get killed before making progress.
 
 We can implement by creating one big iterator,
 and we can also implement by creating many small iterators.
-I think the two-iterator setup is a nice balance.
-Going with more iterators would mean a separate iterator that performs the *multiply* option,
-one that performs the *sum* option, which are simple enough
-that I don't think it is worth the extra data passing in memory.
-
-Why the dummy value? I think we need it to start the first iterator.
-If there are no values in table C, the first iterator may never get called.
-Testing will confirm.
+Tradeoff: code mangagement/understandability vs. optimization/performance.
 
 Performance: Place table splits on C equal to the table splits on A.
 With enough tablet servers, this should make iterators for all the tablets of C
 scan all the tablets of A in parallel.
-We may need to alter the dummy rows so that there is a single "starter" entry at each tablet,
-and add a setting to the iterator so that it knows what these starter entries are.
-
-Timestamps set to the time the dummy row is added to table C.
 
 Visibility is up for grabs.  Right now it is ignored.
+
+We need to use a `Scanner` to maintain sorted order of scan results.
+`BatchScanner` may not return results in sorted order.
+Maybe `Scanner` will use less threads.
+
+Remote DB connection properties: 
+`org.apache.accumulo.core.conf.Property` lists a bunch of properties part of the Accumulo configuration.  
+We may be able to use some of these instead of passing all the connection information over the iterator configuration, if we are connecting to a table in the same Accumulo instance.
+I don't think this is public API.
+Also see `ClientConfiguration.loadDefault()`. 
+
+Password-- here are some alternatives to putting the password on plaintext on the Accumulo table configuration (which of note, can only be accessed by people who can read the Accumulo table configuration)
+
+* Public key or something similar? I can't find the correct classes in Accumulo, but 1.6 supposedly brought in new ways to authenticate.
+* If on the same instance, get login credentials from the place Accumulo stores them (in salted form?) (non-public API probably) 
+* If on the same instance, read Accumulo properties? (non-public API probably)
+* Setup some direct connection to a tablet server inside Accumulo is executing the iterator anyway. (lots of work, bypasses many useful mechanisms Accumulo has)
+ 
 
 Table C will only have a single column family "",
 treating all included column familes as part of the same dot product.
@@ -151,58 +175,17 @@ Better strategy to provide a number of useful plus and mult operations and restr
 
 This method does not require a daemon process on the Accumulo nodes. It's iterator-only.
 
+### Implementation notes
+* Be careful with seeking a `WholeRowIterator` in the middle of a row-- it will skip to the next row.
+I don't think it is a problem because Accumulo should not re-seek an iterator in the middle of a row.
+* `IteratorUtils.transformedIterator(...)` may come in handy for chaning returned `Key`s.
+* `Scanner.getReadaheadThreshold()` is configurable.  also `Scanner.setBatchSize()`.
+* Scanner spawns a class set with its options on calling `iterator()`. Ok.
+* `IsolatedScanner` vs. `Scanner.setIsolation(true)`?
+
 ## First Steps
-Create a `LogIterator` that logs values (via log4j) passed in from a parent iterator
-and passes them down to the next iterator. This allows us to see
-what goes in and out of a custom iterator by placing a `LogIterator` before and after it.
-
-
-
-
-
-
-
-
-
-
-
-<!-- Recycle Bin:
-1. RemoteRowIterator - reads 
-
-    iterator0 - Reads table data merged from RFiles and/or
-	   |||    emits ("","","","",ts,"") dummy tuple
-	   vvv    
-	iterator3 - 
-        v 
-       ...    continues down the chain, passing tuples through each iterator
-	    v
-	   |||
-	   vvv
-	iteratorN the last iterator sends tuples over the network
-
-We will implement CrossTableIterator similar to the following loop
-```
-for each (Prow,PcolF,PcolQ,Pvis,Pts,Pval) from parent iterator
-  open a scanner to the remote Accumulo table
-  for each (Orow,OcolF,OcolQ,Ovis,Ots,Oval) from remote table
-    emit (Orow,OcolF,OcolQ
-
-```
-
-For every value A received from the parent iterator,
-return A concatenated with every triple from a remote Accumulo table
-
-
-
-Options:
-
-* ReplaceRow -
- * "" for no replacement; use the row of the parent value.
- * "row" to replace with the row of the 
-* WholeRow - return a row from the other table at a time instead of a triple at a time
-
-This Java iterator emits values as the cross product
-of values received from its parent iterator
-and values from a remote Accumulo table.
-
--->
+1. Created `InjectIterator` that injects hardcoded values into an Accumulo table.
+It uses the side channel, but should work fine using a regular merge-in.
+2. Create `RemoteIterator` which ignores its parent source and instead reads out another Accumulo table.
+Tested with AND without the `WholeRowIterator`. Pass on both MiniAccumulo and standalone single-node Accumulo.
+Important to increase the Zookeeper timeout above 1000 ms.  I set it to 5000.

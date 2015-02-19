@@ -47,6 +47,16 @@ public class MiniAccumuloTester extends ExternalResource implements IAccumuloTes
     }
 
     @Override
+    public String getUsername() {
+        return USER;
+    }
+
+    @Override
+    public PasswordToken getPassword() {
+        return new PasswordToken(PASSWORD);
+    }
+
+    @Override
     protected void before() throws Throwable {
         tempDir = Files.createTempDirectory("tempMini",new FileAttribute<?>[] {}).toFile();
         MiniAccumuloConfig mac = new MiniAccumuloConfig(tempDir, PASSWORD)

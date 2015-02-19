@@ -4,7 +4,10 @@ import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.data.*;
+import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
@@ -19,8 +22,8 @@ import java.util.*;
 /**
  * Reads a whole row from a remote Accumulo table.
  */
-public class RemoteIterator implements SortedKeyValueIterator<Key,Value> {
-    private static final Logger log = LogManager.getLogger(RemoteIterator.class);
+public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value> {
+    private static final Logger log = LogManager.getLogger(RemoteSourceIterator.class);
 
     private String instanceName;
     private String tableName;
@@ -36,7 +39,7 @@ public class RemoteIterator implements SortedKeyValueIterator<Key,Value> {
     /** Holds the current range we are scanning.
      * Goes through the part of ranges after seeking to the beginning of the seek() clip. */
     private Iterator<Range> rowRangeIterator;
-    // Collection<Range> colFilter; todo
+    //private Collection<IteratorSetting.Column> colFilter;
 
     /** Created in init().  */
     private Scanner scanner;
@@ -44,12 +47,12 @@ public class RemoteIterator implements SortedKeyValueIterator<Key,Value> {
     private PeekingIterator<Map.Entry<Key,Value>> remoteIterator;
 
     /** Call init() after construction. */
-    public RemoteIterator() {}
+    public RemoteSourceIterator() {}
 
     /** Copies configuration from other, including connector,
      * EXCEPT creates a new, separate scanner.
      * No need to call init(). */
-    public RemoteIterator(RemoteIterator other) {
+    public RemoteSourceIterator(RemoteSourceIterator other) {
         other.instanceName = instanceName;
         other.tableName = tableName;
         other.zookeeperHost = zookeeperHost;
@@ -129,9 +132,8 @@ public class RemoteIterator implements SortedKeyValueIterator<Key,Value> {
      */
     @Override
     public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> map, IteratorEnvironment iteratorEnvironment) throws IOException {
-        // temp remove for testing
-//        if (source != null)
-//            throw new IllegalArgumentException("Does not take a parent source.");
+        if (source != null)
+            log.warn("RemoteSourceIterator ignores/replaces parent source passed in init(): "+source);
 
         parseOptions(map);
 
@@ -148,7 +150,7 @@ public class RemoteIterator implements SortedKeyValueIterator<Key,Value> {
 
     private void setupConnectorScanner() {
         ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeeperHost);
-        if (timeout == -1)
+        if (timeout != -1)
             cc = cc.withZkTimeout(timeout);
         Instance instance = new ZooKeeperInstance(cc);
         Connector connector;
@@ -171,7 +173,6 @@ public class RemoteIterator implements SortedKeyValueIterator<Key,Value> {
     protected void finalize() throws Throwable {
         super.finalize();
         scanner.close();
-
     }
 
     /**
@@ -199,7 +200,10 @@ public class RemoteIterator implements SortedKeyValueIterator<Key,Value> {
      */
     @Override
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+        seek(range);
+    }
 
+    public void seek(Range range) throws IOException {
         /** configure Scanner to the first entry to inject after the start of the range.
          Range comparison: infinite start first, then inclusive start, then exclusive start
          {@link org.apache.accumulo.core.data.Range#compareTo(Range)} */
@@ -207,6 +211,19 @@ public class RemoteIterator implements SortedKeyValueIterator<Key,Value> {
         rowRangeIterator = rowRanges.tailSet(range).iterator();
         remoteIterator = new PeekingIterator<>(java.util.Collections.<Map.Entry<Key,Value>>emptyIterator());
         next();
+    }
+
+    /**
+     * Restrict the columns fetched to the ones given. Takes effect on next seek().
+     * @param columns Columns to fetch. Null or empty collection for all columns.
+     * @throws IOException
+     */
+    public void setFetchColumns(Collection<IteratorSetting.Column> columns) throws IOException {
+        scanner.clearColumns();
+        if (columns != null)
+            for (IteratorSetting.Column column : columns) {
+                scanner.fetchColumn(column.getColumnFamily(), column.getColumnQualifier());
+            }
     }
 
 
@@ -283,7 +300,7 @@ public class RemoteIterator implements SortedKeyValueIterator<Key,Value> {
      */
     @Override
     public SortedKeyValueIterator<Key, Value> deepCopy(IteratorEnvironment iteratorEnvironment) {
-        return new RemoteIterator(this);
+        return new RemoteSourceIterator(this);
         // I don't think we need to copy the current scan location
     }
 }

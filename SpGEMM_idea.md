@@ -56,7 +56,7 @@ The first iterator `RemoteRowIterator`
 where Ablob is a sorted list of all the tuples in an entire row from remote table A,
 i.e., Ablob expands to a list of (Arow,AcolF,AcolQ,Avis,Ats,Aval) entries.
 We get this whole row by attaching a scan-time `WholeRowIterator` to the scanner for table A.
-2. Emite the whole row tuples unchanged.
+2. Emit the whole row tuples unchanged.
 3. Continue scanning whole rows from A until there are no more, then finish.
 
 The second iterator `DotRemoteIterator`
@@ -87,23 +87,44 @@ start scanning at the next whole row from table BT.
 ### Options
 We can store options for both iterators in their configuration on table C.
 
+
+4. Which *plusOp* and *multOp* to use.
+
+## List of Java Iterators
+
+### RemoteSourceIterator
+Returns entries from a table. Replaces/ignores entries from the parent, if present.
+
+Options:
+
 1. Options for which remote table to connect to.
  * `zookeeperHost` address and port
  * `timeout` Zookeeper timeout between 1000 and 300000 (enforced in Accumulo source code)
  * `instanceName` instance name
  * `tableName` Remote Table name
  * `username`
- * **`password`** !!! Need a better option; stored in plaintext.
+ * `password` !!! Need a better option; stored in plaintext.
  * Username and password (or some other way of authenticating)
 2. Which rows of the table to scan, i.e. a list of Ranges.
  * `doWholeRow` boolean
  * `rowRanges` Matlab format
-3. (Maybe) Which columns of the table to scan. If included, it cannot have ranges
+3. (Maybe) Which columns of the table to include. Cannot have ranges
 (or at least, we would have to scan all the columns and then ignore the ones outside the range,
 so less efficient than taking a subset of rows).
- * `colQFilter`
-4. Which *plusOp* and *multOp* to use.
+ * `fetchColumns`
 
+### RemoteMergeIterator
+Merges a `RemoteSourceIterator` into a standard SKVI stack.
+
+Options are all the options that a `RemoteSourceIterator` takes, 
+with their keys prepended with the string "RemoteSource."
+
+### (Todo) DotRemoteSourceIterator
+Holds a `RemoteSourceIterator` for A and a `RemoteSourceIterator` for BT.
+Reads whole rows of A and entries of BT.
+
+Options prepended by "A." and "BT." go to their remote tables.
+Also takes a "mult" option.
 
 ## Discussion
 Why use two iterators instead of a single iterator?
@@ -189,3 +210,10 @@ It uses the side channel, but should work fine using a regular merge-in.
 2. Create `RemoteIterator` which ignores its parent source and instead reads out another Accumulo table.
 Tested with AND without the `WholeRowIterator`. Pass on both MiniAccumulo and standalone single-node Accumulo.
 Important to increase the Zookeeper timeout above 1000 ms.  I set it to 5000.
+
+## Todo
+* Test `RemoteMergeIterator`
+* Test timeout now that it is not set to -1. Default is 1000ms.
+* Refactor such that no "RemoteMergeIterator.PREFIX_RemoteIterator" required.
+* Implement fetchColumns with ranges.
+* Implement rowRanges.

@@ -29,7 +29,7 @@ public class RealAccumuloTester extends ExternalResource implements IAccumuloTes
         try {
             c = instance.getConnector(username, auth);
         } catch (AccumuloException | AccumuloSecurityException e) {
-            log.error("failed to connect to MiniAccumulo instance",e);
+            log.error("failed to connect to Accumulo instance "+instance.getInstanceName(),e);
             throw new RuntimeException(e);
         }
         return c;

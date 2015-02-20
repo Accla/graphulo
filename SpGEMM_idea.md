@@ -212,8 +212,19 @@ Tested with AND without the `WholeRowIterator`. Pass on both MiniAccumulo and st
 Important to increase the Zookeeper timeout above 1000 ms.  I set it to 5000.
 
 ## Todo
-* Test `RemoteMergeIterator`
+* ~~Test `RemoteMergeIterator`~~
 * Test timeout now that it is not set to -1. Default is 1000ms.
+ * Ok on MiniAccumulo.
 * Refactor such that no "RemoteMergeIterator.PREFIX_RemoteIterator" required.
 * Implement fetchColumns with ranges.
 * Implement rowRanges.
+* Write test suite for MiniAccumulo on CI.
+* Think about unifying Options for Iterators with a base class that implements OptionsDescriber.
+* Generic MergeIterator that takes a list of Class,Prefix
+
+## Ideas
+* Separate package **edu.mit.ll.graphulo.ops** for operators on Values. Multiply and Sum.
+* Decided to treat column family as not something to include in dot product; treated separately.
+* Make `doWholeRow` option on table A and BT configurable, so that
+we use the streaming algorithm that does not require fitting a whole row in memory if doWholeRow=false on both
+and make optimizations if doWholeRow=true on either/both.

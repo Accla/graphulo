@@ -59,6 +59,7 @@ public class MiniAccumuloTester extends ExternalResource implements IAccumuloTes
     @Override
     protected void before() throws Throwable {
         tempDir = Files.createTempDirectory("tempMini",new FileAttribute<?>[] {}).toFile();
+        log.info("Using temp directory: "+tempDir.getPath());
         MiniAccumuloConfig mac = new MiniAccumuloConfig(tempDir, PASSWORD)
                 .setNumTservers(numTservers);
         miniaccumulo = new MiniAccumuloCluster(mac);

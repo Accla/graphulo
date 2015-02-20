@@ -9,6 +9,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
@@ -20,9 +21,9 @@ import java.io.IOException;
 import java.util.*;
 
 /**
- * Reads a whole row from a remote Accumulo table.
+ * Reads from a remote Accumulo table.
  */
-public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value> {
+public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
     private static final Logger log = LogManager.getLogger(RemoteSourceIterator.class);
 
     private String instanceName;
@@ -64,6 +65,86 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value> {
         other.setupConnectorScanner();
     }
 
+    static final IteratorOptions iteratorOptions;
+    static {
+        Map<String,String> optDesc = new LinkedHashMap<>();
+        optDesc.put("zookeeperHost", "address and port");
+        optDesc.put("timeout", "Zookeeper timeout between 1000 and 300000 (default 1000)");
+        optDesc.put("instanceName", "");
+        optDesc.put("tableName", "");
+        optDesc.put("username", "");
+        optDesc.put("password", "(Anyone who can read the Accumulo table config OR the log files will see your password in plaintext.)");
+        optDesc.put("doWholeRow", "Apply WholeRowIterator to remote table scan? (default no)");
+        optDesc.put("rowRanges", "Row ranges to scan for remote Accumulo table, Matlab syntax. (default ':' all)");
+        iteratorOptions = new IteratorOptions("RemoteSourceIterator",
+                "Reads from a remote Accumulo table. Replaces parent iterator with the remote table.",
+                Collections.unmodifiableMap(optDesc), null);
+    }
+
+    @Override
+    public IteratorOptions describeOptions() {
+        return iteratorOptions;
+    }
+
+    @Override
+    public boolean validateOptions(Map<String, String> options) {
+        return validateOptionsStatic(options);
+    }
+
+    public static boolean validateOptionsStatic(Map<String,String> options) {
+        // Shadow all the fields =)
+        String zookeeperHost=null, instanceName=null, tableName=null, username=null;
+        AuthenticationToken auth = null;
+        //int timeout;
+        //SortedSet<Range> rowRanges;
+        //boolean doWholeRow = false;
+
+        for (Map.Entry<String, String> entry : options.entrySet()) {
+            switch (entry.getKey()) {
+                case "zookeeperHost":
+                    zookeeperHost = entry.getValue();
+                    break;
+                case "timeout":
+                    try {
+                        int t = Integer.parseInt(entry.getValue());
+                        if (t < 1000 || t > 300000)
+                            throw new IllegalArgumentException("timeout out of range [1000,300000]: "+t);
+                    } catch (NumberFormatException e) {
+                        throw new IllegalArgumentException("bad timeout", e);
+                    }
+                    break;
+                case "instanceName":
+                    instanceName = entry.getValue();
+                    break;
+                case "tableName":
+                    tableName = entry.getValue();
+                    break;
+                case "username":
+                    username = entry.getValue();
+                    break;
+                case "password":
+                    auth = new PasswordToken(entry.getValue());
+                    break;
+                case "doWholeRow":
+
+                    break;
+                case "rowRanges":
+                    parseRanges(entry.getValue());
+                    break;
+                default:
+                    throw new IllegalArgumentException("unknown option: "+entry);
+            }
+        }
+        // Required options
+        if (zookeeperHost == null ||
+                instanceName == null ||
+                tableName == null ||
+                username == null ||
+                auth == null)
+            throw new IllegalArgumentException("not enough options provided");
+        return true;
+    }
+
     private void parseOptions(Map<String, String> map) {
         for (Map.Entry<String, String> entry : map.entrySet()) {
             switch (entry.getKey()) {
@@ -93,7 +174,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value> {
                     rowRanges = parseRanges(entry.getValue());
                     break;
                 default:
-                    log.info("Unrecognized option: "+entry);
+                    log.warn("Unrecognized option: " + entry);
                     continue;
             }
             log.info("Option OK: "+entry);
@@ -113,23 +194,13 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value> {
      * @param s -
      * @return a bunch of ranges
      */
-    private SortedSet<Range> parseRanges(String s) {
+    private static SortedSet<Range> parseRanges(String s) {
         // use Range.mergeOverlapping
         // then sort
         throw new UnsupportedOperationException("not yet implemented");
         //return null;
     }
 
-    /**
-     * Initializes the iterator. Data should not be read from the source in this method.
-     *
-     * @param source null
-     * @param map options
-     * @param iteratorEnvironment    @throws java.io.IOException
-     *                               unused.
-     * @throws IllegalArgumentException      if there are problems with the options.
-     * @throws UnsupportedOperationException if not supported.
-     */
     @Override
     public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> map, IteratorEnvironment iteratorEnvironment) throws IOException {
         if (source != null)
@@ -145,7 +216,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value> {
             scanner.addScanIterator(iset);
         }
 
-        log.info("init(...) succeeded; connected to table "+tableName+" of instance "+instanceName);
+        log.info("RemoteSourceIterator on table "+tableName+": init() succeeded");
     }
 
     private void setupConnectorScanner() {
@@ -175,35 +246,13 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value> {
         scanner.close();
     }
 
-    /**
-     * Seeks to the first key in the Range, restricting the resulting K,V pairs to those with the specified columns. An iterator does not have to stop at the end
-     * of the range. The whole range is provided so that iterators can make optimizations.
-     * <p/>
-     * Seek may be called multiple times with different parameters after {@link #init} is called.
-     * <p/>
-     * Iterators that examine groups of adjacent key/value pairs (e.g. rows) to determine their top key and value should be sure that they properly handle a seek
-     * to a key in the middle of such a group (e.g. the middle of a row). Even if the client always seeks to a range containing an entire group (a,c), the tablet
-     * server could send back a batch of entries corresponding to (a,b], then reseek the iterator to range (b,c) when the scan is continued.
-     * <p/>
-     * {@code columnFamilies} is used, at the lowest level, to determine which data blocks inside of an RFile need to be opened for this iterator. This set of data
-     * blocks is also the set of locality groups defined for the given table. If no columnFamilies are provided, the data blocks for all locality groups inside of
-     * the correct RFile will be opened and seeked in an attempt to find the correct start key, regardless of the startKey in the {@code range}.
-     * <p/>
-     * In an Accumulo instance in which multiple locality groups exist for a table, it is important to ensure that {@code columnFamilies} is properly set to the
-     * minimum required column families to ensure that data from separate locality groups is not inadvertently read.
-     *
-     * @param range      <tt>Range</tt> of keys to iterate over.
-     * @param columnFamilies unused
-     * @param inclusive      <tt>boolean</tt> that indicates whether to include (true) or exclude (false) column families.
-     * @throws java.io.IOException if an I/O error occurs.
-     * @throws IllegalArgumentException if there are problems with the parameters.
-     */
     @Override
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
         seek(range);
     }
 
     public void seek(Range range) throws IOException {
+        log.info("RemoteSourceIterator on table "+tableName+": about to seek() to range "+range);
         /** configure Scanner to the first entry to inject after the start of the range.
          Range comparison: infinite start first, then inclusive start, then exclusive start
          {@link org.apache.accumulo.core.data.Range#compareTo(Range)} */
@@ -228,26 +277,11 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value> {
 
 
 
-    /**
-     * Returns true if the iterator has more elements.
-     *
-     * @return <tt>true</tt> if the iterator has more elements.
-     * @throws IllegalStateException if called before seek.
-     */
     @Override
     public boolean hasTop() {
         return remoteIterator.hasNext();
     }
 
-    /**
-     * Advances to the next K,V pair. Note that in minor compaction scope and in non-full major compaction scopes the iterator may see deletion entries. These
-     * entries should be preserved by all iterators except ones that are strictly scan-time iterators that will never be configured for the minc or majc scopes.
-     * Deletion entries are only removed during full major compactions.
-     *
-     * @throws java.io.IOException    if an I/O error occurs.
-     * @throws IllegalStateException  if called before seek.
-     * @throws NoSuchElementException if next element doesn't exist.
-     */
     @Override
     public void next() throws IOException {
         if (rowRangeIterator == null || remoteIterator == null)
@@ -261,46 +295,21 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value> {
         // either no ranges left and we finished the current scan OR remoteIterator.hasNext()==true
     }
 
-
-
-    /**
-     * Returns top key. Can be called 0 or more times without affecting behavior of next() or hasTop(). Note that in minor compaction scope and in non-full major
-     * compaction scopes the iterator may see deletion entries. These entries should be preserved by all iterators except ones that are strictly scan-time
-     * iterators that will never be configured for the minc or majc scopes. Deletion entries are only removed during full major compactions.
-     *
-     * @return <tt>K</tt>
-     * @throws IllegalStateException  if called before seek.
-     * @throws NoSuchElementException if top element doesn't exist.
-     */
     @Override
     public Key getTopKey() {
         return remoteIterator.peek().getKey(); // returns null if hasTop()==false
     }
 
-    /**
-     * Returns top value. Can be called 0 or more times without affecting behavior of next() or hasTop().
-     *
-     * @return <tt>V</tt>
-     * @throws IllegalStateException  if called before seek.
-     * @throws NoSuchElementException if top element doesn't exist.
-     */
     @Override
     public Value getTopValue() {
         return remoteIterator.peek().getValue();
     }
 
-    /**
-     * Creates a deep copy of this iterator as though seek had not yet been called. init should be called on an iterator before deepCopy is called. init should
-     * not need to be called on the copy that is returned by deepCopy; that is, when necessary init should be called in the deepCopy method on the iterator it
-     * returns. The behavior is unspecified if init is called after deepCopy either on the original or the copy.
-     *
-     * @param iteratorEnvironment ok
-     * @return <tt>SortedKeyValueIterator</tt> a copy of this iterator (with the same source and settings).
-     * @throws UnsupportedOperationException if not supported.
-     */
     @Override
-    public SortedKeyValueIterator<Key, Value> deepCopy(IteratorEnvironment iteratorEnvironment) {
+    public RemoteSourceIterator deepCopy(IteratorEnvironment iteratorEnvironment) {
         return new RemoteSourceIterator(this);
         // I don't think we need to copy the current scan location
     }
+
+
 }

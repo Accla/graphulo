@@ -17,7 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Test RemoteSourceIterator.
+ * Test RemoteSourceIterator and RemoteMergeIterator.
  */
 public class RemoteIteratorTest {
     private static final Logger log = LogManager.getLogger(RemoteIteratorTest.class);
@@ -82,10 +82,10 @@ public class RemoteIteratorTest {
         itprops.put("doWholeRow","true"); // *
         IteratorSetting itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.RemoteSourceIterator", itprops);
         scanner.addScanIterator(itset);
-        System.out.println("Results of scan on table "+tableName2+" remote to "+tableName+':');
+        log.info("Results of scan on table "+tableName2+" remote to "+tableName+':');
         for (Map.Entry<Key, Value> entry : scanner) {
-            System.out.println(entry);
-            System.out.println("decoded: "+ WholeRowIterator.decodeRow(entry.getKey(), entry.getValue())); // *
+            log.info(entry);
+            log.info("decoded: "+ WholeRowIterator.decodeRow(entry.getKey(), entry.getValue())); // *
         }
 
         conn.tableOperations().delete(tableName);
@@ -151,13 +151,13 @@ public class RemoteIteratorTest {
         //itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator+"timeout","5000");
         itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator+"username",tester.getUsername());
         itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator+"password",new String(tester.getPassword().getPassword()));
-        itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator+"doWholeRow","true"); // *
+        //itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator+"doWholeRow","true"); // *
         IteratorSetting itset = new IteratorSetting(5, RemoteMergeIterator.class, itprops); //"edu.mit.ll.graphulo.RemoteSourceIterator", itprops);
         scanner.addScanIterator(itset);
-        System.out.println("Results of scan on table "+tableName2+" remote to "+tableName+':');
+        log.info("Results of scan on table "+tableName2+" remote to "+tableName+':');
         for (Map.Entry<Key, Value> entry : scanner) {
-            System.out.println(entry);
-            System.out.println("decoded: "+ WholeRowIterator.decodeRow(entry.getKey(), entry.getValue())); // *
+            log.info(entry);
+            //log.info("decoded: "+ WholeRowIterator.decodeRow(entry.getKey(), entry.getValue())); // *
         }
 
         conn.tableOperations().delete(tableName);

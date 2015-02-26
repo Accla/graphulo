@@ -77,7 +77,7 @@ public class MiniAccumuloTester extends ExternalResource implements IAccumuloTes
             System.err.print("Error stopping MiniAccumuloCluster: ");
             e.printStackTrace();
         }
-        tempDir.delete();
-        log.debug("tearDown ok - instance destroyed");
+        boolean b = tempDir.delete();
+        log.debug("tearDown ok - instance destroyed; tempDir deleted="+b);
     }
 }

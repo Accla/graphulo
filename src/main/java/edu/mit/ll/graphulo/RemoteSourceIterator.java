@@ -211,7 +211,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
         setupConnectorScanner();
 
         if (doWholeRow) {
-            // TODO: make priority dynamic in case 25 is taken; make name dynamic in case this iterator already exists. Or buffer here.
+            // TODO: make priority dynamic in case 25 is taken; make name dynamic in case iterator name already exists. Or buffer here.
             IteratorSetting iset = new IteratorSetting(25, WholeRowIterator.class);
             scanner.addScanIterator(iset);
         }
@@ -263,7 +263,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
     }
 
     /**
-     * Restrict the columns fetched to the ones given. Takes effect on next seek().
+     * Restrict columns fetched to the ones given. Takes effect on next seek().
      * @param columns Columns to fetch. Null or empty collection for all columns.
      * @throws IOException
      */
@@ -271,7 +271,10 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
         scanner.clearColumns();
         if (columns != null)
             for (IteratorSetting.Column column : columns) {
-                scanner.fetchColumn(column.getColumnFamily(), column.getColumnQualifier());
+                if (column.getColumnQualifier() == null)    // fetch all columns in this column family
+                    scanner.fetchColumnFamily(column.getColumnFamily());
+                else
+                    scanner.fetchColumn(column.getColumnFamily(), column.getColumnQualifier());
             }
     }
 

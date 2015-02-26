@@ -5,7 +5,7 @@ All triples are in the form (row,colQualifier,value).
 ## API for C += A *.+ B
 `TableMult(A, Arows, BT, BTrows, C, colFilter, plusOp, multOp)`
 
-e.g. `TableMult(A, 'doc1,doc3,doc5,:,doc7,', ':', BT, 'doc1,:,doc7,doc9,', 'C', '', 'plus', 'times')`
+e.g. `TableMult(A, 'doc1,doc3,doc5,:,doc7,', BT, 'doc1,:,doc7,doc9,', 'C', '', 'plus', 'times')`
 
 1. A: 		Accumulo table reference
 2. Arows: 	rows of A to take as subset (in Java, a sorted list of Ranges)
@@ -32,20 +32,28 @@ until we reach the last iterator (kind of priority infinity) which sends tuples 
 Create the new table C if it does not already exist.
 Implement the following iterator stack.
 
-    RemoteRowIterator from Table A
-	| emits whole rows of A
-	v
-	DotRemoteIterator from Table BT
-	| emits entries after multiplication
+    .RemoteSourceIterator-Table A
+	| whole rows of A
 	|
-	v      NormalTableEntries after VersioningIterator
-	o<____/ (merge)
+	|     .RemoteSourceIterator-Table BT
+	|     | entries of BT
+	|     |
+	v     v
+	DotRemoteSourceIterator
+	| multiply entries on corresponding columns
+	|
+	|
+	|     .NormalTableEntries after VersioningIterator
+	|     |
+	v     v
+	MergingIterator
+	|
 	|
 	v
 	SummingIterator
 	|
 	v
-	FinalResult
+	Output
 	
 
 

@@ -1,9 +1,9 @@
 language: java
-script: mvn test -Dtest=SomeTest#mini
+script: mvn test -Dtest=TEST_CONFIG
 after_script: ./post-test.bash
 notifications:
      email:
          recipients:
-             - dhutchis@stevens.edu
+             - dhutchis@mit.edu
          on_success: change
          on_failure: always

@@ -2,18 +2,19 @@ package edu.mit.ll.graphulo;
 
 import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.hadoop.io.Text;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -24,52 +25,27 @@ public class RemoteIteratorTest {
 
     /** This is setup once for the entire class. */
     @ClassRule
-    public static IAccumuloTester tester = ACCUMULO_TEST_CONFIG.AccumuloTester;
+    public static IAccumuloTester tester = TEST_CONFIG.AccumuloTester;
 
     @Test
     public void testSource() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
-        final String tableName = "test_"+RemoteIteratorTest.class.getSimpleName()+"_testSource";
         Connector conn = tester.getConnector();
 
-        if (conn.tableOperations().exists(tableName)) {
-            conn.tableOperations().delete(tableName);
-        }
-        conn.tableOperations().create(tableName);
-
-        // write some values to tableName
-        BatchWriterConfig config = new BatchWriterConfig();
-        config.setMaxMemory(10000000L); // bytes available to batchwriter for buffering mutations
-        BatchWriter writer = conn.createBatchWriter(tableName,config);
+        final String tableName = "test_"+RemoteIteratorTest.class.getSimpleName()+"_testSource";
         {
-            Text[] rows = new Text[]{new Text("ccc"), new Text("ddd"), new Text("pogo")};
-            Text cf = new Text("");
-            Text cq = new Text("cq");
-            Value v = new Value("7".getBytes());
-            for (Text row : rows) {
-                Mutation m = new Mutation(row);
-                m.put(cf, cq, v);
-                writer.addMutation(m);
-            }
-            writer.flush();
-        }
-        {
-            Text[] rows = new Text[]{new Text("ddd"), new Text("ggg"), new Text("pogo"), new Text("xyz")};
-            Text cf = new Text("");
-            Text cq = new Text("cq2");
-            Value v = new Value("8".getBytes());
-            for (Text row : rows) {
-                Mutation m = new Mutation(row);
-                m.put(cf, cq, v);
-                writer.addMutation(m);
-            }
-            writer.flush();
+            List<Pair<Key, Value>> list = new ArrayList<>();
+            list.add(new Pair<>(new Key("ccc", "", "cq"), new Value("7".getBytes())));
+            list.add(new Pair<>(new Key("ddd", "", "cq"), new Value("7".getBytes())));
+            list.add(new Pair<>(new Key("pogo", "", "cq"), new Value("7".getBytes())));
+            list.add(new Pair<>(new Key("ddd", "", "cq2"), new Value("8".getBytes())));
+            list.add(new Pair<>(new Key("ggg", "", "cq2"), new Value("8".getBytes())));
+            list.add(new Pair<>(new Key("pogo", "", "cq2"), new Value("8".getBytes())));
+            list.add(new Pair<>(new Key("xyz", "", "cq2"), new Value("8".getBytes())));
+            TestUtil.createTestTable(conn, tableName, list);
         }
 
         final String tableName2 = "test_"+RemoteIteratorTest.class.getSimpleName()+"_testSource_2";
-        if (conn.tableOperations().exists(tableName2)) {
-            conn.tableOperations().delete(tableName2);
-        }
-        conn.tableOperations().create(tableName2);
+        TestUtil.createTestTable(conn, tableName2, null);
 
         Scanner scanner = conn.createScanner(tableName2, Authorizations.EMPTY);
         Map<String,String> itprops = new HashMap<>();
@@ -94,54 +70,26 @@ public class RemoteIteratorTest {
 
     @Test
     public void testMerge() throws AccumuloSecurityException, AccumuloException, TableNotFoundException, TableExistsException, IOException {
-        final String tableName = "test_"+RemoteIteratorTest.class.getSimpleName()+"_testMerge";
         Connector conn = tester.getConnector();
 
-        if (conn.tableOperations().exists(tableName)) {
-            conn.tableOperations().delete(tableName);
-        }
-        conn.tableOperations().create(tableName);
-
-        // write some values to tableName
-        BatchWriterConfig config = new BatchWriterConfig();
-        config.setMaxMemory(10000000L); // bytes available to batchwriter for buffering mutations
-        BatchWriter writer = conn.createBatchWriter(tableName,config);
+        final String tableName = "test_"+RemoteIteratorTest.class.getSimpleName()+"_testMerge";
         {
-            Text[] rows = new Text[]{new Text("ccc"), new Text("ddd"), new Text("pogo")};
-            Text cf = new Text("");
-            Text cq = new Text("cq");
-            Value v = new Value("7".getBytes());
-            for (Text row : rows) {
-                Mutation m = new Mutation(row);
-                m.put(cf, cq, v);
-                writer.addMutation(m);
-            }
-            writer.flush();
+            List<Pair<Key, Value>> list = new ArrayList<>();
+            list.add(new Pair<>(new Key("ccc", "", "cq"), new Value("7".getBytes())));
+            list.add(new Pair<>(new Key("ddd", "", "cq"), new Value("7".getBytes())));
+            list.add(new Pair<>(new Key("pogo", "", "cq"), new Value("7".getBytes())));
+            TestUtil.createTestTable(conn, tableName, list);
         }
-        writer.close();
-
 
         final String tableName2 = "test_"+RemoteIteratorTest.class.getSimpleName()+"_testMerge_2";
-        if (conn.tableOperations().exists(tableName2)) {
-            conn.tableOperations().delete(tableName2);
-        }
-        conn.tableOperations().create(tableName2);
-
-        writer = conn.createBatchWriter(tableName2,config);
-        // write to second table
         {
-            Text[] rows = new Text[]{new Text("ddd"), new Text("ggg"), new Text("pogo"), new Text("xyz")};
-            Text cf = new Text("");
-            Text cq = new Text("cq2");
-            Value v = new Value("8".getBytes());
-            for (Text row : rows) {
-                Mutation m = new Mutation(row);
-                m.put(cf, cq, v);
-                writer.addMutation(m);
-            }
-            writer.flush();
+            List<Pair<Key, Value>> list = new ArrayList<>();
+            list.add(new Pair<>(new Key("ddd", "", "cq2"), new Value("8".getBytes())));
+            list.add(new Pair<>(new Key("ggg", "", "cq2"), new Value("8".getBytes())));
+            list.add(new Pair<>(new Key("pogo", "", "cq2"), new Value("8".getBytes())));
+            list.add(new Pair<>(new Key("xyz", "", "cq2"), new Value("8".getBytes())));
+            TestUtil.createTestTable(conn, tableName2, list);
         }
-        writer.close();
 
         Scanner scanner = conn.createScanner(tableName2, Authorizations.EMPTY);
         Map<String,String> itprops = new HashMap<>();

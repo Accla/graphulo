@@ -15,9 +15,10 @@ import java.util.*;
 
 /**
  * The multiply part of table-table multiplication.
+ * Todo: make this generic by accepting a whole row A source and a B source, instead of specifically RemoteSourceIterators. Configure options outside. Subclass RemoteSotMultIterator.
  */
-public class DotRemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
-    private static final Logger log = LogManager.getLogger(DotRemoteSourceIterator.class);
+public class DotMultIterator implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
+    private static final Logger log = LogManager.getLogger(DotMultIterator.class);
 
     private IMultiplyOp multiplyOp = new BigDecimalMultiply();
 
@@ -28,8 +29,8 @@ public class DotRemoteSourceIterator implements SortedKeyValueIterator<Key,Value
     private Text ArowRow = new Text();
     private SortedMap<Key,Value> ArowMap = new TreeMap<>(new ColFamilyQualifierComparator());
 
-    public static final String PREFIX_A = "A.";
-    public static final String PREFIX_BT = "BT.";
+    public static final String PREFIX_A = "A";
+    public static final String PREFIX_BT = "BT";
 
     static final OptionDescriber.IteratorOptions iteratorOptions;
     static {
@@ -41,7 +42,7 @@ public class DotRemoteSourceIterator implements SortedKeyValueIterator<Key,Value
             optDesc.put(PREFIX_BT+entry.getKey(), "Table BT:"+entry.getValue());
         }
 
-        iteratorOptions = new OptionDescriber.IteratorOptions("DotRemoteSourceIterator",
+        iteratorOptions = new OptionDescriber.IteratorOptions("DotMultIterator",
                 "Dot product on rows from Accumulo tables A and BT. Does not sum.",
                 optDesc, null);
     }
@@ -78,39 +79,45 @@ public class DotRemoteSourceIterator implements SortedKeyValueIterator<Key,Value
     @Override
     public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
         if (source != null)
-            log.warn("DotRemoteSourceIterator ignores/replaces parent source passed in init(): "+source);
+            log.warn("DotMultIterator ignores/replaces parent source passed in init(): "+source);
 
         // parse options, pass correct options to RemoteSourceIterator init()
-        Map<String,String> optA = new HashMap<>(), optBT = new HashMap<>();
-        for (Map.Entry<String, String> entry : options.entrySet()) {
-            String key = entry.getKey();
-            String v = entry.getValue();
-            if (key.startsWith(PREFIX_A)) {
-                // A must be whole row
-                String cutopt = key.substring(PREFIX_A.length());
-                if (cutopt.equals("doWholeRow") && !Boolean.parseBoolean(v)) {
-                    log.warn("Forcing doWholeRow option on table A to true. Given: " + v);
-                    continue;
-                }
-                optA.put(cutopt, v);
-            }
-            else if (key.startsWith(PREFIX_BT)) {
-                String cutopt = key.substring(PREFIX_BT.length());
-                if (cutopt.equals("doWholeRow") && Boolean.parseBoolean(v)) {
-                    log.warn("Forcing doWholeRow option on table BT to false. Given: " + v);
-                    continue;
-                }
-                optBT.put(cutopt, v);
-            }
-            else switch(key) {
-
+        Map<String,String> optA=null, optBT=null;
+        {
+            Map<String, Map<String, String>> prefixMap = GraphuloUtil.splitMapPrefix(options);
+            for (Map.Entry<String, Map<String, String>> prefixEntry : prefixMap.entrySet()) {
+                String prefix = prefixEntry.getKey();
+                Map<String, String> entryMap = prefixEntry.getValue();
+                switch (prefix) {
+                    case PREFIX_A: {
+                        String v = entryMap.remove("doWholeRow");
+                        if (v != null && !Boolean.parseBoolean(v)) {
+                            log.warn("Forcing doWholeRow option on table A to true. Given: " + v);
+                        }
+                        optA = entryMap;
+                        optA.put("doWholeRow", "true");
+                        break;
+                    }
+                    case PREFIX_BT: {
+                        String v = entryMap.remove("doWholeRow");
+                        if (v != null && Boolean.parseBoolean(v)) {
+                            log.warn("Forcing doWholeRow option on table BT to false. Given: " + v);
+                        }
+                        optBT = entryMap;
+                        optBT.put("doWholeRow", "false");
+                        break;
+                    }
                     default:
-                        log.warn("Unrecognized option: " + entry);
-                        //continue;
+                        for (Map.Entry<String, String> entry : entryMap.entrySet()) {
+                            log.warn("Unrecognized option: " + prefix + '.' + entry);
+                        }
+                        break;
                 }
+            }
+            if (optA == null) optA = new HashMap<>();
+            if (optBT == null) optBT = new HashMap<>();
         }
-        optA.put("doWholeRow","true");
-        optBT.put("doWholeRow","false");
+
         remoteA = new RemoteSourceIterator();
         remoteBT = new RemoteSourceIterator();
         remoteA.init(null, optA, env);
@@ -226,8 +233,8 @@ public class DotRemoteSourceIterator implements SortedKeyValueIterator<Key,Value
     }
 
     @Override
-    public DotRemoteSourceIterator deepCopy(IteratorEnvironment env) {
-        DotRemoteSourceIterator copy = new DotRemoteSourceIterator();
+    public DotMultIterator deepCopy(IteratorEnvironment env) {
+        DotMultIterator copy = new DotMultIterator();
         copy.remoteA = remoteA.deepCopy(env);
         copy.remoteBT = remoteBT.deepCopy(env);
         return copy;

@@ -6,9 +6,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
-import org.apache.accumulo.core.util.Pair;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,46 +25,67 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key,Value
 //    public abstract Pair<Key,Value> processBeforeMerge(Range seekRng, Key lastKey, Value lastValue);
 //    public abstract Pair<Key,Value> processAfterMerge(Range seekRng, Key lastKey, Value lastValue);
     /**
-     * Should call init() on the iterator to be setup.
-     * @param options ok
+     * Return the *bottom-most* iterator of the custom computation stack.
+     * The resulting iterator should be initalized; should not have to call init() on the resulting iterator.
+     * Can be null, but if null, why use a BranchIterator?
+     * @param options Options passed to the BranchIterator.
      */
-    public abstract SortedKeyValueIterator<Key,Value> initBranchIterator(Map<String, String> options);
+    public abstract SortedKeyValueIterator<Key,Value> initBranchIterator(Map<String, String> options, IteratorEnvironment env) throws IOException;
 
-    private MultiIterator multiIterator;
+    /**
+     * Opportunity to apply an SKVI stack after merging the custom computation stack into the regular parent stack.
+     * Returns parent by default.
+     * @param source The MultiIterator merging the normal stack and the custom branch stack.
+     * @param options Options passed to the BranchIterator.
+     * @return The bottom iterator.
+     */
+    public SortedKeyValueIterator<Key,Value> initBranchAfterIterator(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
+        return source;
+    }
+
+    private SortedKeyValueIterator<Key,Value> botIterator;
 
     @Override
     public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
         //super.init(source, options, env); // sets source
-        SortedKeyValueIterator<Key, Value> branchIterator = initBranchIterator(options);
-        List<SortedKeyValueIterator<Key,Value>> list = new ArrayList<>(2);
-        list.add(branchIterator);
-        list.add(source);
-        multiIterator = new MultiIterator(list, false);
+        SortedKeyValueIterator<Key, Value> branchIterator = initBranchIterator(options, env);
+        if (branchIterator == null) {
+            botIterator = source;
+        }
+        else {
+            List<SortedKeyValueIterator<Key, Value>> list = new ArrayList<>(2);
+            list.add(branchIterator);
+            list.add(source);
+            botIterator = new MultiIterator(list, false);
+        }
+        botIterator = initBranchAfterIterator(botIterator, options, env);
+        if (botIterator == null)
+            throw new IllegalStateException("--some subclass returned a null bottom iterator in branchAfter--");
     }
 
     @Override
     public boolean hasTop() {
-        return multiIterator.hasTop();
+        return botIterator.hasTop();
     }
 
     @Override
     public void next() throws IOException {
-        multiIterator.next();
+        botIterator.next();
     }
 
     @Override
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-        multiIterator.seek(range, columnFamilies, inclusive);
+        botIterator.seek(range, columnFamilies, inclusive);
     }
 
     @Override
     public Key getTopKey() {
-        return multiIterator.getTopKey();
+        return botIterator.getTopKey();
     }
 
     @Override
     public Value getTopValue() {
-        return multiIterator.getTopValue();
+        return botIterator.getTopValue();
     }
 
     @Override
@@ -77,7 +96,7 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key,Value
         } catch (InstantiationException | IllegalAccessException e) {
             throw new RuntimeException("cannot construct deepCopy", e);
         }
-        copy.multiIterator = multiIterator.deepCopy(env);
+        copy.botIterator = botIterator.deepCopy(env);
         return copy;
     }
 }

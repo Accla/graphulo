@@ -26,7 +26,7 @@ public class InjectTest {
 
     /** This is setup once for the entire class. */
     @ClassRule
-    public static IAccumuloTester tester = ACCUMULO_TEST_CONFIG.AccumuloTester;
+    public static IAccumuloTester tester = TEST_CONFIG.AccumuloTester;
 
     private void logList(Collection<?> list, String prefix) {
         StringBuilder sb = new StringBuilder(prefix+": ");

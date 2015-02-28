@@ -1,19 +1,17 @@
 package edu.mit.ll.graphulo;
 
 import org.apache.accumulo.core.client.*;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.data.*;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.PeekingIterator;
+import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -21,10 +19,11 @@ import java.io.IOException;
 import java.util.*;
 
 /**
- * Reads from a remote Accumulo table.
+ * SKVI that writes to an Accumulo table.
+ * Does all work in seek() method. hasTop() is always false.
  */
-public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
-    private static final Logger log = LogManager.getLogger(RemoteSourceIterator.class);
+public class RemoteWriteIterator extends WrappingIterator implements OptionDescriber {
+    private static final Logger log = LogManager.getLogger(RemoteWriteIterator.class);
 
     private String instanceName;
     private String tableName;
@@ -34,35 +33,23 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
     /** Zookeeper timeout in milliseconds */
     private int timeout = -1;
 
-    private boolean doWholeRow = false;
-    private SortedSet<Range> rowRanges = new TreeSet<>(Collections.singleton(new Range()));
-
-    /** Holds the current range we are scanning.
-     * Goes through the part of ranges after seeking to the beginning of the seek() clip. */
-    private Iterator<Range> rowRangeIterator;
-    //private Collection<IteratorSetting.Column> colFilter;
-
     /** Created in init().  */
-    private Scanner scanner;
-    /** Buffers one entry from the remote table. */
-    private PeekingIterator<Map.Entry<Key,Value>> remoteIterator;
+    private BatchWriter writer;
 
     /** Call init() after construction. */
-    public RemoteSourceIterator() {}
+    public RemoteWriteIterator() {}
 
     /** Copies configuration from other, including connector,
      * EXCEPT creates a new, separate scanner.
      * No need to call init(). */
-    public RemoteSourceIterator(RemoteSourceIterator other) {
+    public RemoteWriteIterator(RemoteWriteIterator other) {
         other.instanceName = instanceName;
         other.tableName = tableName;
         other.zookeeperHost = zookeeperHost;
         other.username = username;
         other.auth = auth;
         other.timeout = timeout;
-        other.doWholeRow = doWholeRow;
-        other.rowRanges = rowRanges;
-        other.setupConnectorScanner();
+        other.setupConnectorWriter();
     }
 
     static final IteratorOptions iteratorOptions;
@@ -74,10 +61,8 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
         optDesc.put("tableName", "");
         optDesc.put("username", "");
         optDesc.put("password", "(Anyone who can read the Accumulo table config OR the log files will see your password in plaintext.)");
-        optDesc.put("doWholeRow", "Apply WholeRowIterator to remote table scan? (default no)");
-        optDesc.put("rowRanges", "Row ranges to scan for remote Accumulo table, Matlab syntax. (default ':' all)");
-        iteratorOptions = new IteratorOptions("RemoteSourceIterator",
-                "Reads from a remote Accumulo table. Replaces parent iterator with the remote table.",
+        iteratorOptions = new IteratorOptions("RemoteWriteIterator",
+                "Write to a remote Accumulo table. hasTop() is always false.",
                 Collections.unmodifiableMap(optDesc), null);
     }
 
@@ -96,12 +81,8 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
         String zookeeperHost=null, instanceName=null, tableName=null, username=null;
         AuthenticationToken auth = null;
         //int timeout;
-        //SortedSet<Range> rowRanges;
-        //boolean doWholeRow = false;
 
         for (Map.Entry<String, String> entry : options.entrySet()) {
-            if (entry.getValue().isEmpty())
-                continue;
             switch (entry.getKey()) {
                 case "zookeeperHost":
                     zookeeperHost = entry.getValue();
@@ -127,12 +108,6 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
                 case "password":
                     auth = new PasswordToken(entry.getValue());
                     break;
-                case "doWholeRow":
-
-                    break;
-                case "rowRanges":
-                    parseRanges(entry.getValue());
-                    break;
                 default:
                     throw new IllegalArgumentException("unknown option: "+entry);
             }
@@ -149,8 +124,6 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
 
     private void parseOptions(Map<String, String> map) {
         for (Map.Entry<String, String> entry : map.entrySet()) {
-            if (entry.getValue().isEmpty())
-                continue;
             switch (entry.getKey()) {
                 case "zookeeperHost":
                     zookeeperHost = entry.getValue();
@@ -170,13 +143,6 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
                 case "password":
                     auth = new PasswordToken(entry.getValue());
                     break;
-
-                case "doWholeRow":
-                    doWholeRow = Boolean.parseBoolean(entry.getValue());
-                    break;
-                case "rowRanges":
-                    rowRanges = parseRanges(entry.getValue());
-                    break;
                 default:
                     log.warn("Unrecognized option: " + entry);
                     continue;
@@ -190,40 +156,22 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
                 username == null ||
                 auth == null)
             throw new IllegalArgumentException("not enough options provided");
-
-    }
-
-    /** Parse string s in the Matlab format "row1,row5,row7,:,row9,w,:,z,zz,:,"
-     * Does not have to be ordered but cannot overlap.
-     * @param s -
-     * @return a bunch of ranges
-     */
-    private static SortedSet<Range> parseRanges(String s) {
-        // use Range.mergeOverlapping
-        // then sort
-        throw new UnsupportedOperationException("not yet implemented");
-        //return null;
     }
 
     @Override
     public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> map, IteratorEnvironment iteratorEnvironment) throws IOException {
-        if (source != null)
-            log.warn("RemoteSourceIterator ignores/replaces parent source passed in init(): "+source);
+        super.init(source, map, iteratorEnvironment); // sets source
+        if (source == null)
+            throw new IllegalArgumentException("source must be specified");
 
         parseOptions(map);
 
-        setupConnectorScanner();
+        setupConnectorWriter();
 
-        if (doWholeRow) {
-            // TODO: make priority dynamic in case 25 is taken; make name dynamic in case iterator name already exists. Or buffer here.
-            IteratorSetting iset = new IteratorSetting(25, WholeRowIterator.class);
-            scanner.addScanIterator(iset);
-        }
-
-        log.info("RemoteSourceIterator on table "+tableName+": init() succeeded");
+        log.info("RemoteWriteIterator on table "+tableName+": init() succeeded");
     }
 
-    private void setupConnectorScanner() {
+    private void setupConnectorWriter() {
         ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeeperHost);
         if (timeout != -1)
             cc = cc.withZkTimeout(timeout);
@@ -236,8 +184,11 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
             throw new RuntimeException(e);
         }
 
+        BatchWriterConfig bwc = new BatchWriterConfig();
+        // TODO: consider max memory, max latency, timeout, ... on writer
+
         try {
-            scanner = connector.createScanner(tableName, Authorizations.EMPTY);
+            writer = connector.createBatchWriter(tableName, bwc);
         } catch (TableNotFoundException e) {
             log.error(tableName+" does not exist in instance "+instanceName, e);
             throw new RuntimeException(e);
@@ -246,76 +197,71 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
 
     @Override
     protected void finalize() throws Throwable {
+        log.info("finalize() called on RemoteWriteIterator for table "+tableName);
         super.finalize();
-        scanner.close();
+        writer.close();
     }
 
     @Override
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-        seek(range);
+        log.info("RemoteWriteIterator on table "+tableName+": about to seek() to range "+range);
+        super.seek(range, columnFamilies, inclusive);
+
+        writeAllSourceEntries();
     }
 
-    public void seek(Range range) throws IOException {
-        log.info("RemoteSourceIterator on table "+tableName+": about to seek() to range "+range);
-        /** configure Scanner to the first entry to inject after the start of the range.
-         Range comparison: infinite start first, then inclusive start, then exclusive start
-         {@link org.apache.accumulo.core.data.Range#compareTo(Range)} */
-        // P2: think about clipping the end if given an end key not -inf
-        rowRangeIterator = rowRanges.tailSet(range).iterator();
-        remoteIterator = new PeekingIterator<>(java.util.Collections.<Map.Entry<Key,Value>>emptyIterator());
-        next();
-    }
-
-    /**
-     * Restrict columns fetched to the ones given. Takes effect on next seek().
-     * @param columns Columns to fetch. Null or empty collection for all columns.
-     * @throws IOException
-     */
-    public void setFetchColumns(Collection<IteratorSetting.Column> columns) throws IOException {
-        scanner.clearColumns();
-        if (columns != null)
-            for (IteratorSetting.Column column : columns) {
-                if (column.getColumnQualifier() == null)    // fetch all columns in this column family
-                    scanner.fetchColumnFamily(column.getColumnFamily());
-                else
-                    scanner.fetchColumn(column.getColumnFamily(), column.getColumnQualifier());
+    private void writeAllSourceEntries() throws IOException {
+        Mutation m = null;
+        try {
+            while (super.hasTop()) {
+                Key k = super.getTopKey();
+                Value v = super.getTopValue();
+                m = new Mutation(k.getRowData().getBackingArray());
+                m.put(k.getColumnFamilyData().getBackingArray(), k.getColumnQualifierData().getBackingArray(),
+                        k.getColumnVisibilityParsed(), v.get()); // no ts? System.currentTimeMillis()
+                try {
+                    writer.addMutation(m);
+                } catch (MutationsRejectedException e) {
+                    log.warn("ignoring rejected mutations; last one added is " + m, e);
+                }
+                super.next();
             }
-    }
-
-
-
-    @Override
-    public boolean hasTop() {
-        return remoteIterator.hasNext();
-    }
-
-    @Override
-    public void next() throws IOException {
-        if (rowRangeIterator == null || remoteIterator == null)
-            throw new IllegalStateException("next() called before seek() b/c rowRangeIterator or remoteIterator not set");
-        remoteIterator.next(); // does nothing if there is no next (i.e. hasTop()==false)
-        while (!remoteIterator.hasNext() && rowRangeIterator.hasNext()) {
-            Range range = rowRangeIterator.next();
-            scanner.setRange(range);
-            remoteIterator = new PeekingIterator<>(scanner.iterator());
+        } finally {
+            try {
+                writer.flush();
+            } catch (MutationsRejectedException e) {
+                log.warn("ignoring rejected mutations; "
+                        + (m == null ? "none added so far (?)" : "last one added is " + m), e);
+            }
         }
-        // either no ranges left and we finished the current scan OR remoteIterator.hasNext()==true
     }
 
-    @Override
-    public Key getTopKey() {
-        return remoteIterator.peek().getKey(); // returns null if hasTop()==false
-    }
+
+
+    // will always return false by design
+//    @Override
+//    public boolean hasTop() {
+//        return false;
+//    }
+
+//    @Override
+//    public void next() throws IOException {
+//        throw new IllegalStateException("next() called before seek() b/c rowRangeIterator or remoteIterator not set");
+//    }
+
+//    @Override
+//    public Key getTopKey() {
+//        return null;
+//    }
+
+//    @Override
+//    public Value getTopValue() {
+//        return null;
+//    }
 
     @Override
-    public Value getTopValue() {
-        return remoteIterator.peek().getValue();
-    }
-
-    @Override
-    public RemoteSourceIterator deepCopy(IteratorEnvironment iteratorEnvironment) {
-        return new RemoteSourceIterator(this);
-        // I don't think we need to copy the current scan location
+    public RemoteWriteIterator deepCopy(IteratorEnvironment iteratorEnvironment) {
+        return new RemoteWriteIterator(this);
     }
 
 

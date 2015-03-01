@@ -7,7 +7,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.DebugIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.commons.collections.SetUtils;
 import org.apache.commons.lang3.time.StopWatch;
+import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -144,8 +146,9 @@ public class TableMultIteratorTest {
     @Test
     public void testTableMultIterator() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
         Connector conn = tester.getConnector();
+        final String tablePrefix = "testTableMult_";
 
-        final String tableNameA = "test_"+TableMultIteratorTest.class.getSimpleName()+"_testTableMultIterator_A";
+        final String tableNameA = tablePrefix+"A";
         {
             List<Pair<Key, Value>> list = new ArrayList<>();
             list.add(new Pair<>(new Key("A1", "", "C1"), new Value("2".getBytes())));
@@ -153,8 +156,11 @@ public class TableMultIteratorTest {
             list.add(new Pair<>(new Key("A2", "", "C1"), new Value("2".getBytes())));
             TestUtil.createTestTable(conn, tableNameA, list);
         }
+        SortedSet<Text> splitSet = new TreeSet<>();
+        splitSet.add(new Text("A15"));
+        //conn.tableOperations().addSplits(tableNameA, splitSet);
 
-        final String tableNameBT = "test_"+TableMultIteratorTest.class.getSimpleName()+"_testTableMultIterator_BT";
+        final String tableNameBT = tablePrefix+"BT";
         {
             List<Pair<Key, Value>> list = new ArrayList<>();
             list.add(new Pair<>(new Key("B1", "", "C2"), new Value("3".getBytes())));
@@ -164,12 +170,20 @@ public class TableMultIteratorTest {
             TestUtil.createTestTable(conn, tableNameBT, list);
         }
 
-        final String tableNameC = "test_"+TableMultIteratorTest.class.getSimpleName()+"_testTableMultIterator_C";
+        final String tableNameC = tablePrefix+"C";
         {
             List<Pair<Key, Value>> list = new ArrayList<>();
             list.add(new Pair<>(new Key("A1", "", "B1"), new Value("1".getBytes())));
+
+            Key testkey = new Key("zr", "", "zc");
+            testkey.setDeleted(true);
+            list.add( new Pair<Key, Value>(testkey, null));
+            //list.add(new Pair<>(new Key("zr", "", "zc"), new Value("100".getBytes())));
+
+
             TestUtil.createTestTable(conn, tableNameC, list);
         }
+        conn.tableOperations().addSplits(tableNameC, splitSet);
 
         Scanner scanner = conn.createScanner(tableNameC, Authorizations.EMPTY);
         Map<String,String> itprops = new HashMap<>();
@@ -209,6 +223,7 @@ public class TableMultIteratorTest {
 
         // first test on scan scope
         scanner.addScanIterator(itset);
+        scanner.addScanIterator(new IteratorSetting(16, DebugInfoIterator.class, Collections.<String, String>emptyMap()));
         {
             Set<Pair<Key, Value>> actual = new HashSet<>();
             log.info("Scanning with TableMultIterator:");
@@ -243,12 +258,25 @@ public class TableMultIteratorTest {
 
         // now test dumping to a totally different table ---------
         // make table R
-        final String tableNameZ = "test_"+TableMultIteratorTest.class.getSimpleName()+"_testTableMultIterator_Z";
-        Key testkey = new Key("AAA", "", "CCC");
-        testkey.setDeleted(true);
-        TestUtil.createTestTable(conn, tableNameZ, Collections.singleton(new Pair<Key,Value>(testkey, null))); // Write single delete entry to trigger compaction
-        final String tableNameR = "test_"+TableMultIteratorTest.class.getSimpleName()+"_testTableMultIterator_R";
+        final String tableNameZ = tablePrefix+"Z";
+        {
+            List<Pair<Key, Value>> list = new ArrayList<>();
+            list.add(new Pair<>(new Key("A1", "", "B1"), new Value("1".getBytes())));
+
+            Key testkey = new Key("AAA", "", "CCC");
+            testkey.setDeleted(true);
+            list.add( new Pair<Key, Value>(testkey, null));
+            testkey = new Key("zr", "", "zc");
+            testkey.setDeleted(true);
+            list.add( new Pair<Key, Value>(testkey, null));
+
+            TestUtil.createTestTable(conn, tableNameZ, list); // Write single delete entry to trigger compaction
+        }
+
+
+        final String tableNameR = tablePrefix+"R";
         TestUtil.createTestTable(conn, tableNameR, null);
+
         itprops.put("R.instanceName",conn.getInstance().getInstanceName());
         itprops.put("R.tableName",tableNameR);
         itprops.put("R.zookeeperHost",conn.getInstance().getZooKeepers());
@@ -256,6 +284,8 @@ public class TableMultIteratorTest {
         itprops.put("R.username",tester.getUsername());
         itprops.put("R.password",new String(tester.getPassword().getPassword()));
         IteratorSetting itset2 = new IteratorSetting(15, TableMultIterator.class, itprops);
+
+        conn.tableOperations().addSplits(tableNameZ, splitSet);
 
         // compact Z with iterator, writing to R
         List<IteratorSetting> listset2 = new ArrayList<>();
@@ -267,7 +297,7 @@ public class TableMultIteratorTest {
         log.info("compaction took " + sw.getTime() / 1000.0 + "s");
 
         expect = new HashSet<>();
-        expect.add(new Pair<>(new Key("A1", "", "B1"), new Value("6".getBytes())));
+        expect.add(new Pair<>(new Key("A1", "", "B1"), new Value("7".getBytes())));
         expect.add(new Pair<>(new Key("A1", "", "B2"), new Value("12".getBytes())));
         expect.add(new Pair<>(new Key("A2", "", "B2"), new Value("6".getBytes())));
 

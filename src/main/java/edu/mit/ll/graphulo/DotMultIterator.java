@@ -123,27 +123,50 @@ public class DotMultIterator implements SortedKeyValueIterator<Key,Value>, Optio
         remoteA.init(null, optA, env);
         remoteBT.init(null, optBT, env);
 
-
+        log.info("DotMultIterator init() ok");
     }
 
 
     @Override
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-        if (!range.isInfiniteStartKey())
-            range = new Range(new Key(range.getStartKey().getRow()), range.getEndKey());
-        remoteA.seek(range);
+        Range rA, rBT;
+        // if range is in the middle of a row, seek A to the beginning of the row and B to the correct location
+        if (range.isInfiniteStartKey()) {
+            rBT = INFINITE_RANGE;
+            if (range.isInfiniteStopKey())
+                rA = INFINITE_RANGE;
+            else
+                rA = new Range(null, range.getEndKey().getRow());
+        }
+        else {
+            rBT = new Range(range.getStartKey().getColumnQualifier(), range.isStartKeyInclusive(), null, false);
+            // Use special start key to work around seek() method of RowEncodingIterator
+            Key startK = new Key(range.getStartKey().getRow(), Long.MAX_VALUE-1);
+            if (range.isInfiniteStopKey())
+                rA = new Range(startK, null);
+            else
+                rA = new Range(startK, new Key(range.getEndKey().getRow()));
+
+        }
+        log.info("seek range: "+range);
+        log.info("rA   range: "+rA);
+        log.info("rBT  range: "+rBT);
+
+        remoteA.seek(rA);
+        // choosing not to handle case where we end in the middle of a row; allowed to return entries beyond the seek range
 
         if (!remoteA.hasTop()) {
             nextKey = null;
             nextValue = null;
             return;
         }
-        cacheArow();
+        cacheArow(false);
+        remoteBT.seek(rBT);
         while (!remoteBT.hasTop()) {
             remoteA.next();
             if (!remoteA.hasTop())
                 break;
-            cacheArow();
+            cacheArow(true);
         }
         if (!remoteBT.hasTop()) {
             nextKey = null;
@@ -151,6 +174,11 @@ public class DotMultIterator implements SortedKeyValueIterator<Key,Value>, Optio
             return;
         }
         cacheNextEntry();
+        if (hasTop())
+            log.info("prepared next entry "+getTopKey()+" ==> "
+                    +getTopValue());
+        else
+            log.info("hasTop() == false");
     }
 
     @Override
@@ -160,7 +188,7 @@ public class DotMultIterator implements SortedKeyValueIterator<Key,Value>, Optio
             remoteA.next();
             if (!remoteA.hasTop())
                 break;
-            cacheArow();
+            cacheArow(true);
         }
         if (!remoteBT.hasTop()) {
             nextKey = null;
@@ -168,6 +196,11 @@ public class DotMultIterator implements SortedKeyValueIterator<Key,Value>, Optio
             return;
         }
         cacheNextEntry();
+        if (hasTop())
+            log.info("prepared next entry "+getTopKey()+" ==> "
+                    +getTopValue());
+        else
+            log.info("hasTop() == false");
     }
 
     /** Compare only the column family and column qualifier. */
@@ -185,7 +218,7 @@ public class DotMultIterator implements SortedKeyValueIterator<Key,Value>, Optio
     }
     private static final Range INFINITE_RANGE = new Range();
 
-    private void cacheArow() throws IOException {
+    private void cacheArow(boolean seekBT) throws IOException {
         if (!remoteA.hasTop())
             throw new IllegalStateException("remoteA should hasTop(): "+remoteA);
         Key k = remoteA.getTopKey();
@@ -200,7 +233,8 @@ public class DotMultIterator implements SortedKeyValueIterator<Key,Value>, Optio
             c.add(new IteratorSetting.Column(key.getColumnFamily(),key.getColumnQualifier()));
         }
         remoteBT.setFetchColumns(c);
-        remoteBT.seek(INFINITE_RANGE);
+        if (seekBT)
+            remoteBT.seek(INFINITE_RANGE);
     }
 
     private void cacheNextEntry() {

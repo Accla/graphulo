@@ -36,6 +36,8 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
 
     private boolean doWholeRow = false;
     private SortedSet<Range> rowRanges = new TreeSet<>(Collections.singleton(new Range()));
+    /** The range given by seek. Clip to this range. */
+    private Range seekRange;
 
     /** Holds the current range we are scanning.
      * Goes through the part of ranges after seeking to the beginning of the seek() clip. */
@@ -250,6 +252,17 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
         scanner.close();
     }
 
+    /** Advance to the first subset range whose end key >= the seek start key. */
+    public Iterator<Range> getFirstRangeStarting(Range seekRange) {
+        PeekingIterator<Range> iter = new PeekingIterator<>(rowRanges.iterator());
+        while (iter.hasNext() && !iter.peek().isInfiniteStopKey()
+                && ((iter.peek().getEndKey().equals(seekRange.getStartKey()) && !seekRange.isEndKeyInclusive())
+                    || iter.peek().getEndKey().compareTo(seekRange.getStartKey()) < 0)) {
+            iter.next();
+        }
+        return iter;
+    }
+
     @Override
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
         seek(range);
@@ -261,7 +274,8 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
          Range comparison: infinite start first, then inclusive start, then exclusive start
          {@link org.apache.accumulo.core.data.Range#compareTo(Range)} */
         // P2: think about clipping the end if given an end key not -inf
-        rowRangeIterator = rowRanges.tailSet(range).iterator();
+        seekRange = range;
+        rowRangeIterator = getFirstRangeStarting(range); //rowRanges.tailSet(range).iterator();
         remoteIterator = new PeekingIterator<>(java.util.Collections.<Map.Entry<Key,Value>>emptyIterator());
         next();
     }
@@ -296,10 +310,18 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
         remoteIterator.next(); // does nothing if there is no next (i.e. hasTop()==false)
         while (!remoteIterator.hasNext() && rowRangeIterator.hasNext()) {
             Range range = rowRangeIterator.next();
+            range = range.clip(seekRange, true); // clip to the seek range
+            if (range == null) // empty intersection - no more ranges by design
+                return;
             scanner.setRange(range);
             remoteIterator = new PeekingIterator<>(scanner.iterator());
         }
         // either no ranges left and we finished the current scan OR remoteIterator.hasNext()==true
+        if (hasTop())
+            log.info(tableName+" prepared next entry "+getTopKey()+" ==> "
+                    +(doWholeRow ? WholeRowIterator.decodeRow(getTopKey(), getTopValue()) : getTopValue()));
+        else
+            log.info(tableName+" hasTop() == false");
     }
 
     @Override

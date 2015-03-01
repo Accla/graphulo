@@ -49,7 +49,7 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key,Value
 
     @Override
     public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
-        log.info("BranchIterator options: "+options);
+        //log.info("BranchIterator options: "+options);
         //super.init(source, options, env); // sets source
         SortedKeyValueIterator<Key, Value> branchIterator = initBranchIterator(options, env);
         if (branchIterator == null) {

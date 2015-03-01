@@ -52,7 +52,11 @@ public class TestUtil {
                     Key k = pair.getFirst();
                     Value v = pair.getSecond();
                     m = new Mutation(k.getRowData().getBackingArray());
-                    m.put(k.getColumnFamilyData().getBackingArray(), k.getColumnQualifierData().getBackingArray(),
+                    if (k.isDeleted())
+                        m.putDelete(k.getColumnFamilyData().getBackingArray(), k.getColumnQualifierData().getBackingArray(),
+                                k.getColumnVisibilityParsed()); // no ts? System.currentTimeMillis()
+                    else
+                        m.put(k.getColumnFamilyData().getBackingArray(), k.getColumnQualifierData().getBackingArray(),
                             k.getColumnVisibilityParsed(), v.get()); // no ts? System.currentTimeMillis()
                     writer.addMutation(m);
                 }

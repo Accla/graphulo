@@ -238,14 +238,59 @@ public class TableMultIteratorTest {
                 Key k = entry.getKey(); // don't copy vis or timestamp; we don't care about comparing those
                 actual.add(new Pair<>(new Key(k.getRow(), k.getColumnFamily(), k.getColumnQualifier()), entry.getValue()));
             }
-            Assert.assertEquals(expect,actual);
-            scanner.clearScanIterators();
+            Assert.assertEquals(expect, actual);
         }
 
+        // now test dumping to a totally different table ---------
+        // make table R
+        final String tableNameZ = "test_"+TableMultIteratorTest.class.getSimpleName()+"_testTableMultIterator_Z";
+        Key testkey = new Key("AAA", "", "CCC");
+        testkey.setDeleted(true);
+        TestUtil.createTestTable(conn, tableNameZ, Collections.singleton(new Pair<Key,Value>(testkey, null))); // Write single delete entry to trigger compaction
+        final String tableNameR = "test_"+TableMultIteratorTest.class.getSimpleName()+"_testTableMultIterator_R";
+        TestUtil.createTestTable(conn, tableNameR, null);
+        itprops.put("R.instanceName",conn.getInstance().getInstanceName());
+        itprops.put("R.tableName",tableNameR);
+        itprops.put("R.zookeeperHost",conn.getInstance().getZooKeepers());
+        //itprops.put("R.timeout","5000");
+        itprops.put("R.username",tester.getUsername());
+        itprops.put("R.password",new String(tester.getPassword().getPassword()));
+        IteratorSetting itset2 = new IteratorSetting(15, TableMultIterator.class, itprops);
 
+        // compact Z with iterator, writing to R
+        List<IteratorSetting> listset2 = new ArrayList<>();
+        listset2.add(itset2);
+        sw = new StopWatch();
+        sw.start();
+        conn.tableOperations().compact(tableNameZ, null, null, listset2, true, true); // block
+        sw.stop();
+        log.info("compaction took " + sw.getTime() / 1000.0 + "s");
+
+        expect = new HashSet<>();
+        expect.add(new Pair<>(new Key("A1", "", "B1"), new Value("6".getBytes())));
+        expect.add(new Pair<>(new Key("A1", "", "B2"), new Value("12".getBytes())));
+        expect.add(new Pair<>(new Key("A2", "", "B2"), new Value("6".getBytes())));
+
+        scanner.close();
+        scanner = conn.createScanner(tableNameR, Authorizations.EMPTY);
+        {
+            Set<Pair<Key, Value>> actual = new HashSet<>();
+            log.info("Scan R after compact on Z with TableMultIterator writing to R:");
+            for (Map.Entry<Key, Value> entry : scanner) {
+                log.info(entry);
+                Key k = entry.getKey(); // don't copy vis or timestamp; we don't care about comparing those
+                actual.add(new Pair<>(new Key(k.getRow(), k.getColumnFamily(), k.getColumnQualifier()), entry.getValue()));
+            }
+
+            Assert.assertEquals(expect, actual);
+        }
+
+        scanner.close();
         conn.tableOperations().delete(tableNameA);
         conn.tableOperations().delete(tableNameBT);
         conn.tableOperations().delete(tableNameC);
+        conn.tableOperations().delete(tableNameR);
+        conn.tableOperations().delete(tableNameZ);
     }
 
 }

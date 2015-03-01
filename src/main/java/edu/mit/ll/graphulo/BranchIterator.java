@@ -7,6 +7,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,7 +21,7 @@ import java.util.Map;
  * Child classes should return the iterator for their computation via initBranchIterator(options).
  */
 public abstract class BranchIterator implements SortedKeyValueIterator<Key,Value> {
-
+    private static final Logger log = LogManager.getLogger(BranchIterator.class);
 
 //    public abstract void initSetup(Map<String, String> options);
 //    public abstract Pair<Key,Value> processBeforeMerge(Range seekRng, Key lastKey, Value lastValue);
@@ -47,6 +49,7 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key,Value
 
     @Override
     public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
+        log.info("BranchIterator options: "+options);
         //super.init(source, options, env); // sets source
         SortedKeyValueIterator<Key, Value> branchIterator = initBranchIterator(options, env);
         if (branchIterator == null) {

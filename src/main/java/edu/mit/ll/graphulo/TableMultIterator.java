@@ -25,7 +25,7 @@ import java.util.Map;
 public class TableMultIterator extends BranchIterator implements OptionDescriber {
     private static final Logger log = LogManager.getLogger(TableMultIterator.class);
 
-    public static final String PREFIX_R = "R.";
+    public static final String PREFIX_R = "R";
 
     static final OptionDescriber.IteratorOptions iteratorOptions;
     static {

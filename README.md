@@ -4,6 +4,10 @@ d4m_api_java
 NOTE: This is the Accumulo 1.6.0+ version.
 *This build will not work against Accumulo 1.5 and previous.*
 
+[![Build Status](https://api.shippable.com/projects/54f27f245ab6cc13528fd44d/badge?branchName=master)](https://app.shippable.com/projects/54f27f245ab6cc13528fd44d/builds/latest)
+[![Build Status](https://travis-ci.org/Accla/d4m_api_java.svg)](https://travis-ci.org/Accla/d4m_api_java)
+
+### Using
 To add to a D4M installation:
 
 1. Copy `target/d4m_api_java-VERSION.jar` into `d4m_api/lib`.
@@ -16,11 +20,16 @@ On non-linux systems, DBinit.m may not be built. See the message in the build af
 
 `mvn package -DskipTests=true` to compile and build JARs.
 
-`mvn test -Dtest=SomeTest#mini` to run a test on [MiniAccumulo](https://accumulo.apache.org/1.6/accumulo_user_manual.html#_mini_accumulo_cluster).
+### Testing
+* `mvn test` to run tests on [MiniAccumulo][]
+* `mvn test -DTEST_CONFIG=local` to run tests on a local instance of Accumulo.
+See TEST_CONFIG.java for defining other options.
+* `post-test.bash` is a utility script to output test results to the console.
 
-`post-test.bash` is a utility script to output test results to the console.
+[MiniAccumulo]: https://accumulo.apache.org/1.6/accumulo_user_manual.html#_mini_accumulo_cluster
 
-
+## Original Readme
+<pre>
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % D4M: Dynamic Distributed Dimensional Data Model
 % Architect: Dr. Jeremy Kepner (kepner@ll.mit.edu)
@@ -106,3 +115,4 @@ KNOWN ISSUES
   GNU Octave 3.2.2 / Java PKG 1.2.6
     matlab_src/runTESTdir only works if Octave is launched in TEST directory
 
+</pre>

@@ -25,10 +25,11 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-	<DBinit.path.libextFolder>libext/</DBinit.path.libextFolder>
-	<DBinit.path.template>build_DBinit.m</DBinit.path.template>
-	<DBinit.path.outputFile>DBinit.m</DBinit.path.outputFile>
-	<DBinit.path.libextZip>libext-${project.version}.zip</DBinit.path.libextZip>
+        <DBinit.path.libextFolder>libext/</DBinit.path.libextFolder>
+        <DBinit.path.template>build_DBinit.m</DBinit.path.template>
+        <DBinit.path.outputFile>DBinit.m</DBinit.path.outputFile>
+        <DBinit.path.libextZip>libext-${project.version}.zip</DBinit.path.libextZip>
+        <test>TEST_CONFIG</test>
     </properties>
 
     
@@ -70,7 +71,7 @@
                     <redirectTestOutputToFile>true</redirectTestOutputToFile>
                     <reportsDirectory>shippable/testresults</reportsDirectory>
                     <!--<argLine>-agentlib:jdwp=transport=dt_socket,server=n,address=127.0.0.1:5005,suspend=y</argLine>-->
-                    <test>TEST_CONFIG</test> <!-- Only run tests in the TEST_CONFIG class. -->
+                    <test>${test}</test> <!-- Only run tests in the TEST_CONFIG class. -->
                 </configuration>
                 <dependencies>
                     <dependency>

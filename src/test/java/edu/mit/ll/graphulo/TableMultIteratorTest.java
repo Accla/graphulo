@@ -142,10 +142,10 @@ public class TableMultIteratorTest {
      * </pre>
      */
     @Test
-    public void testTableMultIteratorScan() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
+    public void testTableMultIterator() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
         Connector conn = tester.getConnector();
 
-        final String tableNameA = "test_"+TableMultIteratorTest.class.getSimpleName()+"_testTableMultIteratorScan_A";
+        final String tableNameA = "test_"+TableMultIteratorTest.class.getSimpleName()+"_testTableMultIterator_A";
         {
             List<Pair<Key, Value>> list = new ArrayList<>();
             list.add(new Pair<>(new Key("A1", "", "C1"), new Value("2".getBytes())));
@@ -154,7 +154,7 @@ public class TableMultIteratorTest {
             TestUtil.createTestTable(conn, tableNameA, list);
         }
 
-        final String tableNameBT = "test_"+TableMultIteratorTest.class.getSimpleName()+"_testTableMultIteratorScan_BT";
+        final String tableNameBT = "test_"+TableMultIteratorTest.class.getSimpleName()+"_testTableMultIterator_BT";
         {
             List<Pair<Key, Value>> list = new ArrayList<>();
             list.add(new Pair<>(new Key("B1", "", "C2"), new Value("3".getBytes())));
@@ -164,7 +164,7 @@ public class TableMultIteratorTest {
             TestUtil.createTestTable(conn, tableNameBT, list);
         }
 
-        final String tableNameC = "test_"+TableMultIteratorTest.class.getSimpleName()+"_testTableMultIteratorScan_C";
+        final String tableNameC = "test_"+TableMultIteratorTest.class.getSimpleName()+"_testTableMultIterator_C";
         {
             List<Pair<Key, Value>> list = new ArrayList<>();
             list.add(new Pair<>(new Key("A1", "", "B1"), new Value("1".getBytes())));
@@ -188,8 +188,8 @@ public class TableMultIteratorTest {
         itprops.put("BT.password",new String(tester.getPassword().getPassword()));
         //itprops.put("BT.doWholeRow","true"); // *
         IteratorSetting itset = new IteratorSetting(15, TableMultIterator.class, itprops);
-        scanner.addScanIterator(itset);
-        scanner.addScanIterator(new IteratorSetting(16, DebugInfoIterator.class, Collections.<String,String>emptyMap()));
+
+        //scanner.addScanIterator(new IteratorSetting(16, DebugInfoIterator.class, Collections.<String,String>emptyMap()));
 
         // compact
 //        List<IteratorSetting> listset = new ArrayList<>();
@@ -207,15 +207,41 @@ public class TableMultIteratorTest {
         expect.add(new Pair<>(new Key("A1", "", "B2"), new Value("12".getBytes())));
         expect.add(new Pair<>(new Key("A2", "", "B2"), new Value("6".getBytes())));
 
-        Set<Pair<Key,Value>> actual = new HashSet<>();
-        log.info("Results of scan on table " + tableNameC + " with A=" + tableNameA + " and BT="+tableNameBT+':');
-        for (Map.Entry<Key, Value> entry : scanner) {
-            log.info(entry);
-            Key k = entry.getKey(); // don't copy vis or timestamp; we don't care about comparing those
-            actual.add(new Pair<>(new Key(k.getRow(),k.getColumnFamily(), k.getColumnQualifier()), entry.getValue()));
+        // first test on scan scope
+        scanner.addScanIterator(itset);
+        {
+            Set<Pair<Key, Value>> actual = new HashSet<>();
+            log.info("Scanning with TableMultIterator:");
+            for (Map.Entry<Key, Value> entry : scanner) {
+                log.info(entry);
+                Key k = entry.getKey(); // don't copy vis or timestamp; we don't care about comparing those
+                actual.add(new Pair<>(new Key(k.getRow(), k.getColumnFamily(), k.getColumnQualifier()), entry.getValue()));
+            }
+            Assert.assertEquals(expect,actual);
+            scanner.clearScanIterators();
         }
 
-        Assert.assertEquals(expect,actual);
+        // now test on compact
+        List<IteratorSetting> listset = new ArrayList<>();
+        listset.add(itset);
+        StopWatch sw = new StopWatch();
+        sw.start();
+        conn.tableOperations().compact(tableNameC, null, null, listset, true, true); // block
+        sw.stop();
+        log.info("compaction took " + sw.getTime() / 1000.0 + "s");
+
+        {
+            Set<Pair<Key, Value>> actual = new HashSet<>();
+            log.info("Scan after compact with TableMultIterator:");
+            for (Map.Entry<Key, Value> entry : scanner) {
+                log.info(entry);
+                Key k = entry.getKey(); // don't copy vis or timestamp; we don't care about comparing those
+                actual.add(new Pair<>(new Key(k.getRow(), k.getColumnFamily(), k.getColumnQualifier()), entry.getValue()));
+            }
+            Assert.assertEquals(expect,actual);
+            scanner.clearScanIterators();
+        }
+
 
         conn.tableOperations().delete(tableNameA);
         conn.tableOperations().delete(tableNameBT);

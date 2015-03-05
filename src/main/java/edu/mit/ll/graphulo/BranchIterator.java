@@ -5,6 +5,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.log4j.LogManager;
@@ -29,17 +30,19 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key,Value
     /**
      * Return the *bottom-most* iterator of the custom computation stack.
      * The resulting iterator should be initalized; should not have to call init() on the resulting iterator.
-     * Can be null, but if null, why use a BranchIterator?
+     * Can be null, but if null, which means no computation performed.
      * @param options Options passed to the BranchIterator.
      */
-    public abstract SortedKeyValueIterator<Key,Value> initBranchIterator(Map<String, String> options, IteratorEnvironment env) throws IOException;
+    public SortedKeyValueIterator<Key,Value> initBranchIterator(Map<String, String> options, IteratorEnvironment env) throws IOException {
+        return null;
+    }
 
     /**
      * Opportunity to apply an SKVI stack after merging the custom computation stack into the regular parent stack.
      * Returns parent by default.
      * @param source The MultiIterator merging the normal stack and the custom branch stack.
      * @param options Options passed to the BranchIterator.
-     * @return The bottom iterator.
+     * @return The bottom iterator. Cannot be null. Return source if no additional computation is desired.
      */
     public SortedKeyValueIterator<Key,Value> initBranchAfterIterator(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
         return source;
@@ -49,13 +52,14 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key,Value
 
     @Override
     public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
+        IteratorUtil.IteratorScope scope = env.getIteratorScope();
+        log.info(this.getClass() + ": init on scope " + scope + (scope == IteratorUtil.IteratorScope.majc ? " fullScan=" + env.isFullMajorCompaction() : ""));
         //log.info("BranchIterator options: "+options);
         //super.init(source, options, env); // sets source
         SortedKeyValueIterator<Key, Value> branchIterator = initBranchIterator(options, env);
         if (branchIterator == null) {
             botIterator = source;
-        }
-        else {
+        } else {
             List<SortedKeyValueIterator<Key, Value>> list = new ArrayList<>(2);
             list.add(branchIterator);
             list.add(source);

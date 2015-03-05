@@ -4,10 +4,7 @@ import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.DebugIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.Pair;
-import org.apache.commons.collections.SetUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
@@ -79,21 +76,21 @@ public class TableMultIteratorTest {
 
         final String tableNameA = "test_"+TableMultIteratorTest.class.getSimpleName()+"_testDotMultIteratorScan_A";
         {
-            List<Pair<Key, Value>> list = new ArrayList<>();
-            list.add(new Pair<>(new Key("A1", "", "C1"), new Value("2".getBytes())));
-            list.add(new Pair<>(new Key("A1", "", "C2"), new Value("2".getBytes())));
-            list.add(new Pair<>(new Key("A2", "", "C1"), new Value("2".getBytes())));
-            TestUtil.createTestTable(conn, tableNameA, list);
+            Map<Key, Value> input = new HashMap<>();
+            input.put(new Key("A1", "", "C1"), new Value("2".getBytes()));
+            input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
+            input.put(new Key("A2", "", "C1"), new Value("2".getBytes()));
+            TestUtil.createTestTable(conn, tableNameA, null, input);
         }
 
         final String tableNameBT = "test_"+TableMultIteratorTest.class.getSimpleName()+"_testDotMultIteratorScan_BT";
         {
-            List<Pair<Key, Value>> list = new ArrayList<>();
-            list.add(new Pair<>(new Key("B1", "", "C2"), new Value("3".getBytes())));
-            list.add(new Pair<>(new Key("B1", "", "C3"), new Value("3".getBytes())));
-            list.add(new Pair<>(new Key("B2", "", "C1"), new Value("3".getBytes())));
-            list.add(new Pair<>(new Key("B2", "", "C2"), new Value("3".getBytes())));
-            TestUtil.createTestTable(conn, tableNameBT, list);
+            Map<Key, Value> input = new HashMap<>();
+            input.put(new Key("B1", "", "C2"), new Value("3".getBytes()));
+            input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
+            input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
+            input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
+            TestUtil.createTestTable(conn, tableNameBT, null, input);
         }
 
         final String tableNameC = "test_"+TableMultIteratorTest.class.getSimpleName()+"_testDotMultIteratorScan_C";
@@ -150,11 +147,11 @@ public class TableMultIteratorTest {
 
         final String tableNameA = tablePrefix+"A";
         {
-            List<Pair<Key, Value>> list = new ArrayList<>();
-            list.add(new Pair<>(new Key("A1", "", "C1"), new Value("2".getBytes())));
-            list.add(new Pair<>(new Key("A1", "", "C2"), new Value("2".getBytes())));
-            list.add(new Pair<>(new Key("A2", "", "C1"), new Value("2".getBytes())));
-            TestUtil.createTestTable(conn, tableNameA, list);
+            Map<Key, Value> input = new HashMap<>();
+            input.put(new Key("A1", "", "C1"), new Value("2".getBytes()));
+            input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
+            input.put(new Key("A2", "", "C1"), new Value("2".getBytes()));
+            TestUtil.createTestTable(conn, tableNameA, null, input);
         }
         SortedSet<Text> splitSet = new TreeSet<>();
         splitSet.add(new Text("A15"));
@@ -162,28 +159,27 @@ public class TableMultIteratorTest {
 
         final String tableNameBT = tablePrefix+"BT";
         {
-            List<Pair<Key, Value>> list = new ArrayList<>();
-            list.add(new Pair<>(new Key("B1", "", "C2"), new Value("3".getBytes())));
-            list.add(new Pair<>(new Key("B1", "", "C3"), new Value("3".getBytes())));
-            list.add(new Pair<>(new Key("B2", "", "C1"), new Value("3".getBytes())));
-            list.add(new Pair<>(new Key("B2", "", "C2"), new Value("3".getBytes())));
-            TestUtil.createTestTable(conn, tableNameBT, list);
+            Map<Key, Value> input = new HashMap<>();
+            input.put(new Key("B1", "", "C2"), new Value("3".getBytes()));
+            input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
+            input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
+            input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
+            TestUtil.createTestTable(conn, tableNameBT, null, input);
         }
 
         final String tableNameC = tablePrefix+"C";
         {
-            List<Pair<Key, Value>> list = new ArrayList<>();
-            list.add(new Pair<>(new Key("A1", "", "B1"), new Value("1".getBytes())));
+            Map<Key, Value> input = new HashMap<>();
+            input.put(new Key("A1", "", "B1"), new Value("1".getBytes()));
 
             Key testkey = new Key("zr", "", "zc");
             testkey.setDeleted(true);
-            list.add( new Pair<Key, Value>(testkey, null));
-            //list.add(new Pair<>(new Key("zr", "", "zc"), new Value("100".getBytes())));
+            input.put(testkey, null);
+            //list.put(new Key("zr", "", "zc"), new Value("100".getBytes())));
 
 
-            TestUtil.createTestTable(conn, tableNameC, list);
+            TestUtil.createTestTable(conn, tableNameC, splitSet, input);
         }
-        conn.tableOperations().addSplits(tableNameC, splitSet);
 
         Scanner scanner = conn.createScanner(tableNameC, Authorizations.EMPTY);
         Map<String,String> itprops = new HashMap<>();
@@ -216,21 +212,21 @@ public class TableMultIteratorTest {
 //        log.info("compaction took "+sw.getTime()/1000.0+"s");
 
 
-        Set<Pair<Key,Value>> expect = new HashSet<>();
-        expect.add(new Pair<>(new Key("A1", "", "B1"), new Value("7".getBytes())));
-        expect.add(new Pair<>(new Key("A1", "", "B2"), new Value("12".getBytes())));
-        expect.add(new Pair<>(new Key("A2", "", "B2"), new Value("6".getBytes())));
+        Map<Key,Value> expect = new HashMap<>();
+        expect.put(new Key("A1", "", "B1"), new Value("7".getBytes()));
+        expect.put(new Key("A1", "", "B2"), new Value("12".getBytes()));
+        expect.put(new Key("A2", "", "B2"), new Value("6".getBytes()));
 
         // first test on scan scope
         scanner.addScanIterator(itset);
         scanner.addScanIterator(new IteratorSetting(16, DebugInfoIterator.class, Collections.<String, String>emptyMap()));
         {
-            Set<Pair<Key, Value>> actual = new HashSet<>();
+            Map<Key, Value> actual = new HashMap<>();
             log.info("Scanning with TableMultIterator:");
             for (Map.Entry<Key, Value> entry : scanner) {
                 log.info(entry);
                 Key k = entry.getKey(); // don't copy vis or timestamp; we don't care about comparing those
-                actual.add(new Pair<>(new Key(k.getRow(), k.getColumnFamily(), k.getColumnQualifier()), entry.getValue()));
+                actual.put(new Key(k.getRow(), k.getColumnFamily(), k.getColumnQualifier()), entry.getValue());
             }
             Assert.assertEquals(expect,actual);
             scanner.clearScanIterators();
@@ -246,12 +242,12 @@ public class TableMultIteratorTest {
         log.info("compaction took " + sw.getTime() / 1000.0 + "s");
 
         {
-            Set<Pair<Key, Value>> actual = new HashSet<>();
+            Map<Key, Value> actual = new HashMap<>();
             log.info("Scan after compact with TableMultIterator:");
             for (Map.Entry<Key, Value> entry : scanner) {
                 log.info(entry);
                 Key k = entry.getKey(); // don't copy vis or timestamp; we don't care about comparing those
-                actual.add(new Pair<>(new Key(k.getRow(), k.getColumnFamily(), k.getColumnQualifier()), entry.getValue()));
+                actual.put(new Key(k.getRow(), k.getColumnFamily(), k.getColumnQualifier()), entry.getValue());
             }
             Assert.assertEquals(expect, actual);
         }
@@ -260,17 +256,17 @@ public class TableMultIteratorTest {
         // make table R
         final String tableNameZ = tablePrefix+"Z";
         {
-            List<Pair<Key, Value>> list = new ArrayList<>();
-            list.add(new Pair<>(new Key("A1", "", "B1"), new Value("1".getBytes())));
+            Map<Key, Value> input = new HashMap<>();
+            input.put(new Key("A1", "", "B1"), new Value("1".getBytes()));
 
             Key testkey = new Key("AAA", "", "CCC");
             testkey.setDeleted(true);
-            list.add( new Pair<Key, Value>(testkey, null));
+            input.put(testkey, null);
             testkey = new Key("zr", "", "zc");
             testkey.setDeleted(true);
-            list.add( new Pair<Key, Value>(testkey, null));
+            input.put(testkey, null);
 
-            TestUtil.createTestTable(conn, tableNameZ, list); // Write single delete entry to trigger compaction
+            TestUtil.createTestTable(conn, tableNameZ, splitSet, input); // Write single delete entry to trigger compaction
         }
 
 
@@ -281,11 +277,9 @@ public class TableMultIteratorTest {
         itprops.put("R.tableName",tableNameR);
         itprops.put("R.zookeeperHost",conn.getInstance().getZooKeepers());
         //itprops.put("R.timeout","5000");
-        itprops.put("R.username",tester.getUsername());
+        itprops.put("R.username", tester.getUsername());
         itprops.put("R.password",new String(tester.getPassword().getPassword()));
         IteratorSetting itset2 = new IteratorSetting(15, TableMultIterator.class, itprops);
-
-        conn.tableOperations().addSplits(tableNameZ, splitSet);
 
         // compact Z with iterator, writing to R
         List<IteratorSetting> listset2 = new ArrayList<>();
@@ -296,20 +290,20 @@ public class TableMultIteratorTest {
         sw.stop();
         log.info("compaction took " + sw.getTime() / 1000.0 + "s");
 
-        expect = new HashSet<>();
-        expect.add(new Pair<>(new Key("A1", "", "B1"), new Value("7".getBytes())));
-        expect.add(new Pair<>(new Key("A1", "", "B2"), new Value("12".getBytes())));
-        expect.add(new Pair<>(new Key("A2", "", "B2"), new Value("6".getBytes())));
+        expect = new HashMap<>();
+        expect.put(new Key("A1", "", "B1"), new Value("7".getBytes()));
+        expect.put(new Key("A1", "", "B2"), new Value("12".getBytes()));
+        expect.put(new Key("A2", "", "B2"), new Value("6".getBytes()));
 
         scanner.close();
         scanner = conn.createScanner(tableNameR, Authorizations.EMPTY);
         {
-            Set<Pair<Key, Value>> actual = new HashSet<>();
+            Map<Key, Value> actual = new HashMap<>();
             log.info("Scan R after compact on Z with TableMultIterator writing to R:");
             for (Map.Entry<Key, Value> entry : scanner) {
                 log.info(entry);
                 Key k = entry.getKey(); // don't copy vis or timestamp; we don't care about comparing those
-                actual.add(new Pair<>(new Key(k.getRow(), k.getColumnFamily(), k.getColumnQualifier()), entry.getValue()));
+                actual.put(new Key(k.getRow(), k.getColumnFamily(), k.getColumnQualifier()), entry.getValue());
             }
 
             Assert.assertEquals(expect, actual);

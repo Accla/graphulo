@@ -6,16 +6,13 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -34,19 +31,19 @@ public class RemoteIteratorTest {
 
         final String tableName = "test_"+RemoteIteratorTest.class.getSimpleName()+"_testSource";
         {
-            List<Pair<Key, Value>> list = new ArrayList<>();
-            list.add(new Pair<>(new Key("ccc", "", "cq"), new Value("7".getBytes())));
-            list.add(new Pair<>(new Key("ddd", "", "cq"), new Value("7".getBytes())));
-            list.add(new Pair<>(new Key("pogo", "", "cq"), new Value("7".getBytes())));
-            list.add(new Pair<>(new Key("ddd", "", "cq2"), new Value("8".getBytes())));
-            list.add(new Pair<>(new Key("ggg", "", "cq2"), new Value("8".getBytes())));
-            list.add(new Pair<>(new Key("pogo", "", "cq2"), new Value("8".getBytes())));
-            list.add(new Pair<>(new Key("xyz", "", "cq2"), new Value("8".getBytes())));
-            TestUtil.createTestTable(conn, tableName, list);
+            Map<Key, Value> input = new HashMap<>();
+            input.put(new Key("ccc", "", "cq"), new Value("7".getBytes()));
+            input.put(new Key("ddd", "", "cq"), new Value("7".getBytes()));
+            input.put(new Key("pogo", "", "cq"), new Value("7".getBytes()));
+            input.put(new Key("ddd", "", "cq2"), new Value("8".getBytes()));
+            input.put(new Key("ggg", "", "cq2"), new Value("8".getBytes()));
+            input.put(new Key("pogo", "", "cq2"), new Value("8".getBytes()));
+            input.put(new Key("xyz", "", "cq2"), new Value("8".getBytes()));
+            TestUtil.createTestTable(conn, tableName, null, input);
         }
 
         final String tableName2 = "test_"+RemoteIteratorTest.class.getSimpleName()+"_testSource_2";
-        TestUtil.createTestTable(conn, tableName2, null);
+        TestUtil.createTestTable(conn, tableName2);
 
         Scanner scanner = conn.createScanner(tableName2, Authorizations.EMPTY);
         Map<String,String> itprops = new HashMap<>();
@@ -75,19 +72,19 @@ public class RemoteIteratorTest {
 
         final String tableName = "test_"+RemoteIteratorTest.class.getSimpleName()+"_testSource";
         {
-            List<Pair<Key, Value>> list = new ArrayList<>();
-            list.add(new Pair<>(new Key("ccc", "", "cq"), new Value("7".getBytes())));
-            list.add(new Pair<>(new Key("ddd", "", "cq"), new Value("7".getBytes())));
-            list.add(new Pair<>(new Key("pogo", "", "cq"), new Value("7".getBytes())));
-            list.add(new Pair<>(new Key("ddd", "", "cq2"), new Value("8".getBytes())));
-            list.add(new Pair<>(new Key("ggg", "", "cq2"), new Value("8".getBytes())));
-            list.add(new Pair<>(new Key("pogo", "", "cq2"), new Value("8".getBytes())));
-            list.add(new Pair<>(new Key("xyz", "", "cq2"), new Value("8".getBytes())));
-            TestUtil.createTestTable(conn, tableName, list);
+            Map<Key, Value> input = new HashMap<>();
+            input.put(new Key("ccc", "", "cq"), new Value("7".getBytes()));
+            input.put(new Key("ddd", "", "cq"), new Value("7".getBytes()));
+            input.put(new Key("pogo", "", "cq"), new Value("7".getBytes()));
+            input.put(new Key("ddd", "", "cq2"), new Value("8".getBytes()));
+            input.put(new Key("ggg", "", "cq2"), new Value("8".getBytes()));
+            input.put(new Key("pogo", "", "cq2"), new Value("8".getBytes()));
+            input.put(new Key("xyz", "", "cq2"), new Value("8".getBytes()));
+            TestUtil.createTestTable(conn, tableName, null, input);
         }
 
         final String tableName2 = "test_"+RemoteIteratorTest.class.getSimpleName()+"_testSource_2";
-        TestUtil.createTestTable(conn, tableName2, null);
+        TestUtil.createTestTable(conn, tableName2);
 
         Scanner scanner = conn.createScanner(tableName2, Authorizations.EMPTY);
         Map<String,String> itprops = new HashMap<>();
@@ -120,21 +117,21 @@ public class RemoteIteratorTest {
 
         final String tableName = "test_"+RemoteIteratorTest.class.getSimpleName()+"_testMerge";
         {
-            List<Pair<Key, Value>> list = new ArrayList<>();
-            list.add(new Pair<>(new Key("ccc", "", "cq"), new Value("7".getBytes())));
-            list.add(new Pair<>(new Key("ddd", "", "cq"), new Value("7".getBytes())));
-            list.add(new Pair<>(new Key("pogo", "", "cq"), new Value("7".getBytes())));
-            TestUtil.createTestTable(conn, tableName, list);
+            Map<Key, Value> input = new HashMap<>();
+            input.put(new Key("ccc", "", "cq"), new Value("7".getBytes()));
+            input.put(new Key("ddd", "", "cq"), new Value("7".getBytes()));
+            input.put(new Key("pogo", "", "cq"), new Value("7".getBytes()));
+            TestUtil.createTestTable(conn, tableName, null, input);
         }
 
         final String tableName2 = "test_"+RemoteIteratorTest.class.getSimpleName()+"_testMerge_2";
         {
-            List<Pair<Key, Value>> list = new ArrayList<>();
-            list.add(new Pair<>(new Key("ddd", "", "cq2"), new Value("8".getBytes())));
-            list.add(new Pair<>(new Key("ggg", "", "cq2"), new Value("8".getBytes())));
-            list.add(new Pair<>(new Key("pogo", "", "cq2"), new Value("8".getBytes())));
-            list.add(new Pair<>(new Key("xyz", "", "cq2"), new Value("8".getBytes())));
-            TestUtil.createTestTable(conn, tableName2, list);
+            Map<Key, Value> input = new HashMap<>();
+            input.put(new Key("ddd", "", "cq2"), new Value("8".getBytes()));
+            input.put(new Key("ggg", "", "cq2"), new Value("8".getBytes()));
+            input.put(new Key("pogo", "", "cq2"), new Value("8".getBytes()));
+            input.put(new Key("xyz", "", "cq2"), new Value("8".getBytes()));
+            TestUtil.createTestTable(conn, tableName2, null, input);
         }
 
         Scanner scanner = conn.createScanner(tableName2, Authorizations.EMPTY);

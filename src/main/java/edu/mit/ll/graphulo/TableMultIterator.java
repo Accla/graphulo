@@ -79,21 +79,17 @@ public class TableMultIterator extends BranchIterator implements OptionDescriber
             for (Map.Entry<String, Map<String, String>> prefixEntry : prefixMap.entrySet()) {
                 final String prefix = prefixEntry.getKey();
                 Map<String, String> entryMap = prefixEntry.getValue();
-                Map<String,String> withPrefix = TransformedMap.decorateTransform(entryMap, new Transformer() {
-                    @Override
-                    public String transform(Object input) {
-                        return prefix + '.' + input;
-                    }
-                }, null);
+
                 switch (prefix) {
-                    case DotMultIterator.PREFIX_A: {
-                        optDM.putAll(withPrefix);
-                        break;
-                    }
+                    case DotMultIterator.PREFIX_A:
                     case DotMultIterator.PREFIX_BT: {
+                        Map<String,String> withPrefix = new HashMap<>(entryMap.size());
+                        for (Map.Entry<String, String> entry : entryMap.entrySet()) {
+                            withPrefix.put(prefix + '.' + entry.getKey(), entry.getValue());
+                        }
                         optDM.putAll(withPrefix);
-                        break;
                     }
+                    break;
                     case PREFIX_R: {
                         //optW.putAll(entryMap);
                         break;

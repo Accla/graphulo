@@ -13,16 +13,16 @@ import java.util.*;
  * A wrapper making a list of hardcoded data into a SKVI. For testing.
  */
 public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
-    private static SortedMap<Key,Value> allEntriesToInject;
-    {
-        allEntriesToInject = new TreeMap<>();
-        allEntriesToInject.put(new Key(new Text("row1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
+    final static SortedMap<Key,Value> allEntriesToInject;
+    static {
+        SortedMap<Key,Value> t = new TreeMap<>();
+        t.put(new Key(new Text("a1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
                 new Value("1".getBytes()));
-        allEntriesToInject.put(new Key(new Text("row4"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
+        t.put(new Key(new Text("c1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
                 new Value("1".getBytes()));
-        allEntriesToInject.put(new Key(new Text("row7"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
+        t.put(new Key(new Text("m1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
                 new Value("1".getBytes()));
-        allEntriesToInject = Collections.unmodifiableSortedMap(allEntriesToInject); // for safety
+        allEntriesToInject = Collections.unmodifiableSortedMap(t); // for safety
     }
 
     private PeekingIterator<Map.Entry<Key,Value>> inner;// = map.entrySet();

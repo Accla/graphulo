@@ -11,8 +11,9 @@ import java.util.*;
 
 /**
  * A wrapper making a list of hardcoded data into a SKVI. For testing.
+ * This version returns values past the seek() range fence, which will cause a BatchScanner to return duplicate values.
  */
-public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
+public class BadHardListIterator implements SortedKeyValueIterator<Key,Value> {
     final static SortedMap<Key,Value> allEntriesToInject;
     static {
         SortedMap<Key,Value> t = new TreeMap<>();
@@ -25,8 +26,7 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
         allEntriesToInject = Collections.unmodifiableSortedMap(t); // for safety
     }
 
-    private PeekingIterator<Map.Entry<Key,Value>> inner;
-    private Range seekRng;
+    private PeekingIterator<Map.Entry<Key,Value>> inner;// = map.entrySet();
 
     @Override
     public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
@@ -38,9 +38,9 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
 
     @Override
     public SortedKeyValueIterator<Key, Value> deepCopy(IteratorEnvironment env) {
-        HardListIterator newInstance;
+        BadHardListIterator newInstance;
         try {
-            newInstance = HardListIterator.class.newInstance();
+            newInstance = BadHardListIterator.class.newInstance();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -51,10 +51,7 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
 
     @Override
     public boolean hasTop() {
-        if (!inner.hasNext())
-            return false;
-        Key k = inner.peek().getKey();
-        return seekRng.contains(k);
+        return inner.hasNext();
     }
 
     @Override
@@ -64,7 +61,6 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
 
     @Override
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-        seekRng = range;
         // seek to first entry inside range
         if (range.isInfiniteStartKey())
             inner = new PeekingIterator<>( allEntriesToInject.entrySet().iterator() );
@@ -76,11 +72,11 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
 
     @Override
     public Key getTopKey() {
-        return hasTop() ? inner.peek().getKey() : null;
+        return inner.peek().getKey();
     }
 
     @Override
     public Value getTopValue() {
-        return hasTop() ? inner.peek().getValue() : null;
+        return inner.peek().getValue();
     }
 }

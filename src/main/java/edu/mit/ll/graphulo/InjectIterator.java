@@ -2,8 +2,6 @@ package edu.mit.ll.graphulo;
 
 import org.apache.accumulo.core.data.*;
 import org.apache.accumulo.core.iterators.*;
-import org.apache.accumulo.core.util.PeekingIterator;
-import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -23,7 +21,7 @@ public class InjectIterator extends BranchIterator implements OptionDescriber {
     @Override
     public SortedKeyValueIterator<Key,Value> initBranchIterator(Map<String, String> options, IteratorEnvironment env) throws IOException {
 
-        return new HardListIterator();
+        return new BadHardListIterator();
 //        side.init(null, null, env);
 //        env.registerSideChannel( side );
     }

@@ -32,7 +32,7 @@ public interface IGraphulo {
      *                  do not take ranges (meaning, need to scan all the columns and filter after receiving,
      *                  or use a {@link org.apache.accumulo.core.iterators.Filter}). Row subsets are easier than column.
      */
-    public void SpGEMM(String Ptable,
+    public void TableMult(String Ptable,
                        String Atable, Collection<Range> Arows,
                        String BTtable, Collection<Range> BTrows,
                        String Ctable, String Rtable,

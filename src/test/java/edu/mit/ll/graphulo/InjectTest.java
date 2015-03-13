@@ -2,6 +2,8 @@ package edu.mit.ll.graphulo;
 
 import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.Scanner;
+//import org.apache.accumulo.core.client.admin.CompactionConfig;
+//import org.apache.accumulo.core.client.impl.CompactionStrategyConfigUtil;
 import org.apache.accumulo.core.data.*;
 import org.apache.accumulo.core.iterators.DebugIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil;
@@ -90,7 +92,7 @@ public class InjectTest {
         TestUtil.createTestTable(conn, tableName, splitset);
 
         // expected data back
-        Map<Key,Value> expect = new HashMap<>(HardListIterator.allEntriesToInject);
+        Map<Key,Value> expect = new HashMap<>(BadHardListIterator.allEntriesToInject);
 
         // attach InjectIterator
         IteratorSetting itset = new IteratorSetting(15, InjectIterator.class);
@@ -133,7 +135,7 @@ public class InjectTest {
         TestUtil.createTestTable(conn, tableName, splitset);
 
         // expected data back
-        Map<Key,Value> expect = new HashMap<>(HardListIterator.allEntriesToInject);
+        Map<Key,Value> expect = new HashMap<>(BadHardListIterator.allEntriesToInject);
 
         // attach InjectIterator
         IteratorSetting itset = new IteratorSetting(15, InjectIterator.class);
@@ -179,7 +181,7 @@ public class InjectTest {
 
         // expected data back
         Map<Key,Value> expect = new HashMap<>(input);
-        expect.putAll(HardListIterator.allEntriesToInject);
+        expect.putAll(BadHardListIterator.allEntriesToInject);
 
         // attach InjectIterator
         IteratorSetting itset = new IteratorSetting(15, InjectIterator.class);
@@ -227,7 +229,7 @@ public class InjectTest {
 
         // expected data back
         Map<Key,Value> expect = new HashMap<>(input);
-        expect.putAll(HardListIterator.allEntriesToInject);
+        expect.putAll(BadHardListIterator.allEntriesToInject);
 
         // attach InjectIterator, flush and compact. Compaction blocks.
         IteratorSetting itset = new IteratorSetting(15, InjectIterator.class);
@@ -238,6 +240,13 @@ public class InjectTest {
         StopWatch sw = new StopWatch();
         sw.start();
         conn.tableOperations().compact(tableName, null, null, itlist, true, true);
+
+//        CompactionConfig cc = new CompactionConfig()
+//                .setCompactionStrategy(CompactionStrategyConfigUtil.DEFAULT_STRATEGY)
+//                .setStartRow(null).setEndRow(null).setIterators(itlist)
+//                .setFlush(true).setWait(true);
+//        conn.tableOperations().compact(tableName, cc);
+
         sw.stop();
         log.debug("compaction took "+sw.getTime()+" ms");
 
@@ -275,7 +284,7 @@ public class InjectTest {
         TestUtil.createTestTable(conn, tableName, splitset);
 
         // expected data back
-        Map<Key,Value> expect = new HashMap<>(HardListIterator.allEntriesToInject);
+        Map<Key,Value> expect = new HashMap<>(BadHardListIterator.allEntriesToInject);
 
         // attach InjectIterator, flush and compact. Compaction blocks.
         IteratorSetting itset = new IteratorSetting(15, InjectIterator.class);

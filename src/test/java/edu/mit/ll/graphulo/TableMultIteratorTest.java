@@ -1,5 +1,6 @@
 package edu.mit.ll.graphulo;
 
+import edu.mit.ll.graphulo.util.TestUtil;
 import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;

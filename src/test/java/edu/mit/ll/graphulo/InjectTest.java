@@ -1,5 +1,7 @@
 package edu.mit.ll.graphulo;
 
+import edu.mit.ll.graphulo.util.KnownBug;
+import edu.mit.ll.graphulo.util.TestUtil;
 import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.Scanner;
 //import org.apache.accumulo.core.client.admin.CompactionConfig;
@@ -82,6 +84,7 @@ public class InjectTest {
      * Test injecting data into an empty table at scan.
      */
     @Test
+    @KnownBug("ACCUMULO-3646")
     public void testInjectOnScan_Empty() throws Exception {
         Connector conn = tester.getConnector();
 
@@ -166,6 +169,7 @@ public class InjectTest {
      * Test injecting data into a table with other data at scan.
      */
     @Test
+    @KnownBug("ACCUMULO-3646")
     public void testInjectOnScan() throws Exception {
         Connector conn = tester.getConnector();
 
@@ -274,6 +278,7 @@ public class InjectTest {
      * Test injecting data into an empty table at manual full major compaction.
      */
     @Test
+    @KnownBug("ACCUMULO-3645")
     public void testInjectOnCompact_Empty() throws Exception {
         Connector conn = tester.getConnector();
 

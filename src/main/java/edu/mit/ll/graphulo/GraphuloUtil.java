@@ -11,7 +11,6 @@ public class GraphuloUtil {
     /**
      * Split options on period characters.
      * "" holds entries without a period.
-     * @param options Options.
      * @return Map Prefix -> (Map entryWithoutPrefix -> value)
      */
     public static Map<String,Map<String,String>> splitMapPrefix(Map<String,String> options) {
@@ -35,4 +34,12 @@ public class GraphuloUtil {
         }
         return prefixMap;
     }
+
+  public static Map<String,String> preprendPrefixToKey(String prefix, Map<String,String> options) {
+    Map<String,String> res = new HashMap<>(options.size());
+    for (Map.Entry<String, String> entry : options.entrySet()) {
+      res.put(prefix+entry.getKey(), entry.getValue());
+    }
+    return res;
+  }
 }

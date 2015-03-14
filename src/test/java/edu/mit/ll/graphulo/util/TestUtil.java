@@ -1,4 +1,4 @@
-package edu.mit.ll.graphulo;
+package edu.mit.ll.graphulo.util;
 
 import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.data.Key;
@@ -8,6 +8,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.junit.Rule;
+import org.junit.rules.TestName;
 
 import java.util.Comparator;
 import java.util.Map;
@@ -102,13 +104,13 @@ public class TestUtil {
 //    }
 
     /** Compare only the row, column family and column qualifier. */
-    static class KeyRowColFColQComparator implements Comparator<Key> {
+    public static class KeyRowColFColQComparator implements Comparator<Key> {
         @Override
         public int compare(Key k1, Key k2) {
             return k1.compareTo(k2, PartialKey.ROW_COLFAM_COLQUAL);
         }
     }
-    static final KeyRowColFColQComparator COMPARE_KEY_TO_COLQ = new KeyRowColFColQComparator();
+    public static final KeyRowColFColQComparator COMPARE_KEY_TO_COLQ = new KeyRowColFColQComparator();
 
 //    /**
 //     * Assert two collections of Keys are equal up to row, colummn family, column qulalifier.

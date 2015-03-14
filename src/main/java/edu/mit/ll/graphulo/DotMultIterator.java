@@ -1,5 +1,6 @@
 package edu.mit.ll.graphulo;
 
+import edu.mit.ll.graphulo.mult.BigDecimalMultiply;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.*;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;

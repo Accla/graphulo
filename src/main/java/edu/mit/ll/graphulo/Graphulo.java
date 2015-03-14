@@ -1,0 +1,153 @@
+package edu.mit.ll.graphulo;
+
+import edu.mit.ll.graphulo.mult.BigDecimalMultiply;
+import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.admin.ActiveCompaction;
+import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.iterators.Combiner;
+import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
+import java.util.*;
+
+/**
+ * Graphulo operation implementation.
+ */
+public class Graphulo implements IGraphulo {
+  private static final Logger log = LogManager.getLogger(Graphulo.class);
+
+  private Connector connector;
+  private PasswordToken password;
+
+  public Graphulo(Connector connector, PasswordToken password) {
+    this.connector = connector;
+    this.password = password;
+    checkCredentials();
+  }
+
+  /** Check password works for this user. */
+  private void checkCredentials() {
+    try {
+      if (!connector.securityOperations().authenticateUser(connector.whoami(), password))
+        throw new IllegalArgumentException("instance "+connector.getInstance().getInstanceName()+": bad username "+connector.whoami()+" with password "+new String(password.getPassword()));
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      throw new IllegalArgumentException("instance "+connector.getInstance().getInstanceName()+": error with username "+connector.whoami()+" with password "+new String(password.getPassword()), e);
+    }
+  }
+
+  @Override
+  public void TableMult(String Ptable,
+                        String Atable, String BTtable,
+                        Class<? extends IMultiplyOp> multOp, Class<? extends Combiner> sumOp,
+                        Collection<Range> rowFilter,
+                        Collection<IteratorSetting.Column> colFilter,
+                        String Ctable, String Rtable) {
+    if (Ptable == null || Ptable.isEmpty())
+      throw new IllegalArgumentException("Please specify table P. Given: "+Ptable);
+    if (Atable == null || Atable.isEmpty())
+      throw new IllegalArgumentException("Please specify table A. Given: "+Atable);
+    if (BTtable == null || BTtable.isEmpty())
+      throw new IllegalArgumentException("Please specify table BT. Given: "+BTtable);
+//    if (Rtable == null || Rtable.isEmpty())
+//      throw new IllegalArgumentException("Please specify table R. Given: "+Rtable);
+    if (Atable.equals(Ptable))
+      log.warn("Untested combination: Atable=Ptable="+Atable);
+    if (BTtable.equals(Ptable))
+      log.warn("Untested combination: BTtable=Ptable="+BTtable);
+
+    if (rowFilter != null && !rowFilter.isEmpty())
+      throw new UnsupportedOperationException("rowFilter is not yet implemented; given: "+rowFilter);
+    if (colFilter != null && !colFilter.isEmpty())
+      throw new UnsupportedOperationException("colFilter is not yet implemented; given: "+colFilter);
+    if (multOp == null || !multOp.equals(BigDecimalMultiply.class))
+      throw new UnsupportedOperationException("only supported multOp is BigDecimalMultiply, but given: "+multOp);
+    if (sumOp == null || !sumOp.equals(BigDecimalCombiner.BigDecimalSummingCombiner.class))
+      throw new UnsupportedOperationException("only supported sumOp is BigDecimalSummingCombiner, but given: "+multOp);
+
+    TableOperations tops = connector.tableOperations();
+    if (!tops.exists(Atable))
+      throw new IllegalArgumentException("Table A does not exist. Given: "+Atable);
+    if (!tops.exists(BTtable))
+      throw new IllegalArgumentException("Table BT does not exist. Given: "+BTtable);
+
+    if (!tops.exists(Ptable))
+      try {
+        tops.create(Ptable);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        log.error("error trying to create P table "+Ptable, e);
+        throw new RuntimeException(e);
+      } catch (TableExistsException e) {
+        log.error("impossible",e);
+        throw new RuntimeException(e);
+      }
+
+    String instance = connector.getInstance().getInstanceName();
+    String zookeepers = connector.getInstance().getZooKeepers();
+    String user = connector.whoami();
+
+    Map<String,String> opt = new HashMap<>();
+    opt.put("A.zookeeperHost", zookeepers);
+    opt.put("A.instanceName", instance);
+    opt.put("A.tableName", Atable);
+    opt.put("A.username", user);
+    opt.put("A.password", new String(password.getPassword()));
+    opt.put("BT.zookeeperHost", zookeepers);
+    opt.put("BT.instanceName", instance);
+    opt.put("BT.tableName", BTtable);
+    opt.put("BT.username", user);
+    opt.put("BT.password", new String(password.getPassword()));
+
+    if (Rtable != null && !Rtable.isEmpty() && !Ptable.equals(Rtable)) {
+      opt.put("R.zookeeperHost", zookeepers);
+      opt.put("R.instanceName", instance);
+      opt.put("R.tableName", Rtable);
+      opt.put("R.username", user);
+      opt.put("R.password", new String(password.getPassword()));
+    }
+    // okay if C==R
+    if (Ctable != null && !Ctable.isEmpty() && !Ctable.equals(Ptable)) {
+      opt.put("C.zookeeperHost", zookeepers);
+      opt.put("C.instanceName", instance);
+      opt.put("C.tableName", Ctable);
+      opt.put("C.username", user);
+      opt.put("C.password", new String(password.getPassword()));
+    }
+
+    // TODO P2: Assign priority and name dynamically, checking for conflicts.
+    IteratorSetting itset = new IteratorSetting(2, TableMultIterator.class, opt);
+    try {
+      //tops.attachIterator(Ptable, itset);
+      long t1 = System.currentTimeMillis();
+      // flush, block
+      tops.compact(Ptable, null, null, Collections.singletonList(itset), true, true);
+      long t2 = System.currentTimeMillis();
+      log.info("Time for blocking compact() call to return: "+(t2-t1)/1000.0);
+    } catch (AccumuloException e) {
+      log.error("error trying to compact "+Ptable+" with TableMultIterator; is the iterator installed on the Accumulo server?", e);
+      throw new RuntimeException(e);
+    } catch (AccumuloSecurityException e) {
+      log.error("error trying to compact "+Ptable+" with TableMultIterator", e);
+      throw new RuntimeException(e);
+    } catch (TableNotFoundException e) {
+      log.error("impossible", e);
+      throw new RuntimeException(e);
+    } finally {
+
+      // important to cancel compaction in case the compaction errored,
+      // or else Accumulo will continue restarting compaction and erroring
+      try {
+        tops.cancelCompaction(Ptable);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        log.error("error trying to cancel compaction for " + Ptable, e);
+      } catch (TableNotFoundException e) {
+        log.error("impossible", e);
+      }
+    }
+
+
+
+  }
+}

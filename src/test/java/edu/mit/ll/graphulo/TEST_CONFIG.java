@@ -1,17 +1,18 @@
 package edu.mit.ll.graphulo;
 
+import edu.mit.ll.graphulo.util.KnownBugSuite;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
-@RunWith(Suite.class)
+@RunWith(KnownBugSuite.class)
 @Suite.SuiteClasses({
         InjectTest.class,
         RemoteIteratorTest.class,
         TableMultIteratorTest.class,
-
+        TableMultTest.class
 })
 
 public class TEST_CONFIG {

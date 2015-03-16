@@ -1,11 +1,13 @@
 package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.mult.BigDecimalMultiply;
+import edu.mit.ll.graphulo.mult.LongMultiply;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
+import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.log4j.xml.DOMConfigurator;
 
 /**
@@ -32,7 +34,8 @@ public class MatlabGraphulo extends Graphulo {
                             String Atable, String BTtable,
                             String Ctable, String Rtable) {
     TableMult(Ptable, Atable, BTtable,
-        BigDecimalMultiply.class, BigDecimalCombiner.BigDecimalSummingCombiner.class,
+        //BigDecimalMultiply.class, BigDecimalCombiner.BigDecimalSummingCombiner.class,
+        LongMultiply.class, SummingCombiner.class,
         null, null,
         Ctable, Rtable);
   }

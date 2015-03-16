@@ -53,7 +53,7 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key,Value
     @Override
     public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
         IteratorUtil.IteratorScope scope = env.getIteratorScope();
-        log.info(this.getClass() + ": init on scope " + scope + (scope == IteratorUtil.IteratorScope.majc ? " fullScan=" + env.isFullMajorCompaction() : ""));
+        log.debug(this.getClass() + ": init on scope " + scope + (scope == IteratorUtil.IteratorScope.majc ? " fullScan=" + env.isFullMajorCompaction() : ""));
         //log.info("BranchIterator options: "+options);
         //super.init(source, options, env); // sets source
         SortedKeyValueIterator<Key, Value> branchIterator = initBranchIterator(options, env);

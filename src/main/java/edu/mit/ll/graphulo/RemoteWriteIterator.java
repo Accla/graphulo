@@ -147,7 +147,7 @@ public class RemoteWriteIterator extends WrappingIterator implements OptionDescr
                     log.warn("Unrecognized option: " + entry);
                     continue;
             }
-            log.info("Option OK: "+entry);
+            log.trace("Option OK: "+entry);
         }
         // Required options
         if (zookeeperHost == null ||
@@ -168,7 +168,7 @@ public class RemoteWriteIterator extends WrappingIterator implements OptionDescr
 
         setupConnectorWriter();
 
-        log.info("RemoteWriteIterator on table "+tableName+": init() succeeded");
+        log.debug("RemoteWriteIterator on table "+tableName+": init() succeeded");
     }
 
     private void setupConnectorWriter() {
@@ -204,7 +204,7 @@ public class RemoteWriteIterator extends WrappingIterator implements OptionDescr
 
     @Override
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-        log.info("RemoteWriteIterator on table "+tableName+": about to seek() to range "+range);
+        log.debug("RemoteWriteIterator on table "+tableName+": about to seek() to range "+range);
         super.seek(range, columnFamilies, inclusive);
 
         writeAllSourceEntries();

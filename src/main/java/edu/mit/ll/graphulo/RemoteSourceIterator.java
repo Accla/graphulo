@@ -183,7 +183,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
                     log.warn("Unrecognized option: " + entry);
                     continue;
             }
-            log.info("Option OK: "+entry);
+            log.trace("Option OK: "+entry);
         }
         // Required options
         if (zookeeperHost == null ||
@@ -222,7 +222,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
             scanner.addScanIterator(iset);
         }
 
-        log.info("RemoteSourceIterator on table "+tableName+": init() succeeded");
+        log.debug("RemoteSourceIterator on table " + tableName + ": init() succeeded");
     }
 
     private void setupConnectorScanner() {
@@ -269,7 +269,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
     }
 
     public void seek(Range range) throws IOException {
-        log.info("RemoteSourceIterator on table "+tableName+": about to seek() to range "+range);
+        log.debug("RemoteSourceIterator on table "+tableName+": about to seek() to range "+range);
         /** configure Scanner to the first entry to inject after the start of the range.
          Range comparison: infinite start first, then inclusive start, then exclusive start
          {@link org.apache.accumulo.core.data.Range#compareTo(Range)} */
@@ -318,10 +318,10 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
         }
         // either no ranges left and we finished the current scan OR remoteIterator.hasNext()==true
         if (hasTop())
-            log.info(tableName+" prepared next entry "+getTopKey()+" ==> "
-                    +(doWholeRow ? WholeRowIterator.decodeRow(getTopKey(), getTopValue()) : getTopValue()));
+            log.trace(tableName + " prepared next entry " + getTopKey() + " ==> "
+                + (doWholeRow ? WholeRowIterator.decodeRow(getTopKey(), getTopValue()) : getTopValue()));
         else
-            log.info(tableName+" hasTop() == false");
+            log.trace(tableName+" hasTop() == false");
     }
 
     @Override

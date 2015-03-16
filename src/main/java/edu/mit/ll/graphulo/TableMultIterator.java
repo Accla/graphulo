@@ -132,7 +132,7 @@ public class TableMultIterator extends BranchIterator implements OptionDescriber
       list.add(csrc);
       bottomIter = new MultiIterator(list, false);
     } else
-      log.info("Not configured to read and sum in a table C.");
+      log.debug("Not configured to read and sum in a table C.");
 
     return bottomIter;
   }
@@ -148,7 +148,7 @@ public class TableMultIterator extends BranchIterator implements OptionDescriber
 
     SortedKeyValueIterator<Key, Value> bottomIter;
     if (optW == null || optW.isEmpty()) {
-      log.info("Not configured to write to a table R with a BatchWriter.");
+      log.debug("Not configured to write to a table R with a BatchWriter.");
       bottomIter = sc;
     } else {
       RemoteWriteIterator rwi = new RemoteWriteIterator();

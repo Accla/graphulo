@@ -124,7 +124,7 @@ public class DotMultIterator implements SortedKeyValueIterator<Key,Value>, Optio
         remoteA.init(null, optA, env);
         remoteBT.init(null, optBT, env);
 
-        log.info("DotMultIterator init() ok");
+        log.trace("DotMultIterator init() ok");
     }
 
 
@@ -149,9 +149,9 @@ public class DotMultIterator implements SortedKeyValueIterator<Key,Value>, Optio
                 rA = new Range(startK, new Key(range.getEndKey().getRow()));
 
         }
-        log.info("seek range: "+range);
-        log.info("rA   range: "+rA);
-        log.info("rBT  range: "+rBT);
+        log.debug("seek range: " + range);
+        log.debug("rA   range: " + rA);
+        log.debug("rBT  range: " + rBT);
 
         remoteA.seek(rA);
         // choosing not to handle case where we end in the middle of a row; allowed to return entries beyond the seek range
@@ -176,10 +176,10 @@ public class DotMultIterator implements SortedKeyValueIterator<Key,Value>, Optio
         }
         cacheNextEntry();
         if (hasTop())
-            log.info("prepared next entry "+getTopKey()+" ==> "
+            log.debug("prepared next entry "+getTopKey()+" ==> "
                     +getTopValue());
         else
-            log.info("hasTop() == false");
+            log.debug("hasTop() == false");
     }
 
     @Override
@@ -198,10 +198,10 @@ public class DotMultIterator implements SortedKeyValueIterator<Key,Value>, Optio
         }
         cacheNextEntry();
         if (hasTop())
-            log.info("prepared next entry "+getTopKey()+" ==> "
-                    +getTopValue());
+            log.trace("prepared next entry " + getTopKey() + " ==> "
+                + getTopValue());
         else
-            log.info("hasTop() == false");
+            log.trace("hasTop() == false");
     }
 
     /** Compare only the column family and column qualifier. */

@@ -62,10 +62,10 @@ public class Graphulo implements IGraphulo {
       throw new UnsupportedOperationException("rowFilter is not yet implemented; given: "+rowFilter);
     if (colFilter != null && !colFilter.isEmpty())
       throw new UnsupportedOperationException("colFilter is not yet implemented; given: "+colFilter);
-    if (multOp == null || !multOp.equals(BigDecimalMultiply.class))
-      throw new UnsupportedOperationException("only supported multOp is BigDecimalMultiply, but given: "+multOp);
-    if (sumOp == null || !sumOp.equals(BigDecimalCombiner.BigDecimalSummingCombiner.class))
-      throw new UnsupportedOperationException("only supported sumOp is BigDecimalSummingCombiner, but given: "+multOp);
+//    if (multOp == null || !multOp.equals(BigDecimalMultiply.class))
+//      throw new UnsupportedOperationException("only supported multOp is BigDecimalMultiply, but given: "+multOp);
+//    if (sumOp == null || !sumOp.equals(BigDecimalCombiner.BigDecimalSummingCombiner.class))
+//      throw new UnsupportedOperationException("only supported sumOp is BigDecimalSummingCombiner, but given: "+multOp);
 
     TableOperations tops = connector.tableOperations();
     if (!tops.exists(Atable))

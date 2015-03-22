@@ -27,17 +27,19 @@ public class MatlabGraphulo extends Graphulo {
 
   public void TableMultTest(String Ptable,
                             String Atable, String BTtable) {
-    TableMultTest(Ptable, Atable, BTtable, null, null);
+    TableMultTest(Ptable, Atable, BTtable, null, null, true);
   }
 
   public void TableMultTest(String Ptable,
                             String Atable, String BTtable,
-                            String Ctable, String Rtable) {
+                            String Ctable, String Rtable, boolean wait) {
     TableMult(Ptable, Atable, BTtable,
         //BigDecimalMultiply.class, BigDecimalCombiner.BigDecimalSummingCombiner.class,
         LongMultiply.class, SummingCombiner.class,
         null, null,
-        Ctable, Rtable);
+        Ctable, Rtable, wait);
   }
+
+
 
 }

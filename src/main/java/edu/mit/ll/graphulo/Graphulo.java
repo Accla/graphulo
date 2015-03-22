@@ -44,7 +44,7 @@ public class Graphulo implements IGraphulo {
                         Class<? extends IMultiplyOp> multOp, Class<? extends Combiner> sumOp,
                         Collection<Range> rowFilter,
                         Collection<IteratorSetting.Column> colFilter,
-                        String Ctable, String Rtable) {
+                        String Ctable, String Rtable, boolean wait) {
     if (Ptable == null || Ptable.isEmpty())
       throw new IllegalArgumentException("Please specify table P. Given: "+Ptable);
     if (Atable == null || Atable.isEmpty())
@@ -89,6 +89,8 @@ public class Graphulo implements IGraphulo {
     String user = connector.whoami();
 
     Map<String,String> opt = new HashMap<>();
+    opt.put("trace","true"); // enable distributed tracer
+
     opt.put("A.zookeeperHost", zookeepers);
     opt.put("A.instanceName", instance);
     opt.put("A.tableName", Atable);
@@ -122,7 +124,7 @@ public class Graphulo implements IGraphulo {
       //tops.attachIterator(Ptable, itset);
       long t1 = System.currentTimeMillis();
       // flush, block
-      tops.compact(Ptable, null, null, Collections.singletonList(itset), true, true);
+      tops.compact(Ptable, null, null, Collections.singletonList(itset), true, wait);
       long t2 = System.currentTimeMillis();
       log.info("Time for blocking compact() call to return: "+(t2-t1)/1000.0);
     } catch (AccumuloException e) {
@@ -134,20 +136,18 @@ public class Graphulo implements IGraphulo {
     } catch (TableNotFoundException e) {
       log.error("impossible", e);
       throw new RuntimeException(e);
-    } finally {
-
-      // important to cancel compaction in case the compaction errored,
-      // or else Accumulo will continue restarting compaction and erroring
-      try {
-        tops.cancelCompaction(Ptable);
-      } catch (AccumuloException | AccumuloSecurityException e) {
-        log.error("error trying to cancel compaction for " + Ptable, e);
-      } catch (TableNotFoundException e) {
-        log.error("impossible", e);
-      }
     }
+      // cancel compaction if compaction errors,
+      // or else Accumulo will continue restarting compaction and erroring
+  }
 
-
-
+  public void CancelCompact(String table) {
+    try {
+      connector.tableOperations().cancelCompaction(table);
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      log.error("error trying to cancel compaction for " + table, e);
+    } catch (TableNotFoundException e) {
+      log.error("", e);
+    }
   }
 }

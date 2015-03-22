@@ -41,7 +41,7 @@ public interface IGraphulo {
                        Class<? extends IMultiplyOp> multOp, Class<? extends Combiner> sumOp,
                        Collection<Range> rowFilter,
                        Collection<IteratorSetting.Column> colFilter,
-                       String Ctable, String Rtable);
+                       String Ctable, String Rtable, boolean wait);
 
 
 

@@ -73,7 +73,7 @@ public class TableMultTest extends AccumuloTestBase {
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     graphulo.TableMult(tP, tA, tBT,
         BigDecimalMultiply.class, BigDecimalCombiner.BigDecimalSummingCombiner.class,
-        null, null, null, null);
+        null, null, null, null, true);
 
     Scanner scanner = conn.createScanner(tP, Authorizations.EMPTY);
     Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
@@ -138,7 +138,7 @@ public class TableMultTest extends AccumuloTestBase {
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     graphulo.TableMult(tP, tA, tBT,
         BigDecimalMultiply.class, BigDecimalCombiner.BigDecimalSummingCombiner.class,
-        null, null, null, null);
+        null, null, null, null, true);
 
     Scanner scanner = conn.createScanner(tP, Authorizations.EMPTY);
     Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ

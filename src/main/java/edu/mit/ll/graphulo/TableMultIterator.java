@@ -29,6 +29,7 @@ public class TableMultIterator extends BranchIterator implements OptionDescriber
 
   static {
     final Map<String, String> optDesc = new LinkedHashMap<>();
+    optDesc.put("trace", "Use tracer? true or false");
     for (Map.Entry<String, String> entry : RemoteSourceIterator.iteratorOptions.getNamedOptions().entrySet()) {
       optDesc.put(DotMultIterator.PREFIX_A + '.' + entry.getKey(), "Table A :" + entry.getValue());
     }
@@ -71,7 +72,10 @@ public class TableMultIterator extends BranchIterator implements OptionDescriber
       else if (key.startsWith(PREFIX_C))
         optC.put(key.substring(PREFIX_C.length() + 1), entry.getValue());
       else switch (key) {
-
+          case "trace":
+            //noinspection ResultOfMethodCallIgnored
+            Boolean.parseBoolean(entry.getValue());
+            break;
           default:
             throw new IllegalArgumentException("unknown option: " + entry);
         }

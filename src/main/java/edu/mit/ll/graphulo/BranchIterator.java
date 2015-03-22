@@ -8,14 +8,13 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
+import org.apache.accumulo.trace.instrument.Span;
+import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * A parent class for custom computation merged into a regular SKVI stack.
@@ -49,6 +48,7 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key,Value
     }
 
     private SortedKeyValueIterator<Key,Value> botIterator;
+    private boolean doTrace = false;
 
     @Override
     public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
@@ -56,6 +56,16 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key,Value
         log.debug(this.getClass() + ": init on scope " + scope + (scope == IteratorUtil.IteratorScope.majc ? " fullScan=" + env.isFullMajorCompaction() : ""));
         //log.info("BranchIterator options: "+options);
         //super.init(source, options, env); // sets source
+
+        // see if Trace enabled
+        if (options.containsKey("trace")) {
+          if (Boolean.parseBoolean(options.get("trace")))
+            doTrace = true;
+          options = new HashMap<>(options);
+          options.remove("trace");
+        }
+
+
         SortedKeyValueIterator<Key, Value> branchIterator = initBranchIterator(options, env);
         if (branchIterator == null) {
             botIterator = source;
@@ -82,7 +92,13 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key,Value
 
     @Override
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+      Span span = Trace.on("starting seek on " + botIterator);
+      try {
         botIterator.seek(range, columnFamilies, inclusive);
+      } finally {
+        span.stop();
+      }
+
     }
 
     @Override

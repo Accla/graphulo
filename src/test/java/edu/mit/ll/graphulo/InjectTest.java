@@ -1,12 +1,13 @@
 package edu.mit.ll.graphulo;
 
-import edu.mit.ll.graphulo.util.KnownBug;
 import edu.mit.ll.graphulo.util.TestUtil;
-import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-//import org.apache.accumulo.core.client.admin.CompactionConfig;
-//import org.apache.accumulo.core.client.impl.CompactionStrategyConfigUtil;
-import org.apache.accumulo.core.data.*;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.DebugIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.Authorizations;
@@ -16,9 +17,13 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.*;
+
+//import org.apache.accumulo.core.client.admin.CompactionConfig;
+//import org.apache.accumulo.core.client.impl.CompactionStrategyConfigUtil;
 
 /**
  * Tests to inject entries into the Accumulo iterator stream.
@@ -84,7 +89,7 @@ public class InjectTest {
      * Test injecting data into an empty table at scan.
      */
     @Test
-    @KnownBug("ACCUMULO-3646")
+    @Ignore("KnownBug: ACCUMULO-3646")
     public void testInjectOnScan_Empty() throws Exception {
         Connector conn = tester.getConnector();
 
@@ -169,7 +174,7 @@ public class InjectTest {
      * Test injecting data into a table with other data at scan.
      */
     @Test
-    @KnownBug("ACCUMULO-3646")
+    @Ignore("KnownBug: ACCUMULO-3646")
     public void testInjectOnScan() throws Exception {
         Connector conn = tester.getConnector();
 
@@ -278,7 +283,7 @@ public class InjectTest {
      * Test injecting data into an empty table at manual full major compaction.
      */
     @Test
-    @KnownBug("ACCUMULO-3645")
+    @Ignore("KnownBug: ACCUMULO-3645")
     public void testInjectOnCompact_Empty() throws Exception {
         Connector conn = tester.getConnector();
 

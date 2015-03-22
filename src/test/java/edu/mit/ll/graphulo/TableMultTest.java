@@ -1,9 +1,7 @@
 package edu.mit.ll.graphulo;
 
-import com.google.common.collect.ImmutableMap;
 import edu.mit.ll.graphulo.mult.BigDecimalMultiply;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
-import edu.mit.ll.graphulo.util.KnownBug;
 import edu.mit.ll.graphulo.util.TestUtil;
 import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.Scanner;
@@ -11,11 +9,10 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.commons.collections.map.UnmodifiableMap;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
-import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -38,7 +35,7 @@ public class TableMultTest extends AccumuloTestBase {
    * </pre>
    */
   @Test
-  @KnownBug("ACCUMULO-3645")
+  @Ignore("KnownBug: ACCUMULO-3645")
   public void test1() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
     Connector conn = tester.getConnector();
 

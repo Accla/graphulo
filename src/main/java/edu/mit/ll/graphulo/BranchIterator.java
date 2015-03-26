@@ -78,6 +78,10 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key,Value
         botIterator = initBranchAfterIterator(botIterator, options, env);
         if (botIterator == null)
             throw new IllegalStateException("--some subclass returned a null bottom iterator in branchAfter--");
+
+        log.info("Reset Watch at init of BranchIterator");
+        System.out.println("Reset Watch at init of BranchIterator");
+        Watch.instance.resetAll();
     }
 
     @Override
@@ -87,16 +91,25 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key,Value
 
     @Override
     public void next() throws IOException {
-        botIterator.next();
+        try {
+            botIterator.next();
+        } finally {
+            if (!botIterator.hasTop()) {
+                Watch.instance.print();
+            }
+        }
     }
 
     @Override
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-      Span span = Trace.on("starting seek on " + botIterator);
+//      Span span = Trace.on("starting seek on " + botIterator);
       try {
         botIterator.seek(range, columnFamilies, inclusive);
       } finally {
-        span.stop();
+//        span.stop();
+          if (!botIterator.hasTop()) {
+              Watch.instance.print();
+          }
       }
 
     }

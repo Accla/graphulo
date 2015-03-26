@@ -99,7 +99,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
         AuthenticationToken auth = null;
         //int timeout;
         //SortedSet<Range> rowRanges;
-        //boolean doWholeRow = false;
+        boolean doWholeRow = false;
 
         for (Map.Entry<String, String> entry : options.entrySet()) {
             if (entry.getValue().isEmpty())
@@ -130,7 +130,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
                     auth = new PasswordToken(entry.getValue());
                     break;
                 case "doWholeRow":
-
+                    doWholeRow = Boolean.parseBoolean(entry.getValue());
                     break;
                 case "rowRanges":
                     parseRanges(entry.getValue());

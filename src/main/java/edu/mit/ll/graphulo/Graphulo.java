@@ -7,6 +7,7 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.Combiner;
+import org.apache.accumulo.core.iterators.DevNull;
 import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -89,7 +90,7 @@ public class Graphulo implements IGraphulo {
     String user = connector.whoami();
 
     Map<String,String> opt = new HashMap<>();
-    opt.put("trace","true"); // enable distributed tracer
+//    opt.put("trace","true"); // enable distributed tracer
 
     opt.put("A.zookeeperHost", zookeepers);
     opt.put("A.instanceName", instance);
@@ -150,4 +151,287 @@ public class Graphulo implements IGraphulo {
       log.error("", e);
     }
   }
+
+  public void testReadWriteA(String Ptable, String Atable) {
+    TableOperations tops = connector.tableOperations();
+    if (!tops.exists(Ptable))
+      try {
+        tops.create(Ptable);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        log.error("error trying to create P table "+Ptable, e);
+        throw new RuntimeException(e);
+      } catch (TableExistsException e) {
+        log.error("impossible",e);
+        throw new RuntimeException(e);
+      }
+
+    String instance = connector.getInstance().getInstanceName();
+    String zookeepers = connector.getInstance().getZooKeepers();
+    String user = connector.whoami();
+
+    Map<String,String> opt = new HashMap<>();
+    opt.put("zookeeperHost", zookeepers);
+    opt.put("instanceName", instance);
+    opt.put("tableName", Atable);
+    opt.put("username", user);
+    opt.put("password", new String(password.getPassword()));
+    opt.put("doWholeRow", "true");
+    IteratorSetting itset = new IteratorSetting(2, RemoteSourceIterator.class, opt);
+    try {
+      //tops.attachIterator(Ptable, itset);
+      long t1 = System.currentTimeMillis();
+      // flush, block
+      tops.compact(Ptable, null, null, Collections.singletonList(itset), true, true);
+      long t2 = System.currentTimeMillis();
+      log.info("Time for blocking compact() call to return: " + (t2 - t1) / 1000.0);
+    } catch (AccumuloException e) {
+      log.error("error trying to compact "+Ptable+" with TableMultIterator; is the iterator installed on the Accumulo server?", e);
+      throw new RuntimeException(e);
+    } catch (AccumuloSecurityException e) {
+      log.error("error trying to compact "+Ptable+" with TableMultIterator", e);
+      throw new RuntimeException(e);
+    } catch (TableNotFoundException e) {
+      log.error("impossible", e);
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void testReadOnlyA(String Ptable, String Atable) {
+    TableOperations tops = connector.tableOperations();
+    if (!tops.exists(Ptable))
+      try {
+        tops.create(Ptable);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        log.error("error trying to create P table "+Ptable, e);
+        throw new RuntimeException(e);
+      } catch (TableExistsException e) {
+        log.error("impossible",e);
+        throw new RuntimeException(e);
+      }
+
+    String instance = connector.getInstance().getInstanceName();
+    String zookeepers = connector.getInstance().getZooKeepers();
+    String user = connector.whoami();
+
+    Map<String,String> opt = new HashMap<>();
+    opt.put("zookeeperHost", zookeepers);
+    opt.put("instanceName", instance);
+    opt.put("tableName", Atable);
+    opt.put("username", user);
+    opt.put("password", new String(password.getPassword()));
+    opt.put("doWholeRow", "false");
+    IteratorSetting itset = new IteratorSetting(2, RemoteSourceIterator.class, opt);
+    List<IteratorSetting> list = new ArrayList<>();
+    list.add(itset);
+    list.add(new IteratorSetting(3, DevNull.class));
+    try {
+      //tops.attachIterator(Ptable, itset);
+      long t1 = System.currentTimeMillis();
+      // flush, block
+      tops.compact(Ptable, null, null, list, true, true);
+      long t2 = System.currentTimeMillis();
+      log.info("Time for blocking compact() call to return: " + (t2 - t1) / 1000.0);
+    } catch (AccumuloException e) {
+      log.error("error trying to compact "+Ptable+" with TableMultIterator; is the iterator installed on the Accumulo server?", e);
+      throw new RuntimeException(e);
+    } catch (AccumuloSecurityException e) {
+      log.error("error trying to compact "+Ptable+" with TableMultIterator", e);
+      throw new RuntimeException(e);
+    } catch (TableNotFoundException e) {
+      log.error("impossible", e);
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void testReadWriteBT(String Ptable, String Atable) {
+    TableOperations tops = connector.tableOperations();
+    if (!tops.exists(Ptable))
+      try {
+        tops.create(Ptable);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        log.error("error trying to create P table "+Ptable, e);
+        throw new RuntimeException(e);
+      } catch (TableExistsException e) {
+        log.error("impossible",e);
+        throw new RuntimeException(e);
+      }
+
+    String instance = connector.getInstance().getInstanceName();
+    String zookeepers = connector.getInstance().getZooKeepers();
+    String user = connector.whoami();
+
+    Map<String,String> opt = new HashMap<>();
+    opt.put("zookeeperHost", zookeepers);
+    opt.put("instanceName", instance);
+    opt.put("tableName", Atable);
+    opt.put("username", user);
+    opt.put("password", new String(password.getPassword()));
+    opt.put("doWholeRow", "false");
+    IteratorSetting itset = new IteratorSetting(2, RemoteSourceIterator.class, opt);
+    try {
+      //tops.attachIterator(Ptable, itset);
+      long t1 = System.currentTimeMillis();
+      // flush, block
+      tops.compact(Ptable, null, null, Collections.singletonList(itset), true, true);
+      long t2 = System.currentTimeMillis();
+      log.info("Time for blocking compact() call to return: " + (t2 - t1) / 1000.0);
+    } catch (AccumuloException e) {
+      log.error("error trying to compact "+Ptable+" with TableMultIterator; is the iterator installed on the Accumulo server?", e);
+      throw new RuntimeException(e);
+    } catch (AccumuloSecurityException e) {
+      log.error("error trying to compact "+Ptable+" with TableMultIterator", e);
+      throw new RuntimeException(e);
+    } catch (TableNotFoundException e) {
+      log.error("impossible", e);
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void testReadOnlyBT(String Ptable, String Atable) {
+    TableOperations tops = connector.tableOperations();
+    if (!tops.exists(Ptable))
+      try {
+        tops.create(Ptable);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        log.error("error trying to create P table "+Ptable, e);
+        throw new RuntimeException(e);
+      } catch (TableExistsException e) {
+        log.error("impossible",e);
+        throw new RuntimeException(e);
+      }
+
+    String instance = connector.getInstance().getInstanceName();
+    String zookeepers = connector.getInstance().getZooKeepers();
+    String user = connector.whoami();
+
+    Map<String,String> opt = new HashMap<>();
+    opt.put("zookeeperHost", zookeepers);
+    opt.put("instanceName", instance);
+    opt.put("tableName", Atable);
+    opt.put("username", user);
+    opt.put("password", new String(password.getPassword()));
+    opt.put("doWholeRow", "false");
+    IteratorSetting itset = new IteratorSetting(2, RemoteSourceIterator.class, opt);
+    List<IteratorSetting> list = new ArrayList<>();
+    list.add(itset);
+    list.add(new IteratorSetting(3, DevNull.class));
+    try {
+      //tops.attachIterator(Ptable, itset);
+      long t1 = System.currentTimeMillis();
+      // flush, block
+      tops.compact(Ptable, null, null, list, true, true);
+      long t2 = System.currentTimeMillis();
+      log.info("Time for blocking compact() call to return: " + (t2 - t1) / 1000.0);
+    } catch (AccumuloException e) {
+      log.error("error trying to compact "+Ptable+" with TableMultIterator; is the iterator installed on the Accumulo server?", e);
+      throw new RuntimeException(e);
+    } catch (AccumuloSecurityException e) {
+      log.error("error trying to compact "+Ptable+" with TableMultIterator", e);
+      throw new RuntimeException(e);
+    } catch (TableNotFoundException e) {
+      log.error("impossible", e);
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void testReadWriteDot(String Ptable, String Atable, String BTtable) {
+    TableOperations tops = connector.tableOperations();
+    if (!tops.exists(Ptable))
+      try {
+        tops.create(Ptable);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        log.error("error trying to create P table "+Ptable, e);
+        throw new RuntimeException(e);
+      } catch (TableExistsException e) {
+        log.error("impossible",e);
+        throw new RuntimeException(e);
+      }
+
+    String instance = connector.getInstance().getInstanceName();
+    String zookeepers = connector.getInstance().getZooKeepers();
+    String user = connector.whoami();
+
+    Map<String,String> opt = new HashMap<>();
+    opt.put("A.zookeeperHost", zookeepers);
+    opt.put("A.instanceName", instance);
+    opt.put("A.tableName", Atable);
+    opt.put("A.username", user);
+    opt.put("A.password", new String(password.getPassword()));
+    opt.put("BT.zookeeperHost", zookeepers);
+    opt.put("BT.instanceName", instance);
+    opt.put("BT.tableName", BTtable);
+    opt.put("BT.username", user);
+    opt.put("BT.password", new String(password.getPassword()));
+    IteratorSetting itset = new IteratorSetting(2, DotMultIterator.class, opt);
+    try {
+      //tops.attachIterator(Ptable, itset);
+      long t1 = System.currentTimeMillis();
+      // flush, block
+      tops.compact(Ptable, null, null, Collections.singletonList(itset), true, true);
+      long t2 = System.currentTimeMillis();
+      log.info("Time for blocking compact() call to return: " + (t2 - t1) / 1000.0);
+    } catch (AccumuloException e) {
+      log.error("error trying to compact "+Ptable+" with TableMultIterator; is the iterator installed on the Accumulo server?", e);
+      throw new RuntimeException(e);
+    } catch (AccumuloSecurityException e) {
+      log.error("error trying to compact "+Ptable+" with TableMultIterator", e);
+      throw new RuntimeException(e);
+    } catch (TableNotFoundException e) {
+      log.error("impossible", e);
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void testReadOnlyDot(String Ptable, String Atable, String BTtable) {
+    TableOperations tops = connector.tableOperations();
+    if (!tops.exists(Ptable))
+      try {
+        tops.create(Ptable);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        log.error("error trying to create P table "+Ptable, e);
+        throw new RuntimeException(e);
+      } catch (TableExistsException e) {
+        log.error("impossible",e);
+        throw new RuntimeException(e);
+      }
+
+    String instance = connector.getInstance().getInstanceName();
+    String zookeepers = connector.getInstance().getZooKeepers();
+    String user = connector.whoami();
+
+    Map<String,String> opt = new HashMap<>();
+    opt.put("A.zookeeperHost", zookeepers);
+    opt.put("A.instanceName", instance);
+    opt.put("A.tableName", Atable);
+    opt.put("A.username", user);
+    opt.put("A.password", new String(password.getPassword()));
+    opt.put("BT.zookeeperHost", zookeepers);
+    opt.put("BT.instanceName", instance);
+    opt.put("BT.tableName", BTtable);
+    opt.put("BT.username", user);
+    opt.put("BT.password", new String(password.getPassword()));
+    IteratorSetting itset = new IteratorSetting(2, DotMultIterator.class, opt);
+    List<IteratorSetting> list = new ArrayList<>();
+    list.add(itset);
+    list.add(new IteratorSetting(3, DevNull.class));
+    try {
+      //tops.attachIterator(Ptable, itset);
+      long t1 = System.currentTimeMillis();
+      // flush, block
+      tops.compact(Ptable, null, null, list, true, true);
+      long t2 = System.currentTimeMillis();
+      log.info("Time for blocking compact() call to return: " + (t2 - t1) / 1000.0);
+    } catch (AccumuloException e) {
+      log.error("error trying to compact "+Ptable+" with TableMultIterator; is the iterator installed on the Accumulo server?", e);
+      throw new RuntimeException(e);
+    } catch (AccumuloSecurityException e) {
+      log.error("error trying to compact "+Ptable+" with TableMultIterator", e);
+      throw new RuntimeException(e);
+    } catch (TableNotFoundException e) {
+      log.error("impossible", e);
+      throw new RuntimeException(e);
+    }
+  }
+
+
 }

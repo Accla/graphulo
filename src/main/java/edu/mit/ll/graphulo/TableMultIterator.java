@@ -1,11 +1,10 @@
 package edu.mit.ll.graphulo;
 
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.Combiner;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.OptionDescriber;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.*;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
 import org.apache.log4j.LogManager;
@@ -83,15 +82,15 @@ public class TableMultIterator extends BranchIterator implements OptionDescriber
     return RemoteSourceIterator.validateOptionsStatic(optA) &&
         RemoteSourceIterator.validateOptionsStatic(optBT) &&
         (optR.isEmpty() //|| (optR.containsKey("tableName") && optR.size() == 1)
-             || RemoteWriteIterator.validateOptionsStatic(optR)) &&
+            || RemoteWriteIterator.validateOptionsStatic(optR)) &&
         (optC.isEmpty() //|| (optC.containsKey("tableName") && optC.size() == 1)
-             || RemoteSourceIterator.validateOptionsStatic(optC));
+            || RemoteSourceIterator.validateOptionsStatic(optC));
   }
 
   @Override
   public SortedKeyValueIterator<Key, Value> initBranchIterator(Map<String, String> options, IteratorEnvironment env) throws IOException {
     // parse options
-    Map<String, String> optDM = new HashMap<>(), optC=new HashMap<>();
+    Map<String, String> optDM = new HashMap<>(), optC = new HashMap<>();
     {
       Map<String, Map<String, String>> prefixMap = GraphuloUtil.splitMapPrefix(options);
       for (Map.Entry<String, Map<String, String>> prefixEntry : prefixMap.entrySet()) {
@@ -142,7 +141,41 @@ public class TableMultIterator extends BranchIterator implements OptionDescriber
   }
 
   @Override
-  public SortedKeyValueIterator<Key, Value> initBranchAfterIterator(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
+  public SortedKeyValueIterator<Key, Value> initBranchAfterIterator(final SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
+
+//    return new SortedKeyValueIterator<Key, Value>() {
+//      @Override
+//      public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
+//      }
+//      @Override
+//      public boolean hasTop() {
+//        source.hasTop();
+//        return false;
+//      }
+//      @Override
+//      public void next() throws IOException {
+//        source.next();
+//      }
+//      @Override
+//      public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+//        source.seek(range, columnFamilies, inclusive);
+//        while (source.hasTop())
+//          source.next();
+//      }
+//      @Override
+//      public Key getTopKey() {
+//        return null;
+//      }
+//      @Override
+//      public Value getTopValue() {
+//        return null;
+//      }
+//      @Override
+//      public SortedKeyValueIterator<Key, Value> deepCopy(IteratorEnvironment env) {
+//        return null;
+//      }
+//    };
+
     Map<String, String> optW = GraphuloUtil.splitMapPrefix(options).get(PREFIX_R);
 
     Map<String, String> optSum = new HashMap<>();

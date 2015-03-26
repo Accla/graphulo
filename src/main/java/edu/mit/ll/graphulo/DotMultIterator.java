@@ -153,7 +153,12 @@ public class DotMultIterator implements SortedKeyValueIterator<Key,Value>, Optio
         log.debug("rA   range: " + rA);
         log.debug("rBT  range: " + rBT);
 
-        remoteA.seek(rA);
+        Watch.instance.start(Watch.PerfSpan.Anext);
+        try {
+            remoteA.seek(rA);
+        } finally {
+            Watch.instance.stop(Watch.PerfSpan.Anext);
+        }
         // choosing not to handle case where we end in the middle of a row; allowed to return entries beyond the seek range
 
         if (!remoteA.hasTop()) {
@@ -162,9 +167,20 @@ public class DotMultIterator implements SortedKeyValueIterator<Key,Value>, Optio
             return;
         }
         cacheArow(false);
-        remoteBT.seek(rBT);
+
+        Watch.instance.start(Watch.PerfSpan.BTnext);
+        try {
+            remoteBT.seek(rBT);
+        } finally {
+            Watch.instance.stop(Watch.PerfSpan.BTnext);
+        }
         while (!remoteBT.hasTop()) {
-            remoteA.next();
+            Watch.instance.start(Watch.PerfSpan.Anext);
+            try {
+                remoteA.next();
+            } finally {
+                Watch.instance.stop(Watch.PerfSpan.Anext);
+            }
             if (!remoteA.hasTop())
                 break;
             cacheArow(true);
@@ -178,15 +194,30 @@ public class DotMultIterator implements SortedKeyValueIterator<Key,Value>, Optio
         if (hasTop())
             log.debug("prepared next entry "+getTopKey()+" ==> "
                     +getTopValue());
-        else
-            log.debug("hasTop() == false");
+        else {
+            log.info("hasTop() == false");
+//            Watch.instance.print("tid " + Thread.currentThread().getName() + ": ");
+//            Watch.instance.resetAll();
+        }
     }
 
     @Override
     public void next() throws IOException {
-        remoteBT.next();
+        Watch.instance.start(Watch.PerfSpan.BTnext);
+        try {
+            remoteBT.next();
+        } finally {
+            Watch.instance.stop(Watch.PerfSpan.BTnext);
+        }
+
         while (!remoteBT.hasTop()) {
-            remoteA.next();
+            Watch.instance.start(Watch.PerfSpan.Anext);
+            try {
+                remoteA.next();
+            } finally {
+                Watch.instance.stop(Watch.PerfSpan.Anext);
+            }
+
             if (!remoteA.hasTop())
                 break;
             cacheArow(true);
@@ -200,8 +231,11 @@ public class DotMultIterator implements SortedKeyValueIterator<Key,Value>, Optio
         if (hasTop())
             log.trace("prepared next entry " + getTopKey() + " ==> "
                 + getTopValue());
-        else
-            log.trace("hasTop() == false");
+        else {
+            log.info("hasTop() == false");
+//            Watch.instance.print("tid " + Thread.currentThread().getName() + ": ");
+//            Watch.instance.resetAll();
+        }
     }
 
     /** Compare only the column family and column qualifier. */
@@ -223,19 +257,31 @@ public class DotMultIterator implements SortedKeyValueIterator<Key,Value>, Optio
         if (!remoteA.hasTop())
             throw new IllegalStateException("remoteA should hasTop(): "+remoteA);
         Key k = remoteA.getTopKey();
-        k.getRow(ArowRow);
-        {
-            SortedMap<Key, Value> m = WholeRowIterator.decodeRow(k, remoteA.getTopValue());
-            ArowMap.clear();
-            ArowMap.putAll(m);
+        Watch.instance.start(Watch.PerfSpan.ArowDecode);
+        Collection<IteratorSetting.Column> c;
+        try {
+            k.getRow(ArowRow);
+            {
+                SortedMap<Key, Value> m = WholeRowIterator.decodeRow(k, remoteA.getTopValue());
+                ArowMap.clear();
+                ArowMap.putAll(m);
+            }
+            c = new ArrayList<>(ArowMap.size());
+            for (Key key : ArowMap.keySet()) {
+                c.add(new IteratorSetting.Column(key.getColumnFamily(), key.getColumnQualifier()));
+            }
+        } finally {
+            Watch.instance.stop(Watch.PerfSpan.ArowDecode);
         }
-        Collection<IteratorSetting.Column> c = new ArrayList<>(ArowMap.size());
-        for (Key key : ArowMap.keySet()) {
-            c.add(new IteratorSetting.Column(key.getColumnFamily(),key.getColumnQualifier()));
-        }
+
         remoteBT.setFetchColumns(c);
-        if (seekBT)
-            remoteBT.seek(INFINITE_RANGE);
+        Watch.instance.start(Watch.PerfSpan.BTnext);
+        try {
+            if (seekBT)
+                remoteBT.seek(INFINITE_RANGE);
+        } finally {
+            Watch.instance.stop(Watch.PerfSpan.BTnext);
+        }
     }
 
     private void cacheNextEntry() {
@@ -247,7 +293,12 @@ public class DotMultIterator implements SortedKeyValueIterator<Key,Value>, Optio
         if (Avalue == null)
             throw new IllegalStateException("every entry from BTremote should contain a matching (CF,CQ) " +
                     "to the current row of A. BTkey="+BTkey+"; ArowRow="+ ArowRow +"; ArowMap="+ArowMap);
-        nextValue = multiplyOp.multiply(Avalue, BTvalue);
+        Watch.instance.start(Watch.PerfSpan.Multiply);
+        try {
+            nextValue = multiplyOp.multiply(Avalue, BTvalue);
+        } finally {
+            Watch.instance.stop(Watch.PerfSpan.Multiply);
+        }
         nextKey = new Key(ArowRow, BTkey.getColumnFamily(), BTkey.getRow(), System.currentTimeMillis());
     }
 

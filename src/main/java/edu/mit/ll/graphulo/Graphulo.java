@@ -99,6 +99,7 @@ public class Graphulo implements IGraphulo {
     opt.put("BT.tableName", BTtable);
     opt.put("BT.username", user);
     opt.put("BT.password", new String(password.getPassword()));
+    opt.put("BT.doClientSideIterators", "true");
 
     if (Rtable != null && !Rtable.isEmpty() && !Ptable.equals(Rtable)) {
       opt.put("R.zookeeperHost", zookeepers);

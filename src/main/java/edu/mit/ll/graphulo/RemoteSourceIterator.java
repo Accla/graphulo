@@ -1,5 +1,6 @@
 package edu.mit.ll.graphulo;
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -34,7 +35,8 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
     /** Zookeeper timeout in milliseconds */
     private int timeout = -1;
 
-    private boolean doWholeRow = false;
+    private boolean doWholeRow = false,
+        doClientSideIterators = false;
     private SortedSet<Range> rowRanges = new TreeSet<>(Collections.singleton(new Range()));
     /** The range given by seek. Clip to this range. */
     private Range seekRange;
@@ -64,6 +66,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
         other.timeout = timeout;
         other.doWholeRow = doWholeRow;
         other.rowRanges = rowRanges;
+        other.doClientSideIterators = doClientSideIterators;
         other.setupConnectorScanner();
     }
 
@@ -77,6 +80,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
         optDesc.put("username", "");
         optDesc.put("password", "(Anyone who can read the Accumulo table config OR the log files will see your password in plaintext.)");
         optDesc.put("doWholeRow", "Apply WholeRowIterator to remote table scan? (default no)");
+        optDesc.put("doClientSideIterators", "Use a ClientSideIteratorScanner? (default no)");
         optDesc.put("rowRanges", "Row ranges to scan for remote Accumulo table, Matlab syntax. (default ':' all)");
         iteratorOptions = new IteratorOptions("RemoteSourceIterator",
                 "Reads from a remote Accumulo table. Replaces parent iterator with the remote table.",
@@ -99,7 +103,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
         AuthenticationToken auth = null;
         //int timeout;
         //SortedSet<Range> rowRanges;
-        boolean doWholeRow = false;
+        boolean doWholeRow = false, doClientSideIterators = false;
 
         for (Map.Entry<String, String> entry : options.entrySet()) {
             if (entry.getValue().isEmpty())
@@ -131,6 +135,9 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
                     break;
                 case "doWholeRow":
                     doWholeRow = Boolean.parseBoolean(entry.getValue());
+                    break;
+                case "doClientSideIterators":
+                    doClientSideIterators = Boolean.parseBoolean(entry.getValue());
                     break;
                 case "rowRanges":
                     parseRanges(entry.getValue());
@@ -179,6 +186,9 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
                 case "rowRanges":
                     rowRanges = parseRanges(entry.getValue());
                     break;
+                case "doClientSideIterators":
+                    doClientSideIterators = Boolean.parseBoolean(entry.getValue());
+                    break;
                 default:
                     log.warn("Unrecognized option: " + entry);
                     continue;
@@ -216,12 +226,6 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
 
         setupConnectorScanner();
 
-        if (doWholeRow) {
-            // TODO: make priority dynamic in case 25 is taken; make name dynamic in case iterator name already exists. Or buffer here.
-            IteratorSetting iset = new IteratorSetting(25, WholeRowIterator.class);
-            scanner.addScanIterator(iset);
-        }
-
         log.debug("RemoteSourceIterator on table " + tableName + ": init() succeeded");
     }
 
@@ -243,6 +247,15 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
         } catch (TableNotFoundException e) {
             log.error(tableName+" does not exist in instance "+instanceName, e);
             throw new RuntimeException(e);
+        }
+
+        if (doClientSideIterators)
+            scanner = new ClientSideIteratorScanner(scanner);
+
+        if (doWholeRow) {
+            // TODO: make priority dynamic in case 25 is taken; make name dynamic in case iterator name already exists. Or buffer here.
+            IteratorSetting iset = new IteratorSetting(25, WholeRowIterator.class);
+            scanner.addScanIterator(iset);
         }
     }
 

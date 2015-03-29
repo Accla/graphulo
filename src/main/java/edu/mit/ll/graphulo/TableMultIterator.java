@@ -176,10 +176,10 @@ public class TableMultIterator extends BranchIterator implements OptionDescriber
 
     Map<String, String> optW = GraphuloUtil.splitMapPrefix(options).get(PREFIX_R);
 
-    Map<String, String> optSum = new HashMap<>();
-    optSum.put("all", "true");
-    Combiner sc = new BigDecimalCombiner.BigDecimalSummingCombiner();
-    sc.init(source, optSum, env);
+//    Map<String, String> optSum = new HashMap<>();
+//    optSum.put("all", "true");
+    SortedKeyValueIterator<Key,Value> sc = source; //new BigDecimalCombiner.BigDecimalSummingCombiner();
+//    sc.init(source, optSum, env);
 
     SortedKeyValueIterator<Key, Value> bottomIter;
     if (optW == null || optW.isEmpty()) {

@@ -35,7 +35,7 @@ public class TableMultTest extends AccumuloTestBase {
    * </pre>
    */
   @Test
-  @Ignore("KnownBug: ACCUMULO-3645")
+  @Ignore("New version only works with BatchWriter. KnownBug: ACCUMULO-3645")
   public void test1() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
     Connector conn = tester.getConnector();
 
@@ -51,6 +51,7 @@ public class TableMultTest extends AccumuloTestBase {
       input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
       input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
       input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
+      input = TestUtil.tranposeMap(input);
       TestUtil.createTestTable(conn, tA, null, input);
     }
     {
@@ -59,6 +60,7 @@ public class TableMultTest extends AccumuloTestBase {
       input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
+      input = TestUtil.tranposeMap(input);
       TestUtil.createTestTable(conn, tBT, null, input);
     }
     Map<Key,Value> expect = new HashMap<Key, Value>();
@@ -92,22 +94,25 @@ public class TableMultTest extends AccumuloTestBase {
    * A2 [ 4    ]   B2 [3  3     ]   A2 [     12   ]
    * </pre>
    */
+//  @Ignore("New version only works with BatchWriter")
   @Test
   public void test2() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
     Connector conn = tester.getConnector();
 
-    final String tP, tA, tBT;
+    final String tP, tA, tBT, tR;
     {
-      String[] names = getUniqueNames(3);
+      String[] names = getUniqueNames(4);
       tP = names[0];
       tA = names[1];
       tBT = names[2];
+      tR = names[3];
     }
     {
       Map<Key, Value> input = new HashMap<>();
       input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
       input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
       input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
+      input = TestUtil.tranposeMap(input);
       TestUtil.createTestTable(conn, tA, null, input);
     }
     {
@@ -116,8 +121,11 @@ public class TableMultTest extends AccumuloTestBase {
       input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
+      input = TestUtil.tranposeMap(input);
       TestUtil.createTestTable(conn, tBT, null, input);
     }
+
+    TestUtil.createTestTable(conn, tR);
 
     // ACCUMULO-3645 bugfix
     Key dummykey = new Key();
@@ -135,9 +143,9 @@ public class TableMultTest extends AccumuloTestBase {
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     graphulo.TableMult(tP, tA, tBT,
         BigDecimalMultiply.class, BigDecimalCombiner.BigDecimalSummingCombiner.class,
-        null, null, null, null, true);
+        null, null, null, tR, true);
 
-    Scanner scanner = conn.createScanner(tP, Authorizations.EMPTY);
+    Scanner scanner = conn.createScanner(tR, Authorizations.EMPTY);
     Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
     for (Map.Entry<Key, Value> entry : scanner) {
       actual.put(entry.getKey(), entry.getValue());
@@ -149,6 +157,7 @@ public class TableMultTest extends AccumuloTestBase {
     conn.tableOperations().delete(tA);
     conn.tableOperations().delete(tBT);
     conn.tableOperations().delete(tP);
+    conn.tableOperations().delete(tR);
   }
 
 }

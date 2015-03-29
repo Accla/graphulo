@@ -16,8 +16,8 @@ public class Watch<K extends Enum<K>> {
     log.info("Loading Watch");
   }
 
-  static enum PerfSpan {
-    Anext, ArowDecode, BTnext, BTrowDecode, Multiply
+  enum PerfSpan {
+    ATnext, Bnext, RowDecodeBoth, Multiply
   }
 
 //  /**

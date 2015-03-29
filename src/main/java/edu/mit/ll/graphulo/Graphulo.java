@@ -6,6 +6,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.DevNull;
+import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -99,7 +100,7 @@ public class Graphulo implements IGraphulo {
     opt.put("BT.tableName", BTtable);
     opt.put("BT.username", user);
     opt.put("BT.password", new String(password.getPassword()));
-    opt.put("BT.doClientSideIterators", "true");
+//    opt.put("BT.doClientSideIterators", "true");
 
     if (Rtable != null && !Rtable.isEmpty() && !Ptable.equals(Rtable)) {
       opt.put("R.zookeeperHost", zookeepers);
@@ -115,6 +116,20 @@ public class Graphulo implements IGraphulo {
       opt.put("C.tableName", Ctable);
       opt.put("C.username", user);
       opt.put("C.password", new String(password.getPassword()));
+    }
+
+    // attach combiner on Rtable
+    Map<String, String> optSum = new HashMap<>();
+    optSum.put("all", "true");
+    IteratorSetting iSum = new IteratorSetting(19,BigDecimalCombiner.BigDecimalSummingCombiner.class, optSum);
+    try {
+      tops.attachIterator(Rtable, iSum);
+    } catch (AccumuloSecurityException | AccumuloException e) {
+      log.error("error trying to add BigDecimalSummingCombiner to " + Rtable, e);
+      throw new RuntimeException(e);
+    } catch (TableNotFoundException e) {
+      log.error("impossible", e);
+      throw new RuntimeException(e);
     }
 
     // TODO P2: Assign priority and name dynamically, checking for conflicts.

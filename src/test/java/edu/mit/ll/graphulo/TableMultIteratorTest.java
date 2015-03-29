@@ -12,6 +12,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -81,6 +82,7 @@ public class TableMultIteratorTest {
             input.put(new Key("A1", "", "C1"), new Value("2".getBytes()));
             input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
             input.put(new Key("A2", "", "C1"), new Value("2".getBytes()));
+            input = TestUtil.tranposeMap(input);
             TestUtil.createTestTable(conn, tableNameA, null, input);
         }
 
@@ -91,6 +93,7 @@ public class TableMultIteratorTest {
             input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
             input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
             input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
+            input = TestUtil.tranposeMap(input);
             TestUtil.createTestTable(conn, tableNameBT, null, input);
         }
 
@@ -149,6 +152,7 @@ public class TableMultIteratorTest {
      * A2 [ 2    ]   B2 [3  3     ]               A2 [     6  ]
      * </pre>
      */
+    @Ignore("New version only works with BatchWriter")
     @Test
     public void testTableMultIterator() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
         Connector conn = tester.getConnector();

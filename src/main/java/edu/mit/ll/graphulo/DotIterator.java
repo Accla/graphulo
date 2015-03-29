@@ -1,6 +1,7 @@
 package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.mult.BigDecimalMultiply;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.*;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
@@ -25,6 +26,7 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
   private RemoteSourceIterator remoteA, remoteBT;
 
   private SortedMap<Key, Value> ArowMap;
+  private Collection<IteratorSetting.Column> ArowMapCols;
   private PeekingIterator<Map.Entry<Key, Value>> bottomIter; // = new TreeMap<>(new ColFamilyQualifierComparator());
 
   public static final String PREFIX_A = "A";
@@ -163,10 +165,22 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
       bottomIter = null;
       return;
     }
-    //cacheArow(false);
+    // Cache A immediately so that we can set fetchColumns()
+    Watch.instance.start(Watch.PerfSpan.ArowDecode);
+    try {
+      ArowMap = WholeRowIterator.decodeRow(remoteA.getTopKey(), remoteA.getTopValue());
+    } finally {
+      Watch.instance.stop(Watch.PerfSpan.ArowDecode);
+    }
+    Iterator<Map.Entry<Key, Value>> ArowMapIter = ArowMap.entrySet().iterator();
+    ArowMapCols = new ArrayList<>(ArowMap.size());
+    for (Key key : ArowMap.keySet()) {
+      ArowMapCols.add(new IteratorSetting.Column(key.getColumnFamily(), key.getColumnQualifier()));
+    }
 
     Watch.instance.start(Watch.PerfSpan.BTnext);
     try {
+      remoteBT.setFetchColumns(ArowMapCols);
       remoteBT.seek(rBT);
     } finally {
       Watch.instance.stop(Watch.PerfSpan.BTnext);
@@ -196,15 +210,9 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
     assert remoteA.hasTop();
     assert remoteBT.hasTop();
 
-    Iterator<Map.Entry<Key, Value>> ArowMapIter, BTrowMapIter;
+    Iterator<Map.Entry<Key, Value>> BTrowMapIter;
 
-    Watch.instance.start(Watch.PerfSpan.ArowDecode);
-    try {
-      ArowMap = WholeRowIterator.decodeRow(remoteA.getTopKey(), remoteA.getTopValue());
-    } finally {
-      Watch.instance.stop(Watch.PerfSpan.ArowDecode);
-    }
-    ArowMapIter = ArowMap.entrySet().iterator();
+
 
     Watch.instance.start(Watch.PerfSpan.BTrowDecode);
     try {
@@ -246,9 +254,11 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
         } finally {
           Watch.instance.stop(Watch.PerfSpan.ArowDecode);
         }
+        ArowMapCols = new ArrayList<>(ArowMap.size());
         // reset BT
         Watch.instance.start(Watch.PerfSpan.BTnext);
         try {
+          remoteBT.setFetchColumns(ArowMapCols);
           remoteBT.seek(INFINITE_RANGE);
         } finally {
           Watch.instance.stop(Watch.PerfSpan.BTnext);

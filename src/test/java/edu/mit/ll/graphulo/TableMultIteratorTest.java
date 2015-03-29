@@ -33,7 +33,7 @@ public class TableMultIteratorTest {
         Key k2 = new Key("row2","colF1","colQ1");
         Key k3 = new Key("row3","colF1","colQ1");
 
-        SortedMap<Key,Integer> map = new TreeMap<>(new DotMultIterator.ColFamilyQualifierComparator());
+        SortedMap<Key,Integer> map = new TreeMap<>(new DotIterator.ColFamilyQualifierComparator());
         map.put(k1, 1);
         map.put(k2, 2);
         int v = map.get(k3);
@@ -113,7 +113,7 @@ public class TableMultIteratorTest {
         itprops.put("BT.username",tester.getUsername());
         itprops.put("BT.password",new String(tester.getPassword().getPassword()));
         //itprops.put("BT.doWholeRow","true"); // *
-        IteratorSetting itset = new IteratorSetting(25, DotMultIterator.class, itprops);
+        IteratorSetting itset = new IteratorSetting(25, DotIterator.class, itprops);
         scanner.addScanIterator(itset);
 //        scanner.addScanIterator(new IteratorSetting(26, DebugIterator.class, Collections.<String,String>emptyMap()));
 
@@ -123,11 +123,19 @@ public class TableMultIteratorTest {
 //        listset.add(new IteratorSetting(26, DebugInfoIterator.class, Collections.<String, String>emptyMap()));
 //        conn.tableOperations().compact(tableNameC, null, null, listset, true, true); // block
 
+        Map<Key,Value> expect = new HashMap<>();
+        expect.put(new Key("A1", "", "B2"), new Value("6".getBytes()));
+        expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
+        expect.put(new Key("A1", "", "B2"), new Value("6".getBytes()));
+        expect.put(new Key("A2", "", "B2"), new Value("6".getBytes()));
+        Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+
         log.info("Results of scan on table " + tableNameC + " with A=" + tableNameA + " and BT="+tableNameBT+':');
         for (Map.Entry<Key, Value> entry : scanner) {
             log.info(entry);
-            //log.info("decoded: " + WholeRowIterator.decodeRow(entry.getKey(), entry.getValue())); // *
+            actual.put(entry.getKey(), entry.getValue());
         }
+        Assert.assertEquals(expect, actual);
 
         conn.tableOperations().delete(tableNameA);
         conn.tableOperations().delete(tableNameBT);

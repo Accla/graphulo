@@ -17,7 +17,7 @@ public class Watch<K extends Enum<K>> {
   }
 
   static enum PerfSpan {
-    Anext, ArowDecode, BTnext, Multiply
+    Anext, ArowDecode, BTnext, BTrowDecode, Multiply
   }
 
 //  /**
@@ -109,13 +109,13 @@ public class Watch<K extends Enum<K>> {
 
   public synchronized void print() {
     System.out.println("THREAD: " + Thread.currentThread().getName());
-    log.info("THREAD: " + Thread.currentThread().getName());
+//    log.info("THREAD: " + Thread.currentThread().getName());
     for (K timer : totalStats.keySet()) {
       Stats stats = get(timer);
       System.out.printf("%15s: %,7d tot %,10d cnt %,6d min %,6d max%n", timer.toString(),
           stats.total, stats.count, stats.min, stats.max);
-      log.info(String.format("%15s: %,7d tot %,10d cnt %,6d min %,6d max%n", timer.toString(),
-          stats.total, stats.count, stats.min, stats.max));
+//      log.info(String.format("%15s: %,7d tot %,10d cnt %,6d min %,6d max%n", timer.toString(),
+//          stats.total, stats.count, stats.min, stats.max));
     }
   }
 

@@ -1,14 +1,11 @@
 package edu.mit.ll.graphulo;
 
-import edu.mit.ll.graphulo.mult.BigDecimalMultiply;
 import org.apache.accumulo.core.client.*;
-import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.DevNull;
-import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -362,7 +359,7 @@ public class Graphulo implements IGraphulo {
     opt.put("BT.tableName", BTtable);
     opt.put("BT.username", user);
     opt.put("BT.password", new String(password.getPassword()));
-    IteratorSetting itset = new IteratorSetting(2, DotMultIterator.class, opt);
+    IteratorSetting itset = new IteratorSetting(2, DotIterator.class, opt);
     try {
       //tops.attachIterator(Ptable, itset);
       long t1 = System.currentTimeMillis();
@@ -410,7 +407,7 @@ public class Graphulo implements IGraphulo {
     opt.put("BT.tableName", BTtable);
     opt.put("BT.username", user);
     opt.put("BT.password", new String(password.getPassword()));
-    IteratorSetting itset = new IteratorSetting(2, DotMultIterator.class, opt);
+    IteratorSetting itset = new IteratorSetting(2, DotIterator.class, opt);
     List<IteratorSetting> list = new ArrayList<>();
     list.add(itset);
     list.add(new IteratorSetting(3, DevNull.class));

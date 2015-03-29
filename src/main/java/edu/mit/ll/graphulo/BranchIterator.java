@@ -20,119 +20,117 @@ import java.util.*;
  * A parent class for custom computation merged into a regular SKVI stack.
  * Child classes should return the iterator for their computation via initBranchIterator(options).
  */
-public abstract class BranchIterator implements SortedKeyValueIterator<Key,Value> {
-    private static final Logger log = LogManager.getLogger(BranchIterator.class);
+public abstract class BranchIterator implements SortedKeyValueIterator<Key, Value> {
+  private static final Logger log = LogManager.getLogger(BranchIterator.class);
 
 //    public abstract void initSetup(Map<String, String> options);
 //    public abstract Pair<Key,Value> processBeforeMerge(Range seekRng, Key lastKey, Value lastValue);
 //    public abstract Pair<Key,Value> processAfterMerge(Range seekRng, Key lastKey, Value lastValue);
-    /**
-     * Return the *bottom-most* iterator of the custom computation stack.
-     * The resulting iterator should be initalized; should not have to call init() on the resulting iterator.
-     * Can be null, but if null, which means no computation performed.
-     * @param options Options passed to the BranchIterator.
-     */
-    public SortedKeyValueIterator<Key,Value> initBranchIterator(Map<String, String> options, IteratorEnvironment env) throws IOException {
-        return null;
+
+  /**
+   * Return the *bottom-most* iterator of the custom computation stack.
+   * The resulting iterator should be initalized; should not have to call init() on the resulting iterator.
+   * Can be null, but if null, which means no computation performed.
+   *
+   * @param options Options passed to the BranchIterator.
+   */
+  public SortedKeyValueIterator<Key, Value> initBranchIterator(Map<String, String> options, IteratorEnvironment env) throws IOException {
+    return null;
+  }
+
+  /**
+   * Opportunity to apply an SKVI stack after merging the custom computation stack into the regular parent stack.
+   * Returns parent by default.
+   *
+   * @param source  The MultiIterator merging the normal stack and the custom branch stack.
+   * @param options Options passed to the BranchIterator.
+   * @return The bottom iterator. Cannot be null. Return source if no additional computation is desired.
+   */
+  public SortedKeyValueIterator<Key, Value> initBranchAfterIterator(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
+    return source;
+  }
+
+  private SortedKeyValueIterator<Key, Value> botIterator;
+  private boolean doTrace = false;
+
+  @Override
+  public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
+    IteratorUtil.IteratorScope scope = env.getIteratorScope();
+    log.debug(this.getClass() + ": init on scope " + scope + (scope == IteratorUtil.IteratorScope.majc ? " fullScan=" + env.isFullMajorCompaction() : ""));
+    //log.info("BranchIterator options: "+options);
+    //super.init(source, options, env); // sets source
+
+    // see if Trace enabled
+    if (options.containsKey("trace")) {
+      if (Boolean.parseBoolean(options.get("trace")))
+        doTrace = true;
+      options = new HashMap<>(options);
+      options.remove("trace");
     }
 
-    /**
-     * Opportunity to apply an SKVI stack after merging the custom computation stack into the regular parent stack.
-     * Returns parent by default.
-     * @param source The MultiIterator merging the normal stack and the custom branch stack.
-     * @param options Options passed to the BranchIterator.
-     * @return The bottom iterator. Cannot be null. Return source if no additional computation is desired.
-     */
-    public SortedKeyValueIterator<Key,Value> initBranchAfterIterator(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
-        return source;
+
+    SortedKeyValueIterator<Key, Value> branchIterator = initBranchIterator(options, env);
+    if (branchIterator == null) {
+      botIterator = source;
+    } else {
+      List<SortedKeyValueIterator<Key, Value>> list = new ArrayList<>(2);
+      list.add(branchIterator);
+      list.add(source);
+      botIterator = new MultiIterator(list, false);
     }
+    botIterator = initBranchAfterIterator(botIterator, options, env);
+    if (botIterator == null)
+      throw new IllegalStateException("--some subclass returned a null bottom iterator in branchAfter--");
 
-    private SortedKeyValueIterator<Key,Value> botIterator;
-    private boolean doTrace = false;
+    System.out.println("Reset Watch at init of BranchIterator");
+    Watch.instance.resetAll();
+  }
 
-    @Override
-    public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
-        IteratorUtil.IteratorScope scope = env.getIteratorScope();
-        log.debug(this.getClass() + ": init on scope " + scope + (scope == IteratorUtil.IteratorScope.majc ? " fullScan=" + env.isFullMajorCompaction() : ""));
-        //log.info("BranchIterator options: "+options);
-        //super.init(source, options, env); // sets source
+  @Override
+  public boolean hasTop() {
+    return botIterator.hasTop();
+  }
 
-        // see if Trace enabled
-        if (options.containsKey("trace")) {
-          if (Boolean.parseBoolean(options.get("trace")))
-            doTrace = true;
-          options = new HashMap<>(options);
-          options.remove("trace");
-        }
-
-
-        SortedKeyValueIterator<Key, Value> branchIterator = initBranchIterator(options, env);
-        if (branchIterator == null) {
-            botIterator = source;
-        } else {
-            List<SortedKeyValueIterator<Key, Value>> list = new ArrayList<>(2);
-            list.add(branchIterator);
-            list.add(source);
-            botIterator = new MultiIterator(list, false);
-        }
-        botIterator = initBranchAfterIterator(botIterator, options, env);
-        if (botIterator == null)
-            throw new IllegalStateException("--some subclass returned a null bottom iterator in branchAfter--");
-
-        log.info("Reset Watch at init of BranchIterator");
-        System.out.println("Reset Watch at init of BranchIterator");
-        Watch.instance.resetAll();
-    }
-
-    @Override
-    public boolean hasTop() {
-        return botIterator.hasTop();
-    }
-
-    @Override
-    public void next() throws IOException {
-        try {
-            botIterator.next();
-        } finally {
-            if (!botIterator.hasTop()) {
-                Watch.instance.print();
-            }
-        }
-    }
-
-    @Override
-    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-//      Span span = Trace.on("starting seek on " + botIterator);
-      try {
-        botIterator.seek(range, columnFamilies, inclusive);
-      } finally {
-//        span.stop();
-          if (!botIterator.hasTop()) {
-              Watch.instance.print();
-          }
+  @Override
+  public void next() throws IOException {
+    try {
+      botIterator.next();
+    } finally {
+      if (!botIterator.hasTop()) {
+        Watch.instance.print();
       }
+    }
+  }
 
+  @Override
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+    try {
+      botIterator.seek(range, columnFamilies, inclusive);
+    } finally {
+      Watch.instance.print();
     }
 
-    @Override
-    public Key getTopKey() {
-        return botIterator.getTopKey();
-    }
+  }
 
-    @Override
-    public Value getTopValue() {
-        return botIterator.getTopValue();
-    }
+  @Override
+  public Key getTopKey() {
+    return botIterator.getTopKey();
+  }
 
-    @Override
-    public SortedKeyValueIterator<Key, Value> deepCopy(IteratorEnvironment env) {
-        BranchIterator copy;
-        try {
-            copy = this.getClass().newInstance();
-        } catch (InstantiationException | IllegalAccessException e) {
-            throw new RuntimeException("cannot construct deepCopy", e);
-        }
-        copy.botIterator = botIterator.deepCopy(env);
-        return copy;
+  @Override
+  public Value getTopValue() {
+    return botIterator.getTopValue();
+  }
+
+  @Override
+  public SortedKeyValueIterator<Key, Value> deepCopy(IteratorEnvironment env) {
+    BranchIterator copy;
+    try {
+      copy = this.getClass().newInstance();
+    } catch (InstantiationException | IllegalAccessException e) {
+      throw new RuntimeException("cannot construct deepCopy", e);
     }
+    copy.botIterator = botIterator.deepCopy(env);
+    return copy;
+  }
 }

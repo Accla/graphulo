@@ -258,7 +258,7 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
   static boolean skipNextRowUntil(SortedKeyValueIterator<Key, Value> skvi, Text rowToSkipUntil, Watch.PerfSpan watch) throws IOException {
     Text curRow = skvi.getTopKey().getRow();
     long cnt = 0;
-    while (skvi.hasTop() && rowToSkipUntil.compareTo(skvi.getTopKey().getRow(curRow)) < 0) {
+    while (skvi.hasTop() && rowToSkipUntil.compareTo(skvi.getTopKey().getRow(curRow)) > 0) {
       cnt++;
       Watch.instance.start(watch);
       try {

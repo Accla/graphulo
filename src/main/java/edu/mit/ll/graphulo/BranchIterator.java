@@ -104,9 +104,11 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key, Valu
 
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+    Watch.instance.start(Watch.PerfSpan.All);
     try {
       botIterator.seek(range, columnFamilies, inclusive);
     } finally {
+      Watch.instance.stop(Watch.PerfSpan.All);
       Watch.instance.print();
     }
 

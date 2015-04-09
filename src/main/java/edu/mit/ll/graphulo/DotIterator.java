@@ -22,7 +22,7 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
   private static final Logger log = LogManager.getLogger(DotIterator.class);
 
   private IMultiplyOp multiplyOp = new BigDecimalMultiply();
-  private RemoteSourceIterator remoteA, remoteBT;
+  private RemoteSourceIterator remoteAT, remoteB;
 
   private PeekingIterator<Map.Entry<Key, Value>> bottomIter; // = new TreeMap<>(new ColFamilyQualifierComparator());
 
@@ -91,19 +91,19 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
           case PREFIX_A: {
             String v = entryMap.remove("doWholeRow");
             if (v != null && !Boolean.parseBoolean(v)) {
-              log.warn("Forcing doWholeRow option on table A to true. Given: " + v);
+              log.warn("Forcing doWholeRow option on table A to FALSE. Given: " + v);
             }
             optA = entryMap;
-            optA.put("doWholeRow", "true");
+            optA.put("doWholeRow", "false");
             break;
           }
           case PREFIX_BT: {
             String v = entryMap.remove("doWholeRow");
             if (v != null && !Boolean.parseBoolean(v)) {
-              log.warn("Forcing doWholeRow option on table BT to TRUE. Given: " + v);
+              log.warn("Forcing doWholeRow option on table BT to FALSE. Given: " + v);
             }
             optBT = entryMap;
-            optBT.put("doWholeRow", "true");
+            optBT.put("doWholeRow", "false");
             break;
           }
           default:
@@ -117,10 +117,10 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
       if (optBT == null) optBT = new HashMap<>();
     }
 
-    remoteA = new RemoteSourceIterator();
-    remoteBT = new RemoteSourceIterator();
-    remoteA.init(null, optA, env);
-    remoteBT.init(null, optBT, env);
+    remoteAT = new RemoteSourceIterator();
+    remoteB = new RemoteSourceIterator();
+    remoteAT.init(null, optA, env);
+    remoteB.init(null, optBT, env);
 
     log.trace("DotMultIterator init() ok");
   }
@@ -128,7 +128,7 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
 
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-    Range rA=INFINITE_RANGE, rBT=INFINITE_RANGE;
+    Range rA = INFINITE_RANGE, rBT = INFINITE_RANGE;
     // if range is in the middle of a row, seek A to the beginning of the row and B to the correct location
 //    if (range.isInfiniteStartKey()) {
 //      rBT = INFINITE_RANGE;
@@ -153,145 +153,152 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
 
     Watch.instance.start(Watch.PerfSpan.ATnext);
     try {
-      remoteA.seek(rA);
+      remoteAT.seek(rA);
     } finally {
       Watch.instance.stop(Watch.PerfSpan.ATnext);
     }
-//    // choosing not to handle case where we end in the middle of a row; allowed to return entries beyond the seek range
-//    if (!remoteA.hasTop()) {
-//      bottomIter = null;
-//      return;
-//    }
-//    // Cache A immediately so that we can set fetchColumns()
-//    Watch.instance.start(Watch.PerfSpan.ArowDecode);
-//    try {
-//      ArowMap = WholeRowIterator.decodeRow(remoteA.getTopKey(), remoteA.getTopValue());
-//    } finally {
-//      Watch.instance.stop(Watch.PerfSpan.ArowDecode);
-//    }
-//    Iterator<Map.Entry<Key, Value>> ArowMapIter = ArowMap.entrySet().iterator();
+    // choosing not to handle case where we end in the middle of a row; allowed to return entries beyond the seek range
 
     Watch.instance.start(Watch.PerfSpan.Bnext);
     try {
-      remoteBT.seek(rBT);
+      remoteB.seek(rBT);
     } finally {
       Watch.instance.stop(Watch.PerfSpan.Bnext);
     }
-//    if (!remoteBT.hasTop()) {
-//      Watch.instance.start(Watch.PerfSpan.ATnext);
-//      try {
-//        remoteA.next();
-//      } finally {
-//        Watch.instance.stop(Watch.PerfSpan.ATnext);
-//      }
-//      if (!remoteA.hasTop()) {
-//        bottomIter = null;
-//        return;
-//      }
-//      Watch.instance.start(Watch.PerfSpan.Bnext);
-//      try {
-//        remoteBT.seek(INFINITE_RANGE);
-//      } finally {
-//        Watch.instance.stop(Watch.PerfSpan.Bnext);
-//      }
-//      if (!remoteBT.hasTop()) {
-//        bottomIter = null;
-//        return;
-//      }
-//    }
-//    assert remoteA.hasTop();
-//    assert remoteBT.hasTop();
-//
-//    Iterator<Map.Entry<Key, Value>> BTrowMapIter;
-//
-//
-//
-//    Watch.instance.start(Watch.PerfSpan.BTrowDecode);
-//    try {
-//      BTrowMapIter = WholeRowIterator.decodeRow(remoteBT.getTopKey(), remoteBT.getTopValue()).entrySet().iterator();
-//    } finally {
-//      Watch.instance.stop(Watch.PerfSpan.BTrowDecode);
-//    }
-//    bottomIter = new PeekingIterator<>(new DotIter(ArowMapIter, BTrowMapIter, multiplyOp));
 
     prepNextRowMatch(false);
-//    prepNextBottomIter();
   }
 
   private void prepNextRowMatch(boolean doNext) throws IOException {
-    if (!remoteA.hasTop() || !remoteBT.hasTop()) {
+    if (!remoteAT.hasTop() || !remoteB.hasTop()) {
       bottomIter = null;
       return;
     }
     if (doNext) {
       Watch.instance.start(Watch.PerfSpan.ATnext);
       try {
-        remoteA.next();
+        remoteAT.next();
       } finally {
         Watch.instance.stop(Watch.PerfSpan.ATnext);
       }
-      if (!remoteA.hasTop()) {
+      if (!remoteAT.hasTop()) {
         bottomIter = null;
         return;
       }
       Watch.instance.start(Watch.PerfSpan.Bnext);
       try {
-      remoteBT.next();
-    } finally {
-      Watch.instance.stop(Watch.PerfSpan.Bnext);
-    }
-    }
-    if (!remoteBT.hasTop()) {
-      bottomIter = null;
-      return;
+        remoteB.next();
+      } finally {
+        Watch.instance.stop(Watch.PerfSpan.Bnext);
+      }
+      if (!remoteB.hasTop()) {
+        bottomIter = null;
+        return;
+      }
     }
 
-    SortedMap<Key,Value> ArowMap, BrowMap;
-    int cmp;
-    do {
-      cmp = remoteA.getTopKey().getRowData().compareTo(remoteBT.getTopKey().getRowData());
-      while (cmp != 0) {
-        if (cmp < 0) {
-          Watch.instance.start(Watch.PerfSpan.ATnext);
-          try {
-          remoteA.next();
-          } finally {
-            Watch.instance.stop(Watch.PerfSpan.ATnext);
-          }
-          if (!remoteA.hasTop()) {
-            bottomIter = null;
-            return;
-          }
-        } else if (cmp > 0) {
-          Watch.instance.start(Watch.PerfSpan.Bnext);
-          try {
-          remoteBT.next();
-        } finally {
-          Watch.instance.stop(Watch.PerfSpan.Bnext);
+    SortedMap<Key, Value> ArowMap, BrowMap;
+    Text Arow = remoteAT.getTopKey().getRow(), Brow = remoteB.getTopKey().getRow();
+    int cmp = Arow.compareTo(Brow);
+    while (cmp != 0) {
+      if (cmp < 0) {
+        skipNextRowUntil(remoteAT, Brow, Watch.PerfSpan.ATnext);
+        if (!remoteAT.hasTop()) {
+          bottomIter = null;
+          return;
         }
-          if (!remoteBT.hasTop()) {
-            bottomIter = null;
-            return;
-          }
+        remoteAT.getTopKey().getRow(Arow);
+      } else if (cmp > 0) {
+        skipNextRowUntil(remoteB, Arow, Watch.PerfSpan.Bnext);
+        if (!remoteB.hasTop()) {
+          bottomIter = null;
+          return;
         }
-        cmp = remoteA.getTopKey().getRowData().compareTo(remoteBT.getTopKey().getRowData());
+        remoteB.getTopKey().getRow(Brow);
       }
-      //assert cmp == 0;
-      Watch.instance.start(Watch.PerfSpan.RowDecodeBoth);
-      try {
-      ArowMap = WholeRowIterator.decodeRow(remoteA.getTopKey(), remoteA.getTopValue());
-      BrowMap = WholeRowIterator.decodeRow(remoteBT.getTopKey(), remoteBT.getTopValue());
-      } finally {
-        Watch.instance.stop(Watch.PerfSpan.RowDecodeBoth);
-      }
-    } while (ArowMap.isEmpty() || BrowMap.isEmpty()); // don't want empty Cartesian product
+      cmp = Arow.compareTo(Brow);
+    }
+    //assert cmp == 0;
+    Watch.instance.start(Watch.PerfSpan.RowDecodeBoth);
+    try {
+      ArowMap = readRow(remoteAT, Watch.PerfSpan.ATnext);
+      BrowMap = readRow(remoteB, Watch.PerfSpan.Bnext);
+    } finally {
+      Watch.instance.stop(Watch.PerfSpan.RowDecodeBoth);
+    }
 
     bottomIter = new PeekingIterator<>(new CartesianDotIter(ArowMap, BrowMap, multiplyOp));
     assert hasTop();
   }
 
+  /**
+   * Call next() on skvi until getTopKey() is a new row, or until !hasTop().
+   * Todo P2: Experiment with using seek() if this takes a while, say greater than 10 next() calls.
+   *
+   * @return True if advanced to a new row; false if !hasTop().
+   */
+  static boolean skipNextRow(SortedKeyValueIterator<Key, Value> skvi) throws IOException {
+    if (!skvi.hasTop())
+      throw new IllegalStateException(skvi + " should hasTop()");
+    Text curRow = skvi.getTopKey().getRow();
+    Text newRow = new Text(curRow);
+    do {
+      skvi.next();
+    } while (skvi.hasTop() && curRow.equals(skvi.getTopKey().getRow(newRow)));
+    return skvi.hasTop();
+  }
+
+  /**
+   * Call next() on skvi until getTopKey() advances to a row >= rowToSkipUntil, or until !hasTop().
+   * Todo P2: Experiment with using seek() if this takes a while, say greater than 10 next() calls.
+   * Todo P2: Replace with getRowData() for efficiency (less copying).
+   *
+   * @return True if advanced to a new row; false if !hasTop().
+   */
+  static boolean skipNextRowUntil(SortedKeyValueIterator<Key, Value> skvi, Text rowToSkipUntil, Watch.PerfSpan watch) throws IOException {
+    Text curRow = skvi.getTopKey().getRow();
+    long cnt = 0;
+    while (skvi.hasTop() && rowToSkipUntil.compareTo(skvi.getTopKey().getRow(curRow)) < 0) {
+      cnt++;
+      Watch.instance.start(watch);
+      try {
+        skvi.next();
+      } finally {
+        Watch.instance.stop(watch);
+      }
+    }
+    Watch.instance.increment(Watch.PerfSpan.RowSkipNum, cnt);
+    return skvi.hasTop();
+  }
+
+  /**
+   * Fill a SortedMap with all the entries in the same row as skvi.getTopKey().getRow()
+   * when first called.
+   * Postcondition: !skvi.hasTop() || skvi.getTopKey().getRow() has changed.
+   *
+   * @return Sorted map of the entries.
+   * Todo P2: replace SortedMap with a list of entries, since sorted order is guaranteed
+   */
+  static SortedMap<Key, Value> readRow(SortedKeyValueIterator<Key, Value> skvi, Watch.PerfSpan watch) throws IOException {
+    if (!skvi.hasTop())
+      throw new IllegalStateException(skvi + " should hasTop()");
+    Text thisRow = skvi.getTopKey().getRow();
+    Text curRow = new Text(thisRow);
+    SortedMap<Key, Value> map = new TreeMap<>();
+    do {
+      map.put(skvi.getTopKey(), skvi.getTopValue());
+      Watch.instance.start(watch);
+      try {
+        skvi.next();
+      } finally {
+        Watch.instance.stop(watch);
+      }
+    } while (skvi.hasTop() && skvi.getTopKey().getRow(curRow).equals(thisRow));
+    return map;
+  }
+
   static class CartesianDotIter implements Iterator<Map.Entry<Key, Value>> {
-    private SortedMap<Key,Value> ArowMap, BrowMap;
+    private SortedMap<Key, Value> ArowMap, BrowMap;
     private PeekingIterator<Map.Entry<Key, Value>> ArowMapIter;
     private Iterator<Map.Entry<Key, Value>> BrowMapIter;
     private IMultiplyOp multiplyOp;
@@ -311,7 +318,7 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
 
     @Override
     public Map.Entry<Key, Value> next() {
-      Map.Entry<Key,Value> eA, eB = BrowMapIter.next();
+      Map.Entry<Key, Value> eA, eB = BrowMapIter.next();
       if (!BrowMapIter.hasNext()) {
         eA = ArowMapIter.next(); // advance ArowMapIter
         if (ArowMapIter.hasNext())
@@ -430,7 +437,7 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
   public void next() throws IOException {
     bottomIter.next();
     if (!bottomIter.hasNext())
-      prepNextRowMatch(true);
+      prepNextRowMatch(false);
   }
 
   /**
@@ -470,8 +477,8 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
   @Override
   public DotIterator deepCopy(IteratorEnvironment env) {
     DotIterator copy = new DotIterator();
-    copy.remoteA = remoteA.deepCopy(env);
-    copy.remoteBT = remoteBT.deepCopy(env);
+    copy.remoteAT = remoteAT.deepCopy(env);
+    copy.remoteB = remoteB.deepCopy(env);
     return copy;
   }
 }

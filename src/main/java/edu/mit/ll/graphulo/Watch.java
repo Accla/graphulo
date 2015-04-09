@@ -17,7 +17,7 @@ public class Watch<K extends Enum<K>> {
   }
 
   enum PerfSpan {
-    ATnext, Bnext, RowDecodeBoth, Multiply
+    ATnext, Bnext, RowDecodeBoth, RowSkipNum, All, WriteAddMut, WriteFlush, WriteGetNext, Multiply
   }
 
 //  /**
@@ -112,7 +112,7 @@ public class Watch<K extends Enum<K>> {
 //    log.info("THREAD: " + Thread.currentThread().getName());
     for (K timer : totalStats.keySet()) {
       Stats stats = get(timer);
-      System.out.printf("%15s: %,7d tot %,10d cnt %,6d min %,6d max%n", timer.toString(),
+      System.out.printf("%14s: %,7d tot %,10d cnt %,6d min %,6d max%n", timer.toString(),
           stats.total, stats.count, stats.min, stats.max);
 //      log.info(String.format("%15s: %,7d tot %,10d cnt %,6d min %,6d max%n", timer.toString(),
 //          stats.total, stats.count, stats.min, stats.max));

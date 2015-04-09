@@ -219,19 +219,30 @@ public class RemoteWriteIterator extends WrappingIterator implements OptionDescr
                 m = new Mutation(k.getRowData().getBackingArray());
                 m.put(k.getColumnFamilyData().getBackingArray(), k.getColumnQualifierData().getBackingArray(),
                         k.getColumnVisibilityParsed(), v.get()); // no ts? System.currentTimeMillis()
+                Watch.instance.start(Watch.PerfSpan.WriteAddMut);
                 try {
                     writer.addMutation(m);
                 } catch (MutationsRejectedException e) {
                     log.warn("ignoring rejected mutations; last one added is " + m, e);
+                } finally {
+                    Watch.instance.stop(Watch.PerfSpan.WriteAddMut);
                 }
-                super.next();
+                Watch.instance.start(Watch.PerfSpan.WriteGetNext);
+                try {
+                    super.next();
+                } finally {
+                    Watch.instance.stop(Watch.PerfSpan.WriteGetNext);
+                }
             }
         } finally {
+            Watch.instance.start(Watch.PerfSpan.WriteFlush);
             try {
                 writer.flush();
             } catch (MutationsRejectedException e) {
                 log.warn("ignoring rejected mutations; "
                         + (m == null ? "none added so far (?)" : "last one added is " + m), e);
+            } finally {
+                Watch.instance.stop(Watch.PerfSpan.WriteFlush);
             }
         }
     }

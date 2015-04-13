@@ -4,7 +4,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.*;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
-import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -28,10 +27,10 @@ public class TableMultIterator extends BranchIterator implements OptionDescriber
     final Map<String, String> optDesc = new LinkedHashMap<>();
     optDesc.put("trace", "Use tracer? true or false");
     for (Map.Entry<String, String> entry : RemoteSourceIterator.iteratorOptions.getNamedOptions().entrySet()) {
-      optDesc.put(DotIterator.PREFIX_A + '.' + entry.getKey(), "Table A :" + entry.getValue());
+      optDesc.put(DotIterator.PREFIX_AT + '.' + entry.getKey(), "Table A :" + entry.getValue());
     }
     for (Map.Entry<String, String> entry : RemoteSourceIterator.iteratorOptions.getNamedOptions().entrySet()) {
-      optDesc.put(DotIterator.PREFIX_BT + '.' + entry.getKey(), "Table BT:" + entry.getValue());
+      optDesc.put(DotIterator.PREFIX_B + '.' + entry.getKey(), "Table BT:" + entry.getValue());
     }
     for (Map.Entry<String, String> entry : RemoteSourceIterator.iteratorOptions.getNamedOptions().entrySet()) {
       optDesc.put(PREFIX_C + '.' + entry.getKey(), "[Optional] Table C:" + entry.getValue());
@@ -60,10 +59,10 @@ public class TableMultIterator extends BranchIterator implements OptionDescriber
         optR = new HashMap<>(), optC = new HashMap<>();
     for (Map.Entry<String, String> entry : options.entrySet()) {
       String key = entry.getKey();
-      if (key.startsWith(DotIterator.PREFIX_A))
-        optA.put(key.substring(DotIterator.PREFIX_A.length() + 1), entry.getValue());
-      else if (key.startsWith(DotIterator.PREFIX_BT))
-        optBT.put(key.substring(DotIterator.PREFIX_BT.length() + 1), entry.getValue());
+      if (key.startsWith(DotIterator.PREFIX_AT))
+        optA.put(key.substring(DotIterator.PREFIX_AT.length() + 1), entry.getValue());
+      else if (key.startsWith(DotIterator.PREFIX_B))
+        optBT.put(key.substring(DotIterator.PREFIX_B.length() + 1), entry.getValue());
       else if (key.startsWith(PREFIX_R))
         optR.put(key.substring(PREFIX_R.length() + 1), entry.getValue());
       else if (key.startsWith(PREFIX_C))
@@ -96,8 +95,8 @@ public class TableMultIterator extends BranchIterator implements OptionDescriber
         Map<String, String> entryMap = prefixEntry.getValue();
 
         switch (prefix) {
-          case DotIterator.PREFIX_A:
-          case DotIterator.PREFIX_BT: {
+          case DotIterator.PREFIX_AT:
+          case DotIterator.PREFIX_B: {
             optDM.putAll(GraphuloUtil.preprendPrefixToKey(prefix + '.', entryMap));
             break;
           }

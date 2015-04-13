@@ -39,6 +39,15 @@ public class MatlabGraphulo extends Graphulo {
         null, null,
         Ctable, Rtable, wait);
   }
+  public void TableMultTest(String Ptable,
+                            String Atable, String BTtable,
+                            String Ctable, String Rtable, boolean wait, boolean trace) {
+    TableMult(Ptable, Atable, BTtable,
+        //BigDecimalMultiply.class, BigDecimalCombiner.BigDecimalSummingCombiner.class,
+        LongMultiply.class, SummingCombiner.class,
+        null, null,
+        Ctable, Rtable, wait, trace);
+  }
 
 
 

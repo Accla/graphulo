@@ -5,7 +5,6 @@ import org.apache.accumulo.core.data.*;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
@@ -15,19 +14,19 @@ import java.io.IOException;
 import java.util.*;
 
 /**
- * The dot product part of table-table multiplication.
- * Todo: make this generic by accepting a whole row A source and a B source, instead of specifically RemoteSourceIterators. Configure options outside. Subclass RemoteSotMultIterator.
+ * Outer product. Emits partial products. Configure two remote sources for tables AT and B,
+ * or configure one remote source and use the source as the other one.
  */
 public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDescriber {
   private static final Logger log = LogManager.getLogger(DotIterator.class);
 
   private IMultiplyOp multiplyOp = new BigDecimalMultiply();
-  private RemoteSourceIterator remoteAT, remoteB;
+  private SortedKeyValueIterator<Key,Value> remoteAT, remoteB;
 
   private PeekingIterator<Map.Entry<Key, Value>> bottomIter; // = new TreeMap<>(new ColFamilyQualifierComparator());
 
-  public static final String PREFIX_A = "A";
-  public static final String PREFIX_BT = "BT";
+  public static final String PREFIX_AT = "AT";
+  public static final String PREFIX_B = "B";
   private static final Range INFINITE_RANGE = new Range();
 
   static final OptionDescriber.IteratorOptions iteratorOptions;
@@ -35,14 +34,14 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
   static {
     final Map<String, String> optDesc = new LinkedHashMap<>();
     for (Map.Entry<String, String> entry : RemoteSourceIterator.iteratorOptions.getNamedOptions().entrySet()) {
-      optDesc.put(PREFIX_A + entry.getKey(), "Table A :" + entry.getValue());
+      optDesc.put(PREFIX_AT + entry.getKey(), "Table AT:" + entry.getValue());
     }
     for (Map.Entry<String, String> entry : RemoteSourceIterator.iteratorOptions.getNamedOptions().entrySet()) {
-      optDesc.put(PREFIX_BT + entry.getKey(), "Table BT:" + entry.getValue());
+      optDesc.put(PREFIX_B + entry.getKey(), "Table B:" + entry.getValue());
     }
 
     iteratorOptions = new OptionDescriber.IteratorOptions("DotMultIterator",
-        "Dot product on rows from Accumulo tables A and BT. Does not sum.",
+        "Outer product on A and B, given AT and B. Can omit one and use parent source instead. Does not sum.",
         optDesc, null);
   }
 
@@ -57,53 +56,51 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
   }
 
   public static boolean validateOptionsStatic(Map<String, String> options) {
-    Map<String, String> optA = new HashMap<>(), optBT = new HashMap<>();
+    Map<String, String> optAT = new HashMap<>(), optB = new HashMap<>();
     for (Map.Entry<String, String> entry : options.entrySet()) {
       String key = entry.getKey();
-      if (key.startsWith(PREFIX_A))
-        optA.put(key.substring(PREFIX_A.length()), entry.getValue());
-      else if (key.startsWith(PREFIX_BT))
-        optBT.put(key.substring(PREFIX_BT.length()), entry.getValue());
+      if (key.startsWith(PREFIX_AT))
+        optAT.put(key.substring(PREFIX_AT.length()), entry.getValue());
+      else if (key.startsWith(PREFIX_B))
+        optB.put(key.substring(PREFIX_B.length()), entry.getValue());
       else switch (key) {
 
           default:
             throw new IllegalArgumentException("unknown option: " + entry);
         }
     }
-    return RemoteSourceIterator.validateOptionsStatic(optA) &&
-        RemoteSourceIterator.validateOptionsStatic(optBT);
+    return (!optAT.isEmpty() || !optB.isEmpty()) &&
+        (optAT.isEmpty() || RemoteSourceIterator.validateOptionsStatic(optAT)) &&
+        (optB.isEmpty() || RemoteSourceIterator.validateOptionsStatic(optB));
   }
 
 
   @Override
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
-    if (source != null)
-      log.warn("DotMultIterator ignores/replaces parent source passed in init(): " + source);
-
     // parse options, pass correct options to RemoteSourceIterator init()
-    Map<String, String> optA = null, optBT = null;
+    Map<String, String> optAT = null, optB = null;
     {
       Map<String, Map<String, String>> prefixMap = GraphuloUtil.splitMapPrefix(options);
       for (Map.Entry<String, Map<String, String>> prefixEntry : prefixMap.entrySet()) {
         String prefix = prefixEntry.getKey();
         Map<String, String> entryMap = prefixEntry.getValue();
         switch (prefix) {
-          case PREFIX_A: {
+          case PREFIX_AT: {
             String v = entryMap.remove("doWholeRow");
             if (v != null && !Boolean.parseBoolean(v)) {
               log.warn("Forcing doWholeRow option on table A to FALSE. Given: " + v);
             }
-            optA = entryMap;
-            optA.put("doWholeRow", "false");
+            optAT = entryMap;
+            optAT.put("doWholeRow", "false");
             break;
           }
-          case PREFIX_BT: {
+          case PREFIX_B: {
             String v = entryMap.remove("doWholeRow");
             if (v != null && !Boolean.parseBoolean(v)) {
               log.warn("Forcing doWholeRow option on table BT to FALSE. Given: " + v);
             }
-            optBT = entryMap;
-            optBT.put("doWholeRow", "false");
+            optB = entryMap;
+            optB.put("doWholeRow", "false");
             break;
           }
           default:
@@ -113,16 +110,26 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
             break;
         }
       }
-      if (optA == null) optA = new HashMap<>();
-      if (optBT == null) optBT = new HashMap<>();
     }
 
-    remoteAT = new RemoteSourceIterator();
-    remoteB = new RemoteSourceIterator();
-    remoteAT.init(null, optA, env);
-    remoteB.init(null, optBT, env);
+    if ((optAT == null && optB == null) ||
+        (optAT == null || optB == null) && source == null) {
+      throw new IllegalArgumentException("not enough options given: optAT="+optAT+", optB="+optB+", source="+source);
+    }
+    if (optAT != null && optB != null && source != null) {
+      log.warn("DotMultIterator ignores/replaces parent source passed in init(): " + source);
+    }
 
-    log.trace("DotMultIterator init() ok");
+    if (optAT != null) {
+      remoteAT = new RemoteSourceIterator();
+      remoteAT.init(null, optAT, env);
+    } else
+      remoteAT = source;
+    if (optB != null) {
+      remoteB = new RemoteSourceIterator();
+      remoteB.init(null, optB, env);
+    } else
+      remoteB = source;
   }
 
 
@@ -153,7 +160,7 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
 
     Watch.instance.start(Watch.PerfSpan.ATnext);
     try {
-      remoteAT.seek(rA);
+      remoteAT.seek(rA, Collections.<ByteSequence>emptySet(), false);
     } finally {
       Watch.instance.stop(Watch.PerfSpan.ATnext);
     }
@@ -161,7 +168,7 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
 
     Watch.instance.start(Watch.PerfSpan.Bnext);
     try {
-      remoteB.seek(rBT);
+      remoteB.seek(rBT, Collections.<ByteSequence>emptySet(), false);
     } finally {
       Watch.instance.stop(Watch.PerfSpan.Bnext);
     }

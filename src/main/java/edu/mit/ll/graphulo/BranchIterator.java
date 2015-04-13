@@ -23,10 +23,6 @@ import java.util.*;
 public abstract class BranchIterator implements SortedKeyValueIterator<Key, Value> {
   private static final Logger log = LogManager.getLogger(BranchIterator.class);
 
-//    public abstract void initSetup(Map<String, String> options);
-//    public abstract Pair<Key,Value> processBeforeMerge(Range seekRng, Key lastKey, Value lastValue);
-//    public abstract Pair<Key,Value> processAfterMerge(Range seekRng, Key lastKey, Value lastValue);
-
   /**
    * Return the *bottom-most* iterator of the custom computation stack.
    * The resulting iterator should be initalized; should not have to call init() on the resulting iterator.
@@ -51,7 +47,6 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key, Valu
   }
 
   private SortedKeyValueIterator<Key, Value> botIterator;
-  private boolean doTrace = false;
 
   @Override
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
@@ -62,8 +57,7 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key, Valu
 
     // see if Trace enabled
     if (options.containsKey("trace")) {
-      if (Boolean.parseBoolean(options.get("trace")))
-        doTrace = true;
+        Watch.enableTrace = Boolean.parseBoolean(options.get("trace"));
       options = new HashMap<>(options);
       options.remove("trace");
     }
@@ -111,7 +105,6 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key, Valu
       Watch.instance.stop(Watch.PerfSpan.All);
       Watch.instance.print();
     }
-
   }
 
   @Override

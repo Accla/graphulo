@@ -11,6 +11,7 @@ import java.util.EnumMap;
  */
 public class Watch<K extends Enum<K>> {
   private static final Logger log = LogManager.getLogger(Watch.class);
+  public static boolean enableTrace = true;
 
   static {
     log.info("Loading Watch");
@@ -46,6 +47,8 @@ public class Watch<K extends Enum<K>> {
   }
 
   public synchronized void start(K timer) {
+    if (!enableTrace)
+      return;
     if (startTime.containsKey(timer)) {
       throw new IllegalStateException(timer + " already started");
     }
@@ -53,12 +56,15 @@ public class Watch<K extends Enum<K>> {
   }
 
   public synchronized void stopIfActive(K timer) {
+    if (!enableTrace)
+      return;
     if (startTime.containsKey(timer))
       stop(timer);
   }
 
   public synchronized void stop(K timer) {
-
+    if (!enableTrace)
+      return;
     Long st = startTime.get(timer);
 
     if (st == null) {
@@ -73,6 +79,8 @@ public class Watch<K extends Enum<K>> {
   }
 
   public synchronized void increment(K counter, long amount) {
+    if (!enableTrace)
+      return;
     Stats stats = totalStats.get(counter);
     if (stats == null)
       stats = new Stats();
@@ -86,14 +94,20 @@ public class Watch<K extends Enum<K>> {
   }
 
   public synchronized void reset(K timer) {
+    if (!enableTrace)
+      return;
     totalStats.remove(timer);
   }
 
   public synchronized void resetAll() {
+    if (!enableTrace)
+      return;
     totalStats.clear();
   }
 
   public synchronized Stats get(K timer) {
+    if (!enableTrace)
+      return new Stats();
     Stats stats = totalStats.get(timer);
     if (stats == null)
       stats = new Stats();
@@ -108,6 +122,8 @@ public class Watch<K extends Enum<K>> {
 //  }
 
   public synchronized void print() {
+    if (!enableTrace)
+      return;
     System.out.println("THREAD: " + Thread.currentThread().getName());
 //    log.info("THREAD: " + Thread.currentThread().getName());
     for (K timer : totalStats.keySet()) {

@@ -44,6 +44,16 @@ public class Graphulo implements IGraphulo {
                         Collection<Range> rowFilter,
                         Collection<IteratorSetting.Column> colFilter,
                         String Ctable, String Rtable, boolean wait) {
+    TableMult(Ptable, Atable, BTtable, multOp, sumOp, rowFilter, colFilter, Ctable, Rtable, wait);
+  }
+
+  public void TableMult(String Ptable,
+                        String Atable, String BTtable,
+                        Class<? extends IMultiplyOp> multOp, Class<? extends Combiner> sumOp,
+                        Collection<Range> rowFilter,
+                        Collection<IteratorSetting.Column> colFilter,
+                        String Ctable, String Rtable, boolean wait,
+                        boolean trace) {
     if (Ptable == null || Ptable.isEmpty())
       throw new IllegalArgumentException("Please specify table P. Given: "+Ptable);
     if (Atable == null || Atable.isEmpty())
@@ -141,6 +151,9 @@ public class Graphulo implements IGraphulo {
       tops.compact(Ptable, null, null, Collections.singletonList(itset), true, wait);
       long t2 = System.currentTimeMillis();
       log.info("Time for blocking compact() call to return: "+(t2-t1)/1000.0);
+
+//      tops.flush(Rtable,null,null,true);
+
     } catch (AccumuloException e) {
       log.error("error trying to compact "+Ptable+" with TableMultIterator; is the iterator installed on the Accumulo server?", e);
       throw new RuntimeException(e);
@@ -151,6 +164,7 @@ public class Graphulo implements IGraphulo {
       log.error("impossible", e);
       throw new RuntimeException(e);
     }
+
       // cancel compaction if compaction errors,
       // or else Accumulo will continue restarting compaction and erroring
   }

@@ -39,12 +39,12 @@ public class TableMultTest extends AccumuloTestBase {
   public void test1() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
     Connector conn = tester.getConnector();
 
-    final String tP, tA, tBT;
+    final String tC, tA, tBT;
     {
       String[] names = getUniqueNames(3);
-      tP = names[0];
-      tA = names[1];
-      tBT = names[2];
+      tA = names[0];
+      tBT = names[1];
+      tC = names[2];
     }
     {
       Map<Key, Value> input = new HashMap<>();
@@ -70,11 +70,11 @@ public class TableMultTest extends AccumuloTestBase {
     expect = Collections.unmodifiableMap(expect);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    graphulo.TableMult(tP, tA, tBT,
+    graphulo.TableMult(tA, tBT, tC,
         BigDecimalMultiply.class, BigDecimalCombiner.BigDecimalSummingCombiner.class,
-        null, null, null, null, true);
+        null, null, true);
 
-    Scanner scanner = conn.createScanner(tP, Authorizations.EMPTY);
+    Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
     Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
     for (Map.Entry<Key, Value> entry : scanner) {
       actual.put(entry.getKey(), entry.getValue());
@@ -83,7 +83,7 @@ public class TableMultTest extends AccumuloTestBase {
 
     conn.tableOperations().delete(tA);
     conn.tableOperations().delete(tBT);
-    conn.tableOperations().delete(tP);
+    conn.tableOperations().delete(tC);
   }
 
   /**
@@ -99,13 +99,12 @@ public class TableMultTest extends AccumuloTestBase {
   public void test2() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
     Connector conn = tester.getConnector();
 
-    final String tP, tA, tBT, tR;
+    final String tA, tBT, tC;
     {
-      String[] names = getUniqueNames(4);
-      tP = names[0];
-      tA = names[1];
-      tBT = names[2];
-      tR = names[3];
+      String[] names = getUniqueNames(3);
+      tA = names[0];
+      tBT = names[1];
+      tC = names[2];
     }
     {
       Map<Key, Value> input = new HashMap<>();
@@ -125,13 +124,7 @@ public class TableMultTest extends AccumuloTestBase {
       TestUtil.createTestTable(conn, tBT, null, input);
     }
 
-    TestUtil.createTestTable(conn, tR);
-
-    // ACCUMULO-3645 bugfix
-    Key dummykey = new Key();
-    dummykey.setDeleted(true);
-    Map<Key,Value> dummyMap = Collections.singletonMap(dummykey, new Value("1".getBytes()));
-    TestUtil.createTestTable(conn, tP, null, dummyMap);
+    TestUtil.createTestTable(conn, tC);
 
     Map<Key,Value> expect = new HashMap<Key, Value>();
     expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
@@ -141,11 +134,11 @@ public class TableMultTest extends AccumuloTestBase {
     expect = Collections.unmodifiableMap(expect);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    graphulo.TableMult(tP, tA, tBT,
+    graphulo.TableMult(tA, tBT, tC,
         BigDecimalMultiply.class, BigDecimalCombiner.BigDecimalSummingCombiner.class,
-        null, null, null, tR, true);
+        null, null, true);
 
-    Scanner scanner = conn.createScanner(tR, Authorizations.EMPTY);
+    Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
     Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
     for (Map.Entry<Key, Value> entry : scanner) {
       actual.put(entry.getKey(), entry.getValue());
@@ -156,8 +149,7 @@ public class TableMultTest extends AccumuloTestBase {
 
     conn.tableOperations().delete(tA);
     conn.tableOperations().delete(tBT);
-    conn.tableOperations().delete(tP);
-    conn.tableOperations().delete(tR);
+    conn.tableOperations().delete(tC);
   }
 
 }

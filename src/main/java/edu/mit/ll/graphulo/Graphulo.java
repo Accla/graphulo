@@ -3,13 +3,17 @@ package edu.mit.ll.graphulo;
 import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.DevNull;
 import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import java.nio.ByteBuffer;
 import java.util.*;
 
 /**
@@ -38,34 +42,26 @@ public class Graphulo implements IGraphulo {
   }
 
   @Override
-  public void TableMult(String Ptable,
-                        String Atable, String BTtable,
+  public void TableMult(String ATtable, String Btable, String Ctable,
                         Class<? extends IMultiplyOp> multOp, Class<? extends Combiner> sumOp,
                         Collection<Range> rowFilter,
-                        Collection<IteratorSetting.Column> colFilter,
-                        String Ctable, String Rtable, boolean wait) {
-    TableMult(Ptable, Atable, BTtable, multOp, sumOp, rowFilter, colFilter, Ctable, Rtable, wait);
+                        Collection<IteratorSetting.Column> colFilter) {
+    TableMult(ATtable, Btable, Ctable, multOp, sumOp, rowFilter, colFilter, true);
   }
 
-  public void TableMult(String Ptable,
-                        String Atable, String BTtable,
+  public void TableMult(String ATtable, String Btable, String Ctable,
                         Class<? extends IMultiplyOp> multOp, Class<? extends Combiner> sumOp,
                         Collection<Range> rowFilter,
                         Collection<IteratorSetting.Column> colFilter,
-                        String Ctable, String Rtable, boolean wait,
                         boolean trace) {
-    if (Ptable == null || Ptable.isEmpty())
-      throw new IllegalArgumentException("Please specify table P. Given: "+Ptable);
-    if (Atable == null || Atable.isEmpty())
-      throw new IllegalArgumentException("Please specify table A. Given: "+Atable);
-    if (BTtable == null || BTtable.isEmpty())
-      throw new IllegalArgumentException("Please specify table BT. Given: "+BTtable);
-//    if (Rtable == null || Rtable.isEmpty())
-//      throw new IllegalArgumentException("Please specify table R. Given: "+Rtable);
-    if (Atable.equals(Ptable))
-      log.warn("Untested combination: Atable=Ptable="+Atable);
-    if (BTtable.equals(Ptable))
-      log.warn("Untested combination: BTtable=Ptable="+BTtable);
+    if (ATtable == null || ATtable.isEmpty())
+      throw new IllegalArgumentException("Please specify table A. Given: "+ATtable);
+    if (Btable == null || Btable.isEmpty())
+      throw new IllegalArgumentException("Please specify table BT. Given: "+Btable);
+    if (ATtable.equals(Ctable))
+      log.warn("Untested combination: ATtable=Ctable="+ATtable);
+    if (Btable.equals(Ctable))
+      log.warn("Untested combination: Btable=Ctable="+Btable);
 
     if (rowFilter != null && !rowFilter.isEmpty())
       throw new UnsupportedOperationException("rowFilter is not yet implemented; given: "+rowFilter);
@@ -77,16 +73,16 @@ public class Graphulo implements IGraphulo {
 //      throw new UnsupportedOperationException("only supported sumOp is BigDecimalSummingCombiner, but given: "+multOp);
 
     TableOperations tops = connector.tableOperations();
-    if (!tops.exists(Atable))
-      throw new IllegalArgumentException("Table A does not exist. Given: "+Atable);
-    if (!tops.exists(BTtable))
-      throw new IllegalArgumentException("Table BT does not exist. Given: "+BTtable);
+    if (!tops.exists(ATtable))
+      throw new IllegalArgumentException("Table AT does not exist. Given: "+ATtable);
+    if (!tops.exists(Btable))
+      throw new IllegalArgumentException("Table B does not exist. Given: "+Btable);
 
-    if (!tops.exists(Ptable))
+    if (Ctable != null && !Ctable.isEmpty() && !tops.exists(Ctable))
       try {
-        tops.create(Ptable);
+        tops.create(Ctable);
       } catch (AccumuloException | AccumuloSecurityException e) {
-        log.error("error trying to create P table "+Ptable, e);
+        log.error("error trying to create C table "+Ctable, e);
         throw new RuntimeException(e);
       } catch (TableExistsException e) {
         log.error("impossible",e);
@@ -98,75 +94,70 @@ public class Graphulo implements IGraphulo {
     String user = connector.whoami();
 
     Map<String,String> opt = new HashMap<>();
-//    opt.put("trace","true"); // enable distributed tracer
+    opt.put("trace","true"); // enable distributed tracer
 
-    opt.put("A.zookeeperHost", zookeepers);
-    opt.put("A.instanceName", instance);
-    opt.put("A.tableName", Atable);
-    opt.put("A.username", user);
-    opt.put("A.password", new String(password.getPassword()));
-    opt.put("BT.zookeeperHost", zookeepers);
-    opt.put("BT.instanceName", instance);
-    opt.put("BT.tableName", BTtable);
-    opt.put("BT.username", user);
-    opt.put("BT.password", new String(password.getPassword()));
-//    opt.put("BT.doClientSideIterators", "true");
+    opt.put("AT.zookeeperHost", zookeepers);
+    opt.put("AT.instanceName", instance);
+    opt.put("AT.tableName", ATtable);
+    opt.put("AT.username", user);
+    opt.put("AT.password", new String(password.getPassword()));
+//    opt.put("B.zookeeperHost", zookeepers);
+//    opt.put("B.instanceName", instance);
+//    opt.put("B.tableName", Btable);
+//    opt.put("B.username", user);
+//    opt.put("B.password", new String(password.getPassword()));
 
-    if (Rtable != null && !Rtable.isEmpty() && !Ptable.equals(Rtable)) {
-      opt.put("R.zookeeperHost", zookeepers);
-      opt.put("R.instanceName", instance);
-      opt.put("R.tableName", Rtable);
-      opt.put("R.username", user);
-      opt.put("R.password", new String(password.getPassword()));
-    }
-    // okay if C==R
-    if (Ctable != null && !Ctable.isEmpty() && !Ctable.equals(Ptable)) {
+    if (Ctable != null && !Ctable.isEmpty()) {
       opt.put("C.zookeeperHost", zookeepers);
       opt.put("C.instanceName", instance);
       opt.put("C.tableName", Ctable);
       opt.put("C.username", user);
       opt.put("C.password", new String(password.getPassword()));
+      opt.put("C.numEntriesCheckpoint", "250000"); // TODO P1: hard-coded numEntriesCheckpoint
     }
 
-    // attach combiner on Rtable
+    // attach combiner on Ctable
+    // TODO P2: Assign priority and name dynamically, checking for conflicts.
     Map<String, String> optSum = new HashMap<>();
     optSum.put("all", "true");
     IteratorSetting iSum = new IteratorSetting(19,BigDecimalCombiner.BigDecimalSummingCombiner.class, optSum);
     try {
-      tops.attachIterator(Rtable, iSum);
+      tops.attachIterator(Ctable, iSum);
     } catch (AccumuloSecurityException | AccumuloException e) {
-      log.error("error trying to add BigDecimalSummingCombiner to " + Rtable, e);
+      log.error("error trying to add BigDecimalSummingCombiner to " + Ctable, e);
       throw new RuntimeException(e);
     } catch (TableNotFoundException e) {
       log.error("impossible", e);
       throw new RuntimeException(e);
     }
 
-    // TODO P2: Assign priority and name dynamically, checking for conflicts.
-    IteratorSetting itset = new IteratorSetting(2, TableMultIterator.class, opt);
+    // scan B with TableMultIteratorQuery
+    BatchScanner bs;
     try {
-      //tops.attachIterator(Ptable, itset);
-      long t1 = System.currentTimeMillis();
-      // flush, block
-      tops.compact(Ptable, null, null, Collections.singletonList(itset), true, wait);
-      long t2 = System.currentTimeMillis();
-      log.info("Time for blocking compact() call to return: "+(t2-t1)/1000.0);
-
-//      tops.flush(Rtable,null,null,true);
-
-    } catch (AccumuloException e) {
-      log.error("error trying to compact "+Ptable+" with TableMultIterator; is the iterator installed on the Accumulo server?", e);
-      throw new RuntimeException(e);
-    } catch (AccumuloSecurityException e) {
-      log.error("error trying to compact "+Ptable+" with TableMultIterator", e);
-      throw new RuntimeException(e);
+      bs = connector.createBatchScanner(Btable, Authorizations.EMPTY, 1); // TODO P2: set number of batch scan threads
     } catch (TableNotFoundException e) {
       log.error("impossible", e);
       throw new RuntimeException(e);
     }
+    // TODO P2: Assign priority and name dynamically, checking for conflicts.
+    IteratorSetting itset = new IteratorSetting(2, TableMultIteratorQuery.class, opt);
+    bs.addScanIterator(itset);
+    bs.setRanges(Collections.singleton(new Range()));
 
-      // cancel compaction if compaction errors,
-      // or else Accumulo will continue restarting compaction and erroring
+    for (Map.Entry<Key, Value> entry : bs) {
+      if (Ctable != null && !Ctable.isEmpty()) {
+        Value v = entry.getValue();
+        ByteBuffer bb = ByteBuffer.wrap(v.get());
+        int numEntries = bb.getInt();
+        char c = bb.getChar();
+        String str = new Value(bb).toString();
+        System.out.println(entry.getKey().toString() + " -> " + numEntries + c + str);
+      }
+      else {
+        System.out.println(entry.getKey().toString() + " -> " + entry.getValue());
+      }
+      // TODO P1: change to method Matlab grabs data from a table
+    }
   }
 
   public void CancelCompact(String table) {

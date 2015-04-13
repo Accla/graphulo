@@ -5,6 +5,7 @@ import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.hadoop.io.Text;
@@ -63,6 +64,28 @@ public class TableMultIteratorTest {
         Assert.assertEquals(expect, actual);
     }
 
+    @Test
+    public void testPeekingIterator2() {
+        List<Integer> list = new ArrayList<>();
+        list.add(1);
+        list.add(2);
+        list.add(3);
+        list.add(4);
+        Iterator<Integer> iFirst = list.iterator(), iSecond = list.iterator();
+        iSecond.next();
+        PeekingIterator2<Integer> pe = new PeekingIterator2<>(list.iterator());
+        while (pe.hasNext()) {
+            Assert.assertTrue(iFirst.hasNext());
+            Assert.assertEquals(iFirst.next(), pe.peekFirst());
+            if (iSecond.hasNext())
+                Assert.assertEquals(iSecond.next(), pe.peekSecond());
+            else
+                Assert.assertNull(pe.peekSecond());
+            pe.next();
+        }
+        Assert.assertNull(pe.peekFirst());
+    }
+
 
 
     /**
@@ -102,20 +125,16 @@ public class TableMultIteratorTest {
 
         Scanner scanner = conn.createScanner(tableNameC, Authorizations.EMPTY);
         Map<String,String> itprops = new HashMap<>();
-        itprops.put("A.instanceName",conn.getInstance().getInstanceName());
-        itprops.put("A.tableName",tableNameA);
-        itprops.put("A.zookeeperHost",conn.getInstance().getZooKeepers());
-        //itprops.put("A.timeout","5000");
-        itprops.put("A.username",tester.getUsername());
-        itprops.put("A.password",new String(tester.getPassword().getPassword()));
-        //itprops.put("A.doWholeRow","true"); // *
-        itprops.put("BT.instanceName",conn.getInstance().getInstanceName());
-        itprops.put("BT.tableName",tableNameBT);
-        itprops.put("BT.zookeeperHost",conn.getInstance().getZooKeepers());
-        //itprops.put("BT.timeout","5000");
-        itprops.put("BT.username",tester.getUsername());
-        itprops.put("BT.password",new String(tester.getPassword().getPassword()));
-        //itprops.put("BT.doWholeRow","true"); // *
+        itprops.put("AT.instanceName",conn.getInstance().getInstanceName());
+        itprops.put("AT.tableName",tableNameA);
+        itprops.put("AT.zookeeperHost",conn.getInstance().getZooKeepers());
+        itprops.put("AT.username",tester.getUsername());
+        itprops.put("AT.password",new String(tester.getPassword().getPassword()));
+        itprops.put("B.instanceName",conn.getInstance().getInstanceName());
+        itprops.put("B.tableName",tableNameBT);
+        itprops.put("B.zookeeperHost",conn.getInstance().getZooKeepers());
+        itprops.put("B.username",tester.getUsername());
+        itprops.put("B.password",new String(tester.getPassword().getPassword()));
         IteratorSetting itset = new IteratorSetting(25, DotIterator.class, itprops);
         scanner.addScanIterator(itset);
 //        scanner.addScanIterator(new IteratorSetting(26, DebugIterator.class, Collections.<String,String>emptyMap()));
@@ -152,182 +171,135 @@ public class TableMultIteratorTest {
      * A2 [ 2    ]   B2 [3  3     ]               A2 [     6  ]
      * </pre>
      */
-    @Ignore("New version only works with BatchWriter")
+//    @Ignore("New version only works with BatchWriter")
     @Test
     public void testTableMultIterator() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
         Connector conn = tester.getConnector();
         final String tablePrefix = "testTableMult_";
 
-        final String tableNameA = tablePrefix+"A";
+        final String tableNameAT = tablePrefix+"AT";
         {
             Map<Key, Value> input = new HashMap<>();
             input.put(new Key("A1", "", "C1"), new Value("2".getBytes()));
             input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
             input.put(new Key("A2", "", "C1"), new Value("2".getBytes()));
-            TestUtil.createTestTable(conn, tableNameA, null, input);
+            input = TestUtil.tranposeMap(input);
+            TestUtil.createTestTable(conn, tableNameAT, null, input);
         }
         SortedSet<Text> splitSet = new TreeSet<>();
         splitSet.add(new Text("A15"));
-        //conn.tableOperations().addSplits(tableNameA, splitSet);
+        //conn.tableOperations().addSplits(tableNameAT, splitSet);
 
-        final String tableNameBT = tablePrefix+"BT";
+        final String tableNameB = tablePrefix+"B";
         {
             Map<Key, Value> input = new HashMap<>();
             input.put(new Key("B1", "", "C2"), new Value("3".getBytes()));
             input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
             input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
             input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
-            TestUtil.createTestTable(conn, tableNameBT, null, input);
+            input = TestUtil.tranposeMap(input);
+            TestUtil.createTestTable(conn, tableNameB, null, input);
         }
 
         final String tableNameC = tablePrefix+"C";
         {
             Map<Key, Value> input = new HashMap<>();
             input.put(new Key("A1", "", "B1"), new Value("1".getBytes()));
-
-            Key testkey = new Key("zr", "", "zc");
-            testkey.setDeleted(true);
-            input.put(testkey, null);
-            //list.put(new Key("zr", "", "zc"), new Value("100".getBytes())));
-
-
             TestUtil.createTestTable(conn, tableNameC, splitSet, input);
+            Map<String, String> optSum = new HashMap<>();
+            optSum.put("all", "true");
+            conn.tableOperations().attachIterator(tableNameC,
+                new IteratorSetting(1,BigDecimalCombiner.BigDecimalSummingCombiner.class,optSum));
         }
 
-        Scanner scanner = conn.createScanner(tableNameC, Authorizations.EMPTY);
-        Map<String,String> itprops = new HashMap<>();
-        itprops.put("A.instanceName",conn.getInstance().getInstanceName());
-        itprops.put("A.tableName",tableNameA);
-        itprops.put("A.zookeeperHost",conn.getInstance().getZooKeepers());
-        //itprops.put("A.timeout","5000");
-        itprops.put("A.username",tester.getUsername());
-        itprops.put("A.password",new String(tester.getPassword().getPassword()));
-        //itprops.put("A.doWholeRow","true"); // *
-        itprops.put("BT.instanceName",conn.getInstance().getInstanceName());
-        itprops.put("BT.tableName",tableNameBT);
-        itprops.put("BT.zookeeperHost",conn.getInstance().getZooKeepers());
-        //itprops.put("BT.timeout","5000");
-        itprops.put("BT.username",tester.getUsername());
-        itprops.put("BT.password",new String(tester.getPassword().getPassword()));
-        //itprops.put("BT.doWholeRow","true"); // *
-        IteratorSetting itset = new IteratorSetting(15, TableMultIterator.class, itprops);
+        Scanner scannerB = conn.createScanner(tableNameB, Authorizations.EMPTY);
 
-        //scanner.addScanIterator(new IteratorSetting(16, DebugInfoIterator.class, Collections.<String,String>emptyMap()));
+        // test reading entries directly
 
-        // compact
-//        List<IteratorSetting> listset = new ArrayList<>();
-//        listset.add(itset);
-//        listset.add(new IteratorSetting(26, DebugInfoIterator.class, Collections.<String, String>emptyMap()));
-//        StopWatch sw = new StopWatch();
-//        sw.start();
-//        conn.tableOperations().compact(tableNameC, null, null, listset, true, true); // block
-//        sw.stop();
-//        log.info("compaction took "+sw.getTime()/1000.0+"s");
-
-
-        Map<Key,Value> expect = new HashMap<>();
-        expect.put(new Key("A1", "", "B1"), new Value("7".getBytes()));
-        expect.put(new Key("A1", "", "B2"), new Value("12".getBytes()));
-        expect.put(new Key("A2", "", "B2"), new Value("6".getBytes()));
-
-        // first test on scan scope
-        scanner.addScanIterator(itset);
-        scanner.addScanIterator(new IteratorSetting(16, DebugInfoIterator.class, Collections.<String, String>emptyMap()));
         {
-            Map<Key, Value> actual = new HashMap<>();
-            log.info("Scanning with TableMultIterator:");
-            for (Map.Entry<Key, Value> entry : scanner) {
-                log.info(entry);
-                Key k = entry.getKey(); // don't copy vis or timestamp; we don't care about comparing those
-                actual.put(new Key(k.getRow(), k.getColumnFamily(), k.getColumnQualifier()), entry.getValue());
+            Map<String,String> itprops = new HashMap<>();
+            itprops.put("AT.instanceName",conn.getInstance().getInstanceName());
+            itprops.put("AT.tableName",tableNameAT);
+            itprops.put("AT.zookeeperHost",conn.getInstance().getZooKeepers());
+            itprops.put("AT.username",tester.getUsername());
+            itprops.put("AT.password",new String(tester.getPassword().getPassword()));
+//            itprops.put("B.instanceName",conn.getInstance().getInstanceName());
+//            itprops.put("B.tableName",tableNameB);
+//            itprops.put("B.zookeeperHost",conn.getInstance().getZooKeepers());
+//            itprops.put("B.username",tester.getUsername());
+//            itprops.put("B.password",new String(tester.getPassword().getPassword()));
+            IteratorSetting itset = new IteratorSetting(15, TableMultIteratorQuery.class, itprops);
+            scannerB.addScanIterator(itset);
+
+            Map<Key, Integer> expect = new HashMap<>();
+            expect.put(new Key("A1", "", "B1"), 6);
+            expect.put(new Key("A1", "", "B2"), 12);
+            expect.put(new Key("A2", "", "B2"), 6);
+            //scannerB.addScanIterator(new IteratorSetting(16, DebugInfoIterator.class, Collections.<String,String>emptyMap()));
+            {
+                Map<Key, Integer> actual = new HashMap<>();
+                log.info("Scanning tableB " + tableNameB + ":");
+                for (Map.Entry<Key, Value> entry : scannerB) {
+                    log.info(entry);
+                    Key k = entry.getKey(); // don't copy vis or timestamp; we don't care about comparing those
+                    Key k2 = new Key(k.getRow(), k.getColumnFamily(), k.getColumnQualifier());
+                    Integer vold = actual.get(k2);
+                    if (vold == null)
+                        vold = 0;
+                    int vnew = vold + Integer.parseInt(entry.getValue().toString());
+                    actual.put(k2, vnew);
+                }
+                Assert.assertEquals(expect, actual);
             }
-            Assert.assertEquals(expect,actual);
-            scanner.clearScanIterators();
         }
 
-        // now test on compact
-        List<IteratorSetting> listset = new ArrayList<>();
-        listset.add(itset);
-        StopWatch sw = new StopWatch();
-        sw.start();
-        conn.tableOperations().compact(tableNameC, null, null, listset, true, true); // block
-        sw.stop();
-        log.info("compaction took " + sw.getTime() / 1000.0 + "s");
 
+
+        // test writing to C with monitoring
         {
-            Map<Key, Value> actual = new HashMap<>();
-            log.info("Scan after compact with TableMultIterator:");
-            for (Map.Entry<Key, Value> entry : scanner) {
-                log.info(entry);
-                Key k = entry.getKey(); // don't copy vis or timestamp; we don't care about comparing those
-                actual.put(new Key(k.getRow(), k.getColumnFamily(), k.getColumnQualifier()), entry.getValue());
+            Map<String,String> itprops = new HashMap<>();
+            itprops.put("AT.instanceName",conn.getInstance().getInstanceName());
+            itprops.put("AT.tableName",tableNameAT);
+            itprops.put("AT.zookeeperHost",conn.getInstance().getZooKeepers());
+            itprops.put("AT.username",tester.getUsername());
+            itprops.put("AT.password",new String(tester.getPassword().getPassword()));
+            itprops.put("C.instanceName",conn.getInstance().getInstanceName());
+            itprops.put("C.tableName",tableNameC);
+            itprops.put("C.zookeeperHost",conn.getInstance().getZooKeepers());
+            itprops.put("C.username",tester.getUsername());
+            itprops.put("C.password",new String(tester.getPassword().getPassword()));
+            itprops.put("C.numEntriesCheckpoint", "1");
+            IteratorSetting itset = new IteratorSetting(15, TableMultIteratorQuery.class, itprops);
+            scannerB.clearScanIterators();
+            scannerB.addScanIterator(itset);
+            for (Map.Entry<Key, Value> entry : scannerB) {
+                ;
             }
-            Assert.assertEquals(expect, actual);
-        }
+            scannerB.close();
 
-        // now test dumping to a totally different table ---------
-        // make table R
-        final String tableNameZ = tablePrefix+"Z";
-        {
-            Map<Key, Value> input = new HashMap<>();
-            input.put(new Key("A1", "", "B1"), new Value("1".getBytes()));
+            Map<Key, Value> expect = new HashMap<>();
+            expect.put(new Key("A1", "", "B1"), new Value("7".getBytes()));
+            expect.put(new Key("A1", "", "B2"), new Value("12".getBytes()));
+            expect.put(new Key("A2", "", "B2"), new Value("6".getBytes()));
 
-            Key testkey = new Key("AAA", "", "CCC");
-            testkey.setDeleted(true);
-            input.put(testkey, null);
-            testkey = new Key("zr", "", "zc");
-            testkey.setDeleted(true);
-            input.put(testkey, null);
-
-            TestUtil.createTestTable(conn, tableNameZ, splitSet, input); // Write single delete entry to trigger compaction
-        }
-
-
-        final String tableNameR = tablePrefix+"R";
-        TestUtil.createTestTable(conn, tableNameR, null);
-
-        itprops.put("R.instanceName",conn.getInstance().getInstanceName());
-        itprops.put("R.tableName",tableNameR);
-        itprops.put("R.zookeeperHost",conn.getInstance().getZooKeepers());
-        //itprops.put("R.timeout","5000");
-        itprops.put("R.username", tester.getUsername());
-        itprops.put("R.password",new String(tester.getPassword().getPassword()));
-        IteratorSetting itset2 = new IteratorSetting(15, TableMultIterator.class, itprops);
-
-        // compact Z with iterator, writing to R
-        List<IteratorSetting> listset2 = new ArrayList<>();
-        listset2.add(itset2);
-        sw = new StopWatch();
-        sw.start();
-        conn.tableOperations().compact(tableNameZ, null, null, listset2, true, true); // block
-        sw.stop();
-        log.info("compaction took " + sw.getTime() / 1000.0 + "s");
-
-        expect = new HashMap<>();
-        expect.put(new Key("A1", "", "B1"), new Value("7".getBytes()));
-        expect.put(new Key("A1", "", "B2"), new Value("12".getBytes()));
-        expect.put(new Key("A2", "", "B2"), new Value("6".getBytes()));
-
-        scanner.close();
-        scanner = conn.createScanner(tableNameR, Authorizations.EMPTY);
-        {
-            Map<Key, Value> actual = new HashMap<>();
-            log.info("Scan R after compact on Z with TableMultIterator writing to R:");
-            for (Map.Entry<Key, Value> entry : scanner) {
-                log.info(entry);
-                Key k = entry.getKey(); // don't copy vis or timestamp; we don't care about comparing those
-                actual.put(new Key(k.getRow(), k.getColumnFamily(), k.getColumnQualifier()), entry.getValue());
+            Scanner scannerC = conn.createScanner(tableNameC, Authorizations.EMPTY);
+            //scannerC.addScanIterator(new IteratorSetting(16, DebugInfoIterator.class, Collections.<String,String>emptyMap()));
+            {
+                Map<Key, Value> actual = new HashMap<>();
+                log.info("Scanning tableC " + tableNameC + ":");
+                for (Map.Entry<Key, Value> entry : scannerC) {
+                    log.info(entry);
+                    Key k = entry.getKey(); // don't copy vis or timestamp; we don't care about comparing those
+                    actual.put(new Key(k.getRow(), k.getColumnFamily(), k.getColumnQualifier()), entry.getValue());
+                }
+                Assert.assertEquals(expect, actual);
             }
-
-            Assert.assertEquals(expect, actual);
+            scannerC.close();
         }
 
-        scanner.close();
-        conn.tableOperations().delete(tableNameA);
-        conn.tableOperations().delete(tableNameBT);
+        conn.tableOperations().delete(tableNameAT);
+        conn.tableOperations().delete(tableNameB);
         conn.tableOperations().delete(tableNameC);
-        conn.tableOperations().delete(tableNameR);
-        conn.tableOperations().delete(tableNameZ);
     }
 
 }

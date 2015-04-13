@@ -25,28 +25,15 @@ public class MatlabGraphulo extends Graphulo {
     super(new ZooKeeperInstance(instanceName, zookeepers).getConnector(username, new PasswordToken(password)), new PasswordToken(password));
   }
 
-  public void TableMultTest(String Ptable,
-                            String Atable, String BTtable) {
-    TableMultTest(Ptable, Atable, BTtable, null, null, true);
+  public void TableMultTest(String ATtable, String Btable, String Ctable) {
+    TableMultTest(ATtable, Btable, Ctable, true);
   }
 
-  public void TableMultTest(String Ptable,
-                            String Atable, String BTtable,
-                            String Ctable, String Rtable, boolean wait) {
-    TableMult(Ptable, Atable, BTtable,
+  public void TableMultTest(String ATtable, String Btable, String Ctable, boolean trace) {
+    TableMult(ATtable, Btable, Ctable,
         //BigDecimalMultiply.class, BigDecimalCombiner.BigDecimalSummingCombiner.class,
         LongMultiply.class, SummingCombiner.class,
-        null, null,
-        Ctable, Rtable, wait);
-  }
-  public void TableMultTest(String Ptable,
-                            String Atable, String BTtable,
-                            String Ctable, String Rtable, boolean wait, boolean trace) {
-    TableMult(Ptable, Atable, BTtable,
-        //BigDecimalMultiply.class, BigDecimalCombiner.BigDecimalSummingCombiner.class,
-        LongMultiply.class, SummingCombiner.class,
-        null, null,
-        Ctable, Rtable, wait, trace);
+        null, null, trace);
   }
 
 

@@ -17,17 +17,16 @@ import java.util.*;
  * Outer product. Emits partial products. Configure two remote sources for tables AT and B,
  * or configure one remote source and use the source as the other one.
  */
-public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDescriber {
+public class DotIterator implements SaveStateIterator, OptionDescriber {
   private static final Logger log = LogManager.getLogger(DotIterator.class);
 
   private IMultiplyOp multiplyOp = new BigDecimalMultiply();
   private SortedKeyValueIterator<Key,Value> remoteAT, remoteB;
 
-  private PeekingIterator<Map.Entry<Key, Value>> bottomIter; // = new TreeMap<>(new ColFamilyQualifierComparator());
+  private PeekingIterator2<Map.Entry<Key, Value>> bottomIter; // = new TreeMap<>(new ColFamilyQualifierComparator());
 
   public static final String PREFIX_AT = "AT";
   public static final String PREFIX_B = "B";
-  private static final Range INFINITE_RANGE = new Range();
 
   static final OptionDescriber.IteratorOptions iteratorOptions;
 
@@ -44,6 +43,8 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
         "Outer product on A and B, given AT and B. Can omit one and use parent source instead. Does not sum.",
         optDesc, null);
   }
+
+  private Text curRowMatch;
 
   @Override
   public IteratorOptions describeOptions() {
@@ -87,7 +88,7 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
         switch (prefix) {
           case PREFIX_AT: {
             String v = entryMap.remove("doWholeRow");
-            if (v != null && !Boolean.parseBoolean(v)) {
+            if (v != null && Boolean.parseBoolean(v)) {
               log.warn("Forcing doWholeRow option on table A to FALSE. Given: " + v);
             }
             optAT = entryMap;
@@ -96,7 +97,7 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
           }
           case PREFIX_B: {
             String v = entryMap.remove("doWholeRow");
-            if (v != null && !Boolean.parseBoolean(v)) {
+            if (v != null && Boolean.parseBoolean(v)) {
               log.warn("Forcing doWholeRow option on table BT to FALSE. Given: " + v);
             }
             optB = entryMap;
@@ -135,28 +136,29 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
 
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-    Range rA = INFINITE_RANGE, rBT = INFINITE_RANGE;
-    // if range is in the middle of a row, seek A to the beginning of the row and B to the correct location
-//    if (range.isInfiniteStartKey()) {
-//      rBT = INFINITE_RANGE;
-//      if (range.isInfiniteStopKey())
-//        rA = INFINITE_RANGE;
-//      else
-//        rA = new Range(null, range.getEndKey().getRow());
-//    } else {
-//      rBT = new Range(range.getStartKey().getColumnQualifier(), range.isStartKeyInclusive(), null, false);
-//      // Use special start key to work around seek() method of RowEncodingIterator
-//      Key startK = new Key(range.getStartKey().getRow());
-//      if (!range.isStartKeyInclusive())
-//        startK.setTimestamp(Long.MAX_VALUE - 1);
-//      if (range.isInfiniteStopKey())
-//        rA = new Range(startK, range.isStartKeyInclusive(), null, false);
-//      else
-//        rA = new Range(startK, range.isStartKeyInclusive(), new Key(range.getEndKey().getRow()), true);
-//    }
-    log.debug("seek range: " + range);
-    log.debug("rA   range: " + rA);
-    log.debug("rBT  range: " + rBT);
+    Range rA, rBT;
+
+    // if range is not infinite, see if there is a clear sign we want to restore state:
+    Key sk = range.getStartKey();
+
+    if (sk != null && sk.getColumnFamilyData().length() == 0 && sk.getColumnQualifierData().length() == 0 && sk.getColumnVisibilityData().length() == 0
+        && sk.getTimestamp() == Long.MAX_VALUE && !range.isStartKeyInclusive()) {
+      // assuming that we are seeking using a key previously returned by this iterator
+      // therefore go to the next row
+      Key followingRowKey = sk.followingKey(PartialKey.ROW);
+      if (range.getEndKey() != null && followingRowKey.compareTo(range.getEndKey()) > 0)
+        return;
+
+      range = new Range(followingRowKey, true, range.getEndKey(), range.isEndKeyInclusive());
+    }
+
+    rA = rBT = range;
+    System.out.println("DM adj range: "+range);
+//    log.debug("seek range: " + range);
+    log.debug("rAT/B rnge: " + rA);
+//    log.debug("rBT  range: " + rBT);
+
+    // Weird results if we start in the middle of a row. Not handling.
 
     Watch.instance.start(Watch.PerfSpan.ATnext);
     try {
@@ -164,7 +166,6 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
     } finally {
       Watch.instance.stop(Watch.PerfSpan.ATnext);
     }
-    // choosing not to handle case where we end in the middle of a row; allowed to return entries beyond the seek range
 
     Watch.instance.start(Watch.PerfSpan.Bnext);
     try {
@@ -173,15 +174,15 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
       Watch.instance.stop(Watch.PerfSpan.Bnext);
     }
 
-    prepNextRowMatch(false);
+    prepNextRowMatch(/*false*/);
   }
 
-  private void prepNextRowMatch(boolean doNext) throws IOException {
+  private void prepNextRowMatch(/*boolean doNext*/) throws IOException {
     if (!remoteAT.hasTop() || !remoteB.hasTop()) {
       bottomIter = null;
       return;
     }
-    if (doNext) {
+    /*if (doNext) {
       Watch.instance.start(Watch.PerfSpan.ATnext);
       try {
         remoteAT.next();
@@ -202,7 +203,7 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
         bottomIter = null;
         return;
       }
-    }
+    }*/
 
     SortedMap<Key, Value> ArowMap, BrowMap;
     Text Arow = remoteAT.getTopKey().getRow(), Brow = remoteB.getTopKey().getRow();
@@ -234,7 +235,8 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
       Watch.instance.stop(Watch.PerfSpan.RowDecodeBoth);
     }
 
-    bottomIter = new PeekingIterator<>(new CartesianDotIter(ArowMap, BrowMap, multiplyOp));
+    curRowMatch = Arow;
+    bottomIter = new PeekingIterator2<>(new CartesianDotIter(ArowMap, BrowMap, multiplyOp));
     assert hasTop();
   }
 
@@ -364,87 +366,43 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
     }
   }
 
-//  static class DotIter implements Iterator<Map.Entry<Key, Value>> {
-//    private Iterator<Map.Entry<Key, Value>> i1, i2;
-//    private static Comparator<Key> comparator = new ColFamilyQualifierComparator();
-//    private IMultiplyOp multiplyOp;
-//    private Map.Entry<Key, Value> nextEntry;
-//
-//    Map.Entry<Key, Value> multiplyEntry(Map.Entry<Key, Value> e1, Map.Entry<Key, Value> e2) {
-//      assert comparator.compare(e1.getKey(), e2.getKey()) == 0;
-//      Key k1 = e1.getKey(), k2 = e2.getKey();
-//      final Key k = new Key(k1.getRow(), k1.getColumnFamily(), k2.getRow(), System.currentTimeMillis());
-//      final Value v = multiplyOp.multiply(e1.getValue(), e2.getValue());
-//      return new Map.Entry<Key, Value>() {
-//        @Override
-//        public Key getKey() {
-//          return k;
-//        }
-//
-//        @Override
-//        public Value getValue() {
-//          return v;
-//        }
-//
-//        @Override
-//        public Value setValue(Value value) {
-//          throw new UnsupportedOperationException();
-//        }
-//      };
-//    }
-//
-//    public DotIter(Iterator<Map.Entry<Key, Value>> iter1,
-//                   Iterator<Map.Entry<Key, Value>> iter2,
-//                   IMultiplyOp multiplyOp) {
-//      this.i1 = iter1;
-//      this.i2 = iter2;
-//      this.multiplyOp = multiplyOp;
-//      //            this.comparator = comparator;
-//      nextEntry = prepareNext();
-//    }
-//
-//    @Override
-//    public boolean hasNext() {
-//      return nextEntry != null;
-//    }
-//
-//    @Override
-//    public Map.Entry<Key, Value> next() {
-//      Map.Entry<Key, Value> ret = nextEntry;
-//      nextEntry = prepareNext();
-//      return ret;
-//    }
-//
-//    private Map.Entry<Key, Value> prepareNext() {
-//      if (!i1.hasNext() || !i2.hasNext()) {
-//        return null;
-//      }
-//      Map.Entry<Key, Value> e1 = i1.next();
-//      Map.Entry<Key, Value> e2 = i2.next();
-//      int cmp = comparator.compare(e1.getKey(), e2.getKey());
-//      while (cmp < 0 && i1.hasNext() || cmp > 0 && i2.hasNext()) {
-//        if (cmp < 0) {
-//          e1 = i1.next();
-//        } else if (cmp > 0) {
-//          e2 = i2.next();
-//        }
-//        cmp = comparator.compare(e1.getKey(), e2.getKey());
-//      }
-//      return cmp == 0 ? multiplyEntry(e1, e2) : null;
-//    }
-//
-//    @Override
-//    public void remove() {
-//      throw new UnsupportedOperationException();
-//    }
-//  }
+
 
 
   @Override
   public void next() throws IOException {
     bottomIter.next();
     if (!bottomIter.hasNext())
-      prepNextRowMatch(false);
+      prepNextRowMatch(/*false*/);
+  }
+
+  @Override
+  public Map.Entry<Key, Value> safeState() {
+    if (bottomIter.peekSecond() != null) {
+      // finish the row's cartesian product first
+      return null;
+    } else {
+      // the current top entry of bottomIter is the last in this cartesian product.
+      // Save state at this row.  If reseek'd to this row, go to the next row (assume exclusive).
+      final Key k = new Key(this.curRowMatch);
+      final Value v = new Value(); // no additional information to return.
+      return new Map.Entry<Key,Value>() {
+        @Override
+        public Key getKey() {
+          return k;
+        }
+
+        @Override
+        public Value getValue() {
+          return v;
+        }
+
+        @Override
+        public Value setValue(Value value) {
+          throw new UnsupportedOperationException();
+        }
+      };
+    }
   }
 
   /**
@@ -473,12 +431,12 @@ public class DotIterator implements SortedKeyValueIterator<Key, Value>, OptionDe
 
   @Override
   public Key getTopKey() {
-    return bottomIter.peek().getKey();
+    return bottomIter.peekFirst().getKey();
   }
 
   @Override
   public Value getTopValue() {
-    return bottomIter.peek().getValue();
+    return bottomIter.peekFirst().getValue();
   }
 
   @Override

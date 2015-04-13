@@ -9,6 +9,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -35,7 +36,7 @@ public class TableMultTest extends AccumuloTestBase {
    * </pre>
    */
   @Test
-  @Ignore("New version only works with BatchWriter. KnownBug: ACCUMULO-3645")
+//  @Ignore("New version only works with BatchWriter. KnownBug: ACCUMULO-3645")
   public void test1() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
     Connector conn = tester.getConnector();
 
@@ -72,7 +73,7 @@ public class TableMultTest extends AccumuloTestBase {
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     graphulo.TableMult(tA, tBT, tC,
         BigDecimalMultiply.class, BigDecimalCombiner.BigDecimalSummingCombiner.class,
-        null, null, true);
+        null, null, 1, true);
 
     Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
     Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
@@ -121,7 +122,9 @@ public class TableMultTest extends AccumuloTestBase {
       input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
       input = TestUtil.tranposeMap(input);
-      TestUtil.createTestTable(conn, tBT, null, input);
+      SortedSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("C15"));
+      TestUtil.createTestTable(conn, tBT, splits, input);
     }
 
     TestUtil.createTestTable(conn, tC);
@@ -130,13 +133,12 @@ public class TableMultTest extends AccumuloTestBase {
     expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
     expect.put(new Key("A1", "", "B2"), new Value("21".getBytes()));
     expect.put(new Key("A2", "", "B2"), new Value("12".getBytes()));
-        //.putAll(dummyMap)
     expect = Collections.unmodifiableMap(expect);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     graphulo.TableMult(tA, tBT, tC,
         BigDecimalMultiply.class, BigDecimalCombiner.BigDecimalSummingCombiner.class,
-        null, null, true);
+        null, null, 1, false);
 
     Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
     Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ

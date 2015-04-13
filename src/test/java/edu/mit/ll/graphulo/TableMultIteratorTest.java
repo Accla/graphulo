@@ -4,6 +4,7 @@ import edu.mit.ll.graphulo.util.TestUtil;
 import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
 import org.apache.accumulo.core.security.Authorizations;
@@ -212,7 +213,8 @@ public class TableMultIteratorTest {
                 new IteratorSetting(1,BigDecimalCombiner.BigDecimalSummingCombiner.class,optSum));
         }
 
-        Scanner scannerB = conn.createScanner(tableNameB, Authorizations.EMPTY);
+        BatchScanner scannerB = conn.createBatchScanner(tableNameB, Authorizations.EMPTY, 2);
+        scannerB.setRanges(Collections.singleton(new Range()));
 
         // test reading entries directly
 

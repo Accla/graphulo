@@ -46,14 +46,14 @@ public class Graphulo implements IGraphulo {
                         Class<? extends IMultiplyOp> multOp, Class<? extends Combiner> sumOp,
                         Collection<Range> rowFilter,
                         Collection<IteratorSetting.Column> colFilter) {
-    TableMult(ATtable, Btable, Ctable, multOp, sumOp, rowFilter, colFilter, true);
+    TableMult(ATtable, Btable, Ctable, multOp, sumOp, rowFilter, colFilter, 250000, true);
   }
 
   public void TableMult(String ATtable, String Btable, String Ctable,
                         Class<? extends IMultiplyOp> multOp, Class<? extends Combiner> sumOp,
                         Collection<Range> rowFilter,
                         Collection<IteratorSetting.Column> colFilter,
-                        boolean trace) {
+                        int numEntriesCheckpoint, boolean trace) {
     if (ATtable == null || ATtable.isEmpty())
       throw new IllegalArgumentException("Please specify table A. Given: "+ATtable);
     if (Btable == null || Btable.isEmpty())
@@ -94,7 +94,7 @@ public class Graphulo implements IGraphulo {
     String user = connector.whoami();
 
     Map<String,String> opt = new HashMap<>();
-    opt.put("trace","true"); // enable distributed tracer
+    opt.put("trace",String.valueOf(trace)); // enable distributed tracer
 
     opt.put("AT.zookeeperHost", zookeepers);
     opt.put("AT.instanceName", instance);
@@ -113,7 +113,7 @@ public class Graphulo implements IGraphulo {
       opt.put("C.tableName", Ctable);
       opt.put("C.username", user);
       opt.put("C.password", new String(password.getPassword()));
-      opt.put("C.numEntriesCheckpoint", "250000"); // TODO P1: hard-coded numEntriesCheckpoint
+      opt.put("C.numEntriesCheckpoint", String.valueOf(numEntriesCheckpoint)); // TODO P1: hard-coded numEntriesCheckpoint
     }
 
     // attach combiner on Ctable
@@ -134,7 +134,7 @@ public class Graphulo implements IGraphulo {
     // scan B with TableMultIteratorQuery
     BatchScanner bs;
     try {
-      bs = connector.createBatchScanner(Btable, Authorizations.EMPTY, 1); // TODO P2: set number of batch scan threads
+      bs = connector.createBatchScanner(Btable, Authorizations.EMPTY, 2); // TODO P2: set number of batch scan threads
     } catch (TableNotFoundException e) {
       log.error("impossible", e);
       throw new RuntimeException(e);

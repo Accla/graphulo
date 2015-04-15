@@ -45,6 +45,7 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
   }
 
   private Text curRowMatch;
+  private Range seekRange;
 
   @Override
   public IteratorOptions describeOptions() {
@@ -152,7 +153,7 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
       range = new Range(followingRowKey, true, range.getEndKey(), range.isEndKeyInclusive());
     }
 
-    rA = rBT = range;
+    rA = rBT = seekRange = range;
     System.out.println("DM adj range: "+range);
 //    log.debug("seek range: " + range);
     log.debug("rAT/B rnge: " + rA);
@@ -209,15 +210,15 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
     int cmp = Arow.compareTo(Brow);
     while (cmp != 0) {
       if (cmp < 0) {
-        skipNextRowUntil(remoteAT, Brow, Watch.PerfSpan.ATnext);
-        if (!remoteAT.hasTop()) {
+        boolean success = skipNextRowUntil(remoteAT, Brow, seekRange, Watch.PerfSpan.ATnext);
+        if (!success) {
           bottomIter = null;
           return;
         }
         remoteAT.getTopKey().getRow(Arow);
       } else if (cmp > 0) {
-        skipNextRowUntil(remoteB, Arow, Watch.PerfSpan.Bnext);
-        if (!remoteB.hasTop()) {
+        boolean success = skipNextRowUntil(remoteB, Arow, seekRange, Watch.PerfSpan.Bnext);
+        if (!success) {
           bottomIter = null;
           return;
         }
@@ -240,34 +241,39 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
     assert hasTop();
   }
 
-  /**
-   * Call next() on skvi until getTopKey() is a new row, or until !hasTop().
-   * Todo P2: Experiment with using seek() if this takes a while, say greater than 10 next() calls.
-   *
-   * @return True if advanced to a new row; false if !hasTop().
-   */
-  static boolean skipNextRow(SortedKeyValueIterator<Key, Value> skvi) throws IOException {
-    if (!skvi.hasTop())
-      throw new IllegalStateException(skvi + " should hasTop()");
-    Text curRow = skvi.getTopKey().getRow();
-    Text newRow = new Text(curRow);
-    do {
-      skvi.next();
-    } while (skvi.hasTop() && curRow.equals(skvi.getTopKey().getRow(newRow)));
-    return skvi.hasTop();
-  }
+//  /**
+//   * Call next() on skvi until getTopKey() is a new row, or until !hasTop().
+//   * Todo P2: Experiment with using seek() if this takes a while, say greater than 10 next() calls.
+//   *
+//   * @return True if advanced to a new row; false if !hasTop().
+//   */
+//  static boolean skipNextRow(SortedKeyValueIterator<Key, Value> skvi) throws IOException {
+//    if (!skvi.hasTop())
+//      throw new IllegalStateException(skvi + " should hasTop()");
+//    Text curRow = skvi.getTopKey().getRow();
+//    Text newRow = new Text(curRow);
+//    do {
+//      skvi.next();
+//    } while (skvi.hasTop() && curRow.equals(skvi.getTopKey().getRow(newRow)));
+//    return skvi.hasTop();
+//  }
 
   /**
-   * Call next() on skvi until getTopKey() advances to a row >= rowToSkipUntil, or until !hasTop().
-   * Todo P2: Experiment with using seek() if this takes a while, say greater than 10 next() calls.
+   * Call next() on skvi until getTopKey() advances to a row >= rowToSkipTo, or until !hasTop().
+   * Calls seek() if this takes a while, say greater than 10 next() calls.
    * Todo P2: Replace with getRowData() for efficiency (less copying).
    *
    * @return True if advanced to a new row; false if !hasTop().
    */
-  static boolean skipNextRowUntil(SortedKeyValueIterator<Key, Value> skvi, Text rowToSkipUntil, Watch.PerfSpan watch) throws IOException {
+  static boolean skipNextRowUntil(SortedKeyValueIterator<Key, Value> skvi, Text rowToSkipTo,
+                                  Range seekRange, Watch.PerfSpan watch) throws IOException {
+    assert rowToSkipTo != null;
+    /** Call seek() if using this many next() calls does not get us to rowToSkipTo */
+    final int MAX_NEXT_ATTEMPT = 10;
+
     Text curRow = skvi.getTopKey().getRow();
-    long cnt = 0;
-    while (skvi.hasTop() && rowToSkipUntil.compareTo(skvi.getTopKey().getRow(curRow)) > 0) {
+    int cnt = 0;
+    while (cnt < MAX_NEXT_ATTEMPT && skvi.hasTop() && rowToSkipTo.compareTo(skvi.getTopKey().getRow(curRow)) > 0) {
       cnt++;
       Watch.instance.start(watch);
       try {
@@ -276,6 +282,15 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
         Watch.instance.stop(watch);
       }
     }
+    // seek if we didn't get past the desired row in 10 next() calls
+    if (skvi.hasTop() && rowToSkipTo.compareTo(skvi.getTopKey().getRow(curRow)) > 0) {
+      Range skipToRange = new Range(rowToSkipTo, true, null, false);
+      skipToRange = skipToRange.clip(seekRange, true);
+      if (skipToRange == null) // row we want to get to does not exist, and it is out of our range
+        return false;
+      skvi.seek(skipToRange, Collections.<ByteSequence>emptySet(), false);
+    }
+
     Watch.instance.increment(Watch.PerfSpan.RowSkipNum, cnt);
     return skvi.hasTop();
   }

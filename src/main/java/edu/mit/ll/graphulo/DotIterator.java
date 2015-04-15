@@ -205,7 +205,6 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
       }
     }*/
 
-    SortedMap<Key, Value> ArowMap, BrowMap;
     Text Arow = remoteAT.getTopKey().getRow(), Brow = remoteB.getTopKey().getRow();
     int cmp = Arow.compareTo(Brow);
     while (cmp != 0) {
@@ -227,6 +226,7 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
       cmp = Arow.compareTo(Brow);
     }
     //assert cmp == 0;
+    SortedMap<Key, Value> ArowMap, BrowMap;
     Watch.instance.start(Watch.PerfSpan.RowDecodeBoth);
     try {
       ArowMap = readRow(remoteAT, Watch.PerfSpan.ATnext);
@@ -295,7 +295,7 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
     Text curRow = new Text(thisRow);
     SortedMap<Key, Value> map = new TreeMap<>();
     do {
-      map.put(skvi.getTopKey(), skvi.getTopValue());
+      map.put(skvi.getTopKey(), new Value(skvi.getTopValue()));
       Watch.instance.start(watch);
       try {
         skvi.next();

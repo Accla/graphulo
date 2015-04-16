@@ -393,7 +393,7 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
 
   @Override
   public Map.Entry<Key, Value> safeState() {
-    if (bottomIter.peekSecond() != null) {
+    if (bottomIter != null && bottomIter.peekSecond() != null) {
       // finish the row's cartesian product first
       return null;
     } else {

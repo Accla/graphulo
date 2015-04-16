@@ -2,6 +2,7 @@ package edu.mit.ll.graphulo;
 
 import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.impl.OfflineScanner;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -10,11 +11,17 @@ import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.DevNull;
 import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.Credentials;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.nio.ByteBuffer;
 import java.util.*;
+
+
+import org.apache.hadoop.hdfs.DistributedFileSystem;
 
 /**
  * Graphulo operation implementation.
@@ -131,18 +138,74 @@ public class Graphulo implements IGraphulo {
       throw new RuntimeException(e);
     }
 
-    // scan B with TableMultIteratorQuery
-    BatchScanner bs;
+    String ATtableClone = ATtable+"_2";
+    String BtableClone = Btable+"_2";
+//    try {
+//      tops.clone(ATtable, ATtableClone, true, null, null);
+//    } catch (AccumuloSecurityException | AccumuloException e) {
+//      log.error("error trying to add clone "+ATtable+" to " + ATtableClone, e);
+//      throw new RuntimeException(e);
+//    } catch (TableNotFoundException e) {
+//      log.error("impossible", e);
+//      throw new RuntimeException(e);
+//    } catch (TableExistsException e) {
+//      log.error("table " + ATtableClone+" already exists", e);
+//      throw new RuntimeException(e);
+//    }
     try {
-      bs = connector.createBatchScanner(Btable, Authorizations.EMPTY, 2); // TODO P2: set number of batch scan threads
+      tops.clone(Btable, BtableClone, true, null, null);
+    } catch (AccumuloSecurityException | AccumuloException e) {
+      log.error("error trying to add clone "+Btable+" to " + BtableClone, e);
+      throw new RuntimeException(e);
+    } catch (TableNotFoundException e) {
+      log.error("impossible", e);
+      throw new RuntimeException(e);
+    } catch (TableExistsException e) {
+      log.error("table " + BtableClone+" already exists", e);
+      throw new RuntimeException(e);
+    }
+    try {
+      long st = System.currentTimeMillis();
+      tops.offline(BtableClone, true);
+      long dur = System.currentTimeMillis() - st;
+      System.out.println("offline "+BtableClone+" time: "+dur);
+    } catch (AccumuloSecurityException | AccumuloException e) {
+      log.error("error trying to offline " + BtableClone, e);
+      throw new RuntimeException(e);
     } catch (TableNotFoundException e) {
       log.error("impossible", e);
       throw new RuntimeException(e);
     }
+//    Configuration hadoopConf = new Configuration(true);
+//    hadoopConf.set("fs.hdfs.impl",
+//        org.apache.hadoop.hdfs.DistributedFileSystem.class.getName()
+//    );
+    try {
+      this.getClass().getClassLoader().loadClass("org.apache.hadoop.hdfs.DistributedFileSystem");
+    } catch (ClassNotFoundException e) {
+      e.printStackTrace();
+      throw new RuntimeException(e);
+    }
+    Configuration.addDefaultResource("file:///home/dhutchis/opt/stack/hadoop-2.6.0/etc/hadoop/core-site.xml");
+
+//    hadoopConfig.set("fs.hdfs.impl",
+//        org.apache.hadoop.hdfs.DistributedFileSystem.class.getName()
+//    );
+    OfflineScanner bs = new OfflineScanner(connector.getInstance(), new Credentials(connector.whoami(), password),
+        connector.tableOperations().tableIdMap().get(BtableClone), Authorizations.EMPTY);
+
+    // scan B with TableMultIteratorQuery
+//    BatchScanner bs;
+//    try {
+//      bs = connector.createBatchScanner(Btable, Authorizations.EMPTY, 2); // TODO P2: set number of batch scan threads
+//    } catch (TableNotFoundException e) {
+//      log.error("impossible", e);
+//      throw new RuntimeException(e);
+//    }
     // TODO P2: Assign priority and name dynamically, checking for conflicts.
     IteratorSetting itset = new IteratorSetting(2, TableMultIteratorQuery.class, opt);
     bs.addScanIterator(itset);
-    bs.setRanges(Collections.singleton(new Range()));
+//    bs.setRanges(Collections.singleton(new Range()));
 
     for (Map.Entry<Key, Value> entry : bs) {
       if (Ctable != null && !Ctable.isEmpty()) {

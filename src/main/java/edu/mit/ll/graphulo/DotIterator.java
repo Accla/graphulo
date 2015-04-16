@@ -5,6 +5,7 @@ import org.apache.accumulo.core.data.*;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.system.ColumnQualifierFilter;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
@@ -76,11 +77,13 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
         (optB.isEmpty() || RemoteSourceIterator.validateOptionsStatic(optB));
   }
 
+  static final byte[] EMPTY_BYTES = new byte[0];
 
   @Override
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
     // parse options, pass correct options to RemoteSourceIterator init()
     Map<String, String> optAT = null, optB = null;
+    Collection<Text> sourceColFilter = null;
     {
       Map<String, Map<String, String>> prefixMap = GraphuloUtil.splitMapPrefix(options);
       for (Map.Entry<String, Map<String, String>> prefixEntry : prefixMap.entrySet()) {
@@ -88,6 +91,10 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
         Map<String, String> entryMap = prefixEntry.getValue();
         switch (prefix) {
           case PREFIX_AT: {
+            if (entryMap.size() == 1 && entryMap.containsKey("colFilter")) { // special case: just column filter
+              sourceColFilter = GraphuloUtil.d4mRowToTexts(entryMap.get("colFilter"));
+              break;
+            }
             String v = entryMap.remove("doWholeRow");
             if (v != null && Boolean.parseBoolean(v)) {
               log.warn("Forcing doWholeRow option on table A to FALSE. Given: " + v);
@@ -97,6 +104,10 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
             break;
           }
           case PREFIX_B: {
+            if (entryMap.size() == 1 && entryMap.containsKey("colFilter")) { // special case: just column filter
+              sourceColFilter = GraphuloUtil.d4mRowToTexts(entryMap.get("colFilter"));
+              break;
+            }
             String v = entryMap.remove("doWholeRow");
             if (v != null && Boolean.parseBoolean(v)) {
               log.warn("Forcing doWholeRow option on table BT to FALSE. Given: " + v);
@@ -125,19 +136,36 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
     if (optAT != null) {
       remoteAT = new RemoteSourceIterator();
       remoteAT.init(null, optAT, env);
-    } else
+    } else {
+      if (sourceColFilter != null && !sourceColFilter.isEmpty()) {
+        Set<Column> colset = new HashSet<>();
+        for (Text text : sourceColFilter)
+          colset.add(new Column(EMPTY_BYTES,text.getBytes(),EMPTY_BYTES));
+        source = new ColumnQualifierFilter(source, colset);
+      }
       remoteAT = source;
+    }
     if (optB != null) {
       remoteB = new RemoteSourceIterator();
       remoteB.init(null, optB, env);
-    } else
+    } else {
+      if (sourceColFilter != null && !sourceColFilter.isEmpty()) {
+        Set<Column> colset = new HashSet<>();
+        for (Text text : sourceColFilter)
+          colset.add(new Column(EMPTY_BYTES,text.getBytes(),EMPTY_BYTES));
+        source = new ColumnQualifierFilter(source, colset);
+      }
       remoteB = source;
+    }
   }
 
 
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-    Range rA, rBT;
+    Range rAT, rB;
+    System.out.println("DM ori range: "+range);
+    System.out.println("DM colFamili: "+columnFamilies);
+    System.out.println("DM inclusive: " + inclusive);
 
     // if range is not infinite, see if there is a clear sign we want to restore state:
     Key sk = range.getStartKey();
@@ -153,24 +181,24 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
       range = new Range(followingRowKey, true, range.getEndKey(), range.isEndKeyInclusive());
     }
 
-    rA = rBT = seekRange = range;
+    rAT = rB = seekRange = range;
     System.out.println("DM adj range: "+range);
 //    log.debug("seek range: " + range);
-    log.debug("rAT/B rnge: " + rA);
-//    log.debug("rBT  range: " + rBT);
+    log.debug("rAT/B rnge: " + rAT);
+//    log.debug("rB  range: " + rB);
 
     // Weird results if we start in the middle of a row. Not handling.
 
     Watch.instance.start(Watch.PerfSpan.ATnext);
     try {
-      remoteAT.seek(rA, Collections.<ByteSequence>emptySet(), false);
+      remoteAT.seek(rAT, Collections.<ByteSequence>emptySet(), false);
     } finally {
       Watch.instance.stop(Watch.PerfSpan.ATnext);
     }
 
     Watch.instance.start(Watch.PerfSpan.Bnext);
     try {
-      remoteB.seek(rBT, Collections.<ByteSequence>emptySet(), false);
+      remoteB.seek(rB, Collections.<ByteSequence>emptySet(), false);
     } finally {
       Watch.instance.stop(Watch.PerfSpan.Bnext);
     }
@@ -393,7 +421,7 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
 
   @Override
   public Map.Entry<Key, Value> safeState() {
-    if (bottomIter.peekSecond() != null) {
+    if (bottomIter != null && bottomIter.peekSecond() != null) {
       // finish the row's cartesian product first
       return null;
     } else {

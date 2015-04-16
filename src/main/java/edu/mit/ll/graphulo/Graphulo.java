@@ -10,6 +10,7 @@ import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.DevNull;
 import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -41,32 +42,30 @@ public class Graphulo implements IGraphulo {
     }
   }
 
+  static final Text EMPTY_TEXT = new Text();
+
   @Override
   public void TableMult(String ATtable, String Btable, String Ctable,
                         Class<? extends IMultiplyOp> multOp, Class<? extends Combiner> sumOp,
                         Collection<Range> rowFilter,
-                        Collection<IteratorSetting.Column> colFilter) {
-    TableMult(ATtable, Btable, Ctable, multOp, sumOp, rowFilter, colFilter, 250000, true);
+                        String colFilterAT, String colFilterB) {
+    TableMult(ATtable, Btable, Ctable, multOp, sumOp, rowFilter, colFilterAT, colFilterB, 250000, true);
   }
 
   public void TableMult(String ATtable, String Btable, String Ctable,
                         Class<? extends IMultiplyOp> multOp, Class<? extends Combiner> sumOp,
                         Collection<Range> rowFilter,
-                        Collection<IteratorSetting.Column> colFilter,
+                        String colFilterAT, String colFilterB,
                         int numEntriesCheckpoint, boolean trace) {
     if (ATtable == null || ATtable.isEmpty())
-      throw new IllegalArgumentException("Please specify table A. Given: "+ATtable);
+      throw new IllegalArgumentException("Please specify table AT. Given: "+ATtable);
     if (Btable == null || Btable.isEmpty())
-      throw new IllegalArgumentException("Please specify table BT. Given: "+Btable);
+      throw new IllegalArgumentException("Please specify table B. Given: "+Btable);
     if (ATtable.equals(Ctable))
       log.warn("Untested combination: ATtable=Ctable="+ATtable);
     if (Btable.equals(Ctable))
-      log.warn("Untested combination: Btable=Ctable="+Btable);
+      log.warn("Untested combination: Btable=Ctable=" + Btable);
 
-    if (rowFilter != null && !rowFilter.isEmpty())
-      throw new UnsupportedOperationException("rowFilter is not yet implemented; given: "+rowFilter);
-    if (colFilter != null && !colFilter.isEmpty())
-      throw new UnsupportedOperationException("colFilter is not yet implemented; given: "+colFilter);
 //    if (multOp == null || !multOp.equals(BigDecimalMultiply.class))
 //      throw new UnsupportedOperationException("only supported multOp is BigDecimalMultiply, but given: "+multOp);
 //    if (sumOp == null || !sumOp.equals(BigDecimalCombiner.BigDecimalSummingCombiner.class))
@@ -101,11 +100,15 @@ public class Graphulo implements IGraphulo {
     opt.put("AT.tableName", ATtable);
     opt.put("AT.username", user);
     opt.put("AT.password", new String(password.getPassword()));
+    if (colFilterAT != null)
+      opt.put("AT.colFilter", colFilterAT);
 //    opt.put("B.zookeeperHost", zookeepers);
 //    opt.put("B.instanceName", instance);
 //    opt.put("B.tableName", Btable);
 //    opt.put("B.username", user);
 //    opt.put("B.password", new String(password.getPassword()));
+    if (colFilterB != null)
+      opt.put("B.colFilter", colFilterB);
 
     if (Ctable != null && !Ctable.isEmpty()) {
       opt.put("C.zookeeperHost", zookeepers);
@@ -142,7 +145,15 @@ public class Graphulo implements IGraphulo {
     // TODO P2: Assign priority and name dynamically, checking for conflicts.
     IteratorSetting itset = new IteratorSetting(2, TableMultIteratorQuery.class, opt);
     bs.addScanIterator(itset);
-    bs.setRanges(Collections.singleton(new Range()));
+
+    if (rowFilter == null || rowFilter.isEmpty())
+      rowFilter = Collections.singleton(new Range());
+    bs.setRanges(rowFilter);
+
+//    if (colFilterB != null)
+//      for (Text text : GraphuloUtil.d4mRowToTexts(colFilterB)) {
+//        bs.fetchColumn(EMPTY_TEXT, text);
+//      }
 
     for (Map.Entry<Key, Value> entry : bs) {
       if (Ctable != null && !Ctable.isEmpty()) {

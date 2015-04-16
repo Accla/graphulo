@@ -15,6 +15,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.PeekingIterator;
+import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -44,7 +45,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
     /** Holds the current range we are scanning.
      * Goes through the part of ranges after seeking to the beginning of the seek() clip. */
     private Iterator<Range> rowRangeIterator;
-    //private Collection<IteratorSetting.Column> colFilter;
+    private Collection<Text> colFilter = null;
 
     /** Created in init().  */
     private Scanner scanner;
@@ -81,7 +82,8 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
         optDesc.put("password", "(Anyone who can read the Accumulo table config OR the log files will see your password in plaintext.)");
         optDesc.put("doWholeRow", "Apply WholeRowIterator to remote table scan? (default no)");
         optDesc.put("doClientSideIterators", "Use a ClientSideIteratorScanner? (default no)");
-        optDesc.put("rowRanges", "Row ranges to scan for remote Accumulo table, Matlab syntax. (default ':' all)");
+//        optDesc.put("rowRanges", "Row ranges to scan for remote Accumulo table, Matlab syntax. (default ':' all)");
+        optDesc.put("colFilter", "String representation of column qualifiers, e.g. 'a,b,c,' (default blank)");
         iteratorOptions = new IteratorOptions("RemoteSourceIterator",
                 "Reads from a remote Accumulo table. Replaces parent iterator with the remote table.",
                 Collections.unmodifiableMap(optDesc), null);
@@ -103,6 +105,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
         AuthenticationToken auth = null;
         //int timeout;
         //SortedSet<Range> rowRanges;
+        Collection<Text> colFilter;
         boolean doWholeRow = false, doClientSideIterators = false;
 
         for (Map.Entry<String, String> entry : options.entrySet()) {
@@ -142,6 +145,8 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
                 case "rowRanges":
                     parseRanges(entry.getValue());
                     break;
+                case "colFilter":
+                    colFilter = GraphuloUtil.d4mRowToTexts(entry.getValue());
                 default:
                     throw new IllegalArgumentException("unknown option: "+entry);
             }
@@ -186,6 +191,9 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
                 case "rowRanges":
                     rowRanges = parseRanges(entry.getValue());
                     break;
+                case "colFilter":
+                    colFilter = GraphuloUtil.d4mRowToTexts(entry.getValue());
+                    break;
                 case "doClientSideIterators":
                     doClientSideIterators = Boolean.parseBoolean(entry.getValue());
                     break;
@@ -229,6 +237,8 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
         log.debug("RemoteSourceIterator on table " + tableName + ": init() succeeded");
     }
 
+    static final Text EMPTY_TEXT = new Text();
+
     private void setupConnectorScanner() {
         ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeeperHost);
         if (timeout != -1)
@@ -248,6 +258,11 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
             log.error(tableName+" does not exist in instance "+instanceName, e);
             throw new RuntimeException(e);
         }
+
+        if (colFilter != null)
+            for (Text text : colFilter) {
+                scanner.fetchColumn(EMPTY_TEXT, text);
+            }
 
         if (doClientSideIterators)
             scanner = new ClientSideIteratorScanner(scanner);
@@ -282,7 +297,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key,Value>, 
     }
 
     public void seek(Range range) throws IOException {
-        log.debug("RemoteSourceIterator on table "+tableName+": about to seek() to range "+range);
+        log.debug("RemoteSourceIterator on table "+tableName+": seek(): "+range);
         /** configure Scanner to the first entry to inject after the start of the range.
          Range comparison: infinite start first, then inclusive start, then exclusive start
          {@link org.apache.accumulo.core.data.Range#compareTo(Range)} */

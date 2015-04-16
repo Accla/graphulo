@@ -339,8 +339,6 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 			if (paramContent[1].contains(":")) {
 				rangeQueryType = D4mDbQueryAccumulo.KEY_RANGE;
 			}
-		}
-		if (paramContent.length == 3) {
 			if (paramContent[1].contains(":") && paramContent[2].toLowerCase().contains("end")) {
 				rangeQueryType = D4mDbQueryAccumulo.POSITIVE_INFINITY_RANGE;
 			}
@@ -427,7 +425,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		String rowKey = null;
 
 		while ((this.count < this.limit)||(this.hasNext=scannerIter.hasNext())) {
-			entry = (Entry<Key, Value>) scannerIter.next();
+			entry = scannerIter.next();
 			rowKey = entry.getKey().getRow().toString();
 			String column = entry.getKey().getColumnQualifier().toString();//new String(entry.getKey().getColumnQualifier().toString());
 			String value = new String(entry.getValue().get());
@@ -531,7 +529,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		String rowKey = null;
 		Entry<Key, Value> entry = null;
 		while ((this.hasNext =scannerIter.hasNext())) {
-			entry = (Entry<Key, Value>) scannerIter.next();
+			entry = scannerIter.next();
 			rowKey = entry.getKey().getRow().toString();
 			String column = entry.getKey().getColumnQualifier().toString();//new String(entry.getKey().getColumnQualifier().toString());
 			String finalColumn = column;//column.replace(this.family, "");
@@ -969,7 +967,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		int count=0;
 		while ((this.hasNext =scannerIter.hasNext())) {
 			if(this.limit == 0 || this.count < this.limit) {
-				entry = (Entry<Key, Value>) scannerIter.next();
+				entry = scannerIter.next();
 				this.startKey = entry.getKey();
 				rowKey = entry.getKey().getRow().toString();
 				String column = entry.getKey().getColumnQualifier().toString();
@@ -1309,7 +1307,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		HashSet<Range> ranges = new HashSet<Range>();
 		Iterator<String> it = queryMap.keySet().iterator();
 		while (it.hasNext()) {
-			String rowId = (String) it.next();
+			String rowId = it.next();
 			//System.out.println("==>>ROW_ID="+rowId+"<<++");
 			if(rowId != null) {
 				Key key = new Key(new Text(rowId));

@@ -12,7 +12,7 @@ import java.util.Collection;
 public interface IGraphulo {
 
   /**
-   * Create and execute the stored procedure table Ptable to compute C += A * B.
+   * C += A * B.
    * User-defined "plus" and "multiply". Requires transpose table AT instead of A.
    * If C is not given, then the scan itself returns the results of A * B.
    *
@@ -21,16 +21,13 @@ public interface IGraphulo {
    * @param Ctable    Optional. Name of table to store result. Streams back result if null.
    * @param multOp    An operation that "multiplies" two values.
    * @param sumOp     An operation that "sums" values.
-   * @param rowFilter Optional. Row subset of ATtable and Btable.
-   * @param colFilter Optional. Column family/qualifier subset of AT and B.
-   *                  A variant takes a collection of ranges. This is less efficient since
-   *                  {@link org.apache.accumulo.core.client.ScannerBase#fetchColumn} and fetchColumnFamily
-   *                  do not take ranges (meaning, need to scan all the columns and filter after receiving,
-   *                  or use a {@link org.apache.accumulo.core.iterators.Filter}). Row subsets are easier than column.
+   * @param rowFilter Optional. Row subset of ATtable and Btable, like "a,:,b,g,c,:,"
+   * @param colFilterAT Optional. Column qualifier subset of AT, currently restricted to not allow ranges.
+   * @param colFilterB Optional. Column qualifier subset of B, like "a,f,b,c,"
    */
   void TableMult(String ATtable, String Btable, String Ctable,
                  Class<? extends IMultiplyOp> multOp, Class<? extends Combiner> sumOp,
                  Collection<Range> rowFilter,
-                 Collection<IteratorSetting.Column> colFilter);
+                 String colFilterAT, String colFilterB);
 
 }

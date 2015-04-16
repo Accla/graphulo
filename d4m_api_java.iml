@@ -13,6 +13,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="Maven: org.apache.hadoop:hadoop-hdfs:2.2.0" level="project" />
     <orderEntry type="library" name="Maven: org.apache.accumulo:accumulo-core:1.6.1" level="project" />
     <orderEntry type="library" name="Maven: com.beust:jcommander:1.32" level="project" />
     <orderEntry type="library" name="Maven: com.google.guava:guava:14.0.1" level="project" />
@@ -82,9 +83,9 @@
     <orderEntry type="library" name="Maven: com.sun.jersey:jersey-server:1.9" level="project" />
     <orderEntry type="library" name="Maven: asm:asm:3.1" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: tomcat:jasper-compiler:5.5.23" level="project" />
-    <orderEntry type="library" name="Maven: tomcat:jasper-runtime:5.5.23" level="project" />
-    <orderEntry type="library" name="Maven: javax.servlet.jsp:jsp-api:2.1" level="project" />
-    <orderEntry type="library" name="Maven: commons-el:commons-el:1.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: tomcat:jasper-runtime:5.5.23" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: javax.servlet.jsp:jsp-api:2.1" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: commons-el:commons-el:1.0" level="project" />
     <orderEntry type="library" name="Maven: net.java.dev.jets3t:jets3t:0.9.0" level="project" />
     <orderEntry type="library" name="Maven: org.apache.httpcomponents:httpclient:4.1.2" level="project" />
     <orderEntry type="library" name="Maven: org.apache.httpcomponents:httpcore:4.1.2" level="project" />
@@ -111,12 +112,12 @@
     <orderEntry type="library" scope="TEST" name="Maven: org.apache.hadoop:hadoop-minicluster:2.2.0" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.apache.hadoop:hadoop-common:test-jar:tests:2.2.0" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.apache.hadoop:hadoop-hdfs:test-jar:tests:2.2.0" level="project" />
-    <orderEntry type="library" name="Maven: commons-daemon:commons-daemon:1.0.13" level="project" />
+    <orderEntry type="library" scope="TEST" name="Maven: commons-daemon:commons-daemon:1.0.13" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.apache.hadoop:hadoop-yarn-server-tests:test-jar:tests:2.2.0" level="project" />
     <orderEntry type="library" name="Maven: org.apache.hadoop:hadoop-yarn-server-common:2.2.0" level="project" />
-    <orderEntry type="library" name="Maven: org.apache.hadoop:hadoop-yarn-server-nodemanager:2.2.0" level="project" />
+    <orderEntry type="library" scope="TEST" name="Maven: org.apache.hadoop:hadoop-yarn-server-nodemanager:2.2.0" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.apache.hadoop:hadoop-yarn-server-resourcemanager:2.2.0" level="project" />
-    <orderEntry type="library" name="Maven: org.apache.hadoop:hadoop-yarn-server-web-proxy:2.2.0" level="project" />
+    <orderEntry type="library" scope="TEST" name="Maven: org.apache.hadoop:hadoop-yarn-server-web-proxy:2.2.0" level="project" />
     <orderEntry type="library" name="Maven: com.google.inject.extensions:guice-servlet:3.0" level="project" />
     <orderEntry type="library" name="Maven: io.netty:netty:3.6.2.Final" level="project" />
     <orderEntry type="library" name="Maven: com.google.inject:guice:3.0" level="project" />

@@ -95,7 +95,7 @@ public class TableMultIteratorQuery extends BranchIterator implements OptionDesc
         switch (prefix) {
           case DotIterator.PREFIX_AT:
           case DotIterator.PREFIX_B: {
-            if (!optDM.isEmpty())
+            if (optDM.size() > 1 && entryMap.size() > 1)
               throw new IllegalArgumentException("Please specify either AT or B but not both.");
             optDM.putAll(GraphuloUtil.preprendPrefixToKey(prefix + '.', entryMap));
             break;

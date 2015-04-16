@@ -188,7 +188,6 @@ public class TableMultTest extends AccumuloTestBase {
       splits.add(new Text("C15"));
       TestUtil.createTestTable(conn, tB, splits, input);
     }
-
     TestUtil.createTestTable(conn, tC);
 
     Map<Key,Value> expect = new HashMap<Key, Value>();

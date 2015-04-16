@@ -149,12 +149,13 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
       remoteB = new RemoteSourceIterator();
       remoteB.init(null, optB, env);
     } else {
-      if (sourceColFilter != null && !sourceColFilter.isEmpty()) {
-        Set<Column> colset = new HashSet<>();
-        for (Text text : sourceColFilter)
-          colset.add(new Column(EMPTY_BYTES,text.getBytes(),EMPTY_BYTES));
-        source = new ColumnQualifierFilter(source, colset);
-      }
+      // DH: Not needed!  Use fetchColumn() on the initating (Batch)Scanner.
+//      if (sourceColFilter != null && !sourceColFilter.isEmpty()) {
+//        Set<Column> colset = new HashSet<>();
+//        for (Text text : sourceColFilter)
+//          colset.add(new Column(EMPTY_BYTES,text.getBytes(),EMPTY_BYTES));
+//        source = new ColumnQualifierFilter(source, colset);
+//      }
       remoteB = source;
     }
   }
@@ -167,9 +168,11 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
     System.out.println("DM colFamili: "+columnFamilies);
     System.out.println("DM inclusive: " + inclusive);
 
-    // if range is not infinite, see if there is a clear sign we want to restore state:
     Key sk = range.getStartKey();
+    // put range at beginning of row, no matter what
+    range = new Range(new Key(sk.getRow()), true, range.getEndKey(), range.isEndKeyInclusive());
 
+    // if range is not infinite, see if there is a clear sign we want to restore state:
     if (sk != null && sk.getColumnFamilyData().length() == 0 && sk.getColumnQualifierData().length() == 0 && sk.getColumnVisibilityData().length() == 0
         && sk.getTimestamp() == Long.MAX_VALUE && !range.isStartKeyInclusive()) {
       // assuming that we are seeking using a key previously returned by this iterator

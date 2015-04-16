@@ -93,7 +93,7 @@ public class Graphulo implements IGraphulo {
     String user = connector.whoami();
 
     Map<String,String> opt = new HashMap<>();
-    opt.put("trace",String.valueOf(trace)); // enable distributed tracer
+    opt.put("trace",String.valueOf(trace)); // logs timing on server
 
     opt.put("AT.zookeeperHost", zookeepers);
     opt.put("AT.instanceName", instance);
@@ -107,8 +107,9 @@ public class Graphulo implements IGraphulo {
 //    opt.put("B.tableName", Btable);
 //    opt.put("B.username", user);
 //    opt.put("B.password", new String(password.getPassword()));
-    if (colFilterB != null)
-      opt.put("B.colFilter", colFilterB);
+    // DH: not needed. Use fetchColumn() on bs below.
+//    if (colFilterB != null)
+//      opt.put("B.colFilter", colFilterB);
 
     if (Ctable != null && !Ctable.isEmpty()) {
       opt.put("C.zookeeperHost", zookeepers);
@@ -150,10 +151,10 @@ public class Graphulo implements IGraphulo {
       rowFilter = Collections.singleton(new Range());
     bs.setRanges(rowFilter);
 
-//    if (colFilterB != null)
-//      for (Text text : GraphuloUtil.d4mRowToTexts(colFilterB)) {
-//        bs.fetchColumn(EMPTY_TEXT, text);
-//      }
+    if (colFilterB != null)
+      for (Text text : GraphuloUtil.d4mRowToTexts(colFilterB)) {
+        bs.fetchColumn(EMPTY_TEXT, text);
+      }
 
     for (Map.Entry<Key, Value> entry : bs) {
       if (Ctable != null && !Ctable.isEmpty()) {

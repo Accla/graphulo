@@ -68,17 +68,17 @@ public class UtilTest {
     list.add(4);
     Iterator<Integer> iFirst = list.iterator(), iSecond = list.iterator();
     iSecond.next();
-    PeekingIterator2<Integer> pe = new PeekingIterator2<>(list.iterator());
+    PeekingIteratorN<Integer> pe = new PeekingIteratorN<>(2, list.iterator());
     while (pe.hasNext()) {
       Assert.assertTrue(iFirst.hasNext());
-      Assert.assertEquals(iFirst.next(), pe.peekFirst());
+      Assert.assertEquals(iFirst.next(), pe.peek(1));
       if (iSecond.hasNext())
-        Assert.assertEquals(iSecond.next(), pe.peekSecond());
+        Assert.assertEquals(iSecond.next(), pe.peek(2));
       else
-        Assert.assertNull(pe.peekSecond());
+        Assert.assertNull(pe.peek(2));
       pe.next();
     }
-    Assert.assertNull(pe.peekFirst());
+    Assert.assertNull(pe.peek(1));
   }
 
   @Test

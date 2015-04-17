@@ -37,7 +37,7 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
   private IMultiplyOp multiplyOp = new BigDecimalMultiply();
   private SortedKeyValueIterator<Key,Value> remoteAT, remoteB;
 
-  private PeekingIterator2<Map.Entry<Key, Value>> bottomIter; // = new TreeMap<>(new ColFamilyQualifierComparator());
+  private PeekingIteratorN<Map.Entry<Key, Value>> bottomIter; // = new TreeMap<>(new ColFamilyQualifierComparator());
 
   public static final String PREFIX_AT = "AT";
   public static final String PREFIX_B = "B";
@@ -277,7 +277,7 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
     }
 
     curRowMatch = Arow;
-    bottomIter = new PeekingIterator2<>(new CartesianDotIter(ArowMap, BrowMap, multiplyOp));
+    bottomIter = new PeekingIteratorN<>(2, new CartesianDotIter(ArowMap, BrowMap, multiplyOp));
     assert hasTop();
   }
 
@@ -434,7 +434,7 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
 
   @Override
   public Map.Entry<Key, Value> safeState() {
-    if (bottomIter != null && bottomIter.peekSecond() != null) {
+    if (bottomIter != null && bottomIter.peek(2) != null) {
       // finish the row's cartesian product first
       return null;
     } else {
@@ -470,12 +470,12 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
 
   @Override
   public Key getTopKey() {
-    return bottomIter.peekFirst().getKey();
+    return bottomIter.peek(1).getKey();
   }
 
   @Override
   public Value getTopValue() {
-    return bottomIter.peekFirst().getValue();
+    return bottomIter.peek(1).getValue();
   }
 
   @Override

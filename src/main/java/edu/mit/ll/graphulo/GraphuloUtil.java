@@ -64,40 +64,40 @@ public class GraphuloUtil {
         .split(String.valueOf(rowStr.charAt(rowStr.length() - 1)));
     //if (rowStrSplit.length == 1)
     List<String> rowStrList = Arrays.asList(rowStrSplit);
-    PeekingIterator3<String> pi = new PeekingIterator3<>(rowStrList.iterator());
+    PeekingIteratorN<String> pi = new PeekingIteratorN<>(3, rowStrList.iterator());
     Set<Range> rngset = new HashSet<>();
 
-    if (pi.peekFirst().equals(":")) { // (-Inf,
-      if (pi.peekSecond() == null) {
+    if (pi.peek(1).equals(":")) { // (-Inf,
+      if (pi.peek(2) == null) {
         return Collections.singleton(new Range()); // (-Inf,+Inf)
       } else {
-        if (pi.peekSecond().equals(":") || (pi.peekThird() != null && pi.peekThird().equals(":")))
+        if (pi.peek(2).equals(":") || (pi.peek(3) != null && pi.peek(3).equals(":")))
           throw new IllegalArgumentException("Bad D4M rowStr: "+rowStr);
-        rngset.add(new Range(null,false,pi.peekSecond(),true)); // (-Inf,2]
+        rngset.add(new Range(null,false,pi.peek(2),true)); // (-Inf,2]
         pi.next();
         pi.next();
       }
     }
 
     while (pi.hasNext()) {
-      if (pi.peekSecond() == null) { // last singleton row [1,1~)
-        Key key = new Key(pi.peekFirst());
+      if (pi.peek(2) == null) { // last singleton row [1,1~)
+        Key key = new Key(pi.peek(1));
         rngset.add(new Range(key, true, key.followingKey(PartialKey.ROW), false));
         return rngset;
-      } else if (pi.peekSecond().equals(":")) {
-        if (pi.peekThird() == null) { // [1,+Inf)
-          rngset.add(new Range(pi.peekFirst(), true, null, false));
+      } else if (pi.peek(2).equals(":")) {
+        if (pi.peek(3) == null) { // [1,+Inf)
+          rngset.add(new Range(pi.peek(1), true, null, false));
           return rngset;
         } else { // [1,3)
-          if (pi.peekThird().equals(":"))
+          if (pi.peek(3).equals(":"))
             throw new IllegalArgumentException("Bad D4M rowStr: "+rowStr);
-          rngset.add(new Range(pi.peekFirst(), true, pi.peekThird(), true));
+          rngset.add(new Range(pi.peek(1), true, pi.peek(3), true));
           pi.next();
           pi.next();
           pi.next();
         }
       } else { // [1,1~)
-        Key key = new Key(pi.peekFirst());
+        Key key = new Key(pi.peek(1));
         rngset.add(new Range(key, true, key.followingKey(PartialKey.ROW), false));
         pi.next();
       }

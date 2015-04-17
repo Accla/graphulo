@@ -1,8 +1,14 @@
 package edu.mit.ll.graphulo;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.hadoop.io.Text;
 
 import java.util.*;
@@ -51,8 +57,9 @@ public class GraphuloUtil {
   /**
    * Convert D4M string representation of rows to Ranges.
    * Last character in the string is an arbitrary separator char
-   *   that must not appear in the rows. The ':' cannot appear in rows either.
+   * that must not appear in the rows. The ':' cannot appear in rows either.
    * See UtilTest for more test cases.
+   *
    * @param rowStr Ex: ':,r1,r3,r5,:,r7,r9,:,'
    * @return Ex: (-Inf,r1] [r3,r3) [r5,r7] [r9,+Inf)
    */
@@ -60,7 +67,7 @@ public class GraphuloUtil {
     if (rowStr == null || rowStr.isEmpty())
       return Collections.emptySet();
     // could write my own version that does not do regex, but probably not worth optimizing
-    String[] rowStrSplit = rowStr.substring(0,rowStr.length()-1)
+    String[] rowStrSplit = rowStr.substring(0, rowStr.length() - 1)
         .split(String.valueOf(rowStr.charAt(rowStr.length() - 1)));
     //if (rowStrSplit.length == 1)
     List<String> rowStrList = Arrays.asList(rowStrSplit);
@@ -72,8 +79,8 @@ public class GraphuloUtil {
         return Collections.singleton(new Range()); // (-Inf,+Inf)
       } else {
         if (pi.peekSecond().equals(":") || (pi.peekThird() != null && pi.peekThird().equals(":")))
-          throw new IllegalArgumentException("Bad D4M rowStr: "+rowStr);
-        rngset.add(new Range(null,false,pi.peekSecond(),true)); // (-Inf,2]
+          throw new IllegalArgumentException("Bad D4M rowStr: " + rowStr);
+        rngset.add(new Range(null, false, pi.peekSecond(), true)); // (-Inf,2]
         pi.next();
         pi.next();
       }
@@ -90,7 +97,7 @@ public class GraphuloUtil {
           return rngset;
         } else { // [1,3)
           if (pi.peekThird().equals(":"))
-            throw new IllegalArgumentException("Bad D4M rowStr: "+rowStr);
+            throw new IllegalArgumentException("Bad D4M rowStr: " + rowStr);
           rngset.add(new Range(pi.peekFirst(), true, pi.peekThird(), true));
           pi.next();
           pi.next();
@@ -109,8 +116,9 @@ public class GraphuloUtil {
    * Convert D4M string representation of individual rows/columns to Text objects.
    * No ':' character allowed!
    * Last character in the string is an arbitrary separator char
-   *   that must not appear in the rows. The ':' cannot appear in rows either.
+   * that must not appear in the rows. The ':' cannot appear in rows either.
    * See UtilTest for more test cases.
+   *
    * @param rowStr Ex: 'a,b,c,d,'
    * @return A Text object for each one.
    */
@@ -118,15 +126,29 @@ public class GraphuloUtil {
     if (rowStr == null || rowStr.isEmpty())
       return Collections.emptySet();
     // could write my own version that does not do regex, but probably not worth optimizing
-    String[] rowStrSplit = rowStr.substring(0,rowStr.length()-1)
+    String[] rowStrSplit = rowStr.substring(0, rowStr.length() - 1)
         .split(String.valueOf(rowStr.charAt(rowStr.length() - 1)));
     Collection<Text> ts = new HashSet<>(rowStrSplit.length);
     for (String row : rowStrSplit) {
       if (row.equals(":"))
-        throw new IllegalArgumentException("rowStr cannot contain ranges: "+rowStr);
+        throw new IllegalArgumentException("rowStr cannot contain ranges: " + rowStr);
       ts.add(new Text(row));
     }
     return ts;
   }
+
+//  public void addIteratorDynamically(TableOperations tops, String tableName,
+//                                     IteratorSetting setting, EnumSet<IteratorUtil.IteratorScope> scopes,
+//                                     boolean beforeVers)
+//      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+//    int maxPriority = Integer.MAX_VALUE;
+//    if (beforeVers) {
+//      IteratorSetting versSetting = tops.getIteratorSetting(tableName, "vers", scopes.iterator().next());
+//      if (versSetting != null)
+//        maxPriority = versSetting.getPriority();
+//    }
+//    tops.checkIteratorConflicts(tableName, setting, scopes);
+//  }
+
 
 }

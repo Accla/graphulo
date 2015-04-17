@@ -8,6 +8,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.DevNull;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
@@ -126,9 +127,18 @@ public class Graphulo implements IGraphulo {
     // TODO P2: Assign priority and name dynamically, checking for conflicts.
     Map<String, String> optSum = new HashMap<>();
     optSum.put("all", "true");
-    IteratorSetting iSum = new IteratorSetting(19,BigDecimalCombiner.BigDecimalSummingCombiner.class, optSum);
+    IteratorSetting iSum = new IteratorSetting(19,"plus",BigDecimalCombiner.BigDecimalSummingCombiner.class, optSum);
+
+    // checking if iterator already exists. Not checking for conflicts.
     try {
-      tops.attachIterator(Ctable, iSum);
+      IteratorSetting existing;
+      EnumSet<IteratorUtil.IteratorScope> enumSet = EnumSet.noneOf(IteratorUtil.IteratorScope.class);
+      for (IteratorUtil.IteratorScope scope : IteratorUtil.IteratorScope.values()) {
+        existing = tops.getIteratorSetting(Ctable, "plus", IteratorUtil.IteratorScope.majc);
+        if (existing == null)
+          enumSet.add(scope);
+      }
+      tops.attachIterator(Ctable, iSum, enumSet);
     } catch (AccumuloSecurityException | AccumuloException e) {
       log.error("error trying to add BigDecimalSummingCombiner to " + Ctable, e);
       throw new RuntimeException(e);

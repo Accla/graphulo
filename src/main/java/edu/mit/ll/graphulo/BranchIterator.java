@@ -88,13 +88,14 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key, Valu
   @Override
   public void next() throws IOException {
 //    System.out.println(this.getClass().getName()+" getTop: "+getTopKey()+" -> "+getTopValue());
-    Watch.getInstance().start(Watch.PerfSpan.All);
+    Watch<Watch.PerfSpan> watch = Watch.getInstance();
+    watch.start(Watch.PerfSpan.All);
     try {
       botIterator.next();
     } finally {
-      Watch.getInstance().stop(Watch.PerfSpan.All);
+      watch.stop(Watch.PerfSpan.All);
       if (!botIterator.hasTop()) {
-        Watch.getInstance().print();
+        watch.print();
       }
     }
   }
@@ -102,13 +103,14 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key, Valu
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     System.out.println(this.getClass().getName()+" seek: "+range);
-    Watch.getInstance().start(Watch.PerfSpan.All);
+    Watch<Watch.PerfSpan> watch = Watch.getInstance();
+    watch.start(Watch.PerfSpan.All);
     try {
       botIterator.seek(range, columnFamilies, inclusive);
     } finally {
-      Watch.getInstance().stop(Watch.PerfSpan.All);
+      watch.stop(Watch.PerfSpan.All);
       if (!botIterator.hasTop())
-        Watch.getInstance().print();
+        watch.print();
     }
   }
 

@@ -192,19 +192,19 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
 //    log.debug("rB  range: " + rB);
 
     // Weird results if we start in the middle of a row. Not handling.
-
-    Watch.getInstance().start(Watch.PerfSpan.ATnext);
+    Watch<Watch.PerfSpan> watch = Watch.getInstance();
+    watch.start(Watch.PerfSpan.ATnext);
     try {
       remoteAT.seek(rAT, Collections.<ByteSequence>emptySet(), false);
     } finally {
-      Watch.getInstance().stop(Watch.PerfSpan.ATnext);
+      watch.stop(Watch.PerfSpan.ATnext);
     }
 
-    Watch.getInstance().start(Watch.PerfSpan.Bnext);
+    watch.start(Watch.PerfSpan.Bnext);
     try {
       remoteB.seek(rB, Collections.<ByteSequence>emptySet(), false);
     } finally {
-      Watch.getInstance().stop(Watch.PerfSpan.Bnext);
+      watch.stop(Watch.PerfSpan.Bnext);
     }
 
     prepNextRowMatch(/*false*/);
@@ -216,40 +216,40 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
       return;
     }
     /*if (doNext) {
-      Watch.getInstance().start(Watch.PerfSpan.ATnext);
+      watch.start(Watch.PerfSpan.ATnext);
       try {
         remoteAT.next();
       } finally {
-        Watch.getInstance().stop(Watch.PerfSpan.ATnext);
+        watch.stop(Watch.PerfSpan.ATnext);
       }
       if (!remoteAT.hasTop()) {
         bottomIter = null;
         return;
       }
-      Watch.getInstance().start(Watch.PerfSpan.Bnext);
+      watch.start(Watch.PerfSpan.Bnext);
       try {
         remoteB.next();
       } finally {
-        Watch.getInstance().stop(Watch.PerfSpan.Bnext);
+        watch.stop(Watch.PerfSpan.Bnext);
       }
       if (!remoteB.hasTop()) {
         bottomIter = null;
         return;
       }
     }*/
-
+    Watch<Watch.PerfSpan> watch = Watch.getInstance();
     Text Arow = remoteAT.getTopKey().getRow(), Brow = remoteB.getTopKey().getRow();
     int cmp = Arow.compareTo(Brow);
     while (cmp != 0) {
       if (cmp < 0) {
-        boolean success = skipNextRowUntil(remoteAT, Brow, seekRange, Watch.PerfSpan.ATnext);
+        boolean success = skipNextRowUntil(remoteAT, Brow, seekRange, watch, Watch.PerfSpan.ATnext);
         if (!success) {
           bottomIter = null;
           return;
         }
         remoteAT.getTopKey().getRow(Arow);
       } else if (cmp > 0) {
-        boolean success = skipNextRowUntil(remoteB, Arow, seekRange, Watch.PerfSpan.Bnext);
+        boolean success = skipNextRowUntil(remoteB, Arow, seekRange, watch, Watch.PerfSpan.Bnext);
         if (!success) {
           bottomIter = null;
           return;
@@ -260,12 +260,13 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
     }
     //assert cmp == 0;
     SortedMap<Key, Value> ArowMap, BrowMap;
-    Watch.getInstance().start(Watch.PerfSpan.RowDecodeBoth);
+
+    watch.start(Watch.PerfSpan.RowDecodeBoth);
     try {
-      ArowMap = readRow(remoteAT, Watch.PerfSpan.ATnext);
-      BrowMap = readRow(remoteB, Watch.PerfSpan.Bnext);
+      ArowMap = readRow(remoteAT, watch, Watch.PerfSpan.ATnext);
+      BrowMap = readRow(remoteB, watch, Watch.PerfSpan.Bnext);
     } finally {
-      Watch.getInstance().stop(Watch.PerfSpan.RowDecodeBoth);
+      watch.stop(Watch.PerfSpan.RowDecodeBoth);
     }
 
     curRowMatch = Arow;
@@ -298,7 +299,7 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
    * @return True if advanced to a new row; false if !hasTop().
    */
   static boolean skipNextRowUntil(SortedKeyValueIterator<Key, Value> skvi, Text rowToSkipTo,
-                                  Range seekRange, Watch.PerfSpan watch) throws IOException {
+                                  Range seekRange, Watch<Watch.PerfSpan> watch, Watch.PerfSpan watchtype) throws IOException {
     assert rowToSkipTo != null;
     /** Call seek() if using this many next() calls does not get us to rowToSkipTo */
     final int MAX_NEXT_ATTEMPT = 10;
@@ -307,11 +308,11 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
     int cnt = 0;
     while (cnt < MAX_NEXT_ATTEMPT && skvi.hasTop() && rowToSkipTo.compareTo(skvi.getTopKey().getRow(curRow)) > 0) {
       cnt++;
-      Watch.getInstance().start(watch);
+      watch.start(watchtype);
       try {
         skvi.next();
       } finally {
-        Watch.getInstance().stop(watch);
+        watch.stop(watchtype);
       }
     }
     // seek if we didn't get past the desired row in 10 next() calls
@@ -323,7 +324,7 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
       skvi.seek(skipToRange, Collections.<ByteSequence>emptySet(), false);
     }
 
-    Watch.getInstance().increment(Watch.PerfSpan.RowSkipNum, cnt);
+    watch.increment(Watch.PerfSpan.RowSkipNum, cnt);
     return skvi.hasTop();
   }
 
@@ -335,7 +336,7 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
    * @return Sorted map of the entries.
    * Todo P2: replace SortedMap with a list of entries, since sorted order is guaranteed
    */
-  static SortedMap<Key, Value> readRow(SortedKeyValueIterator<Key, Value> skvi, Watch.PerfSpan watch) throws IOException {
+  static SortedMap<Key, Value> readRow(SortedKeyValueIterator<Key, Value> skvi, Watch<Watch.PerfSpan> watch, Watch.PerfSpan watchtype) throws IOException {
     if (!skvi.hasTop())
       throw new IllegalStateException(skvi + " should hasTop()");
     Text thisRow = skvi.getTopKey().getRow();
@@ -343,11 +344,11 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
     SortedMap<Key, Value> map = new TreeMap<>();
     do {
       map.put(skvi.getTopKey(), new Value(skvi.getTopValue()));
-      Watch.getInstance().start(watch);
+      watch.start(watchtype);
       try {
         skvi.next();
       } finally {
-        Watch.getInstance().stop(watch);
+        watch.stop(watchtype);
       }
     } while (skvi.hasTop() && skvi.getTopKey().getRow(curRow).equals(thisRow));
     return map;

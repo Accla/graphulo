@@ -33,10 +33,10 @@ public class Watch<K extends Enum<K>> {
       };
 
   public static Watch<PerfSpan> getInstance() {
-    return ThreadWatches.get();
+    return enableTrace ? ThreadWatches.get() : instance;
   }
 
-  //private static final Watch<PerfSpan> instance = new Watch<>(PerfSpan.class);
+  private static final Watch<PerfSpan> instance = new Watch<>(PerfSpan.class);
 
   static class Stats {
     public long total=0, count=0, min=Long.MAX_VALUE, max=Long.MIN_VALUE;

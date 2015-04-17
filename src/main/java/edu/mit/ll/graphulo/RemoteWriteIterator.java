@@ -242,6 +242,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   private void writeUntilSafeOrFinish() throws IOException {
     Mutation m = null;
     entriesWritten = 0;
+    Watch<Watch.PerfSpan> watch = Watch.getInstance();
     try {
       while (source.hasTop()) {
         Key k = source.getTopKey();
@@ -249,13 +250,13 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
         m = new Mutation(k.getRowData().getBackingArray());
         m.put(k.getColumnFamilyData().getBackingArray(), k.getColumnQualifierData().getBackingArray(),
             k.getColumnVisibilityParsed(), v.get()); // no ts? System.currentTimeMillis()
-        Watch.getInstance().start(Watch.PerfSpan.WriteAddMut);
+        watch.start(Watch.PerfSpan.WriteAddMut);
         try {
           writer.addMutation(m);
         } catch (MutationsRejectedException e) {
           log.warn("ignoring rejected mutations; last one added is " + m, e);
         } finally {
-          Watch.getInstance().stop(Watch.PerfSpan.WriteAddMut);
+          watch.stop(Watch.PerfSpan.WriteAddMut);
         }
 
         entriesWritten++;
@@ -267,22 +268,22 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
           }
         }
 
-        Watch.getInstance().start(Watch.PerfSpan.WriteGetNext);
+        watch.start(Watch.PerfSpan.WriteGetNext);
         try {
           source.next();
         } finally {
-          Watch.getInstance().stop(Watch.PerfSpan.WriteGetNext);
+          watch.stop(Watch.PerfSpan.WriteGetNext);
         }
       }
     } finally {
-      Watch.getInstance().start(Watch.PerfSpan.WriteFlush);
+      watch.start(Watch.PerfSpan.WriteFlush);
       try {
         writer.flush();
       } catch (MutationsRejectedException e) {
         log.warn("ignoring rejected mutations; "
             + (m == null ? "none added so far (?)" : "last one added is " + m), e);
       } finally {
-        Watch.getInstance().stop(Watch.PerfSpan.WriteFlush);
+        watch.stop(Watch.PerfSpan.WriteFlush);
       }
     }
   }
@@ -297,11 +298,12 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
   @Override
   public void next() throws IOException {
-    Watch.getInstance().start(Watch.PerfSpan.WriteGetNext);
+    Watch<Watch.PerfSpan> watch = Watch.getInstance();
+    watch.start(Watch.PerfSpan.WriteGetNext);
     try {
       source.next();
     } finally {
-      Watch.getInstance().stop(Watch.PerfSpan.WriteGetNext);
+      watch.stop(Watch.PerfSpan.WriteGetNext);
     }
 
     writeUntilSafeOrFinish();

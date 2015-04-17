@@ -249,13 +249,13 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
         m = new Mutation(k.getRowData().getBackingArray());
         m.put(k.getColumnFamilyData().getBackingArray(), k.getColumnQualifierData().getBackingArray(),
             k.getColumnVisibilityParsed(), v.get()); // no ts? System.currentTimeMillis()
-        Watch.instance.start(Watch.PerfSpan.WriteAddMut);
+        Watch.getInstance().start(Watch.PerfSpan.WriteAddMut);
         try {
           writer.addMutation(m);
         } catch (MutationsRejectedException e) {
           log.warn("ignoring rejected mutations; last one added is " + m, e);
         } finally {
-          Watch.instance.stop(Watch.PerfSpan.WriteAddMut);
+          Watch.getInstance().stop(Watch.PerfSpan.WriteAddMut);
         }
 
         entriesWritten++;
@@ -267,22 +267,22 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
           }
         }
 
-        Watch.instance.start(Watch.PerfSpan.WriteGetNext);
+        Watch.getInstance().start(Watch.PerfSpan.WriteGetNext);
         try {
           source.next();
         } finally {
-          Watch.instance.stop(Watch.PerfSpan.WriteGetNext);
+          Watch.getInstance().stop(Watch.PerfSpan.WriteGetNext);
         }
       }
     } finally {
-      Watch.instance.start(Watch.PerfSpan.WriteFlush);
+      Watch.getInstance().start(Watch.PerfSpan.WriteFlush);
       try {
         writer.flush();
       } catch (MutationsRejectedException e) {
         log.warn("ignoring rejected mutations; "
             + (m == null ? "none added so far (?)" : "last one added is " + m), e);
       } finally {
-        Watch.instance.stop(Watch.PerfSpan.WriteFlush);
+        Watch.getInstance().stop(Watch.PerfSpan.WriteFlush);
       }
     }
   }
@@ -297,11 +297,11 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
   @Override
   public void next() throws IOException {
-    Watch.instance.start(Watch.PerfSpan.WriteGetNext);
+    Watch.getInstance().start(Watch.PerfSpan.WriteGetNext);
     try {
       source.next();
     } finally {
-      Watch.instance.stop(Watch.PerfSpan.WriteGetNext);
+      Watch.getInstance().stop(Watch.PerfSpan.WriteGetNext);
     }
 
     writeUntilSafeOrFinish();

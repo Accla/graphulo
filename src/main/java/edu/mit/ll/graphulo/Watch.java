@@ -21,25 +21,29 @@ public class Watch<K extends Enum<K>> {
     ATnext, Bnext, RowDecodeBoth, RowSkipNum, All, WriteAddMut, WriteFlush, WriteGetNext, Multiply
   }
 
-//  /**
-//   * Holds thread-local timing information.
-//   */
-//  static ThreadLocal<Watch<PerfSpan>> ThreadWatches =
-//      new ThreadLocal<Watch<PerfSpan>>() {
-//        @Override
-//        protected Watch<PerfSpan> initialValue() {
-//          return new Watch<>(PerfSpan.class);
-//        }
-//      };
+  /**
+   * Holds thread-local timing information.
+   */
+  static ThreadLocal<Watch<PerfSpan>> ThreadWatches =
+      new ThreadLocal<Watch<PerfSpan>>() {
+        @Override
+        protected Watch<PerfSpan> initialValue() {
+          return new Watch<>(PerfSpan.class);
+        }
+      };
 
-  static final Watch<PerfSpan> instance = new Watch<>(PerfSpan.class);
+  public static Watch<PerfSpan> getInstance() {
+    return ThreadWatches.get();
+  }
+
+  //private static final Watch<PerfSpan> instance = new Watch<>(PerfSpan.class);
 
   static class Stats {
     public long total=0, count=0, min=Long.MAX_VALUE, max=Long.MIN_VALUE;
   }
 
-  EnumMap<K, Long> startTime;
-  EnumMap<K, Stats> totalStats;
+  private EnumMap<K, Long> startTime;
+  private EnumMap<K, Stats> totalStats;
 
   public Watch(Class<K> s) {
     startTime = new EnumMap<K, Long>(s);
@@ -65,7 +69,7 @@ public class Watch<K extends Enum<K>> {
   public synchronized void stop(K timer) {
     if (!enableTrace)
       return;
-    Long st = startTime.get(timer);
+    Long st = startTime.remove(timer);
 
     if (st == null) {
       throw new IllegalStateException(timer + " not started");
@@ -74,8 +78,6 @@ public class Watch<K extends Enum<K>> {
     long dur = System.currentTimeMillis() - st;
 
     increment(timer, dur);
-
-    startTime.remove(timer);
   }
 
   public synchronized void increment(K counter, long amount) {

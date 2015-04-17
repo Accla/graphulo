@@ -77,7 +77,7 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key, Valu
       throw new IllegalStateException("--some subclass returned a null bottom iterator in branchAfter--");
 
     System.out.println("Reset Watch at init of BranchIterator");
-    Watch.instance.resetAll();
+    Watch.getInstance().resetAll();
   }
 
   @Override
@@ -88,13 +88,13 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key, Valu
   @Override
   public void next() throws IOException {
 //    System.out.println(this.getClass().getName()+" getTop: "+getTopKey()+" -> "+getTopValue());
-    Watch.instance.start(Watch.PerfSpan.All);
+    Watch.getInstance().start(Watch.PerfSpan.All);
     try {
       botIterator.next();
     } finally {
-      Watch.instance.stop(Watch.PerfSpan.All);
+      Watch.getInstance().stop(Watch.PerfSpan.All);
       if (!botIterator.hasTop()) {
-        Watch.instance.print();
+        Watch.getInstance().print();
       }
     }
   }
@@ -102,12 +102,13 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key, Valu
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     System.out.println(this.getClass().getName()+" seek: "+range);
-    Watch.instance.start(Watch.PerfSpan.All);
+    Watch.getInstance().start(Watch.PerfSpan.All);
     try {
       botIterator.seek(range, columnFamilies, inclusive);
     } finally {
-      Watch.instance.stop(Watch.PerfSpan.All);
-      Watch.instance.print();
+      Watch.getInstance().stop(Watch.PerfSpan.All);
+      if (!botIterator.hasTop())
+        Watch.getInstance().print();
     }
   }
 

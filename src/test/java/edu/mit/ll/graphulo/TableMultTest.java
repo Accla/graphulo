@@ -25,9 +25,6 @@ import java.util.*;
 public class TableMultTest extends AccumuloTestBase {
   private static final Logger log = LogManager.getLogger(TableMultTest.class);
 
-//  /** Uses dummy writes to fix result  */
-//  public static final boolean BUGPATH_ACCUMULO_3645=true;
-
   /**
    * <pre>
    *      C1 C2        C1 C2 C3          B1  B2

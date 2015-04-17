@@ -8,13 +8,11 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.commons.lang3.time.StopWatch;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -173,7 +171,7 @@ public class TableMultIteratorTest {
 //            itprops.put("B.zookeeperHost",conn.getInstance().getZooKeepers());
 //            itprops.put("B.username",tester.getUsername());
 //            itprops.put("B.password",new String(tester.getPassword().getPassword()));
-            IteratorSetting itset = new IteratorSetting(15, TableMultIteratorQuery.class, itprops);
+            IteratorSetting itset = new IteratorSetting(15, TableMultIterator.class, itprops);
             scannerB.addScanIterator(itset);
 
             Map<Key, Integer> expect = new HashMap<>();
@@ -214,7 +212,7 @@ public class TableMultIteratorTest {
             itprops.put("C.username",tester.getUsername());
             itprops.put("C.password",new String(tester.getPassword().getPassword()));
             itprops.put("C.numEntriesCheckpoint", "1");
-            IteratorSetting itset = new IteratorSetting(15, TableMultIteratorQuery.class, itprops);
+            IteratorSetting itset = new IteratorSetting(15, TableMultIterator.class, itprops);
             scannerB.clearScanIterators();
             scannerB.addScanIterator(itset);
             for (Map.Entry<Key, Value> entry : scannerB) {

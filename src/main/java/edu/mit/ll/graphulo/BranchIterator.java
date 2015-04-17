@@ -52,10 +52,7 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key, Valu
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
     IteratorUtil.IteratorScope scope = env.getIteratorScope();
     log.debug(this.getClass() + ": init on scope " + scope + (scope == IteratorUtil.IteratorScope.majc ? " fullScan=" + env.isFullMajorCompaction() : ""));
-    //log.info("BranchIterator options: "+options);
-    //super.init(source, options, env); // sets source
 
-    // see if Trace enabled
     if (options.containsKey("trace")) {
         Watch.enableTrace = Boolean.parseBoolean(options.get("trace"));
       options = new HashMap<>(options);

@@ -54,13 +54,14 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
    * EXCEPT creates a new, separate scanner.
    * No need to call init().
    */
-  public RemoteWriteIterator(RemoteWriteIterator other) {
+  RemoteWriteIterator(RemoteWriteIterator other) {
     other.instanceName = instanceName;
     other.tableName = tableName;
     other.zookeeperHost = zookeeperHost;
     other.username = username;
     other.auth = auth;
     other.timeout = timeout;
+    other.numEntriesCheckpoint = numEntriesCheckpoint;
     other.setupConnectorWriter();
   }
 
@@ -291,7 +292,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
   @Override
   public boolean hasTop() {
-    assert source instanceof SaveStateIterator && ((SaveStateIterator) source).safeState() != null
+    assert source.hasTop() || source instanceof SaveStateIterator && ((SaveStateIterator) source).safeState() != null
         : source + " is not a SaveStateIterator or not at a safe state.";
     return source.hasTop();
   }
@@ -311,14 +312,14 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
   @Override
   public Key getTopKey() {
-    assert source instanceof SaveStateIterator && ((SaveStateIterator) source).safeState() != null
+    assert source.hasTop() || source instanceof SaveStateIterator && ((SaveStateIterator) source).safeState() != null
         : source + " is not a SaveStateIterator or not at a safe state.";
     return ((SaveStateIterator) source).safeState().getKey();
   }
 
   @Override
   public Value getTopValue() {
-    assert source instanceof SaveStateIterator && ((SaveStateIterator) source).safeState() != null
+    assert source.hasTop() || source instanceof SaveStateIterator && ((SaveStateIterator) source).safeState() != null
         : source + " is not a SaveStateIterator or not at a safe state.";
     Value orig = ((SaveStateIterator) source).safeState().getValue();
     ByteBuffer bb = ByteBuffer.allocate(orig.getSize() + 4 + 2);
@@ -331,10 +332,9 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
   @Override
   public RemoteWriteIterator deepCopy(IteratorEnvironment iteratorEnvironment) {
-//        RemoteWriteIterator copy =  new RemoteWriteIterator(this);
-//        copy.source = source.deepCopy(iteratorEnvironment);
-//        return copy;
-    throw new UnsupportedOperationException();
+    RemoteWriteIterator copy =  new RemoteWriteIterator(this);
+    copy.source = source.deepCopy(iteratorEnvironment);
+    return copy;
   }
 
 

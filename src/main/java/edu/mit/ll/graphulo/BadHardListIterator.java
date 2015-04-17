@@ -13,6 +13,7 @@ import java.util.*;
  * A wrapper making a list of hardcoded data into a SKVI. For testing.
  * This version returns values past the seek() range fence, which will cause a BatchScanner to return duplicate values.
  */
+@Deprecated
 public class BadHardListIterator implements SortedKeyValueIterator<Key,Value> {
     final static SortedMap<Key,Value> allEntriesToInject;
     static {

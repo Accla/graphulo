@@ -12,12 +12,11 @@ import java.util.Map;
  */
 public interface SaveStateIterator extends SortedKeyValueIterator<Key,Value> {
   /**
-   * During a safe state,
-   * the state should be reconstructable from the key,
-   * and the value will emit to the client.
+   * A safe state should be reconstructable from the key.
+   * The value emits to the client.
    * The safe state should be set after a seek() and next() call.
-   * @return null if not in a good state; non-null if can reconstruct state when seek'd to the returned key.
+   * @return null if not in a safe state; non-null if can reconstruct state
+   * when seek'd to the returned key. Value is designated for client.
    */
   Map.Entry<Key,Value> safeState();
-
 }

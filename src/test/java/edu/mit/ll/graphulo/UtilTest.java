@@ -1,8 +1,10 @@
 package edu.mit.ll.graphulo;
 
+import edu.mit.ll.graphulo.util.TestUtil;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -10,12 +12,27 @@ import java.util.*;
 
 public class UtilTest {
 
+  /** Retained in case it is useful again. */
+  static class ColFamilyQualifierComparator implements Comparator<Key> {
+    private Text text = new Text();
+
+    @Override
+    public int compare(Key k1, Key k2) {
+      k2.getColumnFamily(text);
+      int cfam = k1.compareColumnFamily(text);
+      if (cfam != 0)
+        return cfam;
+      k2.getColumnQualifier(text);
+      return k1.compareColumnQualifier(text);
+    }
+  }
+
   @Test
   public void testSortedMapComparator() {
     Key k1 = new Key("row1","colF1","colQ1");
     Key k2 = new Key("row2","colF1","colQ1");
     Key k3 = new Key("row3","colF1","colQ1");
-    SortedMap<Key,Integer> map = new TreeMap<>(new DotIterator.ColFamilyQualifierComparator());
+    SortedMap<Key,Integer> map = new TreeMap<>(new ColFamilyQualifierComparator());
     map.put(k1, 1);
     map.put(k2, 2);
     int v = map.get(k3);

@@ -17,6 +17,19 @@ import java.util.*;
 /**
  * Outer product. Emits partial products. Configure two remote sources for tables AT and B,
  * or configure one remote source and use the source as the other one.
+ * <p/>
+ * Table of behavior given options for AT, options for B and a parent source iterator.
+ * <table>
+ *   <tr><th>AT</th><th>B</th><th>source</th><th>Behavior</th></tr>
+ *   <tr><td>y</td><td>y</td><td>y</td><td>Warn. AT * B</td></tr>
+ *   <tr><td>y</td><td>y</td><td>n</td><td>AT * B</td></tr>
+ *   <tr><td>y</td><td>n</td><td>n</td><td>AT * AT</td></tr>
+ *   <tr><td>y</td><td>n</td><td>y</td><td>AT * source</td></tr>
+ *   <tr><td>n</td><td>y</td><td>y</td><td>source * B</td></tr>
+ *   <tr><td>n</td><td>y</td><td>n</td><td>B * B</td></tr>
+ *   <tr><td>n</td><td>n</td><td>y</td><td>source * source</td></tr>
+ *   <tr><td>n</td><td>n</td><td>n</td><td>Error.</td></tr>
+ * </table>
  */
 public class DotIterator implements SaveStateIterator, OptionDescriber {
   private static final Logger log = LogManager.getLogger(DotIterator.class);
@@ -41,12 +54,18 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
     }
 
     iteratorOptions = new OptionDescriber.IteratorOptions("DotMultIterator",
-        "Outer product on A and B, given AT and B. Can omit one and use parent source instead. Does not sum.",
+        "Outer product on A and B, given AT and B. Does not sum.",
         optDesc, null);
   }
 
   private Text curRowMatch;
   private Range seekRange;
+
+  public DotIterator() {}
+
+  DotIterator(DotIterator other) {
+    this.multiplyOp = other.multiplyOp;
+  }
 
   @Override
   public IteratorOptions describeOptions() {
@@ -61,6 +80,8 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
   public static boolean validateOptionsStatic(Map<String, String> options) {
     Map<String, String> optAT = new HashMap<>(), optB = new HashMap<>();
     for (Map.Entry<String, String> entry : options.entrySet()) {
+      if (entry.getValue().isEmpty())
+        continue;
       String key = entry.getKey();
       if (key.startsWith(PREFIX_AT))
         optAT.put(key.substring(PREFIX_AT.length()), entry.getValue());
@@ -72,18 +93,15 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
             throw new IllegalArgumentException("unknown option: " + entry);
         }
     }
-    return (!optAT.isEmpty() || !optB.isEmpty()) &&
+    return
         (optAT.isEmpty() || RemoteSourceIterator.validateOptionsStatic(optAT)) &&
         (optB.isEmpty() || RemoteSourceIterator.validateOptionsStatic(optB));
   }
-
-  static final byte[] EMPTY_BYTES = new byte[0];
 
   @Override
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
     // parse options, pass correct options to RemoteSourceIterator init()
     Map<String, String> optAT = null, optB = null;
-    Collection<Text> sourceColFilter = null;
     {
       Map<String, Map<String, String>> prefixMap = GraphuloUtil.splitMapPrefix(options);
       for (Map.Entry<String, Map<String, String>> prefixEntry : prefixMap.entrySet()) {
@@ -91,10 +109,6 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
         Map<String, String> entryMap = prefixEntry.getValue();
         switch (prefix) {
           case PREFIX_AT: {
-            if (entryMap.size() == 1 && entryMap.containsKey("colFilter")) { // special case: just column filter
-              sourceColFilter = GraphuloUtil.d4mRowToTexts(entryMap.get("colFilter"));
-              break;
-            }
             String v = entryMap.remove("doWholeRow");
             if (v != null && Boolean.parseBoolean(v)) {
               log.warn("Forcing doWholeRow option on table A to FALSE. Given: " + v);
@@ -104,10 +118,6 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
             break;
           }
           case PREFIX_B: {
-            if (entryMap.size() == 1 && entryMap.containsKey("colFilter")) { // special case: just column filter
-              sourceColFilter = GraphuloUtil.d4mRowToTexts(entryMap.get("colFilter"));
-              break;
-            }
             String v = entryMap.remove("doWholeRow");
             if (v != null && Boolean.parseBoolean(v)) {
               log.warn("Forcing doWholeRow option on table BT to FALSE. Given: " + v);
@@ -125,38 +135,35 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
       }
     }
 
-    if ((optAT == null && optB == null) ||
-        (optAT == null || optB == null) && source == null) {
-      throw new IllegalArgumentException("not enough options given: optAT="+optAT+", optB="+optB+", source="+source);
+    if (optAT == null && optB == null && source == null) { // ~A ~B ~S
+      throw new IllegalArgumentException("optAT, optB, and source cannot all be null");
     }
-    if (optAT != null && optB != null && source != null) {
+    if (optAT != null && optB != null && source != null) { // A B S
       log.warn("DotMultIterator ignores/replaces parent source passed in init(): " + source);
     }
-
-    if (optAT != null) {
+    if (optAT == null && optB == null) {      // ~A ~B S
+      remoteAT = source;
+      remoteB = source.deepCopy(env);
+    } else if (optAT != null) {
       remoteAT = new RemoteSourceIterator();
       remoteAT.init(null, optAT, env);
-    } else {
-      if (sourceColFilter != null && !sourceColFilter.isEmpty()) {
-        Set<Column> colset = new HashSet<>();
-        for (Text text : sourceColFilter)
-          colset.add(new Column(EMPTY_BYTES,text.getBytes(),EMPTY_BYTES));
-        source = new ColumnQualifierFilter(source, colset);
+      if (optB == null) {
+        if (source == null)
+          remoteB = remoteAT.deepCopy(env);   // A ~B ~S
+        else
+          remoteB = source;                   // A ~B S
       }
-      remoteAT = source;
-    }
-    if (optB != null) {
+      else {
+        remoteB = new RemoteSourceIterator(); // A B _
+        remoteB.init(null, optB, env);
+      }
+    } else {
       remoteB = new RemoteSourceIterator();
       remoteB.init(null, optB, env);
-    } else {
-      // DH: Not needed!  Use fetchColumn() on the initating (Batch)Scanner.
-//      if (sourceColFilter != null && !sourceColFilter.isEmpty()) {
-//        Set<Column> colset = new HashSet<>();
-//        for (Text text : sourceColFilter)
-//          colset.add(new Column(EMPTY_BYTES,text.getBytes(),EMPTY_BYTES));
-//        source = new ColumnQualifierFilter(source, colset);
-//      }
-      remoteB = source;
+      if (source != null)                     // ~A B S
+        remoteAT = source;
+      else
+        remoteAT = remoteB.deepCopy(env);     // ~A B ~S
     }
   }
 
@@ -354,6 +361,7 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
     return map;
   }
 
+  /** Emits Cartesian product of provided iterators, passed to multiply function. */
   static class CartesianDotIter implements Iterator<Map.Entry<Key, Value>> {
     private SortedMap<Key, Value> ArowMap, BrowMap;
     private PeekingIterator<Map.Entry<Key, Value>> ArowMapIter;
@@ -453,23 +461,6 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
     }
   }
 
-  /**
-   * Compare only the column family and column qualifier.
-   */
-  static class ColFamilyQualifierComparator implements Comparator<Key> {
-    private Text text = new Text();
-
-    @Override
-    public int compare(Key k1, Key k2) {
-      k2.getColumnFamily(text);
-      int cfam = k1.compareColumnFamily(text);
-      if (cfam != 0)
-        return cfam;
-      k2.getColumnQualifier(text);
-      return k1.compareColumnQualifier(text);
-    }
-  }
-
 
   @Override
   public boolean hasTop() {
@@ -489,7 +480,7 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
 
   @Override
   public DotIterator deepCopy(IteratorEnvironment env) {
-    DotIterator copy = new DotIterator();
+    DotIterator copy = new DotIterator(this);
     copy.remoteAT = remoteAT.deepCopy(env);
     copy.remoteB = remoteB.deepCopy(env);
     return copy;

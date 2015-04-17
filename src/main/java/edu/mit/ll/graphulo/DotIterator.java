@@ -393,27 +393,11 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
       return multiplyEntry(eA, eB);
     }
 
-    Map.Entry<Key, Value> multiplyEntry(Map.Entry<Key, Value> e1, Map.Entry<Key, Value> e2) {
+    private Map.Entry<Key, Value> multiplyEntry(Map.Entry<Key, Value> e1, Map.Entry<Key, Value> e2) {
       assert e1.getKey().getRowData().compareTo(e2.getKey().getRowData()) == 0;
       Key k1 = e1.getKey(), k2 = e2.getKey();
-      final Key k = new Key(k1.getColumnQualifier(), k1.getColumnFamily(), k2.getColumnQualifier(), System.currentTimeMillis());
-      final Value v = multiplyOp.multiply(e1.getValue(), e2.getValue());
-      return new Map.Entry<Key, Value>() {
-        @Override
-        public Key getKey() {
-          return k;
-        }
-
-        @Override
-        public Value getValue() {
-          return v;
-        }
-
-        @Override
-        public Value setValue(Value value) {
-          throw new UnsupportedOperationException();
-        }
-      };
+      return multiplyOp.multiplyEntry(k1.getRowData(), k1.getColumnFamilyData(), k1.getColumnQualifierData(),
+          k2.getColumnFamilyData(), k2.getColumnQualifierData(), e1.getValue(), e2.getValue());
     }
 
     @Override

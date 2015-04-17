@@ -1,21 +1,43 @@
 package edu.mit.ll.graphulo.mult;
 
 import edu.mit.ll.graphulo.IMultiplyOp;
+import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.TypedValueCombiner;
+
+import java.util.Map;
 
 /**
  * Decode values as Long objects, multiply and re-encode the result.
  */
 public class LongMultiply implements IMultiplyOp {
-
   private static TypedValueCombiner.Encoder<Long> encoder = new LongCombiner.StringEncoder();
 
   @Override
-  public Value multiply(Value v1, Value v2) {
-    long l1 = encoder.decode(v1.get());
-    long l2 = encoder.decode(v2.get());
-    return new Value(encoder.encode(l1*l2));
+  public Map.Entry<Key, Value> multiplyEntry(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ,
+                                             ByteSequence BcolF, ByteSequence BcolQ, Value ATval, Value Bval) {
+    final Key k = new Key(ATcolQ.getBackingArray(), ATcolF.getBackingArray(),
+        BcolQ.getBackingArray(), EMPTY_BYTES, System.currentTimeMillis());
+    final Value v = new Value(encoder.encode(
+        encoder.decode(ATval.get()) * encoder.decode(Bval.get())
+    ));
+    return new Map.Entry<Key, Value>() {
+      @Override
+      public Key getKey() {
+        return k;
+      }
+
+      @Override
+      public Value getValue() {
+        return v;
+      }
+
+      @Override
+      public Value setValue(Value value) {
+        throw new UnsupportedOperationException();
+      }
+    };
   }
 }

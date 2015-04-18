@@ -24,6 +24,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   private SortedKeyValueIterator<Key, Value> source;
   private String instanceName;
   private String tableName;
+  private String tableNameTranspose;
   private String zookeeperHost;
   private String username;
   private AuthenticationToken auth;
@@ -37,7 +38,9 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   /**
    * Created in init().
    */
+  private MultiTableBatchWriter writerAll;
   private BatchWriter writer;
+  private BatchWriter writerTranspose;
   /**
    * # entries written so far. Reset to 0 at writeUntilSave().
    */
@@ -57,6 +60,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   RemoteWriteIterator(RemoteWriteIterator other) {
     other.instanceName = instanceName;
     other.tableName = tableName;
+    other.tableNameTranspose = tableNameTranspose;
     other.zookeeperHost = zookeeperHost;
     other.username = username;
     other.auth = auth;
@@ -73,6 +77,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     optDesc.put("timeout", "Zookeeper timeout between 1000 and 300000 (default 1000)");
     optDesc.put("instanceName", "");
     optDesc.put("tableName", "");
+    optDesc.put("tableNameTranspose", "(optional) To write entries with row and column qualifier swapped.");
     optDesc.put("username", "");
     optDesc.put("password", "(Anyone who can read the Accumulo table config OR the log files will see your password in plaintext.)");
     optDesc.put("numEntriesCheckpoint", "(optional) #entries until sending back a progress monitor");
@@ -93,7 +98,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
   public static boolean validateOptionsStatic(Map<String, String> options) {
     // Shadow all the fields =)
-    String zookeeperHost = null, instanceName = null, tableName = null, username = null;
+    String zookeeperHost = null, instanceName = null, tableName = null, username = null, tableNameTranspose = null;
     AuthenticationToken auth = null;
     //int timeout;
 
@@ -116,6 +121,13 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
           break;
         case "tableName":
           tableName = entry.getValue();
+          if (tableName.isEmpty())
+            tableName = null;
+          break;
+        case "tableNameTranspose":
+          tableNameTranspose = entry.getValue();
+          if (tableNameTranspose.isEmpty())
+            tableNameTranspose = null;
           break;
         case "username":
           username = entry.getValue();
@@ -136,7 +148,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     // Required options
     if (zookeeperHost == null ||
         instanceName == null ||
-        tableName == null ||
+        (tableName == null && tableNameTranspose == null) ||
         username == null ||
         auth == null)
       throw new IllegalArgumentException("not enough options provided");
@@ -157,6 +169,13 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
           break;
         case "tableName":
           tableName = entry.getValue();
+          if (tableName.isEmpty())
+            tableName = null;
+          break;
+        case "tableNameTranspose":
+          tableNameTranspose = entry.getValue();
+          if (tableNameTranspose.isEmpty())
+            tableNameTranspose = null;
           break;
         case "username":
           username = entry.getValue();
@@ -178,7 +197,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     // Required options
     if (zookeeperHost == null ||
         instanceName == null ||
-        tableName == null ||
+        (tableName == null && tableNameTranspose == null) ||
         username == null ||
         auth == null)
       throw new IllegalArgumentException("not enough options provided");
@@ -217,10 +236,21 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     BatchWriterConfig bwc = new BatchWriterConfig();
     // TODO: consider max memory, max latency, timeout, ... on writer
 
+    if (tableName != null && tableNameTranspose != null)
+      writerAll = connector.createMultiTableBatchWriter(bwc);
+    else
+      writerAll = null;
+
     try {
-      writer = connector.createBatchWriter(tableName, bwc);
+      if (tableName != null)
+        writer = writerAll == null ? connector.createBatchWriter(tableName, bwc) : writerAll.getBatchWriter(tableName);
+      if (tableNameTranspose != null)
+        writerTranspose = writerAll == null ? connector.createBatchWriter(tableNameTranspose, bwc) : writerAll.getBatchWriter(tableNameTranspose);
     } catch (TableNotFoundException e) {
-      log.error(tableName + " does not exist in instance " + instanceName, e);
+      log.error(tableName + " or "+tableNameTranspose+" does not exist in instance " + instanceName, e);
+      throw new RuntimeException(e);
+    } catch (AccumuloSecurityException | AccumuloException e) {
+      log.error("problem creating BatchWriters for "+tableName+" and "+tableNameTranspose);
       throw new RuntimeException(e);
     }
   }
@@ -228,7 +258,14 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   @Override
   protected void finalize() throws Throwable {
     log.info("finalize() called on RemoteWriteIterator for table " + tableName);
-    writer.close();
+    if (writerAll != null)
+      writerAll.close();
+    else {
+      if (writer != null)
+        writer.close();
+      if (writerTranspose != null)
+        writerTranspose.close();
+    }
     super.finalize();
   }
 
@@ -248,16 +285,31 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
       while (source.hasTop()) {
         Key k = source.getTopKey();
         Value v = source.getTopValue();
-        m = new Mutation(k.getRowData().getBackingArray());
-        m.put(k.getColumnFamilyData().getBackingArray(), k.getColumnQualifierData().getBackingArray(),
-            k.getColumnVisibilityParsed(), v.get()); // no ts? System.currentTimeMillis()
-        watch.start(Watch.PerfSpan.WriteAddMut);
-        try {
-          writer.addMutation(m);
-        } catch (MutationsRejectedException e) {
-          log.warn("ignoring rejected mutations; last one added is " + m, e);
-        } finally {
-          watch.stop(Watch.PerfSpan.WriteAddMut);
+        if (writer != null) {
+          m = new Mutation(k.getRowData().getBackingArray());
+          m.put(k.getColumnFamilyData().getBackingArray(), k.getColumnQualifierData().getBackingArray(),
+              k.getColumnVisibilityParsed(), v.get()); // no ts? System.currentTimeMillis()
+          watch.start(Watch.PerfSpan.WriteAddMut);
+          try {
+              writer.addMutation(m);
+          } catch (MutationsRejectedException e) {
+            log.warn("ignoring rejected mutations; last one added is " + m, e);
+          } finally {
+            watch.stop(Watch.PerfSpan.WriteAddMut);
+          }
+        }
+        if (writerTranspose != null) {
+          m = new Mutation(k.getColumnQualifierData().getBackingArray());
+          m.put(k.getColumnFamilyData().getBackingArray(), k.getRowData().getBackingArray(),
+              k.getColumnVisibilityParsed(), v.get()); // no ts? System.currentTimeMillis()
+          watch.start(Watch.PerfSpan.WriteAddMut);
+          try {
+            writerTranspose.addMutation(m);
+          } catch (MutationsRejectedException e) {
+            log.warn("ignoring rejected mutations; last one added is " + m, e);
+          } finally {
+            watch.stop(Watch.PerfSpan.WriteAddMut);
+          }
         }
 
         entriesWritten++;
@@ -279,7 +331,14 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     } finally {
       watch.start(Watch.PerfSpan.WriteFlush);
       try {
-        writer.flush();
+        if (writerAll != null)
+          writerAll.flush();
+        else {
+          if (writer != null)
+            writer.flush();
+          if (writerTranspose != null)
+            writerTranspose.flush();
+        }
       } catch (MutationsRejectedException e) {
         log.warn("ignoring rejected mutations; "
             + (m == null ? "none added so far (?)" : "last one added is " + m), e);
@@ -292,8 +351,6 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
   @Override
   public boolean hasTop() {
-    assert source.hasTop() || source instanceof SaveStateIterator && ((SaveStateIterator) source).safeState() != null
-        : source + " is not a SaveStateIterator or not at a safe state.";
     return source.hasTop();
   }
 
@@ -312,15 +369,11 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
   @Override
   public Key getTopKey() {
-    assert source.hasTop() || source instanceof SaveStateIterator && ((SaveStateIterator) source).safeState() != null
-        : source + " is not a SaveStateIterator or not at a safe state.";
     return ((SaveStateIterator) source).safeState().getKey();
   }
 
   @Override
   public Value getTopValue() {
-    assert source.hasTop() || source instanceof SaveStateIterator && ((SaveStateIterator) source).safeState() != null
-        : source + " is not a SaveStateIterator or not at a safe state.";
     Value orig = ((SaveStateIterator) source).safeState().getValue();
     ByteBuffer bb = ByteBuffer.allocate(orig.getSize() + 4 + 2);
     bb.putInt(entriesWritten)

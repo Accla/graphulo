@@ -9,6 +9,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -25,6 +26,10 @@ import java.util.*;
 public class RemoteIteratorTest extends AccumuloTestBase {
   private static final Logger log = LogManager.getLogger(RemoteIteratorTest.class);
 
+  /**
+   * Also test setUniqueColQs.
+   */
+  @SuppressWarnings("unchecked")
   @Test
   public void testWriteTableTranspose() throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     Connector conn = tester.getConnector();
@@ -38,13 +43,21 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     }
     Map<Key,Value> expectR = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
       expectRT = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    HashSet<String> setUniqueColQsExpect = new HashSet<>(), setUniqueColQsActual=new HashSet<>();
     {
       Map<Key, Value> input = new HashMap<>();
       input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
+      setUniqueColQsExpect.add("C1");
       input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
+      setUniqueColQsExpect.add("C2");
       input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
+      setUniqueColQsExpect.add("C1");
       expectR.putAll(input);
       expectRT.putAll(TestUtil.tranposeMap(input));
+
+      input.put(new Key("A00", "", "C1"), new Value("21".getBytes()));
+      input.put(new Key("ZZZ", "", "C1"), new Value("22".getBytes()));
+
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("A15"));
       TestUtil.createTestTable(conn, tA, splits, input);
@@ -53,7 +66,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     TestUtil.createTestTable(conn, tRT);
 
     BatchScanner bs = conn.createBatchScanner(tA, Authorizations.EMPTY, 2);
-    bs.setRanges(Collections.singleton(new Range()));
+    bs.setRanges(Collections.singleton(new Range("A1",true,"B",true)));
     Map<String,String> opt = new HashMap<>();
     opt.put("zookeeperHost", conn.getInstance().getZooKeepers());
     opt.put("instanceName", conn.getInstance().getInstanceName());
@@ -61,11 +74,14 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     opt.put("tableNameTranspose", tRT);
     opt.put("username", conn.whoami());
     opt.put("password", new String(tester.getPassword().getPassword()));
+    opt.put("gatherColQs", "true");
     IteratorSetting is = new IteratorSetting(12,RemoteWriteIterator.class, opt);
     bs.addScanIterator(is);
     for (Map.Entry<Key, Value> entry : bs) {
-      log.warn("Unexpected output: "+entry.getKey()+" -> "+entry.getValue());
+//      log.warn("Unexpected output: "+entry.getKey()+" -> "+entry.getValue());
+      setUniqueColQsActual.addAll((HashSet<String>) SerializationUtils.deserialize(entry.getValue().get()));
     }
+    Assert.assertEquals(setUniqueColQsExpect, setUniqueColQsActual);
     bs.close();
 
     Scanner scan = conn.createScanner(tR, Authorizations.EMPTY);

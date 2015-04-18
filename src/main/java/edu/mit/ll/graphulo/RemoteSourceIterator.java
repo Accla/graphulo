@@ -1,6 +1,5 @@
 package edu.mit.ll.graphulo;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -166,6 +165,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>,
           break;
         case "colFilter":
           colFilter = GraphuloUtil.d4mRowToTexts(entry.getValue());
+          break;
         default:
           throw new IllegalArgumentException("unknown option: " + entry);
       }

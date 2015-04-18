@@ -58,6 +58,9 @@
                 <configuration>
                     <source>1.7</source> <!-- Compile against JDK 1.7 -->
                     <target>1.7</target>
+                    <!--<compilerArgument>-Xlint:all</compilerArgument>-->
+                    <!--<showWarnings>true</showWarnings>-->
+                    <!--<showDeprecation>true</showDeprecation>-->
                 </configuration>
             </plugin>
             <!--Output test results to files so that they can be read by continuous integration servers-->

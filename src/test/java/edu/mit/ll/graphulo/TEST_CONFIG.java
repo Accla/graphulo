@@ -13,7 +13,8 @@ import org.junit.runners.Suite;
     InjectTest.class,
     RemoteIteratorTest.class,
     TableMultIteratorTest.class,
-    TableMultTest.class
+    TableMultTest.class,
+    TableFilterTest.class
 })
 
 public class TEST_CONFIG {

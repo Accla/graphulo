@@ -7,10 +7,13 @@ import org.apache.accumulo.core.data.*;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.commons.lang.SerializationException;
+import org.apache.commons.lang.SerializationUtils;
+import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.*;
 
@@ -32,8 +35,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
    * Zookeeper timeout in milliseconds
    */
   private int timeout = -1;
-
   private int numEntriesCheckpoint = -1;
+  private boolean gatherColQs = false;
 
   /**
    * Created in init().
@@ -45,6 +48,11 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
    * # entries written so far. Reset to 0 at writeUntilSave().
    */
   private int entriesWritten;
+  /**
+   * Ensure that entry from setUniqueColQs comes after any monitor entries emitted.
+   */
+  private Key lastKeyEmitted = new Key();
+  private HashSet<String> setUniqueColQs = null;
 
   /**
    * Call init() after construction.
@@ -66,6 +74,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     other.auth = auth;
     other.timeout = timeout;
     other.numEntriesCheckpoint = numEntriesCheckpoint;
+    other.setUniqueColQs = setUniqueColQs == null ? null : new HashSet<>(setUniqueColQs);
     other.setupConnectorWriter();
   }
 
@@ -76,11 +85,12 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     optDesc.put("zookeeperHost", "address and port");
     optDesc.put("timeout", "Zookeeper timeout between 1000 and 300000 (default 1000)");
     optDesc.put("instanceName", "");
-    optDesc.put("tableName", "");
+    optDesc.put("tableName", "(optional) To write entries to.");
     optDesc.put("tableNameTranspose", "(optional) To write entries with row and column qualifier swapped.");
     optDesc.put("username", "");
     optDesc.put("password", "(Anyone who can read the Accumulo table config OR the log files will see your password in plaintext.)");
     optDesc.put("numEntriesCheckpoint", "(optional) #entries until sending back a progress monitor");
+    optDesc.put("gatherColQs", "(default false) gather set of unique column qualifiers passed in and send back all of them at the end");
     iteratorOptions = new IteratorOptions("RemoteWriteIterator",
         "Write to a remote Accumulo table. hasTop() is always false.",
         Collections.unmodifiableMap(optDesc), null);
@@ -100,7 +110,6 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     // Shadow all the fields =)
     String zookeeperHost = null, instanceName = null, tableName = null, username = null, tableNameTranspose = null;
     AuthenticationToken auth = null;
-    //int timeout;
 
     for (Map.Entry<String, String> entry : options.entrySet()) {
       switch (entry.getKey()) {
@@ -140,7 +149,10 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
           //noinspection ResultOfMethodCallIgnored
           Integer.parseInt(entry.getValue());
           break;
-
+        case "gatherColQs":
+          //noinspection ResultOfMethodCallIgnored
+          Boolean.parseBoolean(entry.getValue());
+          break;
         default:
           throw new IllegalArgumentException("unknown option: " + entry);
       }
@@ -187,7 +199,9 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
         case "numEntriesCheckpoint":
           numEntriesCheckpoint = Integer.parseInt(entry.getValue());
           break;
-
+        case "gatherColQs":
+          gatherColQs = Boolean.parseBoolean(entry.getValue());
+          break;
         default:
           log.warn("Unrecognized option: " + entry);
           continue;
@@ -214,6 +228,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     if (!(source instanceof SaveStateIterator)) {
       numEntriesCheckpoint = -2; // disable save state
     }
+    if (gatherColQs)
+      setUniqueColQs = new HashSet<>();
 
     setupConnectorWriter();
 
@@ -247,10 +263,10 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
       if (tableNameTranspose != null)
         writerTranspose = writerAll == null ? connector.createBatchWriter(tableNameTranspose, bwc) : writerAll.getBatchWriter(tableNameTranspose);
     } catch (TableNotFoundException e) {
-      log.error(tableName + " or "+tableNameTranspose+" does not exist in instance " + instanceName, e);
+      log.error(tableName + " or " + tableNameTranspose + " does not exist in instance " + instanceName, e);
       throw new RuntimeException(e);
     } catch (AccumuloSecurityException | AccumuloException e) {
-      log.error("problem creating BatchWriters for "+tableName+" and "+tableNameTranspose);
+      log.error("problem creating BatchWriters for " + tableName + " and " + tableNameTranspose);
       throw new RuntimeException(e);
     }
   }
@@ -273,7 +289,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     log.debug("RemoteWriteIterator on table " + tableName + ": about to seek() to range " + range);
     source.seek(range, columnFamilies, inclusive);
-
+    if (range.getStartKey() != null && range.getStartKey().compareTo(lastKeyEmitted) > 0)
+      lastKeyEmitted.set(range.getStartKey());
     writeUntilSafeOrFinish();
   }
 
@@ -285,13 +302,18 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
       while (source.hasTop()) {
         Key k = source.getTopKey();
         Value v = source.getTopValue();
+
+        if (gatherColQs) {
+          setUniqueColQs.add(new String(k.getColumnQualifierData().getBackingArray()));
+        }
+
         if (writer != null) {
           m = new Mutation(k.getRowData().getBackingArray());
           m.put(k.getColumnFamilyData().getBackingArray(), k.getColumnQualifierData().getBackingArray(),
               k.getColumnVisibilityParsed(), v.get()); // no ts? System.currentTimeMillis()
           watch.start(Watch.PerfSpan.WriteAddMut);
           try {
-              writer.addMutation(m);
+            writer.addMutation(m);
           } catch (MutationsRejectedException e) {
             log.warn("ignoring rejected mutations; last one added is " + m, e);
           } finally {
@@ -317,6 +339,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
         if (numEntriesCheckpoint > 0 && entriesWritten >= numEntriesCheckpoint) {
           Map.Entry<Key, Value> safeState = ((SaveStateIterator) source).safeState();
           if (safeState != null) {
+            lastKeyEmitted.set(safeState.getKey());
             break;
           }
         }
@@ -351,41 +374,56 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
   @Override
   public boolean hasTop() {
-    return source.hasTop();
+    return source.hasTop() ||
+        (gatherColQs && !setUniqueColQs.isEmpty());
   }
 
   @Override
   public void next() throws IOException {
-    Watch<Watch.PerfSpan> watch = Watch.getInstance();
-    watch.start(Watch.PerfSpan.WriteGetNext);
-    try {
-      source.next();
-    } finally {
-      watch.stop(Watch.PerfSpan.WriteGetNext);
-    }
-
-    writeUntilSafeOrFinish();
+    if (source.hasTop()) {
+      Watch<Watch.PerfSpan> watch = Watch.getInstance();
+      watch.start(Watch.PerfSpan.WriteGetNext);
+      try {
+        source.next();
+      } finally {
+        watch.stop(Watch.PerfSpan.WriteGetNext);
+      }
+      writeUntilSafeOrFinish();
+    } else if (gatherColQs && !setUniqueColQs.isEmpty()) {
+      setUniqueColQs.clear();
+    } else
+      throw new IllegalStateException();
   }
 
   @Override
   public Key getTopKey() {
-    return ((SaveStateIterator) source).safeState().getKey();
+    if (source.hasTop())
+      return ((SaveStateIterator) source).safeState().getKey();
+    else if (gatherColQs && !setUniqueColQs.isEmpty()) {
+      return new Key(lastKeyEmitted).followingKey(PartialKey.ROW);
+    } else
+      return null;
   }
 
   @Override
   public Value getTopValue() {
-    Value orig = ((SaveStateIterator) source).safeState().getValue();
-    ByteBuffer bb = ByteBuffer.allocate(orig.getSize() + 4 + 2);
-    bb.putInt(entriesWritten)
-        .putChar(',')
-        .put(orig.get())
-        .rewind();
-    return new Value(bb);
+    if (source.hasTop()) {
+      Value orig = ((SaveStateIterator) source).safeState().getValue();
+      ByteBuffer bb = ByteBuffer.allocate(orig.getSize() + 4 + 2);
+      bb.putInt(entriesWritten)
+          .putChar(',')
+          .put(orig.get())
+          .rewind();
+      return new Value(bb);
+    } else if (gatherColQs && !setUniqueColQs.isEmpty()) {
+      return new Value(SerializationUtils.serialize(setUniqueColQs));
+    } else
+      return null;
   }
 
   @Override
   public RemoteWriteIterator deepCopy(IteratorEnvironment iteratorEnvironment) {
-    RemoteWriteIterator copy =  new RemoteWriteIterator(this);
+    RemoteWriteIterator copy = new RemoteWriteIterator(this);
     copy.source = source.deepCopy(iteratorEnvironment);
     return copy;
   }

@@ -13,7 +13,6 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="Maven: org.apache.hadoop:hadoop-hdfs:2.2.0" level="project" />
     <orderEntry type="library" name="Maven: org.apache.accumulo:accumulo-core:1.6.1" level="project" />
     <orderEntry type="library" name="Maven: com.beust:jcommander:1.32" level="project" />
     <orderEntry type="library" name="Maven: com.google.guava:guava:14.0.1" level="project" />

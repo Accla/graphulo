@@ -139,8 +139,6 @@ public class TableMultTest extends AccumuloTestBase {
     for (Map.Entry<Key, Value> entry : scanner) {
       actual.put(entry.getKey(), entry.getValue());
     }
-    System.out.println(expect.equals(actual));
-    System.out.println(actual.equals(expect));
     Assert.assertEquals(expect, actual);
 
     conn.tableOperations().delete(tAT);

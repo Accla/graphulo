@@ -48,8 +48,8 @@ public interface IGraphulo {
                  int minDegree, int maxDegree, boolean gatherColQs);
 
   // Create k0 table even if it is empty (e.g. v0="")
-  void AdjBFS(String Atable, String v0, int k, String Rtable, String RtableTranspose,
-              String Adeg, int minDegree, int maxDegree);
+  String AdjBFS(String Atable, String v0, int k, String Rtable, String RtableTranspose,
+                String ADegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree);
 
   /**
    * Out-degree-filtered Breadth First Search on Incidence table.

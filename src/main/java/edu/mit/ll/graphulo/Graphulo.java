@@ -7,7 +7,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.*;
-import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.io.Text;
@@ -217,14 +216,14 @@ public class Graphulo implements IGraphulo {
   }
 
   @Override
-  public void AdjBFS(String Atable, String v0, int k, String Rtable, String RtableTranspose,
-                     String ADegtable, int minDegree, int maxDegree) {
-    AdjBFS(Atable, v0, k, Rtable, RtableTranspose, ADegtable, minDegree, maxDegree, true);
+  public String AdjBFS(String Atable, String v0, int k, String Rtable, String RtableTranspose,
+                       String ADegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree) {
+    return AdjBFS(Atable, v0, k, Rtable, RtableTranspose, ADegtable, degColumn, degInColQ, minDegree, maxDegree, true);
   }
 
   @SuppressWarnings("unchecked")
   public String AdjBFS(String Atable, String v0, int k, String Rtable, String RtableTranspose,
-                       String ADegtable, int minDegree, int maxDegree,
+                       String ADegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree,
                        boolean trace) {
     if (Atable == null || Atable.isEmpty())
       throw new IllegalArgumentException("Please specify Adjacency table. Given: " + Atable);
@@ -238,6 +237,12 @@ public class Graphulo implements IGraphulo {
       minDegree = 1;
     if (maxDegree < minDegree)
       throw new IllegalArgumentException("maxDegree=" + maxDegree + " should be >= minDegree=" + minDegree);
+    Text degColumnText = null;
+    if (degColumn != null && !degColumn.isEmpty()) {
+      degColumnText = new Text(degColumn);
+      if (degInColQ)
+        throw new IllegalArgumentException("not allowed: degColumn != null && degInColQ==true");
+    }
     if (v0 == null)
       throw new IllegalArgumentException("bad v0: " + v0);
     Collection<Text> vktexts = GraphuloUtil.d4mRowToTexts(v0);
@@ -300,9 +305,11 @@ public class Graphulo implements IGraphulo {
     bs.addScanIterator(itset);
 
     for (int thisk = 1; thisk <= k; thisk++) {
-      System.out.println("k="+thisk+" before filter: "+vktexts);
-      vktexts = filterTextsDegreeTable(ADegtable, minDegree, maxDegree, vktexts);
-      System.out.println("k=" + thisk + " after  filter: " + vktexts);
+      System.out.println("k="+thisk+" before filter" +
+          (vktexts.size() > 5 ? " #="+String.valueOf(vktexts.size()) : ": "+vktexts.toString()));
+      vktexts = filterTextsDegreeTable(ADegtable, degColumnText, degInColQ, minDegree, maxDegree, vktexts);
+      System.out.println("k="+thisk+" after  filter" +
+          (vktexts.size() > 5 ? " #="+String.valueOf(vktexts.size()) : ": "+vktexts.toString()));
       if (vktexts.isEmpty())
         break;
       bs.setRanges(GraphuloUtil.textsToRanges(vktexts));
@@ -357,13 +364,18 @@ public class Graphulo implements IGraphulo {
    * Todo: Add a local cache parameter for known good nodes and known bad nodes,
    * so that we don't have to look them up.
    *
+   * @param degColQ Name of the degree column qualifier. Blank/null means fetch all columns, and disqualify node if any have bad degree.
+   * @param degInColQ False means degree in value. True means degree in column qualifier (cannot use degColQ in this case).
    * @return The same texts object.
    */
-  private Collection<Text> filterTextsDegreeTable(String ADegtable, int minDegree, int maxDegree,
+  private Collection<Text> filterTextsDegreeTable(String ADegtable, Text degColQ, boolean degInColQ,
+                                                  int minDegree, int maxDegree,
                                                   Collection<Text> texts) {
+    if (degColQ != null && degColQ.getLength()==0)
+      degColQ = null;
     TableOperations tops = connector.tableOperations();
     assert ADegtable != null && !ADegtable.isEmpty() && minDegree > 0 && maxDegree >= minDegree
-        && texts != null && tops.exists(ADegtable);
+        && texts != null && tops.exists(ADegtable) && !(degColQ!=null && degInColQ);
     if (texts.isEmpty())
       return texts;
     BatchScanner bs;
@@ -374,13 +386,18 @@ public class Graphulo implements IGraphulo {
       throw new RuntimeException(e);
     }
     bs.setRanges(GraphuloUtil.textsToRanges(texts));
+    if (degColQ != null)
+      bs.fetchColumn(EMPTY_TEXT, degColQ);
     Text badRow = new Text();
     for (Map.Entry<Key, Value> entry : bs) {
       boolean bad = false;
-      System.out.println("Deg Entry: " + entry.getKey() + " -> " + entry.getValue());
+      log.debug("Deg Entry: " + entry.getKey() + " -> " + entry.getValue());
       try {
 //        long deg = LongCombiner.STRING_ENCODER.decode(entry.getValue().get());
-        long deg = LongCombiner.STRING_ENCODER.decode(entry.getKey().getColumnQualifierData().getBackingArray());
+        long deg = LongCombiner.STRING_ENCODER.decode(
+            degInColQ ? entry.getKey().getColumnQualifierData().getBackingArray()
+                : entry.getValue().get()
+        );
         if (deg < minDegree || deg > maxDegree)
           bad = true;
       } catch (ValueFormatException e) {

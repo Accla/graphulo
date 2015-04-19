@@ -9,7 +9,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 
 import java.util.*;
 
@@ -137,7 +139,82 @@ public class GraphuloUtil {
     return ts;
   }
 
-//  public void addIteratorDynamically(TableOperations tops, String tableName,
+  public static String textsToD4mString(Collection<Text> texts) {
+    return textsToD4mString(texts, ',');
+  }
+
+  public static String textsToD4mString(Collection<Text> texts, char sep) {
+    if (texts == null)
+      return "";
+    StringBuilder sb = new StringBuilder();
+    for (Text text : texts) {
+      sb.append(text).append(sep);
+    }
+    return sb.toString();
+  }
+
+  public static Collection<Range> textsToRanges(Collection<Text> texts) {
+    Collection<Range> ranges = new HashSet<>();
+    for (Text text : texts) {
+      ranges.add(new Range(text));
+    }
+    return ranges;
+  }
+
+  /**
+   * Add BigDecimalSummingCombiner on as many scopes as possible (scan, minc, majc).
+   * Call it "plus".
+   */
+  public static void addCombiner(TableOperations tops, String table, Logger log) {
+    // attach combiner on Ctable
+    // TODO P2: Assign priority and name dynamically, checking for conflicts.
+    Map<String, String> optSum = new HashMap<>();
+    optSum.put("all", "true");
+    IteratorSetting iSum = new IteratorSetting(19,"plus",BigDecimalCombiner.BigDecimalSummingCombiner.class, optSum);
+
+    // checking if iterator already exists. Not checking for conflicts.
+    try {
+      IteratorSetting existing;
+      EnumSet<IteratorUtil.IteratorScope> enumSet = EnumSet.noneOf(IteratorUtil.IteratorScope.class);
+      for (IteratorUtil.IteratorScope scope : IteratorUtil.IteratorScope.values()) {
+        existing = tops.getIteratorSetting(table, "plus", scope);
+        if (existing == null)
+          enumSet.add(scope);
+      }
+      tops.attachIterator(table, iSum, enumSet);
+    } catch (AccumuloSecurityException | AccumuloException e) {
+      log.error("error trying to add BigDecimalSummingCombiner to " + table, e);
+      throw new RuntimeException(e);
+    } catch (TableNotFoundException e) {
+      log.error("no table: "+table, e);
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Remove "plus" combiner from every scope it is configured on.
+   */
+  public static void removeCombiner(TableOperations tops, String table, Logger log) {
+    // remove on the scopes the iterator is set on
+    try {
+      IteratorSetting existing;
+      EnumSet<IteratorUtil.IteratorScope> enumSet = EnumSet.allOf(IteratorUtil.IteratorScope.class);
+      for (IteratorUtil.IteratorScope scope : IteratorUtil.IteratorScope.values()) {
+        existing = tops.getIteratorSetting(table, "plus", scope);
+        if (existing == null)
+          enumSet.remove(scope);
+      }
+      tops.removeIterator(table, "plus", enumSet);
+    } catch (AccumuloSecurityException | AccumuloException e) {
+      log.error("error trying to remove \"plus\" Combiner from " + table, e);
+      throw new RuntimeException(e);
+    } catch (TableNotFoundException e) {
+      log.error("no table: "+table, e);
+      throw new RuntimeException(e);
+    }
+  }
+
+//  public static void addIteratorDynamically(TableOperations tops, String tableName,
 //                                     IteratorSetting setting, EnumSet<IteratorUtil.IteratorScope> scopes,
 //                                     boolean beforeVers)
 //      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {

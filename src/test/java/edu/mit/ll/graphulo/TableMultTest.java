@@ -61,7 +61,7 @@ public class TableMultTest extends AccumuloTestBase {
       input = TestUtil.tranposeMap(input);
       TestUtil.createTestTable(conn, tB, null, input);
     }
-    Map<Key,Value> expect = new HashMap<Key, Value>();
+    Map<Key,Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
     expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
     expect.put(new Key("A1", "", "B2"), new Value("21".getBytes()));
     expect.put(new Key("A2", "", "B2"), new Value("12".getBytes()));
@@ -77,6 +77,7 @@ public class TableMultTest extends AccumuloTestBase {
     for (Map.Entry<Key, Value> entry : scanner) {
       actual.put(entry.getKey(), entry.getValue());
     }
+    scanner.close();
     Assert.assertEquals(expect, actual);
 
     conn.tableOperations().delete(tAT);

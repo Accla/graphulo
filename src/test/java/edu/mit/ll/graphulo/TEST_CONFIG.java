@@ -14,7 +14,8 @@ import org.junit.runners.Suite;
     RemoteIteratorTest.class,
     TableMultIteratorTest.class,
     TableMultTest.class,
-    TableFilterTest.class
+    TableFilterTest.class,
+    BFSTest.class
 })
 
 public class TEST_CONFIG {

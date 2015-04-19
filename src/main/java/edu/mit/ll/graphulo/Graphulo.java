@@ -6,11 +6,10 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.Combiner;
-import org.apache.accumulo.core.iterators.DevNull;
-import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.iterators.*;
 import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -33,13 +32,15 @@ public class Graphulo implements IGraphulo {
     checkCredentials();
   }
 
-  /** Check password works for this user. */
+  /**
+   * Check password works for this user.
+   */
   private void checkCredentials() {
     try {
       if (!connector.securityOperations().authenticateUser(connector.whoami(), password))
-        throw new IllegalArgumentException("instance "+connector.getInstance().getInstanceName()+": bad username "+connector.whoami()+" with password "+new String(password.getPassword()));
+        throw new IllegalArgumentException("instance " + connector.getInstance().getInstanceName() + ": bad username " + connector.whoami() + " with password " + new String(password.getPassword()));
     } catch (AccumuloException | AccumuloSecurityException e) {
-      throw new IllegalArgumentException("instance "+connector.getInstance().getInstanceName()+": error with username "+connector.whoami()+" with password "+new String(password.getPassword()), e);
+      throw new IllegalArgumentException("instance " + connector.getInstance().getInstanceName() + ": error with username " + connector.whoami() + " with password " + new String(password.getPassword()), e);
     }
   }
 
@@ -59,15 +60,17 @@ public class Graphulo implements IGraphulo {
                         String colFilterAT, String colFilterB,
                         int numEntriesCheckpoint, boolean trace) {
     if (ATtable == null || ATtable.isEmpty())
-      throw new IllegalArgumentException("Please specify table AT. Given: "+ATtable);
+      throw new IllegalArgumentException("Please specify table AT. Given: " + ATtable);
     if (Btable == null || Btable.isEmpty())
-      throw new IllegalArgumentException("Please specify table B. Given: "+Btable);
+      throw new IllegalArgumentException("Please specify table B. Given: " + Btable);
     if (ATtable.equals(Ctable))
 //      log.warn("Untested combination: ATtable=Ctable="+ATtable);
-      throw new UnsupportedOperationException("nyi: ATtable=Ctable="+ATtable);
+      throw new UnsupportedOperationException("nyi: ATtable=Ctable=" + ATtable);
     if (Btable.equals(Ctable))
 //      log.warn("Untested combination: Btable=Ctable=" + Btable);
       throw new UnsupportedOperationException("nyi: Btable=Ctable=" + Btable);
+    if (Ctable != null && Ctable.isEmpty())
+      Ctable = null;
 
 //    if (multOp == null || !multOp.equals(BigDecimalMultiply.class))
 //      throw new UnsupportedOperationException("only supported multOp is BigDecimalMultiply, but given: "+multOp);
@@ -76,18 +79,18 @@ public class Graphulo implements IGraphulo {
 
     TableOperations tops = connector.tableOperations();
     if (!tops.exists(ATtable))
-      throw new IllegalArgumentException("Table AT does not exist. Given: "+ATtable);
+      throw new IllegalArgumentException("Table AT does not exist. Given: " + ATtable);
     if (!tops.exists(Btable))
-      throw new IllegalArgumentException("Table B does not exist. Given: "+Btable);
+      throw new IllegalArgumentException("Table B does not exist. Given: " + Btable);
 
-    if (Ctable != null && !Ctable.isEmpty() && !tops.exists(Ctable))
+    if (Ctable != null && !tops.exists(Ctable))
       try {
         tops.create(Ctable);
       } catch (AccumuloException | AccumuloSecurityException e) {
-        log.error("error trying to create C table "+Ctable, e);
+        log.error("error trying to create C table " + Ctable, e);
         throw new RuntimeException(e);
       } catch (TableExistsException e) {
-        log.error("impossible",e);
+        log.error("impossible", e);
         throw new RuntimeException(e);
       }
 
@@ -95,8 +98,8 @@ public class Graphulo implements IGraphulo {
     String zookeepers = connector.getInstance().getZooKeepers();
     String user = connector.whoami();
 
-    Map<String,String> opt = new HashMap<>();
-    opt.put("trace",String.valueOf(trace)); // logs timing on server
+    Map<String, String> opt = new HashMap<>();
+    opt.put("trace", String.valueOf(trace)); // logs timing on server
 
     opt.put("AT.zookeeperHost", zookeepers);
     opt.put("AT.instanceName", instance);
@@ -114,7 +117,7 @@ public class Graphulo implements IGraphulo {
 //    if (colFilterB != null)
 //      opt.put("B.colFilter", colFilterB);
 
-    if (Ctable != null && !Ctable.isEmpty()) {
+    if (Ctable != null) {
       opt.put("C.zookeeperHost", zookeepers);
       opt.put("C.instanceName", instance);
       opt.put("C.tableName", Ctable);
@@ -124,28 +127,8 @@ public class Graphulo implements IGraphulo {
     }
 
     // attach combiner on Ctable
-    // TODO P2: Assign priority and name dynamically, checking for conflicts.
-    Map<String, String> optSum = new HashMap<>();
-    optSum.put("all", "true");
-    IteratorSetting iSum = new IteratorSetting(19,"plus",BigDecimalCombiner.BigDecimalSummingCombiner.class, optSum);
-
-    // checking if iterator already exists. Not checking for conflicts.
-    try {
-      IteratorSetting existing;
-      EnumSet<IteratorUtil.IteratorScope> enumSet = EnumSet.noneOf(IteratorUtil.IteratorScope.class);
-      for (IteratorUtil.IteratorScope scope : IteratorUtil.IteratorScope.values()) {
-        existing = tops.getIteratorSetting(Ctable, "plus", IteratorUtil.IteratorScope.majc);
-        if (existing == null)
-          enumSet.add(scope);
-      }
-      tops.attachIterator(Ctable, iSum, enumSet);
-    } catch (AccumuloSecurityException | AccumuloException e) {
-      log.error("error trying to add BigDecimalSummingCombiner to " + Ctable, e);
-      throw new RuntimeException(e);
-    } catch (TableNotFoundException e) {
-      log.error("impossible", e);
-      throw new RuntimeException(e);
-    }
+    if (Ctable != null)
+      GraphuloUtil.addCombiner(tops, Ctable, log);
 
     // scan B with TableMultIterator
     BatchScanner bs;
@@ -175,11 +158,29 @@ public class Graphulo implements IGraphulo {
         int numEntries = bb.getInt();
         char c = bb.getChar();
         String str = new Value(bb).toString();
-        System.out.println(entry.getKey().toString() + " -> " + numEntries + c + str);
+        System.out.println(entry.getKey() + " -> " + numEntries + c + str);
       } else {
-        System.out.println(entry.getKey().toString() + " -> " + entry.getValue());
+        System.out.println(entry.getKey() + " -> " + entry.getValue());
       }
     }
+    bs.close();
+
+    // flush
+    if (Ctable != null) {
+      try {
+        long st = System.currentTimeMillis();
+        tops.flush(Ctable, null, null, true);
+        System.out.println("flush " + Ctable + " time: " + (System.currentTimeMillis() - st) + " ms");
+      } catch (TableNotFoundException e) {
+        log.error("impossible", e);
+        throw new RuntimeException(e);
+      } catch (AccumuloSecurityException | AccumuloException e) {
+        log.error("error while flushing " + Ctable);
+        throw new RuntimeException(e);
+      }
+      GraphuloUtil.removeCombiner(tops, Ctable, log);
+    }
+
   }
 
   public void CancelCompact(String table) {
@@ -192,4 +193,217 @@ public class Graphulo implements IGraphulo {
     }
   }
 
+  @Override
+  public void TableCopyFilter(String table, String tableCopy, String tableTranspose,
+                              Collection<Range> rowFilter, String colFilter,
+                              int minDegree, int maxDegree, boolean gatherColQs) {
+    if (table == null || table.isEmpty())
+      throw new IllegalArgumentException("Please specify source table. Given: " + table);
+//    if (minDegree < 1)
+//      minDegree = 1;
+//    if (maxDegree < minDegree)
+//      throw new IllegalArgumentException("maxDegree=" + maxDegree + " should be >= minDegree=" + minDegree);
+    if (tableCopy != null && tableCopy.isEmpty())
+      tableCopy = null;
+    if (tableTranspose != null && tableTranspose.isEmpty())
+      tableTranspose = null;
+//    if (tableCopy == null && tableTranspose == null)
+//      return;
+    Collection<Text> v0texts = GraphuloUtil.d4mRowToTexts(colFilter);
+
+    TableOperations tops = connector.tableOperations();
+    if (!tops.exists(table))
+      throw new IllegalArgumentException("Table does not exist. Given: " + table);
+  }
+
+  @Override
+  public void AdjBFS(String Atable, String v0, int k, String Rtable, String RtableTranspose,
+                     String ADegtable, int minDegree, int maxDegree) {
+    AdjBFS(Atable, v0, k, Rtable, RtableTranspose, ADegtable, minDegree, maxDegree, true);
+  }
+
+  @SuppressWarnings("unchecked")
+  public String AdjBFS(String Atable, String v0, int k, String Rtable, String RtableTranspose,
+                       String ADegtable, int minDegree, int maxDegree,
+                       boolean trace) {
+    if (Atable == null || Atable.isEmpty())
+      throw new IllegalArgumentException("Please specify Adjacency table. Given: " + Atable);
+    if (ADegtable == null || ADegtable.isEmpty())
+      throw new IllegalArgumentException("We currently require the use of an out-degree table for the adjacency matrix. Given: " + Atable);
+    if (Rtable != null && Rtable.isEmpty())
+      Rtable = null;
+    if (RtableTranspose != null && RtableTranspose.isEmpty())
+      RtableTranspose = null;
+    if (minDegree < 1)
+      minDegree = 1;
+    if (maxDegree < minDegree)
+      throw new IllegalArgumentException("maxDegree=" + maxDegree + " should be >= minDegree=" + minDegree);
+    if (v0 == null)
+      throw new IllegalArgumentException("bad v0: " + v0);
+    Collection<Text> vktexts = GraphuloUtil.d4mRowToTexts(v0);
+
+    TableOperations tops = connector.tableOperations();
+    if (!tops.exists(Atable))
+      throw new IllegalArgumentException("Table A does not exist. Given: " + Atable);
+    if (!tops.exists(ADegtable))
+      throw new IllegalArgumentException("Table ADeg does not exist. Given: " + Atable);
+    if (Rtable != null && !tops.exists(Rtable))
+      try {
+        tops.create(Rtable);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        log.error("error trying to create R table " + Rtable, e);
+        throw new RuntimeException(e);
+      } catch (TableExistsException e) {
+        log.error("impossible", e);
+        throw new RuntimeException(e);
+      }
+    if (RtableTranspose != null && !tops.exists(RtableTranspose))
+      try {
+        tops.create(RtableTranspose);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        log.error("error trying to create R table transpose" + RtableTranspose, e);
+        throw new RuntimeException(e);
+      } catch (TableExistsException e) {
+        log.error("impossible", e);
+        throw new RuntimeException(e);
+      }
+
+    Map<String, String> opt = new HashMap<>();
+    opt.put("trace", String.valueOf(trace)); // logs timing on server
+    opt.put("gatherColQs", "true");
+    if (Rtable != null || RtableTranspose != null) {
+      String instance = connector.getInstance().getInstanceName();
+      String zookeepers = connector.getInstance().getZooKeepers();
+      String user = connector.whoami();
+      opt.put("zookeeperHost", zookeepers);
+      opt.put("instanceName", instance);
+      if (Rtable != null)
+        opt.put("tableName", Rtable);
+      if (RtableTranspose != null)
+        opt.put("tableNameTranspose", RtableTranspose);
+      opt.put("username", user);
+      opt.put("password", new String(password.getPassword()));
+
+      if (Rtable != null)
+        GraphuloUtil.addCombiner(tops, Rtable, log);
+      if (RtableTranspose != null)
+        GraphuloUtil.addCombiner(tops, RtableTranspose, log);
+    }
+    BatchScanner bs;
+    try {
+      bs = connector.createBatchScanner(Atable, Authorizations.EMPTY, 2); // TODO P2: set number of batch scan threads
+    } catch (TableNotFoundException e) {
+      log.error("impossible", e);
+      throw new RuntimeException(e);
+    }
+    IteratorSetting itset = new IteratorSetting(4, RemoteWriteIterator.class, opt);
+    bs.addScanIterator(itset);
+
+    for (int thisk = 1; thisk <= k; thisk++) {
+      System.out.println("k="+thisk+" before filter: "+vktexts);
+      vktexts = filterTextsDegreeTable(ADegtable, minDegree, maxDegree, vktexts);
+      System.out.println("k=" + thisk + " after  filter: " + vktexts);
+      if (vktexts.isEmpty())
+        break;
+      bs.setRanges(GraphuloUtil.textsToRanges(vktexts));
+      Collection<Text> uktexts = new HashSet<>();
+
+      for (Map.Entry<Key, Value> entry : bs) {
+//        System.out.println("A Entry: "+entry.getKey() + " -> " + entry.getValue());
+        for (String uk : (HashSet<String>) SerializationUtils.deserialize(entry.getValue().get())) {
+          uktexts.add(new Text(uk));
+        }
+
+      }
+      vktexts = uktexts;
+    }
+
+    bs.close();
+    // Better strategy if using Rtable and RtableTranspose: start flush on tables, then unblock when both finish
+    if (Rtable != null) {
+      try {
+        long st = System.currentTimeMillis();
+        tops.flush(Rtable, null, null, true);
+        System.out.println("flush " + Rtable + " time: " + (System.currentTimeMillis() - st) + " ms");
+      } catch (TableNotFoundException e) {
+        log.error("impossible", e);
+        throw new RuntimeException(e);
+      } catch (AccumuloSecurityException | AccumuloException e) {
+        log.error("error while flushing " + Rtable);
+        throw new RuntimeException(e);
+      }
+      GraphuloUtil.removeCombiner(tops, Rtable, log);
+    }
+    if (RtableTranspose != null) {
+      try {
+        long st = System.currentTimeMillis();
+        tops.flush(RtableTranspose, null, null, true);
+        System.out.println("flush " + RtableTranspose + " time: " + (System.currentTimeMillis() - st) + " ms");
+      } catch (TableNotFoundException e) {
+        log.error("impossible", e);
+        throw new RuntimeException(e);
+      } catch (AccumuloSecurityException | AccumuloException e) {
+        log.error("error while flushing " + RtableTranspose);
+        throw new RuntimeException(e);
+      }
+      GraphuloUtil.removeCombiner(tops, RtableTranspose, log);
+    }
+    return GraphuloUtil.textsToD4mString(vktexts, v0.isEmpty() ? ',' : v0.charAt(v0.length()-1));
+  }
+
+  /**
+   * Modifies texts in place, removing the entries that are out of range.
+   * Assumes degrees are in the column qualifier.
+   * Todo: Add a local cache parameter for known good nodes and known bad nodes,
+   * so that we don't have to look them up.
+   *
+   * @return The same texts object.
+   */
+  private Collection<Text> filterTextsDegreeTable(String ADegtable, int minDegree, int maxDegree,
+                                                  Collection<Text> texts) {
+    TableOperations tops = connector.tableOperations();
+    assert ADegtable != null && !ADegtable.isEmpty() && minDegree > 0 && maxDegree >= minDegree
+        && texts != null && tops.exists(ADegtable);
+    if (texts.isEmpty())
+      return texts;
+    BatchScanner bs;
+    try {
+      bs = connector.createBatchScanner(ADegtable, Authorizations.EMPTY, 2); // TODO P2: set number of batch scan threads
+    } catch (TableNotFoundException e) {
+      log.error("impossible", e);
+      throw new RuntimeException(e);
+    }
+    bs.setRanges(GraphuloUtil.textsToRanges(texts));
+    Text badRow = new Text();
+    for (Map.Entry<Key, Value> entry : bs) {
+      boolean bad = false;
+      System.out.println("Deg Entry: " + entry.getKey() + " -> " + entry.getValue());
+      try {
+//        long deg = LongCombiner.STRING_ENCODER.decode(entry.getValue().get());
+        long deg = LongCombiner.STRING_ENCODER.decode(entry.getKey().getColumnQualifierData().getBackingArray());
+        if (deg < minDegree || deg > maxDegree)
+          bad = true;
+      } catch (ValueFormatException e) {
+        log.warn("Trouble parsing degree entry as long; assuming bad degree: " + entry.getKey() + " -> " + entry.getValue(), e);
+        bad = true;
+      }
+      if (bad) {
+        boolean remove = texts.remove(entry.getKey().getRow(badRow));
+        if (!remove)
+          log.warn("Unrecognized entry with bad degree; cannot remove: " + entry.getKey() + " -> " + entry.getValue());
+      }
+    }
+    bs.close();
+    return texts;
+  }
+
+  @Override
+  public void EdgeBFS(String Etable, String v0, int k, String startPrefix, String endPrefix, int minDegree, int maxDegree, boolean outputNormal, boolean outputTranpose) {
+
+  }
+
+  @Override
+  public void SingleTableBFS(String Stable, String v0, int k, int minDegree, int maxDegree, boolean outputNormal, boolean outputTranspose) {
+
+  }
 }

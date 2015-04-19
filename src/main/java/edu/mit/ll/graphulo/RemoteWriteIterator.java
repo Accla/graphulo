@@ -110,6 +110,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     // Shadow all the fields =)
     String zookeeperHost = null, instanceName = null, tableName = null, username = null, tableNameTranspose = null;
     AuthenticationToken auth = null;
+    boolean gatherColQs = false;
 
     for (Map.Entry<String, String> entry : options.entrySet()) {
       switch (entry.getKey()) {
@@ -150,19 +151,19 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
           Integer.parseInt(entry.getValue());
           break;
         case "gatherColQs":
-          //noinspection ResultOfMethodCallIgnored
-          Boolean.parseBoolean(entry.getValue());
+          gatherColQs = Boolean.parseBoolean(entry.getValue());
           break;
         default:
           throw new IllegalArgumentException("unknown option: " + entry);
       }
     }
     // Required options
-    if (zookeeperHost == null ||
+    if ((tableName == null && tableNameTranspose == null && !gatherColQs) ||
+      ((tableName != null || tableNameTranspose != null) &&
+        (zookeeperHost == null ||
         instanceName == null ||
-        (tableName == null && tableNameTranspose == null) ||
         username == null ||
-        auth == null)
+        auth == null)))
       throw new IllegalArgumentException("not enough options provided");
     return true;
   }
@@ -209,11 +210,12 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
       log.trace("Option OK: " + entry);
     }
     // Required options
-    if (zookeeperHost == null ||
-        instanceName == null ||
-        (tableName == null && tableNameTranspose == null) ||
-        username == null ||
-        auth == null)
+    if ((tableName == null && tableNameTranspose == null && !gatherColQs) ||
+        ((tableName != null || tableNameTranspose != null) &&
+            (zookeeperHost == null ||
+                instanceName == null ||
+                username == null ||
+                auth == null)))
       throw new IllegalArgumentException("not enough options provided");
   }
 
@@ -237,6 +239,9 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   }
 
   private void setupConnectorWriter() {
+    if (tableName == null && tableNameTranspose == null)
+      return;
+
     ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeeperHost);
     if (timeout != -1)
       cc = cc.withZkTimeout(timeout);

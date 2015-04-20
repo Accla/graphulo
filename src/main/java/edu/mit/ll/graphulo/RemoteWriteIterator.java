@@ -225,6 +225,10 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     if (source == null)
       throw new IllegalArgumentException("source must be specified");
 
+    Watch<Watch.PerfSpan> watch = Watch.getInstance();
+    watch.resetAll();
+    System.out.println("reset watch at RemoteWriteIterator init");
+
     parseOptions(map);
 
     if (!(source instanceof SaveStateIterator)) {
@@ -278,7 +282,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
   @Override
   protected void finalize() throws Throwable {
-    log.info("finalize() called on RemoteWriteIterator for table " + tableName);
+    log.info("finalize() RemoteWriteIterator " + tableName);
+    System.out.println("finalize() RemoteWriteIterator " + tableName);
     if (writerAll != null)
       writerAll.close();
     else {
@@ -293,6 +298,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     log.debug("RemoteWriteIterator on table " + tableName + ": about to seek() to range " + range);
+//    System.out.println("RemoteWrite seek "+range);
     source.seek(range, columnFamilies, inclusive);
     if (range.getStartKey() != null && range.getStartKey().compareTo(lastKeyEmitted) > 0)
       lastKeyEmitted.set(range.getStartKey());
@@ -372,6 +378,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
             + (m == null ? "none added so far (?)" : "last one added is " + m), e);
       } finally {
         watch.stop(Watch.PerfSpan.WriteFlush);
+        watch.print();
       }
     }
   }

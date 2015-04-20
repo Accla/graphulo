@@ -192,6 +192,21 @@ public class Graphulo implements IGraphulo {
     }
   }
 
+  public void addAllSumCombiner(String table) {
+    GraphuloUtil.addCombiner(connector.tableOperations(), table, log);
+  }
+
+  public void Compact(String table) {
+    System.out.println("Compacting "+table+"...");
+    try {
+      connector.tableOperations().compact(table,null,null,true,true);
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      log.error("error trying to compact " + table, e);
+    } catch (TableNotFoundException e) {
+      log.error("", e);
+    }
+  }
+
   @Override
   public void TableCopyFilter(String table, String tableCopy, String tableTranspose,
                               Collection<Range> rowFilter, String colFilter,
@@ -304,10 +319,14 @@ public class Graphulo implements IGraphulo {
     IteratorSetting itset = new IteratorSetting(4, RemoteWriteIterator.class, opt);
     bs.addScanIterator(itset);
 
+    long degTime=0, scanTime=0;
     for (int thisk = 1; thisk <= k; thisk++) {
       System.out.println("k="+thisk+" before filter" +
           (vktexts.size() > 5 ? " #="+String.valueOf(vktexts.size()) : ": "+vktexts.toString()));
+      long t1 = System.currentTimeMillis(), dur;
       vktexts = filterTextsDegreeTable(ADegtable, degColumnText, degInColQ, minDegree, maxDegree, vktexts);
+      dur = System.currentTimeMillis()-t1; degTime += dur;
+      System.out.println("Degree Lookup Time: "+dur+" ms");
       System.out.println("k="+thisk+" after  filter" +
           (vktexts.size() > 5 ? " #="+String.valueOf(vktexts.size()) : ": "+vktexts.toString()));
       if (vktexts.isEmpty())
@@ -315,6 +334,7 @@ public class Graphulo implements IGraphulo {
       bs.setRanges(GraphuloUtil.textsToRanges(vktexts));
       Collection<Text> uktexts = new HashSet<>();
 
+      long t2 = System.currentTimeMillis();
       for (Map.Entry<Key, Value> entry : bs) {
 //        System.out.println("A Entry: "+entry.getKey() + " -> " + entry.getValue());
         for (String uk : (HashSet<String>) SerializationUtils.deserialize(entry.getValue().get())) {
@@ -322,39 +342,43 @@ public class Graphulo implements IGraphulo {
         }
 
       }
+      dur = System.currentTimeMillis()-t1; scanTime += dur;
+      System.out.println("BatchScan/Iterator Time: "+dur+" ms");
       vktexts = uktexts;
     }
+    System.out.println("Total Degree Lookup Time: "+degTime+" ms");
+    System.out.println("Total BatchScan/Iterator Time: "+scanTime+" ms");
 
     bs.close();
     // Better strategy if using Rtable and RtableTranspose: start flush on tables, then unblock when both finish
-    if (Rtable != null) {
-      try {
-        long st = System.currentTimeMillis();
-        tops.flush(Rtable, null, null, true);
-        System.out.println("flush " + Rtable + " time: " + (System.currentTimeMillis() - st) + " ms");
-      } catch (TableNotFoundException e) {
-        log.error("impossible", e);
-        throw new RuntimeException(e);
-      } catch (AccumuloSecurityException | AccumuloException e) {
-        log.error("error while flushing " + Rtable);
-        throw new RuntimeException(e);
-      }
-      GraphuloUtil.removeCombiner(tops, Rtable, log);
-    }
-    if (RtableTranspose != null) {
-      try {
-        long st = System.currentTimeMillis();
-        tops.flush(RtableTranspose, null, null, true);
-        System.out.println("flush " + RtableTranspose + " time: " + (System.currentTimeMillis() - st) + " ms");
-      } catch (TableNotFoundException e) {
-        log.error("impossible", e);
-        throw new RuntimeException(e);
-      } catch (AccumuloSecurityException | AccumuloException e) {
-        log.error("error while flushing " + RtableTranspose);
-        throw new RuntimeException(e);
-      }
-      GraphuloUtil.removeCombiner(tops, RtableTranspose, log);
-    }
+//    if (Rtable != null) {
+//      try {
+//        long st = System.currentTimeMillis();
+//        tops.flush(Rtable, null, null, true);
+//        System.out.println("flush " + Rtable + " time: " + (System.currentTimeMillis() - st) + " ms");
+//      } catch (TableNotFoundException e) {
+//        log.error("impossible", e);
+//        throw new RuntimeException(e);
+//      } catch (AccumuloSecurityException | AccumuloException e) {
+//        log.error("error while flushing " + Rtable);
+//        throw new RuntimeException(e);
+//      }
+//      GraphuloUtil.removeCombiner(tops, Rtable, log);
+//    }
+//    if (RtableTranspose != null) {
+//      try {
+//        long st = System.currentTimeMillis();
+//        tops.flush(RtableTranspose, null, null, true);
+//        System.out.println("flush " + RtableTranspose + " time: " + (System.currentTimeMillis() - st) + " ms");
+//      } catch (TableNotFoundException e) {
+//        log.error("impossible", e);
+//        throw new RuntimeException(e);
+//      } catch (AccumuloSecurityException | AccumuloException e) {
+//        log.error("error while flushing " + RtableTranspose);
+//        throw new RuntimeException(e);
+//      }
+//      GraphuloUtil.removeCombiner(tops, RtableTranspose, log);
+//    }
     return GraphuloUtil.textsToD4mString(vktexts, v0.isEmpty() ? ',' : v0.charAt(v0.length()-1));
   }
 

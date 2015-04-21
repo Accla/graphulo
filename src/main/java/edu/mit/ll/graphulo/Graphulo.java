@@ -316,8 +316,7 @@ public class Graphulo implements IGraphulo {
       log.error("impossible", e);
       throw new RuntimeException(e);
     }
-    IteratorSetting itset = new IteratorSetting(4, RemoteWriteIterator.class, opt);
-    bs.addScanIterator(itset);
+
 
     long degTime=0, scanTime=0;
     for (int thisk = 1; thisk <= k; thisk++) {
@@ -331,9 +330,15 @@ public class Graphulo implements IGraphulo {
           (vktexts.size() > 5 ? " #="+String.valueOf(vktexts.size()) : ": "+vktexts.toString()));
       if (vktexts.isEmpty())
         break;
-      bs.setRanges(GraphuloUtil.textsToRanges(vktexts));
-      Collection<Text> uktexts = new HashSet<>();
 
+//      bs.setRanges(GraphuloUtil.textsToRanges(vktexts));
+      bs.setRanges(Collections.singleton(new Range()));
+      opt.put("rowRanges",GraphuloUtil.textsToD4mString(vktexts, v0.isEmpty() ? '\n' : v0.charAt(v0.length()-1)));
+      bs.clearScanIterators();
+      IteratorSetting itset = new IteratorSetting(4, RemoteWriteIterator.class, opt);
+      bs.addScanIterator(itset);
+
+      Collection<Text> uktexts = new HashSet<>();
       long t2 = System.currentTimeMillis();
       for (Map.Entry<Key, Value> entry : bs) {
 //        System.out.println("A Entry: "+entry.getKey() + " -> " + entry.getValue());
@@ -342,7 +347,7 @@ public class Graphulo implements IGraphulo {
         }
 
       }
-      dur = System.currentTimeMillis()-t1; scanTime += dur;
+      dur = System.currentTimeMillis()-t2; scanTime += dur;
       System.out.println("BatchScan/Iterator Time: "+dur+" ms");
       vktexts = uktexts;
     }

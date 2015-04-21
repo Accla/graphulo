@@ -56,29 +56,37 @@ public class GraphuloUtil {
     return res;
   }
 
+  private static final SortedSet<Range> SETINFRNG;
+  static {
+    SortedSet<Range> tmp = new TreeSet<>();
+    tmp.add(new Range());
+    SETINFRNG = Collections.unmodifiableSortedSet(tmp);
+  }
+
   /**
    * Convert D4M string representation of rows to Ranges.
    * Last character in the string is an arbitrary separator char
    * that must not appear in the rows. The ':' cannot appear in rows either.
    * See UtilTest for more test cases.
+   * Does not merge overlapping ranges.
    *
    * @param rowStr Ex: ':,r1,r3,r5,:,r7,r9,:,'
    * @return Ex: (-Inf,r1] [r3,r3) [r5,r7] [r9,+Inf)
    */
-  public static Collection<Range> d4mRowToRanges(String rowStr) {
+  public static SortedSet<Range> d4mRowToRanges(String rowStr) {
     if (rowStr == null || rowStr.isEmpty())
-      return Collections.emptySet();
+      return new TreeSet<>();
     // could write my own version that does not do regex, but probably not worth optimizing
     String[] rowStrSplit = rowStr.substring(0, rowStr.length() - 1)
         .split(String.valueOf(rowStr.charAt(rowStr.length() - 1)));
     //if (rowStrSplit.length == 1)
     List<String> rowStrList = Arrays.asList(rowStrSplit);
     PeekingIterator3<String> pi = new PeekingIterator3<>(rowStrList.iterator());
-    Set<Range> rngset = new HashSet<>();
+    SortedSet<Range> rngset = new TreeSet<>();
 
     if (pi.peekFirst().equals(":")) { // (-Inf,
       if (pi.peekSecond() == null) {
-        return Collections.singleton(new Range()); // (-Inf,+Inf)
+        return SETINFRNG; // (-Inf,+Inf)
       } else {
         if (pi.peekSecond().equals(":") || (pi.peekThird() != null && pi.peekThird().equals(":")))
           throw new IllegalArgumentException("Bad D4M rowStr: " + rowStr);
@@ -114,6 +122,68 @@ public class GraphuloUtil {
     return rngset;
   }
 
+  public static String rangesToD4MString(Collection<Range> ranges) {
+    return rangesToD4MString(ranges, '\t');
+  }
+
+  public static String rangesToD4MString(Collection<Range> ranges, char sep) {
+    if (ranges == null || ranges.isEmpty())
+      return "";
+    ranges = Range.mergeOverlapping(ranges);
+    StringBuilder sb = new StringBuilder();
+    String infEnd = null;
+    for (Range range : ranges) {
+      if (range.isInfiniteStartKey() && range.isInfiniteStopKey())
+        return sb.append(':').append(sep).toString();
+      else if (range.isInfiniteStartKey()) {
+        String endRow = normalizeEndRow(range); assert endRow != null;
+        sb.insert(0, ":" + sep+endRow+sep);
+      } else if (range.isInfiniteStopKey()) {
+        infEnd = normalizeStartRow(range); assert infEnd != null;
+      } else {
+        String startRow = normalizeStartRow(range),
+            endRow = normalizeEndRow(range);
+        assert startRow != null && endRow != null;
+        if (startRow.equals(endRow))
+          sb.append(startRow).append(sep);
+        else
+          sb.append(startRow).append(sep).append(':').append(sep).append(endRow).append(sep);
+      }
+    }
+    if (infEnd != null)
+      sb.append(infEnd).append(sep).append(':').append(sep);
+    return sb.toString();
+  }
+
+  private static String normalizeStartRow(Range range) {
+    Key startKey = range.getStartKey();
+    if (startKey == null)
+      return null;
+    String startRow = new String(startKey.getRowData().getBackingArray());
+    if (!range.isStartKeyInclusive())
+      return startRow+'\0';
+    else
+      return startRow;
+  }
+
+  private static String normalizeEndRow(Range range) {
+    Key endKey = range.getEndKey();
+    if (endKey == null)
+      return null;
+    String endRow = new String(endKey.getRowData().getBackingArray());
+    if (!range.isEndKeyInclusive())
+      return prevRow(endRow);
+    else
+      return endRow;
+  }
+
+  private static String prevRow(String row) {
+    if (row.charAt(row.length()-1) == '\0')
+      return row.substring(0,row.length()-1);
+    else
+      return row.substring(0,row.length()-1)+ (char)((int)row.charAt(row.length()-1)-1);
+  }
+
   /**
    * Convert D4M string representation of individual rows/columns to Text objects.
    * No ':' character allowed!
@@ -140,7 +210,7 @@ public class GraphuloUtil {
   }
 
   public static String textsToD4mString(Collection<Text> texts) {
-    return textsToD4mString(texts, ',');
+    return textsToD4mString(texts, '\t');
   }
 
   public static String textsToD4mString(Collection<Text> texts, char sep) {

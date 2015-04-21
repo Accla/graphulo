@@ -137,13 +137,20 @@ public class Graphulo implements IGraphulo {
       log.error("impossible", e);
       throw new RuntimeException(e);
     }
+
+
+    if (rowFilter != null && !rowFilter.isEmpty()) {
+      if (Ctable != null) {
+        opt.put("C.rowRanges", GraphuloUtil.rangesToD4MString(rowFilter)); // translate row filter to D4M notation
+        bs.setRanges(Collections.singleton(new Range()));
+      } else
+        bs.setRanges(rowFilter);
+    } else
+      bs.setRanges(Collections.singleton(new Range()));
+
     // TODO P2: Assign priority and name dynamically, checking for conflicts.
     IteratorSetting itset = new IteratorSetting(2, TableMultIterator.class, opt);
     bs.addScanIterator(itset);
-
-    if (rowFilter == null || rowFilter.isEmpty())
-      rowFilter = Collections.singleton(new Range());
-    bs.setRanges(rowFilter);
 
     if (colFilterB != null)
       for (Text text : GraphuloUtil.d4mRowToTexts(colFilterB)) {
@@ -164,21 +171,21 @@ public class Graphulo implements IGraphulo {
     }
     bs.close();
 
-    // flush
-    if (Ctable != null) {
-      try {
-        long st = System.currentTimeMillis();
-        tops.flush(Ctable, null, null, true);
-        System.out.println("flush " + Ctable + " time: " + (System.currentTimeMillis() - st) + " ms");
-      } catch (TableNotFoundException e) {
-        log.error("impossible", e);
-        throw new RuntimeException(e);
-      } catch (AccumuloSecurityException | AccumuloException e) {
-        log.error("error while flushing " + Ctable);
-        throw new RuntimeException(e);
-      }
-      GraphuloUtil.removeCombiner(tops, Ctable, log);
-    }
+//    // flush
+//    if (Ctable != null) {
+//      try {
+//        long st = System.currentTimeMillis();
+//        tops.flush(Ctable, null, null, true);
+//        System.out.println("flush " + Ctable + " time: " + (System.currentTimeMillis() - st) + " ms");
+//      } catch (TableNotFoundException e) {
+//        log.error("impossible", e);
+//        throw new RuntimeException(e);
+//      } catch (AccumuloSecurityException | AccumuloException e) {
+//        log.error("error while flushing " + Ctable);
+//        throw new RuntimeException(e);
+//      }
+//      GraphuloUtil.removeCombiner(tops, Ctable, log);
+//    }
 
   }
 

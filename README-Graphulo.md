@@ -68,12 +68,14 @@ Graphulo graphulo = new Graphulo(connector, PASSWORD_TOKEN);
 graphulo.AdjBFS("Atable", v0, 3, "Rtable", null, "ADegtable", "deg", false, 5, 15);
 ```
 
+## Using from Matlab
 
 ### Installing into Matlab D4M
 1. Copy `d4m_api_java/target/d4m_api_java-VERSION.jar` into `d4m_api/lib`.
 2. Extract target/libext-VERSION.zip into `d4m_api`.
 3. Move `d4m_api/DBinit.m` into `d4m_api/matlab_src`.
 
+### Using in Matlab client code
 The following code snippet is a good starting point for using Graphulo,
 assuming the D4M libraries are also installed:
 

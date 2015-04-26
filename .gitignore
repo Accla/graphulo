@@ -5,7 +5,7 @@
 #/*.iml
 
 ## Directory-based project format:
-#.idea/
+.idea/
 # if you remove the above rule, at least ignore the follwing:
 
 # User-specific stuff:
@@ -80,3 +80,6 @@ local.properties
 
 # TeXlipse plugin
 .texlipse
+
+# shippable results
+shippable/

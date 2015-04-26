@@ -17,8 +17,7 @@ public class InjectIterator extends BranchIterator implements OptionDescriber {
 
   @Override
   public SortedKeyValueIterator<Key, Value> initBranchIterator(Map<String, String> options, IteratorEnvironment env) throws IOException {
-
-    return new BadHardListIterator();
+    return new HardListIterator();
 //        side.init(null, null, env);
 //        env.registerSideChannel( side );
   }

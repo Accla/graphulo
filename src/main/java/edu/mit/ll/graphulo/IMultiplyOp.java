@@ -10,8 +10,7 @@ import java.math.BigDecimal;
 import java.util.Map;
 
 /**
- * Multiplication operation on 2 entries from table AT and B that match on their row in the outer product.
- * Respects order for non-commutative operations.
+ * Multiplication operation on 2 entries. Respects order for non-commutative operations.
  */
 public interface IMultiplyOp {
   /** Useful for ignoring column visibility. */

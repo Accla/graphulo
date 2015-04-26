@@ -8,8 +8,6 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
-import org.apache.accumulo.trace.instrument.Span;
-import org.apache.accumulo.trace.instrument.Trace;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -17,8 +15,8 @@ import java.io.IOException;
 import java.util.*;
 
 /**
- * A parent class for custom computation merged into a regular SKVI stack.
- * Child classes should return the iterator for their computation via initBranchIterator(options).
+ * An abstract parent class for custom computation merged into a regular SKVI stack.
+ * Handles turning performance timing on and off.
  */
 public abstract class BranchIterator implements SortedKeyValueIterator<Key, Value> {
   private static final Logger log = LogManager.getLogger(BranchIterator.class);
@@ -122,7 +120,7 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key, Valu
   }
 
   @Override
-  public SortedKeyValueIterator<Key, Value> deepCopy(IteratorEnvironment env) {
+  public BranchIterator deepCopy(IteratorEnvironment env) {
     BranchIterator copy;
     try {
       copy = this.getClass().newInstance();

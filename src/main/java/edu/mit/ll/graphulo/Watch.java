@@ -6,12 +6,12 @@ import org.apache.log4j.Logger;
 import java.util.EnumMap;
 
 /**
- * Spans and counters. For measuring performance.
+ * For measuring performance: spans and counters.
  * Based on {@link org.apache.accumulo.core.util.StopWatch}.
  */
 public class Watch<K extends Enum<K>> {
   private static final Logger log = LogManager.getLogger(Watch.class);
-  public static boolean enableTrace = true;
+  public static volatile boolean enableTrace = true;
 
   static {
     log.info("Loading Watch");
@@ -33,10 +33,50 @@ public class Watch<K extends Enum<K>> {
       };
 
   public static Watch<PerfSpan> getInstance() {
-    return enableTrace ? ThreadWatches.get() : instance;
+    return enableTrace ? ThreadWatches.get() : noop_instance;
   }
 
-  private static final Watch<PerfSpan> instance = new Watch<>(PerfSpan.class);
+  private static final Watch<PerfSpan> noop_instance = new Watch<PerfSpan>(PerfSpan.class) {
+    @Override
+    public synchronized void start(PerfSpan timer) {
+
+    }
+
+    @Override
+    public synchronized void stopIfActive(PerfSpan timer) {
+
+    }
+
+    @Override
+    public synchronized void stop(PerfSpan timer) {
+
+    }
+
+    @Override
+    public synchronized void increment(PerfSpan counter, long amount) {
+
+    }
+
+    @Override
+    public synchronized void reset(PerfSpan timer) {
+
+    }
+
+    @Override
+    public synchronized void resetAll() {
+
+    }
+
+    @Override
+    public synchronized Stats get(PerfSpan timer) {
+      return null;
+    }
+
+    @Override
+    public synchronized void print() {
+
+    }
+  };
 
   static class Stats {
     public long total=0, count=0, min=Long.MAX_VALUE, max=Long.MIN_VALUE;

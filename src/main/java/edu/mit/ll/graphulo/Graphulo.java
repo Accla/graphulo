@@ -17,7 +17,7 @@ import java.nio.ByteBuffer;
 import java.util.*;
 
 /**
- * Graphulo operation implementation.
+ * Holds a {@link org.apache.accumulo.core.client.Connector} to an Accumulo instance for calling core client Graphulo operations.
  */
 public class Graphulo implements IGraphulo {
   private static final Logger log = LogManager.getLogger(Graphulo.class);

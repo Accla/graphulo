@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.util.*;
 
 /**
- * Adds option to filter out small rows. Extension of {@link org.apache.accumulo.core.iterators.user.LargeRowFilter}.
+ * Used for on-the-fly degree filtering with min and max degree. Extension of {@link org.apache.accumulo.core.iterators.user.LargeRowFilter}.
  */
 public class SmallLargeRowFilter implements SortedKeyValueIterator<Key, Value>, OptionDescriber {
 

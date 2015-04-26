@@ -18,6 +18,9 @@ import org.junit.runners.Suite;
     BFSTest.class
 })
 
+/**
+ * Holds test configurations; default test suite for JUnit testing.
+ */
 public class TEST_CONFIG {
   private static final Logger log = LogManager.getLogger(TEST_CONFIG.class);
   /**

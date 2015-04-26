@@ -17,7 +17,7 @@
     </organization>
     <licenses>
         <license>
-            <name>GNU General Public License, Version 3</name>
+            <name>GNU General Public License, Version 2</name>
             <url>https://www.gnu.org/licenses/gpl.html</url>
             <comments>Yep, we're open source. Please cite where credit is due.</comments>
         </license>

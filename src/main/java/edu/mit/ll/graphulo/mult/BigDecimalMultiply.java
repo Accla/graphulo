@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 import java.util.Map;
 
 /**
- * Decode the values as BigDecimal objects, multiply and re-encode the result.
+ * Decode values as BigDecimal objects, multiply and re-encode the result.
  */
 public class BigDecimalMultiply implements IMultiplyOp {
     private static TypedValueCombiner.Encoder<BigDecimal> encoder = new BigDecimalCombiner.BigDecimalEncoder();

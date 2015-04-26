@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.util.*;
 
 /**
- * A wrapper making a list of hardcoded data into a SKVI. For testing.
+ * For testing; an iterator that emits entries from a list of hardcoded data.
  */
 public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
     final static SortedMap<Key,Value> allEntriesToInject;

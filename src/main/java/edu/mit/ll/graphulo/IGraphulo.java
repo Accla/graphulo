@@ -41,7 +41,7 @@ public interface IGraphulo {
    * @param colFilter     Column qualifier subset of original table, restricted to not allow ranges.
    * @param minDegree     Optional. Minimum out-degree.
    * @param maxDegree     Optional. Maximum out-degree.
-   * @param streamUniqueCols Stream back a set of the unique columns found in the original table.
+   * @param gatherColQs Stream back a set of the unique columns found in the original table.
    */
   void TableCopyFilter(String table, String tableCopy, String tableTranspose,
                  Collection<Range> rowFilter, String colFilter,

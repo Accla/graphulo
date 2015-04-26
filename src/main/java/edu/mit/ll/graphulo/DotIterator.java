@@ -5,7 +5,6 @@ import org.apache.accumulo.core.data.*;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.system.ColumnQualifierFilter;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
@@ -15,8 +14,9 @@ import java.io.IOException;
 import java.util.*;
 
 /**
- * Outer product. Emits partial products. Configure two remote sources for tables AT and B,
- * or configure one remote source and use the source as the other one.
+ * Multiply step of outer product, emitting partial products.
+ * Configure two remote sources for tables AT and B,
+ * or configure one remote source and use the parent source as the other one.
  * <p/>
  * Table of behavior given options for AT, options for B and a parent source iterator.
  * <table>

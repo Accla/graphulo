@@ -14,80 +14,84 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 
+/**
+ * For debugging; sends information about iterator calls to log4j at INFO level.
+ */
 public class DebugInfoIterator extends WrappingIterator implements OptionDescriber {
 
-    private String prefix;
+  private String prefix;
 
-    private static final Logger log = Logger.getLogger(DebugInfoIterator.class);
+  private static final Logger log = Logger.getLogger(DebugInfoIterator.class);
 
-    public DebugInfoIterator() {}
+  public DebugInfoIterator() {
+  }
 
-    public DebugInfoIterator deepCopy(IteratorEnvironment env) {
-        return new DebugInfoIterator(this, env);
+  public DebugInfoIterator deepCopy(IteratorEnvironment env) {
+    return new DebugInfoIterator(this, env);
+  }
+
+  private DebugInfoIterator(DebugInfoIterator other, IteratorEnvironment env) {
+    setSource(other.getSource().deepCopy(env));
+    prefix = other.prefix;
+  }
+
+  public DebugInfoIterator(String prefix, SortedKeyValueIterator<Key, Value> source) {
+    this.prefix = prefix;
+    this.setSource(source);
+  }
+
+  @Override
+  public Key getTopKey() {
+    Key wc = super.getTopKey();
+    log.info(prefix + " getTopKey() --> " + wc);
+    return wc;
+  }
+
+  @Override
+  public Value getTopValue() {
+    Value w = super.getTopValue();
+    log.info(prefix + " getTopValue() --> " + w);
+    return w;
+  }
+
+  @Override
+  public boolean hasTop() {
+    boolean b = super.hasTop();
+    log.info(prefix + " hasTop() --> " + b);
+    return b;
+  }
+
+  @Override
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+    log.info(prefix + " seek(" + range + ", " + columnFamilies + ", " + inclusive + ")");
+    super.seek(range, columnFamilies, inclusive);
+  }
+
+  @Override
+  public void next() throws IOException {
+    log.info(prefix + " next()");
+    super.next();
+  }
+
+  @Override
+  public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
+    log.info("init(" + source + ", " + options + ", " + env + ")");
+
+    if (null == prefix) {
+      prefix = String.format("0x%08X", this.hashCode());
     }
 
-    private DebugInfoIterator(DebugInfoIterator other, IteratorEnvironment env) {
-        setSource(other.getSource().deepCopy(env));
-        prefix = other.prefix;
-    }
+    super.init(source, options, env);
+  }
 
-    public DebugInfoIterator(String prefix, SortedKeyValueIterator<Key,Value> source) {
-        this.prefix = prefix;
-        this.setSource(source);
-    }
+  @Override
+  public IteratorOptions describeOptions() {
+    return new IteratorOptions("debug", DebugInfoIterator.class.getSimpleName() + " prints INFO information on each SortedKeyValueIterator method invocation", null, null);
+  }
 
-    @Override
-    public Key getTopKey() {
-        Key wc = super.getTopKey();
-        log.info(prefix + " getTopKey() --> " + wc);
-        return wc;
-    }
-
-    @Override
-    public Value getTopValue() {
-        Value w = super.getTopValue();
-        log.info(prefix + " getTopValue() --> " + w);
-        return w;
-    }
-
-    @Override
-    public boolean hasTop() {
-        boolean b = super.hasTop();
-        log.info(prefix + " hasTop() --> " + b);
-        return b;
-    }
-
-    @Override
-    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-        log.info(prefix + " seek(" + range + ", " + columnFamilies + ", " + inclusive + ")");
-        super.seek(range, columnFamilies, inclusive);
-    }
-
-    @Override
-    public void next() throws IOException {
-        log.info(prefix + " next()");
-        super.next();
-    }
-
-    @Override
-    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
-        log.info("init(" + source + ", " + options + ", " + env + ")");
-
-        if (null == prefix) {
-            prefix = String.format("0x%08X", this.hashCode());
-        }
-
-        super.init(source, options, env);
-    }
-
-    @Override
-    public IteratorOptions describeOptions() {
-        return new IteratorOptions("debug", DebugInfoIterator.class.getSimpleName() + " prints INFO information on each SortedKeyValueIterator method invocation", null, null);
-    }
-
-    @Override
-    public boolean validateOptions(Map<String,String> options) {
-        return true;
-    }
+  @Override
+  public boolean validateOptions(Map<String, String> options) {
+    return true;
+  }
 }
 

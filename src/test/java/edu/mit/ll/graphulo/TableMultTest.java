@@ -1,12 +1,14 @@
 package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.mult.BigDecimalMultiply;
+import edu.mit.ll.graphulo.mult.LongMultiply;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import edu.mit.ll.graphulo.util.TestUtil;
 import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
@@ -69,7 +71,7 @@ public class TableMultTest extends AccumuloTestBase {
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     graphulo.TableMult(tAT, tB, tC,
-        BigDecimalMultiply.class, BigDecimalCombiner.BigDecimalSummingCombiner.class,
+        LongMultiply.class, LongCombiner.class,
         null, null, null, 1, true);
 
     Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);

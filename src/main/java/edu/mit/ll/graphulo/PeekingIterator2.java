@@ -5,7 +5,7 @@ import org.apache.accumulo.core.util.PeekingIterator;
 import java.util.Iterator;
 
 /**
- * Cache two entries.
+ * Caches two entries.
  */
 public class PeekingIterator2<E> implements Iterator<E> {
 //  private final Iterator<E> source;

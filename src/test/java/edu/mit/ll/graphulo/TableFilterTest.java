@@ -16,7 +16,7 @@ import org.junit.Test;
 import java.util.*;
 
 /**
- * Test {@link SmallLargeRowFilter} and {@link Graphulo#TableCopyFilter}
+ * Test {@link SmallLargeRowFilter}. Later: {@link Graphulo#TableCopyFilter}
  */
 public class TableFilterTest extends AccumuloTestBase {
   private static final Logger log = LogManager.getLogger(TableFilterTest.class);

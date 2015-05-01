@@ -109,7 +109,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     optDesc.put("gatherColQs", "(default false) gather set of unique column qualifiers passed in and send back all of them at the end");
     optDesc.put("rowRanges", "(optional) rows to seek to");
     iteratorOptions = new IteratorOptions("RemoteWriteIterator",
-        "Write to a remote Accumulo table. hasTop() is always false.",
+        "Write to a remote Accumulo table.",
         Collections.unmodifiableMap(optDesc), null);
   }
 

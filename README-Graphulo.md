@@ -84,8 +84,75 @@ G = DBaddJavaOps('edu.mit.ll.graphulo.MatlabGraphulo','instance','localhost:2181
 res = G.AdjBFS('Atable','v0;v7;v9;',3,'Rtable','','ADegtable','OutDeg',false,5,15);
 ```
 
+## Implementation
 
-## Graphulo Files
+### GraphBLAS mapping
+* SpGEMM uses TwoTableIterator connected to a RemoteSourceIterator on table AT and a local iterator on table B.
+TwoTableIterator configured with ROW_CARTESIAN_PRODUCT and emitNoMatchEntries=false.
+* SpEWiseX uses TwoTableIterator connected to a RemoteSourceIterator on table A and a local iterator on table B.
+TwoTableIterator configured with ROW_COLF_COLQ_MATCH and emitNoMatchEntries=false.
+* SpEWiseSum uses TwoTableIterator connected to a RemoteSourceIterator on table A and a local iterator on table B.
+TwoTableIterator configured with no multiplication and emitNoMatchEntries=true.
+PreSumCacheIterator is important for efficiency.
+* Sparse -- insert from client to table.
+* Find -- scan from table to table.
+* SpRef -- use RemoteWriteIterator with rowRanges and colFilter to output results to another table.
+* SpAsgn -- unimplemented.
+* Apply -- use an iterator with the function to apply + RemoteWriteIterator.
+* Reduce -- use an iterator that does the reduction (say, count the number of columns in a row) 
+and either send to client or to a RemoteWriteIterator.
+
+
+### Iterators
+
+##### RemoteSourceIterator
+* `rowRanges` Row ranges to fetch from remote Accumulo table, Matlab syntax. (default ":" all) 
+* `colFilter` String representation of column qualifiers, e.g. "a,b,c," (default "" = no filter) (no ranges allowed) 
+Future: allow ranges and [Filter](https://accumulo.apache.org/1.6/apidocs/org/apache/accumulo/core/iterators/Filter.html) them
+* `zookeeperHost` Address and port, e.g. "localhost:2181". Future: extract from Accumulo config if not provided
+* `timeout` Zookeeper timeout between 1000 and 300000 (default 1000). Future: extract from Accumulo config if not provided
+* `instanceName`
+* `tableName`
+* `username`
+* `password` Anyone who can read the Accumulo table config or log files will see the password in plaintext.
+* `iter.7` Class name of an iterator to place on the remote table scan, running on the remote Accumulo server at the specified priority. 
+Run as many as desired, each with its own priority.
+* `iter.7.type` e.g. "STRING". An option supplied to the LongCombiner iterator.
+
+##### TwoTableIterator
+* `B. ... ` All the options of RemoteSourceIterator, to read table A from a remote Accumulo table. 
+Don't specify when operating on a single table.
+* `(A/B).emitNoMatchEntries` Both false for multiply (intersection of entries); both true for sum (union of entries)
+* `dot` Either "ROW_CARTESIAN_PRODUCT" or "ROW_COLF_COLQ_MATCH" or nothing.
+* `multiplyOp` Name of class that implements IMultiplyOp. 
+
+##### Future: PreSumCacheIterator
+* `combiner` Name of class for "pre-summing" entries.
+* `size` in bytes or entries?
+
+##### RemoteWriteIterator
+* `updater` Used to "collect" something to send to the client. Name of class that implements `KVUpdater` interface. 
+The final state of the updater is sent to the client once the scan finishes,
+or when at a checkpoint. (Updater must be capable of being sent in parts to the client in this case.)
+* `checkpointNumEntries` Assume safe time to checkpoint is at the end of a row. Agh-- how to know the end of a row? 
+Okay--- sacrifice minor, minor, minor performance for switching at the beginning of the next row.
+* `checkpointTime` (in milliseconds) More useful than NumEntries.
+* `tableName`
+* `tableNameTranspose`
+
+
+
+
+##### Other places to use iterators
+* Can place an iterator before a TwoTableIterator (meaning lower priority), which runs on data from the local table 
+before passing to the TwoTableIterator. Useful:
+  * `SmallLargeRowFilter` Filter out too rows with too few or too many entries.
+* Can place an iterator after a TwoTableIterator (meaning higher priority). Useful iterators:
+  * `emitEmptyEntries` Choose whether to emit entries with a Value of an empty byte array ""
+  * `emitZeroEntries` Choose whether to emit entries with a Value encoding "0"
+
+
+### Graphulo Files
 The `d4m_api_java/src/main/resources` subdirectory contains files that are copied into the 
 `d4m_api_java-VERSION.jar` build.
 Of note, the `log4j.xml` file defines logging performed by Matlab.

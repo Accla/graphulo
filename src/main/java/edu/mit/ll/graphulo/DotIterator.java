@@ -5,7 +5,7 @@ import org.apache.accumulo.core.data.*;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.util.PeekingIterator;
+
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -364,14 +364,14 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
   /** Emits Cartesian product of provided iterators, passed to multiply function. */
   static class CartesianDotIter implements Iterator<Map.Entry<Key, Value>> {
     private SortedMap<Key, Value> ArowMap, BrowMap;
-    private PeekingIterator<Map.Entry<Key, Value>> ArowMapIter;
+    private PeekingIterator1<Map.Entry<Key, Value>> ArowMapIter;
     private Iterator<Map.Entry<Key, Value>> BrowMapIter;
     private IMultiplyOp multiplyOp;
 
     public CartesianDotIter(SortedMap<Key, Value> arowMap, SortedMap<Key, Value> browMap, IMultiplyOp multiplyOp) {
       ArowMap = arowMap;
       BrowMap = browMap;
-      ArowMapIter = new PeekingIterator<>(ArowMap.entrySet().iterator());
+      ArowMapIter = new PeekingIterator1<>(ArowMap.entrySet().iterator());
       BrowMapIter = BrowMap.entrySet().iterator();
       this.multiplyOp = multiplyOp;
     }

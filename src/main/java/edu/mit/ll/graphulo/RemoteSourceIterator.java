@@ -13,7 +13,7 @@ import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.PeekingIterator;
+
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -61,7 +61,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>,
   /**
    * Buffers one entry from the remote table.
    */
-  private PeekingIterator<Map.Entry<Key, Value>> remoteIterator;
+  private PeekingIterator1<Map.Entry<Key, Value>> remoteIterator;
 
   /**
    * Call init() after construction.
@@ -304,7 +304,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>,
    * Advance to the first subset range whose end key >= the seek start key.
    */
   public Iterator<Range> getFirstRangeStarting(Range seekRange) {
-    PeekingIterator<Range> iter = new PeekingIterator<>(rowRanges.iterator());
+    PeekingIterator1<Range> iter = new PeekingIterator1<>(rowRanges.iterator());
     while (iter.hasNext() && !iter.peek().isInfiniteStopKey()
         && ((iter.peek().getEndKey().equals(seekRange.getStartKey()) && !seekRange.isEndKeyInclusive())
         || iter.peek().getEndKey().compareTo(seekRange.getStartKey()) < 0)) {
@@ -321,7 +321,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>,
      {@link org.apache.accumulo.core.data.Range#compareTo(Range)} */
     seekRange = range;
     rowRangeIterator = getFirstRangeStarting(range); //rowRanges.tailSet(range).iterator();
-    remoteIterator = new PeekingIterator<>(java.util.Collections.<Map.Entry<Key, Value>>emptyIterator());
+    remoteIterator = new PeekingIterator1<>(java.util.Collections.<Map.Entry<Key, Value>>emptyIterator());
     next();
   }
 
@@ -359,7 +359,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>,
       if (range == null) // empty intersection - no more ranges by design
         return;
       scanner.setRange(range);
-      remoteIterator = new PeekingIterator<>(scanner.iterator());
+      remoteIterator = new PeekingIterator1<>(scanner.iterator());
     }
     // either no ranges left and we finished the current scan OR remoteIterator.hasNext()==true
     if (hasTop())

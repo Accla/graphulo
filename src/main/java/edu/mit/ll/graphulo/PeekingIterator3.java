@@ -1,6 +1,6 @@
 package edu.mit.ll.graphulo;
 
-import org.apache.accumulo.core.util.PeekingIterator;
+
 
 import java.util.Iterator;
 
@@ -9,14 +9,14 @@ import java.util.Iterator;
  */
 public class PeekingIterator3<E> implements Iterator<E> {
 //  private final Iterator<E> source;
-  private PeekingIterator<E> pThird, pSecond, pFirst;
+  private PeekingIterator1<E> pThird, pSecond, pFirst;
 //  private E top;
 
   public PeekingIterator3(Iterator<E> source) {
 //    this.source = source;
-    pThird = new PeekingIterator<>(source);
-    pSecond = new PeekingIterator<>(pThird);
-    pFirst = new PeekingIterator<>(pSecond);
+    pThird = new PeekingIterator1<>(source);
+    pSecond = new PeekingIterator1<>(pThird);
+    pFirst = new PeekingIterator1<>(pSecond);
   }
 
   @Override

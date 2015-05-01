@@ -3,7 +3,7 @@ package edu.mit.ll.graphulo;
 import org.apache.accumulo.core.data.*;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.util.PeekingIterator;
+
 import org.apache.hadoop.io.Text;
 
 import java.io.IOException;
@@ -25,7 +25,7 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
         allEntriesToInject = Collections.unmodifiableSortedMap(t); // for safety
     }
 
-    private PeekingIterator<Map.Entry<Key,Value>> inner;
+    private PeekingIterator1<Map.Entry<Key,Value>> inner;
     private Range seekRng;
 
     @Override
@@ -33,7 +33,7 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
         if (source != null)
             throw new IllegalArgumentException("HardListIterator does not take a parent source");
         // define behavior before seek as seek to start at negative infinity
-        inner = new PeekingIterator<>( allEntriesToInject.entrySet().iterator() );
+        inner = new PeekingIterator1<>( allEntriesToInject.entrySet().iterator() );
     }
 
     @Override
@@ -44,7 +44,7 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        newInstance.inner = new PeekingIterator<>( allEntriesToInject.tailMap(inner.peek().getKey()).entrySet().iterator() );
+        newInstance.inner = new PeekingIterator1<>( allEntriesToInject.tailMap(inner.peek().getKey()).entrySet().iterator() );
 
         return newInstance;
     }
@@ -67,11 +67,11 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
         seekRng = range;
         // seek to first entry inside range
         if (range.isInfiniteStartKey())
-            inner = new PeekingIterator<>( allEntriesToInject.entrySet().iterator() );
+            inner = new PeekingIterator1<>( allEntriesToInject.entrySet().iterator() );
         else if (range.isStartKeyInclusive())
-            inner = new PeekingIterator<>( allEntriesToInject.tailMap(range.getStartKey()).entrySet().iterator() );
+            inner = new PeekingIterator1<>( allEntriesToInject.tailMap(range.getStartKey()).entrySet().iterator() );
         else
-            inner = new PeekingIterator<>( allEntriesToInject.tailMap(range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME)).entrySet().iterator() );
+            inner = new PeekingIterator1<>( allEntriesToInject.tailMap(range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME)).entrySet().iterator() );
     }
 
     @Override

@@ -7,7 +7,7 @@ import org.apache.accumulo.core.data.*;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.util.PeekingIterator;
+
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -63,7 +63,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
    * Holds the current range we are scanning.
    * Goes through the part of ranges after seeking to the beginning of the seek() clip.
    */
-  private PeekingIterator<Range> rowRangeIterator;
+  private PeekingIterator1<Range> rowRangeIterator;
   private Collection<ByteSequence> seekColumnFamilies;
   private boolean seekInclusive;
 
@@ -341,8 +341,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   /**
    * Advance to the first subset range whose end key >= the seek start key.
    */
-  public static PeekingIterator<Range> getFirstRangeStarting(Range seekRange, Collection<Range> rowRanges) {
-    PeekingIterator<Range> iter = new PeekingIterator<>(rowRanges.iterator());
+  public static PeekingIterator1<Range> getFirstRangeStarting(Range seekRange, Collection<Range> rowRanges) {
+    PeekingIterator1<Range> iter = new PeekingIterator1<>(rowRanges.iterator());
     Key seekRangeStart = seekRange.getStartKey();
     if (seekRangeStart != null)
       while (iter.hasNext() && !iter.peek().isInfiniteStopKey()
@@ -377,7 +377,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
         thisTargetRange = thisTargetRange.clip(seekRange, true);
         if (thisTargetRange == null) {
           // no more of the rowRanges are in seekRange
-          rowRangeIterator = new PeekingIterator<>(Collections.<Range>emptyIterator());
+          rowRangeIterator = new PeekingIterator1<>(Collections.<Range>emptyIterator());
           break;
         }
         if (thisTargetRange.getStartKey() != null && thisTargetRange.getStartKey().compareTo(lastKeyEmitted) > 0)

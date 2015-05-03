@@ -1,5 +1,6 @@
 package edu.mit.ll.graphulo;
 
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 
 import java.util.*;
@@ -27,10 +28,30 @@ public class RangeSet {
       return new PeekingIterator1<>(targetRanges.iterator());
     else if (seekRange.isInfiniteStartKey())
       return new RangeSetIter(targetRanges.iterator(), seekRange);
-    else if (seekRange.isInfiniteStopKey())
-      return new PeekingIterator1<>(targetRanges.tailSet(seekRange).iterator());
-    else
-      return new RangeSetIter(targetRanges.tailSet(seekRange).iterator(), seekRange);
+    else {
+      // find first range whose end key >= the start key of seekRange
+      PeekingIterator1<Range> pi = getFirstRangeStarting(seekRange, targetRanges);
+      if (seekRange.isInfiniteStopKey())
+        return pi;
+      else
+        return new RangeSetIter(pi, seekRange);
+    }
+  }
+
+  /**
+   * Advance to the first subset range whose end key >= the seek start key.
+   */
+  public static PeekingIterator1<Range> getFirstRangeStarting(Range seekRange, SortedSet<Range> rowRanges) {
+    PeekingIterator1<Range> iter = new PeekingIterator1<>(rowRanges.iterator());
+    Key seekRangeStart = seekRange.getStartKey();
+    if (seekRangeStart != null)
+      while (iter.hasNext() && !iter.peek().isInfiniteStopKey()
+          && (
+          iter.peek().getEndKey().compareTo(seekRangeStart) < 0 ||
+              (iter.peek().getEndKey().equals(seekRangeStart) && !seekRange.isEndKeyInclusive())
+      ))
+        iter.next();
+    return iter;
   }
 
   private static class RangeSetIter extends PeekingIterator1<Range> {
@@ -38,6 +59,12 @@ public class RangeSet {
 
     RangeSetIter(Iterator<Range> sourceIter, Range seekRange) {
       super(sourceIter);
+      this.seekRange = seekRange;
+      super.top = super.top == null ? null : seekRange.clip(super.top, true);
+    }
+
+    RangeSetIter(PeekingIterator1<Range> sourceIter, Range seekRange) {
+      super(sourceIter.source, sourceIter.top);
       this.seekRange = seekRange;
       super.top = super.top == null ? null : seekRange.clip(super.top, true);
     }

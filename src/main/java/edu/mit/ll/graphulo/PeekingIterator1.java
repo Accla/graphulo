@@ -17,6 +17,12 @@ public class PeekingIterator1<E> implements Iterator<E> {
       top = null;
   }
 
+  /** Create a PeekingIterator1 with given starting element. */
+  public PeekingIterator1(Iterator<E> source, E top) {
+    this.source = source;
+    this.top = top;
+  }
+
   public E peek() {
     return top;
   }

@@ -86,8 +86,8 @@ public class Watch<K extends Enum<K>> {
   private EnumMap<K, Stats> totalStats;
 
   public Watch(Class<K> s) {
-    startTime = new EnumMap<K, Long>(s);
-    totalStats = new EnumMap<K, Stats>(s);
+    startTime = new EnumMap<>(s);
+    totalStats = new EnumMap<>(s);
   }
 
   public synchronized void start(K timer) {

@@ -1,5 +1,7 @@
 package edu.mit.ll.graphulo;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
@@ -264,5 +266,24 @@ public class UtilTest {
     }
   }
 
+  @Test
+  public void testRangeSet() {
+    RangeSet rs = new RangeSet();
+    Range r;
+    SortedSet<Range> targetRanges;
+
+    r = new Range("b");
+    Assert.assertEquals(r, Iterators.getOnlyElement(rs.iteratorWithRangeMask(r)));
+
+    targetRanges = new TreeSet<>();
+    targetRanges.add(new Range("b"));
+    targetRanges.add(new Range("g"));
+    rs.setTargetRanges(targetRanges);
+    r = new Range("a", "d");
+    Assert.assertEquals(targetRanges.first(), Iterators.getOnlyElement(rs.iteratorWithRangeMask(r)));
+
+    r = new Range("a", "x");
+    Assert.assertTrue(Iterators.elementsEqual(targetRanges.iterator(), rs.iteratorWithRangeMask(r)));
+  }
 
 }

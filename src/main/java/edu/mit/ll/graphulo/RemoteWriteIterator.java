@@ -57,8 +57,10 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
    * The range given by seek. Clip to this range.
    */
   private Range seekRange;
-  /** Set in options. */
-  private SortedSet<Range> rowRanges = new TreeSet<>(Collections.singleton(new Range()));
+  /**
+   * Set in options.
+   */
+  private RangeSet rowRanges = new RangeSet();
   /**
    * Holds the current range we are scanning.
    * Goes through the part of ranges after seeking to the beginning of the seek() clip.
@@ -66,7 +68,6 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   private PeekingIterator1<Range> rowRangeIterator;
   private Collection<ByteSequence> seekColumnFamilies;
   private boolean seekInclusive;
-
 
 
   /**
@@ -181,11 +182,11 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     }
     // Required options
     if ((tableName == null && tableNameTranspose == null && !gatherColQs) ||
-      ((tableName != null || tableNameTranspose != null) &&
-        (zookeeperHost == null ||
-        instanceName == null ||
-        username == null ||
-        auth == null)))
+        ((tableName != null || tableNameTranspose != null) &&
+            (zookeeperHost == null ||
+                instanceName == null ||
+                username == null ||
+                auth == null)))
       throw new IllegalArgumentException("not enough options provided");
     return true;
   }
@@ -227,7 +228,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
           break;
 
         case "rowRanges":
-          rowRanges = parseRanges(entry.getValue());
+          rowRanges.setTargetRanges(parseRanges(entry.getValue()));
           break;
 
         default:
@@ -338,22 +339,6 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     super.finalize();
   }
 
-  /**
-   * Advance to the first subset range whose end key >= the seek start key.
-   */
-  public static PeekingIterator1<Range> getFirstRangeStarting(Range seekRange, Collection<Range> rowRanges) {
-    PeekingIterator1<Range> iter = new PeekingIterator1<>(rowRanges.iterator());
-    Key seekRangeStart = seekRange.getStartKey();
-    if (seekRangeStart != null)
-      while (iter.hasNext() && !iter.peek().isInfiniteStopKey()
-          && (
-            iter.peek().getEndKey().compareTo(seekRangeStart) < 0 ||
-            (iter.peek().getEndKey().equals(seekRangeStart) && !seekRange.isEndKeyInclusive())
-          ))
-        iter.next();
-    return iter;
-  }
-
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     log.debug("RemoteWrite on table " + tableName + " passed seek(): " + range);
@@ -362,7 +347,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     seekRange = range;
     seekColumnFamilies = columnFamilies;
     seekInclusive = inclusive;
-    rowRangeIterator = getFirstRangeStarting(seekRange, rowRanges);
+    rowRangeIterator = rowRanges.iteratorWithRangeMask(seekRange);
     writeWrapper(true);
   }
 
@@ -374,12 +359,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     while (rowRangeIterator.hasNext()) {
       if (doSeekNext) {
         Range thisTargetRange = rowRangeIterator.peek();
-        thisTargetRange = thisTargetRange.clip(seekRange, true);
-        if (thisTargetRange == null) {
-          // no more of the rowRanges are in seekRange
-          rowRangeIterator = new PeekingIterator1<>(Collections.<Range>emptyIterator());
-          break;
-        }
+        assert thisTargetRange.clip(seekRange, true) != null : "problem with RangeSet iterator intersecting seekRange";
         if (thisTargetRange.getStartKey() != null && thisTargetRange.getStartKey().compareTo(lastKeyEmitted) > 0)
           lastKeyEmitted.set(thisTargetRange.getStartKey());
         log.debug("RemoteWrite actual seek " + thisTargetRange);// + "(thread " + Thread.currentThread().getName() + ")");
@@ -415,72 +395,66 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     return stoppedAtSafe;
   }
 
-  /** Return true if we stopped at a safe state with more entries to write, or
+  /**
+   * Return true if we stopped at a safe state with more entries to write, or
    * return false if no more entries to write (even if stopped at a safe state).
    */
   private boolean writeUntilSafeOrFinish() throws IOException {
-    Mutation m = null;
-//    entriesWritten = 0; moved to writeWrapper
+    Mutation m;
     Watch<Watch.PerfSpan> watch = Watch.getInstance();
-    try {
-      while (source.hasTop()) {
-        Key k = source.getTopKey();
-        Value v = source.getTopValue();
+    while (source.hasTop()) {
+      Key k = source.getTopKey();
+      Value v = source.getTopValue();
 
-        if (gatherColQs) {
-          setUniqueColQs.add(new String(k.getColumnQualifierData().getBackingArray()));
-        }
+      if (gatherColQs) {
+        setUniqueColQs.add(new String(k.getColumnQualifierData().getBackingArray()));
+      }
 
-        if (writer != null) {
-          m = new Mutation(k.getRowData().getBackingArray());
-          m.put(k.getColumnFamilyData().getBackingArray(), k.getColumnQualifierData().getBackingArray(),
-              k.getColumnVisibilityParsed(), v.get()); // no ts? System.currentTimeMillis()
-          watch.start(Watch.PerfSpan.WriteAddMut);
-          try {
-            writer.addMutation(m);
-          } catch (MutationsRejectedException e) {
-            log.warn("ignoring rejected mutations; last one added is " + m, e);
-          } finally {
-            watch.stop(Watch.PerfSpan.WriteAddMut);
-          }
-        }
-        if (writerTranspose != null) {
-          m = new Mutation(k.getColumnQualifierData().getBackingArray());
-          m.put(k.getColumnFamilyData().getBackingArray(), k.getRowData().getBackingArray(),
-              k.getColumnVisibilityParsed(), v.get()); // no ts? System.currentTimeMillis()
-          watch.start(Watch.PerfSpan.WriteAddMut);
-          try {
-            writerTranspose.addMutation(m);
-          } catch (MutationsRejectedException e) {
-            log.warn("ignoring rejected mutations; last one added is " + m, e);
-          } finally {
-            watch.stop(Watch.PerfSpan.WriteAddMut);
-          }
-        }
-
-        entriesWritten++;
-        // check to see if we can save state
-        if (numEntriesCheckpoint > 0 && entriesWritten >= numEntriesCheckpoint) {
-          Map.Entry<Key, Value> safeState = ((SaveStateIterator) source).safeState();
-          if (safeState != null) {
-            lastKeyEmitted.set(safeState.getKey());
-            return true;
-          }
-        }
-
-        watch.start(Watch.PerfSpan.WriteGetNext);
+      if (writer != null) {
+        m = new Mutation(k.getRowData().getBackingArray());
+        m.put(k.getColumnFamilyData().getBackingArray(), k.getColumnQualifierData().getBackingArray(),
+            k.getColumnVisibilityParsed(), v.get()); // no ts? System.currentTimeMillis()
+        watch.start(Watch.PerfSpan.WriteAddMut);
         try {
-          source.next();
+          writer.addMutation(m);
+        } catch (MutationsRejectedException e) {
+          log.warn("ignoring rejected mutations; last one added is " + m, e);
         } finally {
-          watch.stop(Watch.PerfSpan.WriteGetNext);
+          watch.stop(Watch.PerfSpan.WriteAddMut);
         }
       }
-      return false;
+      if (writerTranspose != null) {
+        m = new Mutation(k.getColumnQualifierData().getBackingArray());
+        m.put(k.getColumnFamilyData().getBackingArray(), k.getRowData().getBackingArray(),
+            k.getColumnVisibilityParsed(), v.get()); // no ts? System.currentTimeMillis()
+        watch.start(Watch.PerfSpan.WriteAddMut);
+        try {
+          writerTranspose.addMutation(m);
+        } catch (MutationsRejectedException e) {
+          log.warn("ignoring rejected mutations; last one added is " + m, e);
+        } finally {
+          watch.stop(Watch.PerfSpan.WriteAddMut);
+        }
+      }
 
-    } finally {
-      // MOVE THIS SECTION TO AFTER ALL SEEKS IN RANGE ARE DONE
+      entriesWritten++;
+      // check to see if we can save state
+      if (numEntriesCheckpoint > 0 && entriesWritten >= numEntriesCheckpoint) {
+        Map.Entry<Key, Value> safeState = ((SaveStateIterator) source).safeState();
+        if (safeState != null) {
+          lastKeyEmitted.set(safeState.getKey());
+          return true;
+        }
+      }
 
+      watch.start(Watch.PerfSpan.WriteGetNext);
+      try {
+        source.next();
+      } finally {
+        watch.stop(Watch.PerfSpan.WriteGetNext);
+      }
     }
+    return false;
   }
 
 

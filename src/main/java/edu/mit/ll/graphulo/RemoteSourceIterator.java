@@ -362,11 +362,11 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>,
       remoteIterator = new PeekingIterator1<>(scanner.iterator());
     }
     // either no ranges left and we finished the current scan OR remoteIterator.hasNext()==true
-    if (hasTop())
-      log.trace(tableName + " prepared next entry " + getTopKey() + " ==> "
-          + (doWholeRow ? WholeRowIterator.decodeRow(getTopKey(), getTopValue()) : getTopValue()));
-    else
-      log.trace(tableName + " hasTop() == false");
+//    if (hasTop())
+//      log.trace(tableName + " prepared next entry " + getTopKey() + " ==> "
+//          + (doWholeRow ? WholeRowIterator.decodeRow(getTopKey(), getTopValue()) : getTopValue()));
+//    else
+//      log.trace(tableName + " hasTop() == false");
   }
 
   @Override

@@ -179,7 +179,7 @@ public class GraphuloUtil {
 
   private static String prevRow(String row) {
     if (row.charAt(row.length()-1) == '\0')
-      return row.substring(0,row.length()-1);
+      return row.substring(0, row.length() - 1);
     else
       return row.substring(0,row.length()-1)+ (char)((int)row.charAt(row.length()-1)-1);
   }
@@ -281,6 +281,35 @@ public class GraphuloUtil {
     } catch (TableNotFoundException e) {
       log.error("no table: "+table, e);
       throw new RuntimeException(e);
+    }
+  }
+
+  private static final byte[] EMPTY_BYTES = new byte[0];
+
+  /**
+   * Create a copy of key with all fields except the ones specified cleared.
+   * @param key The key to copy
+   * @param pk What fields to retain from the key
+   * @return A new Key object pointing to new copies of fields specified by pk; other fields are empty/default.
+   */
+  public static Key keyCopy(Key key, PartialKey pk) {
+    if (key == null || pk == null)
+      return null;
+    switch (pk) {
+      case ROW:
+        return new Key(key.getRowData().getBackingArray(), EMPTY_BYTES, EMPTY_BYTES, EMPTY_BYTES, Long.MAX_VALUE, false, true);
+      case ROW_COLFAM:
+        return new Key(key.getRowData().getBackingArray(), key.getColumnFamilyData().getBackingArray(), EMPTY_BYTES, EMPTY_BYTES, Long.MAX_VALUE, false, true);
+      case ROW_COLFAM_COLQUAL:
+        return new Key(key.getRowData().getBackingArray(), key.getColumnFamilyData().getBackingArray(), key.getColumnQualifierData().getBackingArray(), EMPTY_BYTES, Long.MAX_VALUE, false, true);
+      case ROW_COLFAM_COLQUAL_COLVIS:
+        return new Key(key.getRowData().getBackingArray(), key.getColumnFamilyData().getBackingArray(), key.getColumnQualifierData().getBackingArray(), key.getColumnVisibilityData().getBackingArray(), Long.MAX_VALUE, false, true);
+      case ROW_COLFAM_COLQUAL_COLVIS_TIME:
+        return new Key(key.getRowData().getBackingArray(), key.getColumnFamilyData().getBackingArray(), key.getColumnQualifierData().getBackingArray(), key.getColumnVisibilityData().getBackingArray(), key.getTimestamp(), false, true);
+      case ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL:
+        return new Key(key.getRowData().getBackingArray(), key.getColumnFamilyData().getBackingArray(), key.getColumnQualifierData().getBackingArray(), key.getColumnVisibilityData().getBackingArray(), key.getTimestamp(), key.isDeleted(), true);
+      default:
+        throw new AssertionError();
     }
   }
 

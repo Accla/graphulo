@@ -99,6 +99,7 @@ public class Graphulo implements IGraphulo {
 
     Map<String, String> opt = new HashMap<>();
     opt.put("trace", String.valueOf(trace)); // logs timing on server
+    opt.put("dot","ROW_CARTESIAN");
 
     opt.put("AT.zookeeperHost", zookeepers);
     opt.put("AT.instanceName", instance);

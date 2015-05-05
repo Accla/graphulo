@@ -56,6 +56,10 @@ public class TableMultIterator extends BranchIterator implements OptionDescriber
       else if (key.startsWith(PREFIX_C))
         optC.put(key.substring(PREFIX_C.length() + 1), entry.getValue());
       else switch (key) {
+          case "dot":
+          case "multiplyOp":
+//            optDM.put(entry.getKey(), entry.getValue());
+            break;
           default:
             throw new IllegalArgumentException("unknown option: " + entry);
         }
@@ -77,8 +81,8 @@ public class TableMultIterator extends BranchIterator implements OptionDescriber
         switch (prefix) {
           case DotIterator.PREFIX_AT:
           case DotIterator.PREFIX_B: {
-            if (!optDM.isEmpty())
-              throw new IllegalArgumentException("Please specify either AT or B but not both.");
+//            if (!optDM.isEmpty())
+//              throw new IllegalArgumentException("Please specify either AT or B but not both.");
             optDM.putAll(GraphuloUtil.preprendPrefixToKey(prefix + '.', entryMap));
             break;
           }
@@ -89,7 +93,10 @@ public class TableMultIterator extends BranchIterator implements OptionDescriber
           default:
             for (Map.Entry<String, String> entry : entryMap.entrySet()) {
               switch (entry.getKey()) {
-
+                case "dot":
+                case "multiplyOp":
+                  optDM.put(entry.getKey(), entry.getValue());
+                  break;
                 default:
                   log.warn("Unrecognized option: " + prefix + '.' + entry);
                   break;

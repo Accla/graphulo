@@ -3,9 +3,11 @@ package edu.mit.ll.graphulo;
 import edu.mit.ll.graphulo.mult.LongMultiply;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.log4j.xml.DOMConfigurator;
 
@@ -47,7 +49,7 @@ public class MatlabGraphulo extends Graphulo {
 
     TableMult(ATtable, Btable, Ctable,
         //BigDecimalMultiply.class, BigDecimalCombiner.BigDecimalSummingCombiner.class,
-        LongMultiply.class, SummingCombiner.class,
+        LongMultiply.class, new IteratorSetting(1, "sum", BigDecimalCombiner.BigDecimalSummingCombiner.class),
         rowFilterRanges, colFilterAT, colFilterB, numEntriesCheckpoint, trace);
   }
 

@@ -71,7 +71,7 @@ public class TableMultTest extends AccumuloTestBase {
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     graphulo.TableMult(tAT, tB, tC,
-        LongMultiply.class, LongCombiner.class,
+        LongMultiply.class, new IteratorSetting(1, "sum", BigDecimalCombiner.BigDecimalSummingCombiner.class),
         null, null, null, 1, true);
 
     Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
@@ -134,7 +134,7 @@ public class TableMultTest extends AccumuloTestBase {
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     graphulo.TableMult(tAT, tB, tC,
-        BigDecimalMultiply.class, BigDecimalCombiner.BigDecimalSummingCombiner.class,
+        BigDecimalMultiply.class, new IteratorSetting(1, "sum", BigDecimalCombiner.BigDecimalSummingCombiner.class),
         GraphuloUtil.d4mRowToRanges("C2,:,"), null, null, 1, false);
 
     Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
@@ -194,7 +194,7 @@ public class TableMultTest extends AccumuloTestBase {
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     graphulo.TableMult(tAT, tB, tC,
-        BigDecimalMultiply.class, BigDecimalCombiner.BigDecimalSummingCombiner.class,
+        BigDecimalMultiply.class, new IteratorSetting(1, "sum", BigDecimalCombiner.BigDecimalSummingCombiner.class),
         GraphuloUtil.d4mRowToRanges("C2,:,"),
         "A1,", "B1,", 1, false);
 

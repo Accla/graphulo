@@ -19,7 +19,7 @@ import java.util.*;
 /**
  * Holds a {@link org.apache.accumulo.core.client.Connector} to an Accumulo instance for calling core client Graphulo operations.
  */
-public class Graphulo implements IGraphulo {
+public class Graphulo {
   private static final Logger log = LogManager.getLogger(Graphulo.class);
 
   private Connector connector;
@@ -43,18 +43,35 @@ public class Graphulo implements IGraphulo {
     }
   }
 
-  static final Text EMPTY_TEXT = new Text();
+  private static final Text EMPTY_TEXT = new Text();
 
-  @Override
+
   public void TableMult(String ATtable, String Btable, String Ctable,
-                        Class<? extends IMultiplyOp> multOp, Class<? extends Combiner> sumOp,
+                        Class<? extends IMultiplyOp> multOp, IteratorSetting sumOp,
                         Collection<Range> rowFilter,
                         String colFilterAT, String colFilterB) {
     TableMult(ATtable, Btable, Ctable, multOp, sumOp, rowFilter, colFilterAT, colFilterB, 250000, true);
   }
 
+  /**
+   * C += A * B.
+   * User-defined "plus" and "multiply". Requires transpose table AT instead of A.
+   * If C is not given, then the scan itself returns the results of A * B.
+   * After operation, flushes C and removes the "plus" combiner from C.
+   *
+   * @param ATtable     Name of Accumulo table holding matrix transpose(A).
+   * @param Btable      Name of Accumulo table holding matrix B.
+   * @param Ctable      Optional. Name of table to store result. Streams back result if null.
+   * @param multOp      An operation that "multiplies" two values.
+   * @param sumOp       An SKVI to apply to the result table that "sums" values.
+   * @param rowFilter   Optional. Row subset of ATtable and Btable, like "a,:,b,g,c,:,"
+   * @param colFilterAT Optional. Column qualifier subset of AT, restricted to not allow ranges.
+   * @param colFilterB  Optional. Column qualifier subset of B, like "a,f,b,c,"
+   * @param numEntriesCheckpoint Optional. # of entries before we emit a checkpoint entry from the scan.
+   * @param trace Optional. Enable server-side tracing.
+   */
   public void TableMult(String ATtable, String Btable, String Ctable,
-                        Class<? extends IMultiplyOp> multOp, Class<? extends Combiner> sumOp,
+                        Class<? extends IMultiplyOp> multOp, IteratorSetting sumOp,
                         Collection<Range> rowFilter,
                         String colFilterAT, String colFilterB,
                         int numEntriesCheckpoint, boolean trace) {
@@ -215,30 +232,7 @@ public class Graphulo implements IGraphulo {
     }
   }
 
-  @Override
-  public void TableCopyFilter(String table, String tableCopy, String tableTranspose,
-                              Collection<Range> rowFilter, String colFilter,
-                              int minDegree, int maxDegree, boolean gatherColQs) {
-    if (table == null || table.isEmpty())
-      throw new IllegalArgumentException("Please specify source table. Given: " + table);
-//    if (minDegree < 1)
-//      minDegree = 1;
-//    if (maxDegree < minDegree)
-//      throw new IllegalArgumentException("maxDegree=" + maxDegree + " should be >= minDegree=" + minDegree);
-    if (tableCopy != null && tableCopy.isEmpty())
-      tableCopy = null;
-    if (tableTranspose != null && tableTranspose.isEmpty())
-      tableTranspose = null;
-//    if (tableCopy == null && tableTranspose == null)
-//      return;
-    Collection<Text> v0texts = GraphuloUtil.d4mRowToTexts(colFilter);
-
-    TableOperations tops = connector.tableOperations();
-    if (!tops.exists(table))
-      throw new IllegalArgumentException("Table does not exist. Given: " + table);
-  }
-
-  @Override
+  
   public String AdjBFS(String Atable, String v0, int k, String Rtable, String RtableTranspose,
                        String ADegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree) {
     return AdjBFS(Atable, v0, k, Rtable, RtableTranspose, ADegtable, degColumn, degInColQ, minDegree, maxDegree, true);
@@ -451,12 +445,25 @@ public class Graphulo implements IGraphulo {
     return texts;
   }
 
-  @Override
+  /**
+   * Out-degree-filtered Breadth First Search on Incidence table.
+   * Conceptually k iterations of: v0 ==startPrefix==> edge ==endPrefix==> v1.
+   *
+   * @param Etable         Incidence table; rows are edges, column qualifiers are nodes.
+   * @param v0             Starting vertices, like "v0,v5,v6,"
+   * @param k              # of hops.
+   * @param startPrefix    Prefix of 'start' of an edge including separator, e.g. 'out|'
+   * @param endPrefix      Prefix of 'end' of an edge including separator, e.g. 'in|'
+   * @param minDegree      Optional. Minimum out-degree.
+   * @param maxDegree      Optional. Maximum out-degree.
+   * @param outputNormal   Create E of subgraph for each of the k hops.
+   * @param outputTranpose Create ET of subgraph for each of the k hops.
+   */
   public void EdgeBFS(String Etable, String v0, int k, String startPrefix, String endPrefix, int minDegree, int maxDegree, boolean outputNormal, boolean outputTranpose) {
 
   }
 
-  @Override
+
   public void SingleTableBFS(String Stable, String v0, int k, int minDegree, int maxDegree, boolean outputNormal, boolean outputTranspose) {
 
   }

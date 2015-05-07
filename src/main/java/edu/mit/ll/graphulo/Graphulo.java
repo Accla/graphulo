@@ -488,9 +488,9 @@ public class Graphulo {
    * @return String with the split points with a newline separator, e.g. "ca\nf\nq\n"
    */
   public String findEvenSplits(String table, int numSplitPoints, int numEntriesPerTablet) {
-    if (numSplitPoints < 1)
+    if (numSplitPoints < 0)
       throw new IllegalArgumentException("numSplitPoints: "+numSplitPoints);
-    if (numSplitPoints == 1)
+    if (numSplitPoints == 0)
       return "";
 
     Scanner scan;

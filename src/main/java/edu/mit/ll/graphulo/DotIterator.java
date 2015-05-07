@@ -189,11 +189,13 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
 //                    log.warn("can't instantiate new instance of "+cm.getName(), e);
                     throw new IllegalArgumentException("can't instantiate new instance of " + cm.getName(), e);
                   }
+                  break;
                 default:
                   log.warn("Unrecognized option: " + prefix + '.' + entry);
                   break;
               }
             }
+            break;
           }
           default:
             for (Map.Entry<String, String> entry : entryMap.entrySet()) {

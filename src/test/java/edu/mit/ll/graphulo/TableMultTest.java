@@ -212,4 +212,44 @@ public class TableMultTest extends AccumuloTestBase {
     conn.tableOperations().delete(tC);
   }
 
+  @Test
+  public void test_countPartialProductsTableMult() throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    Connector conn = tester.getConnector();
+
+    final String tAT, tB;
+    {
+      String[] names = getUniqueNames(2);
+      tAT = names[0];
+      tB = names[1];
+    }
+    {
+      Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
+      input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
+      input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
+      input = TestUtil.tranposeMap(input);
+      TestUtil.createTestTable(conn, tAT, null, input);
+    }
+    {
+      Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("B1", "", "C2"), new Value("3".getBytes()));
+      input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
+      input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
+      input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
+      input = TestUtil.tranposeMap(input);
+      SortedSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("C15"));
+      TestUtil.createTestTable(conn, tB, splits, input);
+    }
+    long cntExpect = 4;
+
+    Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+    long cntActual = graphulo.countPartialProductsTableMult(tAT, tB, true);
+
+    Assert.assertEquals(cntExpect, cntActual);
+
+    conn.tableOperations().delete(tAT);
+    conn.tableOperations().delete(tB);
+  }
+
 }

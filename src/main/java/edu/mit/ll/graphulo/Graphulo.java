@@ -1,6 +1,7 @@
 package edu.mit.ll.graphulo;
 
 import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
@@ -59,16 +60,16 @@ public class Graphulo {
    * If C is not given, then the scan itself returns the results of A * B.
    * After operation, flushes C and removes the "plus" combiner from C.
    *
-   * @param ATtable     Name of Accumulo table holding matrix transpose(A).
-   * @param Btable      Name of Accumulo table holding matrix B.
-   * @param Ctable      Optional. Name of table to store result. Streams back result if null.
-   * @param multOp      An operation that "multiplies" two values.
-   * @param sumOp       An SKVI to apply to the result table that "sums" values.
-   * @param rowFilter   Optional. Row subset of ATtable and Btable, like "a,:,b,g,c,:,"
-   * @param colFilterAT Optional. Column qualifier subset of AT, restricted to not allow ranges.
-   * @param colFilterB  Optional. Column qualifier subset of B, like "a,f,b,c,"
+   * @param ATtable              Name of Accumulo table holding matrix transpose(A).
+   * @param Btable               Name of Accumulo table holding matrix B.
+   * @param Ctable               Optional. Name of table to store result. Streams back result if null.
+   * @param multOp               An operation that "multiplies" two values.
+   * @param sumOp                An SKVI to apply to the result table that "sums" values.
+   * @param rowFilter            Optional. Row subset of ATtable and Btable, like "a,:,b,g,c,:,"
+   * @param colFilterAT          Optional. Column qualifier subset of AT, restricted to not allow ranges.
+   * @param colFilterB           Optional. Column qualifier subset of B, like "a,f,b,c,"
    * @param numEntriesCheckpoint Optional. # of entries before we emit a checkpoint entry from the scan.
-   * @param trace Optional. Enable server-side tracing.
+   * @param trace                Optional. Enable server-side tracing.
    */
   public void TableMult(String ATtable, String Btable, String Ctable,
                         Class<? extends IMultiplyOp> multOp, IteratorSetting sumOp,
@@ -116,7 +117,7 @@ public class Graphulo {
 
     Map<String, String> opt = new HashMap<>();
     opt.put("trace", String.valueOf(trace)); // logs timing on server
-    opt.put("dot","ROW_CARTESIAN");
+    opt.put("dot", "ROW_CARTESIAN");
 
     opt.put("AT.zookeeperHost", zookeepers);
     opt.put("AT.instanceName", instance);
@@ -150,7 +151,7 @@ public class Graphulo {
     // scan B with TableMultIterator
     BatchScanner bs;
     try {
-      bs = connector.createBatchScanner(Btable, Authorizations.EMPTY, 2); // TODO P2: set number of batch scan threads
+      bs = connector.createBatchScanner(Btable, Authorizations.EMPTY, 50); // TODO P2: set number of batch scan threads
     } catch (TableNotFoundException e) {
       log.error("impossible", e);
       throw new RuntimeException(e);
@@ -222,9 +223,9 @@ public class Graphulo {
   }
 
   public void Compact(String table) {
-    System.out.println("Compacting "+table+"...");
+    System.out.println("Compacting " + table + "...");
     try {
-      connector.tableOperations().compact(table,null,null,true,true);
+      connector.tableOperations().compact(table, null, null, true, true);
     } catch (AccumuloException | AccumuloSecurityException e) {
       log.error("error trying to compact " + table, e);
     } catch (TableNotFoundException e) {
@@ -232,7 +233,7 @@ public class Graphulo {
     }
   }
 
-  
+
   public String AdjBFS(String Atable, String v0, int k, String Rtable, String RtableTranspose,
                        String ADegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree) {
     return AdjBFS(Atable, v0, k, Rtable, RtableTranspose, ADegtable, degColumn, degInColQ, minDegree, maxDegree, true);
@@ -320,22 +321,23 @@ public class Graphulo {
     }
 
 
-    long degTime=0, scanTime=0;
+    long degTime = 0, scanTime = 0;
     for (int thisk = 1; thisk <= k; thisk++) {
-      System.out.println("k="+thisk+" before filter" +
-          (vktexts.size() > 5 ? " #="+String.valueOf(vktexts.size()) : ": "+vktexts.toString()));
+      System.out.println("k=" + thisk + " before filter" +
+          (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
       long t1 = System.currentTimeMillis(), dur;
       vktexts = filterTextsDegreeTable(ADegtable, degColumnText, degInColQ, minDegree, maxDegree, vktexts);
-      dur = System.currentTimeMillis()-t1; degTime += dur;
-      System.out.println("Degree Lookup Time: "+dur+" ms");
-      System.out.println("k="+thisk+" after  filter" +
-          (vktexts.size() > 5 ? " #="+String.valueOf(vktexts.size()) : ": "+vktexts.toString()));
+      dur = System.currentTimeMillis() - t1;
+      degTime += dur;
+      System.out.println("Degree Lookup Time: " + dur + " ms");
+      System.out.println("k=" + thisk + " after  filter" +
+          (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
       if (vktexts.isEmpty())
         break;
 
 //      bs.setRanges(GraphuloUtil.textsToRanges(vktexts));
       bs.setRanges(Collections.singleton(new Range()));
-      opt.put("rowRanges",GraphuloUtil.textsToD4mString(vktexts, v0.isEmpty() ? '\n' : v0.charAt(v0.length()-1)));
+      opt.put("rowRanges", GraphuloUtil.textsToD4mString(vktexts, v0.isEmpty() ? '\n' : v0.charAt(v0.length() - 1)));
       bs.clearScanIterators();
       IteratorSetting itset = new IteratorSetting(4, RemoteWriteIterator.class, opt);
       bs.addScanIterator(itset);
@@ -349,12 +351,13 @@ public class Graphulo {
         }
 
       }
-      dur = System.currentTimeMillis()-t2; scanTime += dur;
-      System.out.println("BatchScan/Iterator Time: "+dur+" ms");
+      dur = System.currentTimeMillis() - t2;
+      scanTime += dur;
+      System.out.println("BatchScan/Iterator Time: " + dur + " ms");
       vktexts = uktexts;
     }
-    System.out.println("Total Degree Lookup Time: "+degTime+" ms");
-    System.out.println("Total BatchScan/Iterator Time: "+scanTime+" ms");
+    System.out.println("Total Degree Lookup Time: " + degTime + " ms");
+    System.out.println("Total BatchScan/Iterator Time: " + scanTime + " ms");
 
     bs.close();
     // Better strategy if using Rtable and RtableTranspose: start flush on tables, then unblock when both finish
@@ -386,7 +389,7 @@ public class Graphulo {
 //      }
 //      GraphuloUtil.removeCombiner(tops, RtableTranspose, log);
 //    }
-    return GraphuloUtil.textsToD4mString(vktexts, v0.isEmpty() ? ',' : v0.charAt(v0.length()-1));
+    return GraphuloUtil.textsToD4mString(vktexts, v0.isEmpty() ? ',' : v0.charAt(v0.length() - 1));
   }
 
   /**
@@ -395,18 +398,18 @@ public class Graphulo {
    * Todo: Add a local cache parameter for known good nodes and known bad nodes,
    * so that we don't have to look them up.
    *
-   * @param degColQ Name of the degree column qualifier. Blank/null means fetch all columns, and disqualify node if any have bad degree.
+   * @param degColQ   Name of the degree column qualifier. Blank/null means fetch all columns, and disqualify node if any have bad degree.
    * @param degInColQ False means degree in value. True means degree in column qualifier (cannot use degColQ in this case).
    * @return The same texts object.
    */
   private Collection<Text> filterTextsDegreeTable(String ADegtable, Text degColQ, boolean degInColQ,
                                                   int minDegree, int maxDegree,
                                                   Collection<Text> texts) {
-    if (degColQ != null && degColQ.getLength()==0)
+    if (degColQ != null && degColQ.getLength() == 0)
       degColQ = null;
     TableOperations tops = connector.tableOperations();
     assert ADegtable != null && !ADegtable.isEmpty() && minDegree > 0 && maxDegree >= minDegree
-        && texts != null && tops.exists(ADegtable) && !(degColQ!=null && degInColQ);
+        && texts != null && tops.exists(ADegtable) && !(degColQ != null && degInColQ);
     if (texts.isEmpty())
       return texts;
     BatchScanner bs;
@@ -467,4 +470,111 @@ public class Graphulo {
   public void SingleTableBFS(String Stable, String v0, int k, int minDegree, int maxDegree, boolean outputNormal, boolean outputTranspose) {
 
   }
+
+
+  /**
+   * Usage with Matlab D4M:
+   * <pre>
+   * desiredNumTablets = ...;
+   * numEntries = nnz(T);
+   * G = DBaddJavaOps('edu.mit.ll.graphulo.MatlabGraphulo','instance','localhost:2181','root','secret');
+   * splitPoints = G.findEvenSplits(getName(T), desiredNumTablets-1, numEntries / desiredNumTablets);
+   * putSplits(T, splitPoints);
+   * % Verify:
+   * [splits,entriesPerSplit] = getSplits(T);
+   * </pre>
+   * @param numSplitPoints # of desired tablets = numSplitPoints+1
+   * @param numEntriesPerTablet desired #entries per tablet = (total #entries in table) / (#desired tablets)
+   * @return String with the split points with a newline separator, e.g. "ca\nf\nq\n"
+   */
+  public String findEvenSplits(String table, int numSplitPoints, int numEntriesPerTablet) {
+    if (numSplitPoints < 1)
+      throw new IllegalArgumentException("numSplitPoints: "+numSplitPoints);
+    if (numSplitPoints == 1)
+      return "";
+
+    Scanner scan;
+    try {
+      scan = connector.createScanner(table, Authorizations.EMPTY);
+    } catch (TableNotFoundException e) {
+      log.error("Table does not exist: " + table, e);
+      throw new RuntimeException(e);
+    }
+    char sep = '\n';
+    StringBuilder sb = new StringBuilder();
+    Iterator<Map.Entry<Key, Value>> iterator = scan.iterator();
+    for (int sp = 0; sp < numSplitPoints; sp++) {
+      for (int entnum = 0; entnum < numEntriesPerTablet - 1; entnum++) {
+        if (!iterator.hasNext())
+          throw new RuntimeException("not enough entries in table to split into " + (numSplitPoints + 1) + " tablets. Stopped after " + sp + " split points and " + entnum + " entries in the last split point");
+        iterator.next();
+      }
+      if (!iterator.hasNext())
+        throw new RuntimeException("not enough entries in table to split into " + (numSplitPoints + 1) + " tablets. Stopped after " + sp + " split points and " + (numEntriesPerTablet - 1) + " entries in the last split point");
+      sb.append(iterator.next().getKey().getRow().toString())
+          .append(sep);
+    }
+    return sb.toString();
+  }
+
+  public long countPartialProductsTableMult(String ATtable, String Btable,
+                                            boolean trace) {
+    if (ATtable == null || ATtable.isEmpty())
+      throw new IllegalArgumentException("Please specify table AT. Given: " + ATtable);
+    if (Btable == null || Btable.isEmpty())
+      throw new IllegalArgumentException("Please specify table B. Given: " + Btable);
+
+//    if (multOp == null || !multOp.equals(BigDecimalMultiply.class))
+//      throw new UnsupportedOperationException("only supported multOp is BigDecimalMultiply, but given: "+multOp);
+//    if (sumOp == null || !sumOp.equals(BigDecimalCombiner.BigDecimalSummingCombiner.class))
+//      throw new UnsupportedOperationException("only supported sumOp is BigDecimalSummingCombiner, but given: "+multOp);
+
+    TableOperations tops = connector.tableOperations();
+    if (!tops.exists(ATtable))
+      throw new IllegalArgumentException("Table AT does not exist. Given: " + ATtable);
+    if (!tops.exists(Btable))
+      throw new IllegalArgumentException("Table B does not exist. Given: " + Btable);
+
+
+    String instance = connector.getInstance().getInstanceName();
+    String zookeepers = connector.getInstance().getZooKeepers();
+    String user = connector.whoami();
+
+    Map<String, String> opt = new HashMap<>();
+    opt.put("trace", String.valueOf(trace)); // logs timing on server
+    opt.put("dot", "ROW_CARTESIAN");
+
+    opt.put("AT.zookeeperHost", zookeepers);
+    opt.put("AT.instanceName", instance);
+    opt.put("AT.tableName", ATtable);
+    opt.put("AT.username", user);
+    opt.put("AT.password", new String(password.getPassword()));
+
+
+    // scan B with TableMultIterator
+    BatchScanner bs;
+    try {
+      bs = connector.createBatchScanner(Btable, Authorizations.EMPTY, 50); // TODO P2: set number of batch scan threads
+    } catch (TableNotFoundException e) {
+      log.error("impossible", e);
+      throw new RuntimeException(e);
+    }
+
+    bs.setRanges(Collections.singleton(new Range()));
+
+    // TODO P2: Assign priority and name dynamically, checking for conflicts.
+    IteratorSetting itset = new IteratorSetting(2, TableMultIterator.class, opt);
+    bs.addScanIterator(itset);
+    itset = new IteratorSetting(3, CountAllIterator.class);
+    bs.addScanIterator(itset);
+
+    long cnt = 0;
+    for (Map.Entry<Key, Value> entry : bs) {
+      cnt += Long.valueOf(new String(entry.getValue().get()));
+//      System.out.println("received: "+Long.valueOf(new String(entry.getValue().get())));
+    }
+    bs.close();
+    return cnt;
+  }
+
 }

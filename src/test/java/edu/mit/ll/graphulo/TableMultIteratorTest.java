@@ -79,7 +79,7 @@ public class TableMultIteratorTest {
     itprops.put("B.username", tester.getUsername());
     itprops.put("B.password", new String(tester.getPassword().getPassword()));
     itprops.put("dot", "ROW_CARTESIAN");
-    IteratorSetting itset = new IteratorSetting(25, DotIterator.class, itprops);
+    IteratorSetting itset = new IteratorSetting(25, TwoTableIterator.class, itprops);
     scanner.addScanIterator(itset);
 //        scanner.addScanIterator(new IteratorSetting(26, DebugIterator.class, Collections.<String,String>emptyMap()));
 

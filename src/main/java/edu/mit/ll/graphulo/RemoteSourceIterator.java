@@ -100,7 +100,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>,
     optDesc.put("password", "(Anyone who can read the Accumulo table config OR the log files will see your password in plaintext.)");
     optDesc.put("doWholeRow", "Apply WholeRowIterator to remote table scan? (default no)");
     optDesc.put("doClientSideIterators", "Use a ClientSideIteratorScanner? (default no)");
-//        optDesc.put("rowRanges", "Row ranges to scan for remote Accumulo table, Matlab syntax. (default ':' all)");
+    optDesc.put("rowRanges", "Row ranges to scan for remote Accumulo table, Matlab syntax. (default ':,' all)");
     optDesc.put("colFilter", "String representation of column qualifiers, e.g. 'a,b,c,' (default blank)");
     iteratorOptions = new IteratorOptions("RemoteSourceIterator",
         "Reads from a remote Accumulo table. Replaces parent iterator with the remote table.",

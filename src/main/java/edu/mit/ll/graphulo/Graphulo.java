@@ -54,28 +54,28 @@ public class Graphulo {
     TableMult(ATtable, Btable, Ctable, multOp, sumOp, rowFilter, colFilterAT, colFilterB, 250000, true);
   }
 
-  /**
-   * C += A * B.
-   * User-defined "plus" and "multiply". Requires transpose table AT instead of A.
-   * If C is not given, then the scan itself returns the results of A * B.
-   * After operation, flushes C and removes the "plus" combiner from C.
-   *
-   * @param ATtable              Name of Accumulo table holding matrix transpose(A).
-   * @param Btable               Name of Accumulo table holding matrix B.
-   * @param Ctable               Optional. Name of table to store result. Streams back result if null.
-   * @param multOp               An operation that "multiplies" two values.
-   * @param sumOp                An SKVI to apply to the result table that "sums" values.
-   * @param rowFilter            Optional. Row subset of ATtable and Btable, like "a,:,b,g,c,:,"
-   * @param colFilterAT          Optional. Column qualifier subset of AT, restricted to not allow ranges.
-   * @param colFilterB           Optional. Column qualifier subset of B, like "a,f,b,c,"
-   * @param numEntriesCheckpoint Optional. # of entries before we emit a checkpoint entry from the scan.
-   * @param trace                Optional. Enable server-side tracing.
-   */
-  public void TableMult(String ATtable, String Btable, String Ctable,
-                        Class<? extends IMultiplyOp> multOp, IteratorSetting sumOp,
-                        Collection<Range> rowFilter,
-                        String colFilterAT, String colFilterB,
-                        int numEntriesCheckpoint, boolean trace) {
+/**
+ * C += A * B.
+ * User-defined "plus" and "multiply". Requires transpose table AT instead of A.
+ * If C is not given, then the scan itself returns the results of A * B.
+ * After operation, flushes C and removes the "plus" combiner from C.
+ *
+ * @param ATtable              Name of Accumulo table holding matrix transpose(A).
+ * @param Btable               Name of Accumulo table holding matrix B.
+ * @param Ctable               Optional. Name of table to store result. Streams back result if null.
+ * @param multOp               An operation that "multiplies" two values.
+ * @param sumOp                An SKVI to apply to the result table that "sums" values.
+ * @param rowFilter            Optional. Row subset of ATtable and Btable, like "a,:,b,g,c,:,"
+ * @param colFilterAT          Optional. Column qualifier subset of AT, restricted to not allow ranges.
+ * @param colFilterB           Optional. Column qualifier subset of B, like "a,f,b,c,"
+ * @param numEntriesCheckpoint Optional. # of entries before we emit a checkpoint entry from the scan.
+ * @param trace                Optional. Enable server-side tracing.
+ */
+public void TableMult(String ATtable, String Btable, String Ctable,
+                      Class<? extends IMultiplyOp> multOp, IteratorSetting sumOp,
+                      Collection<Range> rowFilter,
+                      String colFilterAT, String colFilterB,
+                      int numEntriesCheckpoint, boolean trace) {
     if (ATtable == null || ATtable.isEmpty())
       throw new IllegalArgumentException("Please specify table AT. Given: " + ATtable);
     if (Btable == null || Btable.isEmpty())

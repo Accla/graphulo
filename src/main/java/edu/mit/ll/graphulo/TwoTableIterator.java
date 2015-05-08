@@ -37,8 +37,8 @@ import java.util.*;
  * <tr><td>n</td><td>n</td><td>n</td><td>Error.</td></tr>
  * </table>
  */
-public class DotIterator implements SaveStateIterator, OptionDescriber {
-  private static final Logger log = LogManager.getLogger(DotIterator.class);
+public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
+  private static final Logger log = LogManager.getLogger(TwoTableIterator.class);
 
   private IMultiplyOp multiplyOp = new BigDecimalMultiply();
   private SortedKeyValueIterator<Key, Value> remoteAT, remoteB;
@@ -77,10 +77,10 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
   }
 
 
-  public DotIterator() {
+  public TwoTableIterator() {
   }
 
-  DotIterator(DotIterator other) {
+  TwoTableIterator(TwoTableIterator other) {
     this.multiplyOp = other.multiplyOp;
   }
 
@@ -569,8 +569,8 @@ public class DotIterator implements SaveStateIterator, OptionDescriber {
   }
 
   @Override
-  public DotIterator deepCopy(IteratorEnvironment env) {
-    DotIterator copy = new DotIterator(this);
+  public TwoTableIterator deepCopy(IteratorEnvironment env) {
+    TwoTableIterator copy = new TwoTableIterator(this);
     copy.remoteAT = remoteAT.deepCopy(env);
     copy.remoteB = remoteB.deepCopy(env);
     return copy;

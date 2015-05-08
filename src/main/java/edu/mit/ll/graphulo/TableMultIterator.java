@@ -27,7 +27,7 @@ public class TableMultIterator extends BranchIterator implements OptionDescriber
     final Map<String, String> optDesc = new LinkedHashMap<>();
     optDesc.put("trace", "Output timings on stdout?");
     for (Map.Entry<String, String> entry : RemoteSourceIterator.iteratorOptions.getNamedOptions().entrySet()) {
-      optDesc.put(DotIterator.PREFIX_AT+ '.' + entry.getKey(), "Table AT:" + entry.getValue());
+      optDesc.put(TwoTableIterator.PREFIX_AT+ '.' + entry.getKey(), "Table AT:" + entry.getValue());
     }
     for (Map.Entry<String, String> entry : RemoteSourceIterator.iteratorOptions.getNamedOptions().entrySet()) {
       optDesc.put(PREFIX_C + '.' + entry.getKey(), "Table C:" + entry.getValue());
@@ -51,8 +51,8 @@ public class TableMultIterator extends BranchIterator implements OptionDescriber
     Map<String, String> optAT = new HashMap<>(), optC = new HashMap<>();
     for (Map.Entry<String, String> entry : options.entrySet()) {
       String key = entry.getKey();
-      if (key.startsWith(DotIterator.PREFIX_AT))
-        optAT.put(key.substring(DotIterator.PREFIX_AT.length() + 1), entry.getValue());
+      if (key.startsWith(TwoTableIterator.PREFIX_AT))
+        optAT.put(key.substring(TwoTableIterator.PREFIX_AT.length() + 1), entry.getValue());
       else if (key.startsWith(PREFIX_C))
         optC.put(key.substring(PREFIX_C.length() + 1), entry.getValue());
       else switch (key) {
@@ -79,8 +79,8 @@ public class TableMultIterator extends BranchIterator implements OptionDescriber
         Map<String, String> entryMap = prefixEntry.getValue();
 
         switch (prefix) {
-          case DotIterator.PREFIX_AT:
-          case DotIterator.PREFIX_B: {
+          case TwoTableIterator.PREFIX_AT:
+          case TwoTableIterator.PREFIX_B: {
 //            if (!optDM.isEmpty())
 //              throw new IllegalArgumentException("Please specify either AT or B but not both.");
             optDM.putAll(GraphuloUtil.preprendPrefixToKey(prefix + '.', entryMap));
@@ -107,7 +107,7 @@ public class TableMultIterator extends BranchIterator implements OptionDescriber
       }
     }
     SortedKeyValueIterator<Key, Value> bottomIter;
-    DotIterator dmi = new DotIterator();
+    TwoTableIterator dmi = new TwoTableIterator();
     dmi.init(source, optDM, env);
     bottomIter = dmi;
 //    Map<String, String> optSum = new HashMap<>();

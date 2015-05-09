@@ -636,16 +636,18 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 		List<String>  results = new ArrayList<String>();
 
 		try {
-
-			for(String splitName : splits) {
+			for (int i = 0, splitsSize = splits.size(); i < splitsSize; i++) {
+				String splitName = splits.get(i);
 				String tablet_location = this.connection.locateTablet(tableName, splitName);
 				results.add(tablet_location);
+				// DH2015: to test: (should provide tablet server of final tablet that
+				// goes from the last split to +inf
+//				if (i == splitsSize-1)
+//					results.add(this.connection.locateTablet(tableName, splitName+'\0'));
 			}
-
 		} catch (Exception e) {
 			e.printStackTrace();
-		} 
-
+		}
 		return results;
 	}
 
@@ -653,13 +655,11 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	 * Concatenate the string to a comma-delimited string
 	 */
 	private String  concatString(List<String> strList) {
-		StringBuffer sb = new StringBuffer();
-		
+		StringBuilder sb = new StringBuilder();
 		for(int i = 0; i < strList.size() ; i++) {
 			String s = strList.get(i);
 			sb.append(s).append(",");
 		}
 		return sb.toString();
 	}
-
 }

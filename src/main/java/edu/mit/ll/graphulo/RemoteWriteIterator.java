@@ -326,6 +326,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
   @Override
   protected void finalize() throws Throwable {
+    super.finalize();
     log.info("finalize() RemoteWriteIterator " + tableName);
     System.out.println("finalize() RemoteWriteIterator " + tableName);
     if (writerAll != null)
@@ -336,7 +337,6 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
       if (writerTranspose != null)
         writerTranspose.close();
     }
-    super.finalize();
   }
 
   @Override
@@ -354,42 +354,45 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   private boolean writeWrapper(boolean doSeekNext) throws IOException {
     boolean stoppedAtSafe = false;
     entriesWritten = 0;
-    // while we have more ranges to seek
-    // seek source to the next one and writeUntilSafeOrFinish()
-    while (rowRangeIterator.hasNext()) {
-      if (doSeekNext) {
-        Range thisTargetRange = rowRangeIterator.peek();
-        assert thisTargetRange.clip(seekRange, true) != null : "problem with RangeSet iterator intersecting seekRange";
-        if (thisTargetRange.getStartKey() != null && thisTargetRange.getStartKey().compareTo(lastKeyEmitted) > 0)
-          lastKeyEmitted.set(thisTargetRange.getStartKey());
-        log.debug("RemoteWrite actual seek " + thisTargetRange);// + "(thread " + Thread.currentThread().getName() + ")");
-        // We could use the 10x next() heuristic here...
-        source.seek(thisTargetRange, seekColumnFamilies, seekInclusive);
-      }
-      doSeekNext = true;
-      stoppedAtSafe = writeUntilSafeOrFinish();
-      if (stoppedAtSafe)
-        break;
-      rowRangeIterator.next();
-    }
-    // flush at end
-    if (entriesWritten > 0) {
-      Watch<Watch.PerfSpan> watch = Watch.getInstance();
-      watch.start(Watch.PerfSpan.WriteFlush);
-      try {
-        if (writerAll != null)
-          writerAll.flush();
-        else {
-          if (writer != null)
-            writer.flush();
-          if (writerTranspose != null)
-            writerTranspose.flush();
+    try {
+      // while we have more ranges to seek
+      // seek source to the next one and writeUntilSafeOrFinish()
+      while (rowRangeIterator.hasNext()) {
+        if (doSeekNext) {
+          Range thisTargetRange = rowRangeIterator.peek();
+          assert thisTargetRange.clip(seekRange, true) != null : "problem with RangeSet iterator intersecting seekRange";
+          if (thisTargetRange.getStartKey() != null && thisTargetRange.getStartKey().compareTo(lastKeyEmitted) > 0)
+            lastKeyEmitted.set(thisTargetRange.getStartKey());
+          log.debug("RemoteWrite actual seek " + thisTargetRange);// + "(thread " + Thread.currentThread().getName() + ")");
+          // We could use the 10x next() heuristic here...
+          source.seek(thisTargetRange, seekColumnFamilies, seekInclusive);
         }
-      } catch (MutationsRejectedException e) {
-        log.warn("ignoring rejected mutations; ", e);
-      } finally {
-        watch.stop(Watch.PerfSpan.WriteFlush);
-        watch.print();
+        doSeekNext = true;
+        stoppedAtSafe = writeUntilSafeOrFinish();
+        if (stoppedAtSafe)
+          break;
+        rowRangeIterator.next();
+      }
+    } finally {
+      // flush anything written
+      if (entriesWritten > 0) {
+        Watch<Watch.PerfSpan> watch = Watch.getInstance();
+        watch.start(Watch.PerfSpan.WriteFlush);
+        try {
+          if (writerAll != null)
+            writerAll.flush();
+          else {
+            if (writer != null)
+              writer.flush();
+            if (writerTranspose != null)
+              writerTranspose.flush();
+          }
+        } catch (MutationsRejectedException e) {
+          log.warn("ignoring rejected mutations; ", e);
+        } finally {
+          watch.stop(Watch.PerfSpan.WriteFlush);
+          watch.print();
+        }
       }
     }
     return stoppedAtSafe;

@@ -1,0 +1,125 @@
+Associated files and libraries.  
+
+pMatlab
+  Role: Needed to run certain examples in parallel.
+  Copyright: MIT
+  License: MIT License
+  Pedigree: Obtained from MIT Lincoln Lab
+  Reference: http://www.ll.mit.edu/pMatlab/
+  Files: not included
+
+Matlab JSON parser
+  Role: Needed for D4M I/O
+  Copyright: F.Glineur, J.Feenstra, Nedialko Krouch
+  License: unlmited with attribution
+  Pedigree: obtained from Matlab central, code read by Kepner
+  Reference: http://www.mathworks.com/matlabcentral/fileexchange/25713
+  Files: matlab_src/parseJSON.m
+
+Octave Java Package (not in distribution)
+  Role: Needed for D4M to run with Octave
+  Copyright: Michael Goffioul
+  License: GPL 2 (now GPL3 as it will be a part of mainline Octave).
+  Pedigree: obtained from Octave forge, code read by Yee
+  Reference: http://octave.sourceforge.net/java/index.html
+  Files: not a part of D4M distribution
+
+MatlabControl
+  Role: Needed for D4M webapp
+  Copyright:  Google
+  License: BSD
+  Pedigree: obtained from code.google.com 
+  Reference: http://code.google.com/p/matlabcontrol
+  Files: lib/matlabcontrol-3.01.jar
+
+
+Summaries derived from Reuters Data
+  Role: used in regression testing and examples
+  Copyright: Reuters PLC
+  License: For R&D purposes only, see use agreement
+    http://trec.nist.gov/data/reuters/org_appl_reuters_v3.html
+  Pedigree: summaries derived from data downlaoded from NIST website
+  Reference: http://trec.nist.gov/data/reuters/reuters.html
+  Files: matlab_src/TEST/reuters_entities3/mergedfiles/output_01.txt, examples/2Apps/1EntityAnalysis/Entity.csv
+
+NCBI Genetic Data
+  Role: Used in examples.
+  Copyright: U.S. Gov't
+  License: Public Domain
+  Pedigree: Downloaded from NCBI website
+  Reference: http://www.ncbi.nlm.nih.gov/About/disclaimer.html 
+  Files: examples/2Apps/4BioBlast/data/bacteria.csv, examples/2Apps/4BioBlast/data/palm.csv
+
+Photo "CK" Painting
+  Role: Used in examples.
+  Copyright: Ann Pibal
+  License: Public Domain?
+  Pedigree: Downloaded from website?
+  Reference: http://www.ncbi.nlm.nih.gov/About/disclaimer.html 
+  Files: docs/Lec01-AssocArrays.pptx
+
+Accumulo
+  Role: Needed for D4M interface to Accumulo
+  Copyright: Apache
+  License: Apache 2.0
+  Pedigree: Downloaded from Apache
+  Reference: http://accumulo.apache.org
+  Files: lib/accumulo-core-1.4.0.jar, lib/accumulo-server-1.4.0.jar, lib/accumulo-start-???.jar?
+
+HBase
+
+JTDC
+  Role: Needed for D4M to interface to SQL databases.
+  Copyright: 
+  License: LGPL
+  Pedigree: Downloaded from SourceForge
+  Reference: http://jtds.sourceforge.net/license.html
+  Files: lib/
+
+Commons
+  Role: Needed by Hadoop and Accumulo
+  Copyright: Apache
+  License: Apache
+  Pedigree: downloaded from Apache
+  Reference: http://commons.apache.org/logging/
+  Files: lib/commons-logging-1.0.4.jar
+         lib/commons-collections-3.2.jar
+         lib/commons-configuration-1.5.jar
+         lib/commons-io-1.4.jar
+         lib/commons-lang-2.4.jar
+
+
+
+Log4j
+  Role: needed by Accumulo
+  Copyright: Apache
+  License: Apache
+  Pedigree: downloaded from Apache
+  Reference: http://logging.apache.org/log4j/
+  Files: lib/log4j-1.2.15.jar
+
+Slf4j
+  Role: needed by Accumulo
+  Copyright: QOS.ch  (http://www.qos.ch)
+  License: MIT License
+  Pedigree: downloaded from www.slf4j.org
+  Reference: http://www.slf4j.org
+  Files: lib/slf4j-api-1.6.1.jar
+         lib/slf4j-log4j12-1.6.1.jar
+
+
+Thrift
+  Role: needed by Accumulo
+  Copyright: Apache
+  License: Apache
+  Pedigree: downloaded from Apache
+  Reference: http://thrift.apache.org/
+  Files: lib/libthrift-0.9.1.jar
+
+Zookeeper
+  Role: needed by Accumulo
+  Copyright: Apache
+  License: Apache
+  Pedigree: downloaded from Apache
+  Reference: http://hadoop.apache.org/zookeeper/
+  Files: lib/zookeeper-3.3.5.jar

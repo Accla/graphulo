@@ -262,7 +262,7 @@ public void TableMult(String ATtable, String Btable, String Ctable,
         throw new IllegalArgumentException("not allowed: degColumn != null && degInColQ==true");
     }
     if (v0 == null)
-      throw new IllegalArgumentException("bad v0: " + v0);
+      throw new IllegalArgumentException("null v0");
     Collection<Text> vktexts = GraphuloUtil.d4mRowToTexts(v0);
 
     TableOperations tops = connector.tableOperations();

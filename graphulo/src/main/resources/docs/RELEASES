@@ -1,0 +1,120 @@
+March 17, 2014
+ver ???
+  - D4mTableOpsIF: add new method
+	public List<String> getTabletLocationsForSplits(String tableName,List<String> splits) throws D4mException;
+
+  - D4mDbTableOperations:
+    - Modified getSplits(String tableName) to return String [], instead of String
+        String [0]  is string with splits names, as comma-delimited list
+        String [1]  is the number of splits per split name,as a comma-delimited list
+        String [2]  is the names of the tablet servers associated to split names, a comma-delimited list
+
+    -  A new method
+       public String[] getAllSplitsInfo(String tableName)
+
+
+  - Modify AccumuloTableOperations.java
+     - Get the tablet servers names associated to splits -
+	public List<String> getTabletLocationsForSplits(String tableName,List<String> splits) throws D4mException;
+
+
+
+Nov 13, 2012
+Version 2.2.0
+
+Needed to separate Accumulo and BigTableLike references in order to make
+ 2 different releases of D4M (accumulo only and BigTableLike only).
+   - Remove any references to Accumulo and BigTableLike package names from D4mDbTableOperations.java.
+   - Move the Combining Column code out of D4mDbTableOperations, since these are Accumulo specific.
+   - Changes to DbInfoIF - add setConnectionProp method
+   - Changes D4mTableOpsIF - add the Combining columns functions
+     - Combining columns functionalities are not implemented in BigTableLikeTableOperations.
+
+   - Refactor packages names - add edu.mit.ll.dm4.db.cloud.accumulo and edu.mit.ll.d4m.db.cloud.bigtablelike
+      - Moved all Accumulo and BigTableLike specific classes to the appropriate packages.
+
+   - The build system will make 3  jars - D4M_API_JAVA,  D4M_API_JAVA_AC (accumulo) and 
+     D4M_API_JAVA_BigTableLike (BigTableLike). 
+      - D4M_API_JAVA.jar is the common jar.
+      - D4M_API_JAVA_AC.jar contains the accumulo specific classes.
+      - D4M_API_JAVA_BigTableLike.jar contains the BigTableLike specific classes.
+
+
+
+
+
+==============================================
+
+May 16, 2012
+Version 2.0.2
+
+Migrating from Accumulo-1.3.5-incubating to Accumulo-1.4.0
+  - Changed TableOperations from class to interface.
+     All calls for TableOpertions by the Connector resulted in casting the object to TableOperationsImpl. 
+     See AccumuloTableOperations.java
+
+  - ScannerBase had deprecate methods - setScanIterators and setScanIteratorOption.
+    In 1.4, you have to use IteratorSettings object to set the ScanIterator, then
+    use the addScanIterator() method to add the IteratorSetting. In the IteratorSettings' object
+    you use the addOption() method to add options.
+
+
+ 
+
+==============================================
+May 10, 2012
+Version 2.0.1
+
+- Fix a problem where the number of threads kept growing when performing an insert.
+  Must call the close method on the BatchWriter.
+
+
+=========================================
+March 28, 2012
+
+Version 2.0.0
+-  Port code to Accumulo
+   - Implement new interfaces to allow switching between BigTableLike or Accumulo.
+     - D4mConfig
+        - configuration class to switch between BigTableLike or Accumulo.
+        - setCloudType method
+     - D4mParent: base class
+
+         -D4mDbInfo
+         -D4mDbInsert
+         -D4mDbTableOperations
+         - D4mParentQuery
+            - D4mParentQuery  base class for query objects
+
+              - D4mDbQueryAccumulo
+              - D4mDbQueryBigTableLike
+
+            - D4mDataSearch :  replaces D4mDbQuery
+               - This class is called from d4m_api matlab code to execute queries
+               - This class acts like a wrapper class to wrap the functionality of 
+                 D4mDbQueryBigTableLike and D4mDbQueryAccumulo
+
+
+     - AccumuloConnection
+       - Similar to BigTableLike connection
+       - use the ConnectionProperties class to hold info to access cloud
+
+     - D4mInsertBase   base class
+        - AccumuloInsert
+        - BigTableLikeInsert
+
+     - D4mFactory; factory class to create the child classes for inserting, querying, table operations
+ 
+     - BigTableLikeTableOperations
+     - AccumuloTableOperations
+    
+================================================================
+
+January 31, 2012
+
+-  D4mDbQuery.java was modified to allow for iterating a batch of results.
+One can make successive calls to next() to get another batch of results.
+For example, if your query returns a millions of results, you can get batches
+of 100 results returned to you.
+
+ 

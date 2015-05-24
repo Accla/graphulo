@@ -28,6 +28,13 @@
   <build>
     <resources>
       <resource>
+        <directory>.</directory>
+        <filtering>false</filtering>
+        <includes>
+          <include>README.md</include>
+        </includes>
+      </resource>
+      <resource>
         <directory>src/main/resources</directory>
         <filtering>true</filtering>
         <includes>

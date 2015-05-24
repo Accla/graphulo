@@ -28,6 +28,13 @@
   <build>
     <resources>
       <resource>
+        <directory>${project.basedir}/..</directory>
+        <filtering>false</filtering>
+        <includes>
+          <include>README.md</include>
+        </includes>
+      </resource>
+      <resource>
         <directory>src/main/resources</directory>
         <filtering>true</filtering>
         <includes>
@@ -93,7 +100,7 @@
         </executions>
       </plugin>
 
-      <plugin> <!-- Create a super-JAR out of the JARs for every dependncy in target/libext -->
+      <plugin> <!-- Create a super-JAR out of the JARs for every dependency in target/libext -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
         <version>2.5.3</version>

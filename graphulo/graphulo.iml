@@ -137,7 +137,5 @@
     <orderEntry type="library" name="Maven: com.sun.jersey.contribs:jersey-guice:1.9" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.apache.hadoop:hadoop-mapreduce-client-jobclient:test-jar:tests:2.2.0" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.apache.hadoop:hadoop-mapreduce-client-hs:2.2.0" level="project" />
-    <orderEntry type="module" module-name="d4m_api_java" scope="RUNTIME" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: org.json:org.json:chargebee-1.0" level="project" />
   </component>
 </module>

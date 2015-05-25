@@ -27,6 +27,44 @@ Graphulo is tested on Accumulo 1.6.0 and 1.6.1.
 [GraphBLAS]: http://istc-bigdata.org/GraphBlas/
 
 
+### Directory Structure
+
+An asterisk indicates files/folders recommended to change, or not made yet.
+
+<pre>
+graphulo/               d4m_api_java project directory
+  src/                                 
+    main/               Main code and resources. Included in output JAR.
+      java/...          
+      resources/        Contents copied into output JAR.
+        building/...    Files used for building the output JAR.
+        conf/...        * Not used?
+        docs/...        * Copyright, ExternalContrib, RELEASES. Move up?
+        logj.xml        Configures logging for d4m_api_java.
+    test/               Test code and resources. Not included in output JAR.
+      java/...             
+      resources/
+        log4j.xml       Logging configuration for tests.
+        data/...        * Data for testing graphulo. Not yet created.
+  pom.xml               Maven Project Object Model for graphulo.
+  post-test.bash        Script to display output of tests from shippable/testresults.
+
+d4m_api_java/           d4m_api_java project directory
+  src/...               Similar to graphulo/src/. 
+  pom.xml               Maven Project Object Model for d4m_api_java.
+  post-test.bash        Script to display output of tests from shippable/testresults.
+  
+deploy.sh               Script to deploy a graphulo build to Accumulo and Matlab D4M.
+pom.xml                 Maven Project Object Model for parent of d4m_api_java and graphulo.
+README.md               This file.
+
+.gitignore              Files and folders to exclude from git.
+.travis.yml             Enables continuous integration testing.
+shippable.yml           Enables continuous integration testing.
+</pre>
+
+[Project Object Model]: https://maven.apache.org/guides/introduction/introduction-to-the-pom.html
+
 ### Building
 [![Build Status](https://api.shippable.com/projects/54f27f245ab6cc13528fd44d/badge?branchName=master)](https://app.shippable.com/projects/54f27f245ab6cc13528fd44d/builds/latest)
 [![Build Status](https://travis-ci.org/Accla/d4m_api_java.svg)](https://travis-ci.org/Accla/d4m_api_java)

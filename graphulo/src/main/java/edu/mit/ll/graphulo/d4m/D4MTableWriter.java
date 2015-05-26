@@ -50,6 +50,7 @@ public class D4MTableWriter implements AutoCloseable {
     public Text cf = EMPTYCF;
     /** The number of bytes until we flush data to the server. */
     public long batchBytes = 2_000_000L;
+    public boolean deleteExistingTables = false;
 
     public D4MTableConfig() {}
 
@@ -65,6 +66,7 @@ public class D4MTableWriter implements AutoCloseable {
       textDegCol = c.textDegCol;
       batchBytes = c.batchBytes;
       cf = c.cf;
+      deleteExistingTables = c.deleteExistingTables;
     }
   }
   private final D4MTableConfig tconf;
@@ -114,18 +116,24 @@ public class D4MTableWriter implements AutoCloseable {
   }
 
   /** Create a table if not already existing. Return whether table created. */
-  public static boolean createTableSoft(String tableName, Connector c) {
+  public static boolean createTableSoft(String tableName, Connector c, boolean deleteExistingTable) {
     TableOperations to = c.tableOperations();
     try {
-      if (!to.exists(tableName)) {
-        to.create(tableName);
-        return true;
-      } else
-        return false;
+      if (to.exists(tableName)) {
+        if (deleteExistingTable)
+          to.delete(tableName);
+        else
+          return false;
+      }
+      to.create(tableName);
+      return true;
     } catch (AccumuloException | AccumuloSecurityException e) {
       log.warn("error creating table "+tableName,e);
       return false;
     } catch (TableExistsException e) {
+      log.error("impossible! Table checked to be created!", e);
+      return false;
+    } catch (TableNotFoundException e) {
       log.error("impossible! Table checked to be created!", e);
       return false;
     }
@@ -154,12 +162,12 @@ public class D4MTableWriter implements AutoCloseable {
    */
   public void createTablesSoft() {
     boolean btDeg=false, btDegT=false, btField=false, btFieldT=false;
-    if (tconf.useTable)     createTableSoft(TNtable, tconf.connector);
-    if (tconf.useTableT)     createTableSoft(TNtableT, tconf.connector);
-    if (tconf.useTableDeg)  btDeg = createTableSoft(TNtableDeg, tconf.connector);
-    if (tconf.useTableDegT) btDegT = createTableSoft(TNtableDegT, tconf.connector);
-    if (tconf.useTableField) btField = createTableSoft(TNtableField, tconf.connector);
-    if (tconf.useTableFieldT) btFieldT = createTableSoft(TNtableFieldT, tconf.connector);
+    if (tconf.useTable)     createTableSoft(TNtable, tconf.connector, tconf.deleteExistingTables);
+    if (tconf.useTableT)     createTableSoft(TNtableT, tconf.connector, tconf.deleteExistingTables);
+    if (tconf.useTableDeg)  btDeg = createTableSoft(TNtableDeg, tconf.connector, tconf.deleteExistingTables);
+    if (tconf.useTableDegT) btDegT = createTableSoft(TNtableDegT, tconf.connector, tconf.deleteExistingTables);
+    if (tconf.useTableField) btField = createTableSoft(TNtableField, tconf.connector, tconf.deleteExistingTables);
+    if (tconf.useTableFieldT) btFieldT = createTableSoft(TNtableFieldT, tconf.connector, tconf.deleteExistingTables);
     //List<IteratorSetting.Column> columns = Collections.singletonList(new IteratorSetting.Column(tconf.cf, tconf.textDegCol));
     if (btDeg)  assignDegreeAccumulator(TNtableDeg, tconf.connector);
     if (btDegT) assignDegreeAccumulator(TNtableDegT, tconf.connector);

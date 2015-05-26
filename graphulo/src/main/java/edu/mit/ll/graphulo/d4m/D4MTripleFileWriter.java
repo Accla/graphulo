@@ -11,11 +11,11 @@ import java.util.Scanner;
 /**
  * Write row, column and (optionally) value files to a table.
  */
-public class D4MTripleWriter {
+public class D4MTripleFileWriter {
 
   private Connector connector;
 
-  public D4MTripleWriter(Connector connector) {
+  public D4MTripleFileWriter(Connector connector) {
     this.connector = connector;
   }
 
@@ -31,7 +31,7 @@ public class D4MTripleWriter {
    */
   public long writeTripleFile(File rowFile, File colFile, File valFile,
                               String delimiter, String baseName,
-                              boolean trackTime) throws FileNotFoundException {
+                              boolean deleteExistingTables, boolean trackTime) throws FileNotFoundException {
     long count = 0, startTime, origStartTime;
     Text row = new Text(), col = new Text(), valText = null;
     Value val = D4MTableWriter.VALONE;
@@ -73,7 +73,7 @@ public class D4MTripleWriter {
           }
           tw.ingestRow(row, col, val);
           count++;
-          
+
           if (trackTime && count % 100000 == 0) {
             long stopTime = System.currentTimeMillis();
             if (startTime - stopTime > 1000*60) {

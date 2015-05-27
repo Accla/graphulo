@@ -202,12 +202,6 @@
                     <argument>${project.build.directory}/${DBinit.path.outputFile}</argument>
                     <argument>${project.build.directory}/${DBinit.path.libextZip}</argument>
                   </arguments>
-                  <!--<arguments>
-                      <argument>${project.build.finalName}</argument>
-                      <argument>../../libext/</argument>
-                      <argument>build_DBinit.m</argument>
-                      <argument>DBinit.m</argument>
-                      </arguments>-->
                 </configuration>
               </execution>
             </executions>

@@ -19,7 +19,7 @@
 
   <properties>
     <DBinit.path.libextFolder>libext/</DBinit.path.libextFolder>
-    <DBinit.path.template>build_DBinit.m</DBinit.path.template>
+    <DBinit.path.mpath>${basedir}/src/assembly/build_DBinit/build_DBinit.m</DBinit.path.mpath>
     <DBinit.path.outputFile>DBinit.m</DBinit.path.outputFile>
     <DBinit.path.libextZip>libext-${project.version}.zip</DBinit.path.libextZip>
     <test>TEST_CONFIG</test>
@@ -35,18 +35,22 @@
         </includes>
       </resource>
       <resource>
-        <directory>src/main/resources</directory>
+        <directory>src/assembly</directory>
         <filtering>true</filtering>
         <includes>
           <include>**/build_DBinit.bash</include>
         </includes>
       </resource>
       <resource>
-        <directory>src/main/resources</directory>
+        <directory>src/assembly</directory>
         <filtering>false</filtering>
         <excludes>
           <exclude>**/build_DBinit.bash</exclude>
         </excludes>
+      </resource>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>false</filtering>
       </resource>
     </resources>
 
@@ -114,7 +118,7 @@
             </goals>
             <configuration>
               <descriptors>
-                <descriptor>${project.build.outputDirectory}/building/libext_assembly.xml</descriptor>
+                <descriptor>${basedir}/src/assembly/libext_assembly.xml</descriptor>
               </descriptors>
               <outputDirectory>${project.build.directory}</outputDirectory>
               <finalName>libext-${project.version}</finalName>
@@ -135,11 +139,11 @@
             </goals>
             <configuration>
               <tasks>
-                <chmod file="${project.build.outputDirectory}/building/build_DBinit/build_DBinit.bash" perm="u+x"/>
+                <chmod file="${basedir}/src/assembly/build_DBinit/build_DBinit.bash" perm="u+x"/>
                 <echo>If you are on linux, DBinit will build automatically.</echo>
                 <echo>If not building on linux, you may not be able to build DBinit.m.</echo>
 		<echo>Try and execute the following script once: (do not move the file)</echo>
-                <echo>  ${project.build.outputDirectory}/building/build_DBinit/build_DBinit.bash</echo>
+                <echo>  ${basedir}/src/assembly/build_DBinit/build_DBinit.bash</echo>
               </tasks>
             </configuration>
           </execution>
@@ -172,14 +176,15 @@
                   <goal>exec</goal>
                 </goals>
                 <configuration>
-                  <executable>${project.build.outputDirectory}/building/build_DBinit/build_DBinit.bash</executable>
+                  <executable>${basedir}/src/assembly/build_DBinit/build_DBinit.bash</executable>
                   <workingDirectory>${project.build.outputDirectory}</workingDirectory>
-                  <!--<arguments>
-                      <argument>${project.build.finalName}</argument>
-                      <argument>../../libext/</argument>
-                      <argument>build_DBinit.m</argument>
-                      <argument>DBinit.m</argument>
-                      </arguments>-->
+                  <arguments>
+                    <argument>${project.build.finalName}.jar</argument>
+                    <argument>${project.build.directory}/${DBinit.path.libextFolder}</argument>
+                    <argument>${DBinit.path.mpath}</argument>
+                    <argument>${project.build.directory}/${DBinit.path.outputFile}</argument>
+                    <argument>${project.build.directory}/${DBinit.path.libextZip}</argument>
+                  </arguments>
                 </configuration>
               </execution>
             </executions>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  
+  <parent>
+    <groupId>edu.mit.ll</groupId>
+    <artifactId>graphulo-parent</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+  </parent>
+  
+  <artifactId>graphulo-distribution</artifactId>
+  <packaging>pom</packaging>
+
+  <!--<name>Distribution</name>-->
+  
+  <!-- NOTE: These dependency declarations are only required to sort this project to the 
+       end of the line in the multimodule build. 
+       
+       Since we only include the child1 module in our assembly, we only need to ensure this
+       distribution project builds AFTER that one...
+  -->
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>d4m_api_java</artifactId>
+      <version>0.0.1-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>graphulo</artifactId>
+      <version>0.0.1-SNAPSHOT</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>bin-assembly</id>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <configuration>
+              <descriptors>
+                <descriptor>src/assembly/allJar_assembly.xml</descriptor>
+              </descriptors>
+              <finalName>graphulo-${project.version}-bin</finalName>
+              <appendAssemblyId>false</appendAssemblyId>
+            </configuration>
+          </execution>
+          <execution>
+            <id>all-assembly</id>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <configuration>
+              <descriptors>
+                <descriptor>src/assembly/distribution_assembly.xml</descriptor>
+              </descriptors>
+              <!--<archiveBaseDirectory>../</archiveBaseDirectory>-->
+              <finalName>graphulo-${project.version}</finalName>
+              <appendAssemblyId>true</appendAssemblyId>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

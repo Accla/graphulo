@@ -14,17 +14,11 @@
     <name>MIT Lincoln Laboratory</name>
     <url>https://www.ll.mit.edu/</url>
   </organization>
-  <licenses>
-    <license>
-      <name>GNU General Public License, Version 2</name>
-      <url>https://www.gnu.org/licenses/gpl.html</url>
-      <comments>Yep, we're open source. Please cite where credit is due.</comments>
-    </license>
-  </licenses>
 
   <modules>
     <module>d4m_api_java</module>
     <module>graphulo</module>
+    <module>distribution</module>
   </modules>
 
   <build>
@@ -42,6 +36,17 @@
             <!--<showDeprecation>true</showDeprecation>-->
           </configuration>
         </plugin>
+
+        <plugin>
+          <artifactId>maven-assembly-plugin</artifactId>
+          <version>2.5.4</version>
+          <configuration>
+            <descriptors>
+              <descriptor>src/assembly/allJar_assembly.xml</descriptor>
+            </descriptors>
+          </configuration>
+        </plugin>
+
       </plugins>
     </pluginManagement>
   </build>
@@ -78,5 +83,11 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
+
+
+
+
+
+
 
 </project>

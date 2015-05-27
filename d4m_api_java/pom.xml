@@ -11,7 +11,7 @@
   </parent>
 
   <artifactId>d4m_api_java</artifactId>
-  <version>2.6.1-SNAPSHOT</version>
+  <version>0.0.1-SNAPSHOT</version>
   <packaging>jar</packaging>
   <description>Java connector between Accumulo and D4M Matlab library.</description>
   <url>http://d4m.mit.edu/</url>
@@ -102,7 +102,7 @@
         </executions>
       </plugin>
 
-      <plugin> <!-- Create a super-JAR out of the JARs for every dependncy in target/libext -->
+      <plugin> <!-- Create a super-JAR out of the JARs for every dependency in target/libext -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
         <version>2.5.3</version>

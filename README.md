@@ -38,14 +38,15 @@ graphulo/               d4m_api_java project directory
       java/...          
       resources/        Contents copied into output JAR.
         building/...    Files used for building the output JAR.
-        conf/...        * Not used?
-        docs/...        * Copyright, ExternalContrib, RELEASES. Move up?
-        logj.xml        Configures logging for d4m_api_java.
+        log4j.xml       Logging configuration for client at runtime.
     test/               Test code and resources. Not included in output JAR.
       java/...             
       resources/
         log4j.xml       Logging configuration for tests.
-        data/...        * Data for testing graphulo. Not yet created.
+        data/...        Data for testing graphulo. 
+  target/
+    JAR
+    LIBEXT ZIP
   pom.xml               Maven Project Object Model for graphulo.
   post-test.bash        Script to display output of tests from shippable/testresults.
 

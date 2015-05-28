@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 
+import edu.mit.ll.d4m.db.cloud.accumulo.AccumuloInsert;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -99,7 +100,7 @@ public class D4mDbInsert extends D4mParent {
 		this.family = family;
 		this.visibility = visibility;
 		if(this.d4mInserter == null) {
-			this.d4mInserter = D4mFactory.createInserter();
+			this.d4mInserter = new AccumuloInsert();
 			this.d4mInserter.setConnProps(connProps);
 		}
 		this.d4mInserter.setTableName(this.tableName);

@@ -1,6 +1,7 @@
 package edu.mit.ll.d4m.db.cloud;
 
 import edu.mit.ll.cloud.connection.ConnectionProperties;
+import edu.mit.ll.d4m.db.cloud.accumulo.AccumuloInfo;
 
 /**
  * @author wi20909
@@ -31,7 +32,8 @@ public class D4mDbInfo extends D4mParent {
 	}
 
 	public String getTableList() throws Exception {
-		DbInfoIF dbInfo = D4mFactory.createDbInfo(this.connProps);
+		DbInfoIF dbInfo = new AccumuloInfo();
+		dbInfo.setConnectionProp(connProps);
 		return dbInfo.getTableList();
 	}
 

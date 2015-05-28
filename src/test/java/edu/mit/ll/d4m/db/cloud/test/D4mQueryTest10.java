@@ -37,8 +37,6 @@ public class D4mQueryTest10 {
 
 	@Before
 	public void setUp() throws Exception {
-
-		System.setProperty(D4mFactory.PROPERTY_D4M_CLOUD_TYPE,"Accumulo");
         AccumuloTestConnection testConnection = new AccumuloTestConnection("local.conf");
         ConnectionProperties cp = testConnection.getConnectionProperties();
         instanceName               = cp.getInstanceName();

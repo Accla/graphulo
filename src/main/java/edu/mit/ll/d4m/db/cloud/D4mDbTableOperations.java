@@ -1,6 +1,7 @@
 package edu.mit.ll.d4m.db.cloud;
 
 import edu.mit.ll.cloud.connection.ConnectionProperties;
+import edu.mit.ll.d4m.db.cloud.accumulo.AccumuloTableOperations;
 import edu.mit.ll.d4m.db.cloud.util.ArgumentChecker;
 import edu.mit.ll.d4m.db.cloud.util.D4mQueryUtil;
 
@@ -49,8 +50,17 @@ public class D4mDbTableOperations extends D4mParent {
 		String host = this.connProps.getHost();
 		String username = this.connProps.getUser();
 		String password = this.connProps.getPass();
-		if(d4mTableOp == null)
-			d4mTableOp = D4mFactory.createTableOperations(instanceName, host, username, password);
+		if(d4mTableOp == null) {
+			d4mTableOp = new AccumuloTableOperations();
+			//System.out.println("made table ops");
+			ConnectionProperties connProp = new ConnectionProperties();
+			connProp.setInstanceName(instanceName);
+			connProp.setHost(host);
+			connProp.setUser(username);
+			connProp.setPass(password);
+			d4mTableOp.setConnProps(connProp);
+			d4mTableOp.connect();
+		}
 
 	}
 

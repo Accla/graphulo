@@ -3,6 +3,7 @@
  */
 package edu.mit.ll.d4m.db.cloud;
 
+import edu.mit.ll.d4m.db.cloud.accumulo.D4mDbQueryAccumulo;
 import edu.mit.ll.d4m.db.cloud.util.D4mDataObj;
 
 /**
@@ -45,7 +46,7 @@ public class D4mDataSearch extends D4mParentQuery {
 		reset();
 
 		if(this.d4m == null) {
-			this.d4m = D4mFactory.createSearcher();
+			this.d4m = new D4mDbQueryAccumulo();
 			this.d4m.setTableName(super.tableName);
 			this.d4m.setConnProps(super.connProps);
 		}

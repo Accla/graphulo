@@ -5,7 +5,7 @@
   <formats>
     <format>zip</format>
   </formats>
-  <!--<baseDirectory>../</baseDirectory>-->
+  <baseDirectory>graphulo</baseDirectory>
   <includeBaseDirectory>true</includeBaseDirectory>
   <fileSets>
     <fileSet>
@@ -25,8 +25,8 @@
     </fileSet>
     <fileSet>
       <includes>
-        <include>target/graphulo-*.jar</include>
-        <include>target/${DBinit.path.libextZip}.zip</include>
+        <!--<include>target/graphulo-*.jar</include> CAN'T EMAIL -->
+        <!--<include>target/${DBinit.path.libextZip}.zip</include>  TOO BIG -->
         <include>target/site/**</include>
       </includes>
     </fileSet>

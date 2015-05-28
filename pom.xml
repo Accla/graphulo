@@ -158,24 +158,6 @@
         <artifactId>maven-assembly-plugin</artifactId>
         <version>2.5.4</version>
         <executions>
-          <!--<execution>-->
-            <!--<id>bundle_d4m_api_java</id>-->
-            <!--<phase>package</phase>-->
-            <!--<goals>-->
-              <!--<goal>single</goal>-->
-            <!--</goals>-->
-            <!--<configuration>-->
-              <!--&lt;!&ndash;<descriptorRefs>&ndash;&gt;-->
-              <!--&lt;!&ndash;<descriptorRef>src</descriptorRef>&ndash;&gt;-->
-              <!--&lt;!&ndash;</descriptorRefs>&ndash;&gt;-->
-              <!--<descriptors>-->
-                <!--<descriptor>${basedir}/src/assembly/bundle_assembly.xml</descriptor>-->
-              <!--</descriptors>-->
-              <!--&lt;!&ndash;<outputDirectory>${project.build.directory}</outputDirectory>&ndash;&gt;-->
-              <!--&lt;!&ndash;<finalName>libext-${project.version}</finalName>&ndash;&gt;-->
-              <!--<appendAssemblyId>false</appendAssemblyId>-->
-            <!--</configuration>-->
-          <!--</execution>-->
           <execution>
             <id>libext_assembly</id>
             <phase>package</phase>
@@ -191,20 +173,6 @@
               <appendAssemblyId>true</appendAssemblyId>
             </configuration>
           </execution>
-            <!--<execution>-->
-              <!--<id>bin-assembly</id>-->
-              <!--<phase>package</phase>-->
-              <!--<goals>-->
-                <!--<goal>single</goal>-->
-              <!--</goals>-->
-              <!--<configuration>-->
-                <!--<descriptors>-->
-                  <!--<descriptor>src/assembly/allJar_assembly.xml</descriptor>-->
-                <!--</descriptors>-->
-                <!--<finalName>graphulo-${project.version}-bin</finalName>-->
-                <!--<appendAssemblyId>false</appendAssemblyId>-->
-              <!--</configuration>-->
-            <!--</execution>-->
             <execution>
               <id>all-assembly</id>
               <phase>install</phase>
@@ -213,7 +181,7 @@
               </goals>
               <configuration>
                 <descriptors>
-                  <descriptor>src/assembly/distribution_assembly.xml</descriptor>
+                  <descriptor>src/assembly/dist_assembly.xml</descriptor>
                 </descriptors>
                 <finalName>graphulo-${project.version}</finalName>
                 <appendAssemblyId>true</appendAssemblyId>

@@ -20,7 +20,7 @@ fd = filesep;
 % entries to point to these files.
 
 % ****  IMPORTANT NOTE ****
-% If you will use accumulo, check that libthrift-0.6.1.jar is list before thrift-0.3.jar
+% If you will use accumulo, check that libthrift-0.6.1.jar lists before thrift-0.3.jar.
 % Vice versa, if you will use cloudbase, list thrift-0.3.jar before libthrift-0.6.1.jar.
 if exist('OCTAVE_VERSION','builtin')
    % Add files included in LLONLY distribution.

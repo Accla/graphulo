@@ -236,7 +236,7 @@ public void TableMult(String ATtable, String Btable, String Ctable,
 
   public String AdjBFS(String Atable, String v0, int k, String Rtable, String RtableTranspose,
                        String ADegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree) {
-    return AdjBFS(Atable, v0, k, Rtable, RtableTranspose, ADegtable, degColumn, degInColQ, minDegree, maxDegree, true);
+    return AdjBFS(Atable, v0, k, Rtable, RtableTranspose, ADegtable, degColumn, degInColQ, minDegree, maxDegree, false);
   }
 
   @SuppressWarnings("unchecked")
@@ -323,14 +323,17 @@ public void TableMult(String ATtable, String Btable, String Ctable,
 
     long degTime = 0, scanTime = 0;
     for (int thisk = 1; thisk <= k; thisk++) {
-      System.out.println("k=" + thisk + " before filter" +
+      if (trace)
+        System.out.println("k=" + thisk + " before filter" +
           (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
       long t1 = System.currentTimeMillis(), dur;
       vktexts = filterTextsDegreeTable(ADegtable, degColumnText, degInColQ, minDegree, maxDegree, vktexts);
       dur = System.currentTimeMillis() - t1;
       degTime += dur;
-      System.out.println("Degree Lookup Time: " + dur + " ms");
-      System.out.println("k=" + thisk + " after  filter" +
+      if (trace)
+        System.out.println("Degree Lookup Time: " + dur + " ms");
+      if (trace)
+        System.out.println("k=" + thisk + " after  filter" +
           (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
       if (vktexts.isEmpty())
         break;
@@ -353,42 +356,16 @@ public void TableMult(String ATtable, String Btable, String Ctable,
       }
       dur = System.currentTimeMillis() - t2;
       scanTime += dur;
-      System.out.println("BatchScan/Iterator Time: " + dur + " ms");
+      if (trace)
+        System.out.println("BatchScan/Iterator Time: " + dur + " ms");
       vktexts = uktexts;
     }
-    System.out.println("Total Degree Lookup Time: " + degTime + " ms");
-    System.out.println("Total BatchScan/Iterator Time: " + scanTime + " ms");
+    if (trace)
+      System.out.println("Total Degree Lookup Time: " + degTime + " ms");
+    if (trace)
+      System.out.println("Total BatchScan/Iterator Time: " + scanTime + " ms");
 
     bs.close();
-    // Better strategy if using Rtable and RtableTranspose: start flush on tables, then unblock when both finish
-//    if (Rtable != null) {
-//      try {
-//        long st = System.currentTimeMillis();
-//        tops.flush(Rtable, null, null, true);
-//        System.out.println("flush " + Rtable + " time: " + (System.currentTimeMillis() - st) + " ms");
-//      } catch (TableNotFoundException e) {
-//        log.error("impossible", e);
-//        throw new RuntimeException(e);
-//      } catch (AccumuloSecurityException | AccumuloException e) {
-//        log.error("error while flushing " + Rtable);
-//        throw new RuntimeException(e);
-//      }
-//      GraphuloUtil.removeCombiner(tops, Rtable, log);
-//    }
-//    if (RtableTranspose != null) {
-//      try {
-//        long st = System.currentTimeMillis();
-//        tops.flush(RtableTranspose, null, null, true);
-//        System.out.println("flush " + RtableTranspose + " time: " + (System.currentTimeMillis() - st) + " ms");
-//      } catch (TableNotFoundException e) {
-//        log.error("impossible", e);
-//        throw new RuntimeException(e);
-//      } catch (AccumuloSecurityException | AccumuloException e) {
-//        log.error("error while flushing " + RtableTranspose);
-//        throw new RuntimeException(e);
-//      }
-//      GraphuloUtil.removeCombiner(tops, RtableTranspose, log);
-//    }
     return GraphuloUtil.textsToD4mString(vktexts, v0.isEmpty() ? ',' : v0.charAt(v0.length() - 1));
   }
 
@@ -425,9 +402,8 @@ public void TableMult(String ATtable, String Btable, String Ctable,
     Text badRow = new Text();
     for (Map.Entry<Key, Value> entry : bs) {
       boolean bad = false;
-      log.debug("Deg Entry: " + entry.getKey() + " -> " + entry.getValue());
+//      log.debug("Deg Entry: " + entry.getKey() + " -> " + entry.getValue());
       try {
-//        long deg = LongCombiner.STRING_ENCODER.decode(entry.getValue().get());
         long deg = LongCombiner.STRING_ENCODER.decode(
             degInColQ ? entry.getKey().getColumnQualifierData().getBackingArray()
                 : entry.getValue().get()

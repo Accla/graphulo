@@ -3,7 +3,10 @@ package edu.mit.ll.graphulo.examples;
 import edu.mit.ll.graphulo.Graphulo;
 import edu.mit.ll.graphulo.mult.LongMultiply;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
-import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -20,19 +23,23 @@ import java.util.Map;
 /**
  * Example demonstrating
  * (1) ingest the adjacency matrix representation of a graph into the D4M Schema tables ex10A, ex10AT, ex10ADeg;
- * (2) multiply transpose(A) * A and store the result in Accumulo table ex10C;
- * (3) count the number of entries in ex10C.
+ * (2) create a new Accumulo table ex10step3 with the union sum of three BFS steps from node 1;
+ * (3) count the number of entries in ex10step3.
  */
-public class TableMultExample extends AccumuloTestBase {
-  private static final Logger log = LogManager.getLogger(TableMultExample.class);
+public class AdjBFSExample extends AccumuloTestBase {
+  private static final Logger log = LogManager.getLogger(AdjBFSExample.class);
 
   /** Corresponds to saved files in the distribution. */
   public static final int SCALE=10;
 
+  public static final int numSteps=3;
+
   @Test
   public void exampleTableMult() throws FileNotFoundException, TableNotFoundException {
     final String inputTable = "ex"+SCALE+"A";
-    final String outputTable = "ex"+SCALE+"C";
+    final String outputTable = "ex"+SCALE+"step"+numSteps;
+    /** Start from node 1 (the supernode). */
+    final String v0 = "1,";
 
     // In your code, you would connect to an Accumulo instance by writing somehting similar to:
 //    ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance("instance").withZkHosts("localhost:2181").withZkTimeout(5000);
@@ -54,12 +61,12 @@ public class TableMultExample extends AccumuloTestBase {
     LongCombiner.setEncodingType(sumSetting, LongCombiner.Type.STRING);
     LongCombiner.setCombineAllColumns(sumSetting, true);
 
-    // Matrix multiply transpose(A)*A.
-    // This call blocks until the multiply completes,
-    // i.e., until all partial products are sent to outputTable.
-    graphulo.TableMult(inputTable,inputTable, outputTable,
-        LongMultiply.class, sumSetting,
-        null, null, null);  // no row or column subsetting; run on the whole table
+    // Adjacency Table Breadth First Search.
+    // This call blocks until the BFS completes.
+    graphulo.AdjBFS(inputTable, v0, numSteps, outputTable,
+        null,                             // Don't write the transpose of the result table.
+        inputTable+"Deg", "deg", false,   // Information on degree table.
+        0, Integer.MAX_VALUE);            // Don't use degree filtering.
 
     // Result is in output table. Do whatever you like with it.
     BatchScanner bs = conn.createBatchScanner(outputTable, Authorizations.EMPTY, 2);
@@ -69,8 +76,9 @@ public class TableMultExample extends AccumuloTestBase {
       cnt++;
     }
     bs.close();
-    log.info("# of entries in output table " + outputTable + ": " + cnt);
+    log.info("# of entries in output table "+outputTable+": "+cnt);
 
   }
+
 
 }

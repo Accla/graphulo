@@ -49,7 +49,7 @@ public class D4mDbQueryTest7 {
 		D4mDbTableOperations dbTable = new D4mDbTableOperations(instanceName,host,username,password);
 		D4mConfig d4mConfig = D4mConfig.getInstance();
 
-		dbTable.init(instanceName, host, username, password, d4mConfig.getCloudType());
+		dbTable.init(instanceName, host, username, password, "Accumulo");
 	
 		dbTable.deleteTable(table);
 
@@ -91,9 +91,7 @@ bbb :bbb []    bbb-bbb
 
 		 */
 		if(!isReady) {
-		
-		D4mConfig d4mConfig = D4mConfig.getInstance();
-		d4mConfig.setCloudType(D4mConfig.ACCUMULO);
+
 		String row = "a,a,a,a,a,a,aa,aa,aaa,aaa,b,b,bb,bb,bbb,bbb,";
 		String col = "a,aa,aaa,b,bb,bbb,a,aa,a,aaa,a,b,a,bb,a,bbb,";
 		String val = "a-a,a-aa,a-aaa,a-b,a-bb,a-bbb,aa-a,aa-aa,aaa-a,aaa-aaa,b-a,b-b,bb-a,bb-bb,bbb-a,bbb-bbb,";
@@ -123,7 +121,6 @@ bbb :bbb []    bbb-bbb
 		System.out.println("QUERY = ['"+ rows + "', '"+cols+"']");
                 D4mConfig.DEBUG=true;
 		D4mDbQueryAccumulo d4m = new D4mDbQueryAccumulo(instanceName, host, table, username, password);
-		d4m.setCloudType(D4mConfig.ACCUMULO);
 		d4m.doTest = false;
 
 

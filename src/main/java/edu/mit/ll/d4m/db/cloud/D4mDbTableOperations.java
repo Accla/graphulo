@@ -1,61 +1,17 @@
 package edu.mit.ll.d4m.db.cloud;
 
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.NavigableSet;
-import java.util.TreeSet;
-import java.util.logging.Logger;
-
-
-
-//import org.apache.accumulo.core.client.IteratorSetting;
-//import org.apache.accumulo.core.data.Key;
-//import org.apache.accumulo.core.data.Value;
-//import org.apache.accumulo.core.iterators.Combiner;
-//import org.apache.accumulo.core.iterators.IteratorEnvironment;
-//import org.apache.accumulo.core.iterators.IteratorUtil;
-//import org.apache.accumulo.core.iterators.LongCombiner;
-//import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-//import org.apache.accumulo.core.iterators.TypedValueCombiner;
-//import org.apache.accumulo.core.iterators.ValueFormatException;
-//import org.apache.accumulo.core.iterators.conf.ColumnSet;
-//import org.apache.accumulo.core.iterators.user.MaxCombiner;
-//import org.apache.accumulo.core.iterators.user.MinCombiner;
-//import org.apache.accumulo.core.iterators.user.SummingCombiner;
-//import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-//import org.apache.accumulo.core.util.ArgumentChecker;
-//import org.apache.accumulo.core.util.Pair;
-import org.apache.hadoop.io.Text;
-
-
-
-//import edu.mit.ll.cloud.connection.AccumuloConnection;
 import edu.mit.ll.cloud.connection.ConnectionProperties;
-import edu.mit.ll.d4m.db.cloud.util.D4mQueryUtil;
 import edu.mit.ll.d4m.db.cloud.util.ArgumentChecker;
+import edu.mit.ll.d4m.db.cloud.util.D4mQueryUtil;
 
-
+import java.util.*;
+import java.util.logging.Logger;
 
 /**
  * @author wi20909
  */
 public class D4mDbTableOperations extends D4mParent {
 	private static  Logger log = Logger.getLogger(D4mDbTableOperations.class.getName());
-	public String rowReturnString = "";
-	public String columnReturnString = "";
-	public String valueReturnString = "";
-	private long timeout=120000l; //120s
 	private ConnectionProperties connProps = new ConnectionProperties();
 
 	D4mTableOpsIF d4mTableOp = null;
@@ -82,13 +38,11 @@ public class D4mDbTableOperations extends D4mParent {
 
 	}
 
-	public void init(String instanceName, String host, String username, String password,String cloudType) {
+	public void init(String instanceName, String host, String username, String password,String _cloudType) {
 		this.connProps.setHost(host);
 		this.connProps.setInstanceName(instanceName);
 		this.connProps.setUser(username);
 		this.connProps.setPass(password);
-		setCloudType(cloudType);
-		//		doInit();
 	}
 	private void doInit() throws Exception{
 		String instanceName = this.connProps.getInstanceName();

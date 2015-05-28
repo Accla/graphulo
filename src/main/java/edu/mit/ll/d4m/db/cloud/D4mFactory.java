@@ -3,12 +3,8 @@
  */
 package edu.mit.ll.d4m.db.cloud;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-
-import org.apache.log4j.Logger;
-
 import edu.mit.ll.cloud.connection.ConnectionProperties;
+import org.apache.log4j.Logger;
 
 
 /**
@@ -18,10 +14,7 @@ import edu.mit.ll.cloud.connection.ConnectionProperties;
  */
 public class D4mFactory {
 	private static Logger log = Logger.getLogger(D4mFactory.class);
-
-	public static String ACCUMULO= D4mConfig.ACCUMULO;
 	public static String PROPERTY_D4M_CLOUD_TYPE="d4m.cloud.type";
-	public static String CLOUD_TYPE="BigTableLike"; // BigTableLike or Accumulo
 
 	public static String ACCUMULO_QUERY2="edu.mit.ll.d4m.db.cloud.accumulo.D4mDbQueryAccumulo";
 
@@ -43,18 +36,9 @@ public class D4mFactory {
 	{
 		D4mParentQuery d4m = null;
 		ClassLoader loader = D4mFactory.class.getClassLoader();
-		D4mConfig d4mConfig = D4mConfig.getInstance();
-		CLOUD_TYPE = d4mConfig.getCloudType();
 		try {
-
-		        if (CLOUD_TYPE.equals(ACCUMULO)) {
 				d4m = (D4mParentQuery)loader.loadClass(ACCUMULO_QUERY2).newInstance();
-			}
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
+		} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
 			e.printStackTrace();
 		}
 
@@ -66,27 +50,11 @@ public class D4mFactory {
 	public static D4mInsertBase createInserter() {
 		D4mInsertBase d4m = null;
 		ClassLoader loader = D4mFactory.class.getClassLoader();
-		D4mConfig d4mConfig = D4mConfig.getInstance();
-		CLOUD_TYPE = d4mConfig.getCloudType();
 		try {
-
-			if (CLOUD_TYPE.equals(ACCUMULO)) {
 				d4m = (D4mInsertBase)loader.loadClass(ACCUMULO_INSERT).newInstance();
-			}
-			else {
-				log.warn("Cloud Type not recognized" + CLOUD_TYPE);
-			}
-		} catch (InstantiationException e) {
-
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-
+		} catch (InstantiationException | ClassNotFoundException | IllegalAccessException e) {
 			e.printStackTrace();
 		}
-
 
 
 		return d4m;
@@ -108,24 +76,9 @@ public class D4mFactory {
 	public static D4mTableOpsIF createTableOperations() {
 		D4mTableOpsIF d4m = null;
 		ClassLoader loader = D4mFactory.class.getClassLoader();
-		D4mConfig d4mConfig = D4mConfig.getInstance();
-		CLOUD_TYPE = d4mConfig.getCloudType();
 		try {
-
-		        if (CLOUD_TYPE.equals(ACCUMULO)) {
 				d4m = (D4mTableOpsIF)loader.loadClass(ACCUMULO_TABLE_OPS).newInstance();
-			}
-			else {
-				log.warn("Cloud Type not recognized" + CLOUD_TYPE);
-			}
-		} catch (InstantiationException e) {
-
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-
+		} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
 			e.printStackTrace();
 		}
 
@@ -149,32 +102,14 @@ public class D4mFactory {
 	}
 
 	public static DbInfoIF createDbInfo(ConnectionProperties connProps) {
-		DbInfoIF dbInfo= null;
-		D4mConfig d4mConfig = D4mConfig.getInstance();
-		CLOUD_TYPE = d4mConfig.getCloudType();
+		DbInfoIF dbInfo;
 		ClassLoader loader = D4mFactory.class.getClassLoader();
 
 		try {
-
-			if (CLOUD_TYPE.equals(ACCUMULO)) {
-
-				dbInfo = (DbInfoIF)loader.loadClass(ACCUMULO_DB_INFO).newInstance();
-			}
-			else {
-				log.warn("Cloud Type not recognized" + CLOUD_TYPE);
-			}
-		} catch (InstantiationException e) {
+			dbInfo = (DbInfoIF)loader.loadClass(ACCUMULO_DB_INFO).newInstance();
+		} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
 			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-		}  catch (SecurityException e) {
-			e.printStackTrace();
-		} catch (IllegalArgumentException e) {
-			e.printStackTrace();
-		} catch (RuntimeException e) {
-			e.printStackTrace();
+			throw new RuntimeException(e);
 		}
 		dbInfo.setConnectionProp(connProps);
 

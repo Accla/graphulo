@@ -1,8 +1,5 @@
 package edu.mit.ll.d4m.db.cloud;
 
-import java.util.Iterator;
-import java.util.SortedSet;
-
 import edu.mit.ll.cloud.connection.ConnectionProperties;
 
 /**
@@ -17,23 +14,14 @@ public class D4mDbInfo extends D4mParent {
 
 	private ConnectionProperties connProps = new ConnectionProperties();
 
-	public String rowReturnString = "";
-	public String columnReturnString = "";
-	public String valueReturnString = "";
-
 	/**
 	 * Constructor that may use MasterInstance or ZooKeeperInstance to connect to Accumulo.
-	 * @param connProps
 	 */
 	public D4mDbInfo(ConnectionProperties connProps) {
 		this.connProps = connProps;
 	}
 
 	/**
-	 * @param instanceName
-	 * @param host
-	 * @param username
-	 * @param password
 	 */
 	public D4mDbInfo(String instanceName, String host, String username, String password) {
 		this.connProps.setInstanceName(instanceName);
@@ -43,13 +31,8 @@ public class D4mDbInfo extends D4mParent {
 	}
 
 	public String getTableList() throws Exception {
-
-		String s=null;
-		DbInfoIF dbInfo = null;
-		dbInfo = D4mFactory.createDbInfo(this.connProps);
-		s = dbInfo.getTableList();
-
-		return s;
+		DbInfoIF dbInfo = D4mFactory.createDbInfo(this.connProps);
+		return dbInfo.getTableList();
 	}
 
 

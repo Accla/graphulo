@@ -4,32 +4,19 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.xml.DOMConfigurator;
 
 public abstract class D4mParent {
-	private static Logger log = null; //Logger.getLogger(D4mParent.class);
+	private static Logger log = Logger.getLogger(D4mParent.class);
 
-	private static boolean isReady=false;
-	
-	public D4mParent() {
-		init();
-	}
-	
-	private void init() {
-		if(!isReady){
-			try {
-				DOMConfigurator.configure(this.getClass().getClassLoader().getResource("log4j.xml"));
-				isReady=true;
-			} catch (Exception e) {
-				System.err.println(e);
-			}
-		}
-
+	static {
+    try {
+      DOMConfigurator.configure(D4mParent.class.getClassLoader().getResource("log4j.xml"));
+    } catch (Exception e) {
+      log.warn("problem loading log4j",e);
+    }
 	}
 
+  /** Kept for compatibility with older D4M. */
+  @Deprecated
 	public void setCloudType(String cloudType) {
-		if(log == null)
-			log = Logger.getLogger(D4mParent.class);
-		D4mConfig d4mConf = D4mConfig.getInstance();
-		log.debug("CLOUD TYPE = "+cloudType);
-		d4mConf.setCloudType(cloudType);
 	}
 
 }

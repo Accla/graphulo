@@ -17,12 +17,8 @@ public class D4mConfig {
 	private static Logger log = Logger.getLogger(D4mConfig.class);
 
 	public static String ACCUMULO="Accumulo";
-	public static String PROP_D4M_CLOUD_TYPE="d4m.cloud.type";
-	public static long TIME_THRESHOLD=60000L;
 	public static boolean DEBUG=false;
-	public static boolean SORT_MUTATIONS=false;
 
-	private  String cloudType = ACCUMULO;
 	private static D4mConfig instance= null;
 	static {
 		ClassLoader clsloader = D4mConfig.class.getClassLoader();
@@ -51,11 +47,5 @@ public class D4mConfig {
 			instance = new D4mConfig();
 		}
 		return instance;
-	}
-	public String getCloudType() {
-		return cloudType;
-	}
-	public void setCloudType(String cloudType) {
-		this.cloudType = cloudType;
 	}
 }

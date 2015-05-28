@@ -39,8 +39,6 @@ public class TestAccumuloSplitInfo {
 	 */
 	@Before
 	public void setUp() throws Exception {
-		D4mConfig.getInstance().setCloudType(D4mConfig.ACCUMULO);
-
 		ConnectionProperties cp;
 		cp = new ConnectionProperties();
 		cp.setInstanceName(instanceName);

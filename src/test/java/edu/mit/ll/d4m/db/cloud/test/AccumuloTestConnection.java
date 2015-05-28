@@ -21,7 +21,6 @@ public class AccumuloTestConnection {
 
     public AccumuloTestConnection(String filename) {
         // Setup Connection
-        D4mConfig.getInstance().setCloudType(D4mConfig.ACCUMULO);
         ClientConfiguration config;
         Configuration properties;
         String user,pass;

@@ -38,8 +38,6 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.Map.Entry;
 
-//import org.apache.accumulo.core.security.thrift.AuthInfo;
-
 /**
  * @author cyee
  *

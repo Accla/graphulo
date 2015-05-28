@@ -60,7 +60,6 @@ public class SplitTest {
 		String[] arr;
 		D4mDbTableOperations dbTable = new D4mDbTableOperations(instanceName,host,username,password);
 		D4mDbInsert dbInsert = new D4mDbInsert(instanceName, host, tableName, username, password);
-		dbInsert.setCloudType("Accumulo");
 		D4mDataSearch dbQuery = new D4mDataSearch(instanceName, host, tableName, username, password);
 		
 		String row = "aaaaid1,zid2,";

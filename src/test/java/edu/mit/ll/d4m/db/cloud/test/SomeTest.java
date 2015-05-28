@@ -126,8 +126,7 @@ public class SomeTest {
         tempDir.delete();
     }
 
-    private void innerTest(Instance instance, Connector conn, ConnectionProperties connprops) throws Exception, TableExistsException {
-        D4mConfig.getInstance().setCloudType(D4mConfig.ACCUMULO);
+    private void innerTest(Instance instance, Connector conn, ConnectionProperties connprops) throws Exception {
         D4mDbTableOperations dbtop = new D4mDbTableOperations(connprops);
 
         printList(conn.tableOperations().list(), "tables");

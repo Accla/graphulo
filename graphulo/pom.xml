@@ -69,6 +69,7 @@
           <reportsDirectory>shippable/testresults</reportsDirectory>
           <!--<argLine>-agentlib:jdwp=transport=dt_socket,server=n,address=127.0.0.1:5005,suspend=y</argLine>-->
           <test>${test}</test> <!-- Only run tests in the TEST_CONFIG class. -->
+          <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
         </configuration>
         <dependencies>
           <dependency>

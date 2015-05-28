@@ -51,7 +51,7 @@ public class Graphulo {
                         Class<? extends IMultiplyOp> multOp, IteratorSetting sumOp,
                         Collection<Range> rowFilter,
                         String colFilterAT, String colFilterB) {
-    TableMult(ATtable, Btable, Ctable, multOp, sumOp, rowFilter, colFilterAT, colFilterB, 250000, true);
+    TableMult(ATtable, Btable, Ctable, multOp, sumOp, rowFilter, colFilterAT, colFilterB, -1, false);
   }
 
 /**
@@ -462,12 +462,12 @@ public void TableMult(String ATtable, String Btable, String Ctable,
    * @param outputNormal   Create E of subgraph for each of the k hops.
    * @param outputTranpose Create ET of subgraph for each of the k hops.
    */
-  public void EdgeBFS(String Etable, String v0, int k, String startPrefix, String endPrefix, int minDegree, int maxDegree, boolean outputNormal, boolean outputTranpose) {
+  void EdgeBFS(String Etable, String v0, int k, String startPrefix, String endPrefix, int minDegree, int maxDegree, boolean outputNormal, boolean outputTranpose) {
 
   }
 
 
-  public void SingleTableBFS(String Stable, String v0, int k, int minDegree, int maxDegree, boolean outputNormal, boolean outputTranspose) {
+  void SingleTableBFS(String Stable, String v0, int k, int minDegree, int maxDegree, boolean outputNormal, boolean outputTranspose) {
 
   }
 

@@ -47,8 +47,9 @@ public class RealAccumuloTester extends ExternalResource implements IAccumuloTes
 
     @Override
     protected void before() throws Throwable {
-        instance = new ZooKeeperInstance(cc.get(ClientConfiguration.ClientProperty.INSTANCE_NAME),
-                                    cc.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST));
+//        instance = new ZooKeeperInstance(cc.get(ClientConfiguration.ClientProperty.INSTANCE_NAME),
+//                                    cc.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST));
+        instance = new ZooKeeperInstance(cc);
         log.debug("setUp ok - ClientConfiguration="+cc+" instance=" + instance.getInstanceName());
     }
 

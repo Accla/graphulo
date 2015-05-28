@@ -34,11 +34,11 @@ An asterisk indicates files/folders recommended to change, or not made yet.
 <pre>
 graphulo/               d4m_api_java project directory
   src/                                 
+    assembly/...        Files for building graphulo.
     main/               Main code and resources. Included in output JAR.
       java/...          
       resources/        Contents copied into output JAR.
-        building/...    Files used for building the output JAR.
-        log4j.xml       Logging configuration for client at runtime.
+        log4j.xml       Logging configuration for clients at runtime.
     test/               Test code and resources. Not included in output JAR.
       java/...             
       resources/
@@ -51,14 +51,22 @@ graphulo/               d4m_api_java project directory
   post-test.bash        Script to display output of tests from shippable/testresults.
 
 d4m_api_java/           d4m_api_java project directory
-  src/...               Similar to graphulo/src/. 
+  src/...               Similar to graphulo/src/...
+  target/...            Similar to graphulo/target/...
   pom.xml               Maven Project Object Model for d4m_api_java.
   post-test.bash        Script to display output of tests from shippable/testresults.
-  
+
+distribution/           Where the distribution build for graphulo occurs.
+  src/assembly/...      Similar to graphulo/src/assembly/...
+  target/
+    graphulo-...-bin.jar   Binaries for graphulo and d4m_api_java. Put this jar in a client code's classpath.
+    graphulo-...-dist.zip  Distribution zip file, containing all source and binaries.
+  pom.xml               Maven Project Object Model for creating the distribution build.
+
 deploy.sh               Script to deploy a graphulo build to Accumulo and Matlab D4M.
 pom.xml                 Maven Project Object Model for parent of d4m_api_java and graphulo.
 README.md               This file.
-
+                        (-Below files only in git repository-)
 .gitignore              Files and folders to exclude from git.
 .travis.yml             Enables continuous integration testing.
 shippable.yml           Enables continuous integration testing.
@@ -93,6 +101,14 @@ Test results are saved in the `shippable/testresults` folder.
 
 [MiniAccumulo]: https://accumulo.apache.org/1.6/accumulo_user_manual.html#_mini_accumulo_cluster
 
+### Examples
+The classes in `graphulo/src/test/java/edu/mit/ll/graphulo/examples/`
+contain simple, well-commented examples of how to use Graphulo.
+
+* `mvn test -Dtest=TableMultExample` to insert a SCALE 10 graph into MiniAccumulo,
+store the result of multiplying it with itself, and count the number of resulting entries.
+
+
 ### Deploying
 Execute `./deploy.sh`. This script will do the following:
 
@@ -117,6 +133,8 @@ Graphulo graphulo = new Graphulo(connector, PASSWORD_TOKEN);
 // call Graphulo functions...
 graphulo.AdjBFS("Atable", v0, 3, "Rtable", null, "ADegtable", "deg", false, 5, 15);
 ```
+
+See Examples above for more elaborate client code usage.
 
 ### How to use Graphulo in Matlab client code with D4M
 The following code snippet is a good starting point for using Graphulo,

@@ -1,0 +1,34 @@
+<assembly xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.3 http://maven.apache.org/xsd/assembly-1.1.3.xsd">
+  <id>dist</id>
+  <formats>
+    <format>zip</format>
+  </formats>
+  <!--<baseDirectory>../</baseDirectory>-->
+  <includeBaseDirectory>true</includeBaseDirectory>
+  <fileSets>
+    <fileSet>
+      <includes>
+        <include>src/**</include>
+        <include>post-test.bash</include>
+        <include>pom.xml</include>
+        <include>deploy.sh</include>
+      </includes>
+    </fileSet>
+    <fileSet>
+      <filtered>false</filtered>
+      <includes>
+        <include>README.md</include>
+        <include>README-D4M.md</include>
+      </includes>
+    </fileSet>
+    <fileSet>
+      <includes>
+        <include>target/graphulo-*.jar</include>
+        <include>target/${DBinit.path.libextZip}.zip</include>
+        <include>target/site/**</include>
+      </includes>
+    </fileSet>
+  </fileSets>
+</assembly>

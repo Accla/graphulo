@@ -1,6 +1,6 @@
 language: java
-script: mvn test -Dtest=TEST_CONFIG
-after_script: ./d4m_api_java/post-test.bash && ./graphulo/post-test.bash
+script: mvn test
+after_script: ./post-test.bash
 notifications:
      email:
          recipients:

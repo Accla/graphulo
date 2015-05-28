@@ -1,4 +1,4 @@
-Looking for vanilla d4m_api_java without Graphulo?  Go to the subdirectory `d4m_api_java/`.
+Includes `d4m_api_java` library.
 
 Graphulo
 ========
@@ -32,49 +32,38 @@ Graphulo is tested on Accumulo 1.6.0 and 1.6.1.
 An asterisk indicates files/folders recommended to change, or not made yet.
 
 <pre>
-graphulo/               d4m_api_java project directory
-  src/                                 
-    assembly/...        Files for building graphulo.
-    main/               Main code and resources. Included in output JAR.
-      java/...          
-      resources/        Contents copied into output JAR.
-        log4j.xml       Logging configuration for clients at runtime.
-    test/               Test code and resources. Not included in output JAR.
-      java/...             
-      resources/
-        log4j.xml       Logging configuration for tests.
-        data/...        Data for testing graphulo. 
-  target/
-    graphulo-${version}.jar    Binaries for graphulo only.
-    libext-${version}.zip      JARs of graphulo's dependencies.
-  pom.xml               Maven Project Object Model for graphulo.
-  post-test.bash        Script to display output of tests from shippable/testresults.
+src/                                 
+  assembly/...        Files for building graphulo.
+  main/               Main code and resources. Included in output JAR.
+    java/...          
+    resources/        Contents copied into output JAR.
+      log4j.xml       Logging configuration for clients at runtime.
+  test/               Test code and resources. Not included in output JAR.
+    java/...             
+    resources/        Contents available for tests and examples.
+      log4j.xml       Logging configuration.
+      data/...        Data folder - contains pre-created graphs.
 
-d4m_api_java/           d4m_api_java project directory
-  src/...               Similar to graphulo/src/...
-  target/...            Similar to graphulo/target/...
-  pom.xml               Maven Project Object Model for d4m_api_java.
-  post-test.bash        Script to display output of tests from shippable/testresults.
-
-distribution/           Where the distribution build for graphulo occurs.
-  src/assembly/...      Similar to graphulo/src/assembly/...
-  target/
-    graphulo-${version}-bin.jar   Binaries for graphulo and d4m_api_java.
-    graphulo-${version}-dist.zip  Distribution zip file, containing all source and binaries.
-  pom.xml               Maven Project Object Model for creating the distribution build.
-
-deploy.sh               Script to deploy a graphulo build to Accumulo and Matlab D4M.
-pom.xml                 Maven Project Object Model for parent of d4m_api_java and graphulo.
-README.md               This file.
-                        (-Below files only in git repository-)
-.gitignore              Files and folders to exclude from git.
-.travis.yml             Enables continuous integration testing.
-shippable.yml           Enables continuous integration testing.
+target/
+  graphulo-${version}.jar           Binaries for graphulo and d4m_api_java.
+  graphulo-${version}-libext.zip    Contains JARs of all dependencies.
+  site/apidocs/...                  Javadoc.
+  graphulo-${version}-dist.zip      Distribution zip. Contains all source and binaries.
+  
+pom.xml               Maven Project Object Model. Defines how to build graphulo.
+post-test.bash        Script to display output of tests from shippable/testresults.
+deploy.sh             Script to deploy a graphulo build to Accumulo and Matlab D4M.
+README.md             This file.
+README-D4M.md         Readme for d4m_api_java.
+                      (-Below files only in git repository-)
+.gitignore            Files and folders to exclude from git.
+.travis.yml           Enables continuous integration testing.
+shippable.yml         Enables continuous integration testing.
 </pre>
 
 [Project Object Model]: https://maven.apache.org/guides/introduction/introduction-to-the-pom.html
 
-### Building
+### Build
 [![Build Status](https://api.shippable.com/projects/54f27f245ab6cc13528fd44d/badge?branchName=master)](https://app.shippable.com/projects/54f27f245ab6cc13528fd44d/builds/latest)
 [![Build Status](https://travis-ci.org/Accla/d4m_api_java.svg)](https://travis-ci.org/Accla/d4m_api_java)
 
@@ -83,13 +72,13 @@ Prerequisite: Install [Maven](https://maven.apache.org/download.cgi).
 Run `mvn package -DskipTests=true` to compile and build d4m_api_java and Graphulo.
 The main distribution files are a JAR containing d4m_api_java and Graphulo code, 
 and a libext ZIP file containing dependencies for both projects.
-The JAR and ZIP are created inside the `graphulo/target/` directory.
+The JAR and ZIP are created inside the `target/` directory.
 
 The maven script will build everything on Unix-like systems.
 On Windows systems, `DBinit.m` may not be built (used in D4M installation). 
 See the message in the build after running `mvn package`.
 
-### Testing
+### Test
 Tests only run on Unix-like systems.
 
 * `mvn test` to run tests on [MiniAccumulo][], 
@@ -103,7 +92,7 @@ Run `mvn clean` to delete output from previously run tests.
 [MiniAccumulo]: https://accumulo.apache.org/1.6/accumulo_user_manual.html#_mini_accumulo_cluster
 
 ### Examples
-The classes in `graphulo/src/test/java/edu/mit/ll/graphulo/examples/`
+The classes in `src/test/java/edu/mit/ll/graphulo/examples/`
 contain simple, well-commented examples of how to use Graphulo.
 
 * `mvn test -Dtest=TableMultExample` to insert a SCALE 10 graph into MiniAccumulo,
@@ -111,9 +100,9 @@ store the result of multiplying it with itself, and count the number of resultin
 * `mvn test -Dtest=AdjBFSExample` to insert a SCALE 10 graph into MiniAccumulo,
 create a new table with the union sum of three steps of Breadth First Search, 
 and count the number of resulting entries.
-* View example output with `graphulo/post-test.bash`.
+* View example output with `./post-test.bash`.
 
-### Deploying
+### Deploy to Accumulo and D4M
 Execute `./deploy.sh`. This script will do the following:
 
 1. ACCUMULO DEPLOY: Copy the Graphulo JAR into `$ACCUMULO_HOME/lib/ext`, the external library folder of your Accumulo installation,
@@ -123,8 +112,28 @@ and update `$D4M_HOME/matlab_src/DBinit.m`.
 
 Feel free to delete or edit parts of the script for deploying to your environment.
 
+### Distribute
+Execute `mvn install` to build the distribution zip file `target/graphulo-${version}-dist.zip`.
+This zip contains all source code, javadoc and compiled binaries.
+
+`mvn install` will also install `target/graphulo-${version}.jar` into your local maven repository,
+which enables using Graphulo as a Maven dependency in a derivative client project. 
+
+
 ### How to use Graphulo in Java client code
 Include Graphulo's JAR in the Java classpath when running client code.  
+This is automatically done if 
+
+1. Your client project is a maven project;
+2. `mvn install` is run;
+3. and you add the following to your client project's pom.xml:
+```
+<dependency>
+  <groupId>edu.mit.ll</groupId>
+  <artifactId>graphulo</artifactId>
+  <version>${version}</version>
+</dependency>
+```
 
 The following code snippet is a good starting point for using Graphulo:
 
@@ -148,6 +157,10 @@ assuming the D4M libraries are also installed:
 G = DBaddJavaOps('edu.mit.ll.graphulo.MatlabGraphulo','instance','localhost:2181','root','secret');
 res = G.AdjBFS('Atable','v0;v7;v9;',3,'Rtable','','ADegtable','OutDeg',false,5,15);
 ```
+
+
+
+
 
 ## Implementation
 

@@ -24,9 +24,8 @@ public class CompareUtil {
 	}
 
 	public boolean compareIt(String q) {
-		boolean retval=false;
 		Matcher  match = pattern.matcher(q);
-		retval = match.matches();
+		boolean retval = match.matches();
 		
 		if(!retval) {
 			if(this.array.length == 3 && this.array[1].equals(":") ) {

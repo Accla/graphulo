@@ -3,10 +3,8 @@
  */
 package edu.mit.ll.d4m.db.cloud;
 
-import org.apache.log4j.Logger;
-
 import edu.mit.ll.cloud.connection.ConnectionProperties;
-import edu.mit.ll.d4m.db.cloud.util.MutationSorter;
+import org.apache.log4j.Logger;
 
 /**
  * @author CHV8091
@@ -23,7 +21,6 @@ public abstract class D4mInsertBase implements D4mInserterIF {
 	protected String visibility = "";
 
 	protected ConnectionProperties connProps = new ConnectionProperties();
-	protected MutationSorter mutSorter = new MutationSorter();
 
 	public D4mInsertBase() {
 	    super();

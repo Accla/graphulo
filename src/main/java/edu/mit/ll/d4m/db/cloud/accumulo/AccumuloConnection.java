@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.SortedSet;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author cyee
@@ -39,10 +40,9 @@ public class AccumuloConnection {
 	private ConnectionProperties conn=null;
 	private ZooKeeperInstance instance=null;
 	private Connector connector= null;
-	private Authorizations auth= org.apache.accumulo.core.Constants.NO_AUTHS;
+	private Authorizations auth= Authorizations.EMPTY;
 	public static long maxMemory= 1024000L;
 	public static long maxLatency = 30;
-	private PasswordToken passwordToken;
 	Credentials creds= null;
 	/**
 	 * 
@@ -51,18 +51,18 @@ public class AccumuloConnection {
 		this.conn = conn;
 		ClientConfiguration cconfig = new ClientConfiguration().withInstance(conn.getInstanceName()).withZkHosts(conn.getHost()).withZkTimeout(conn.getSessionTimeOut());
 		this.instance = new ZooKeeperInstance(cconfig);
-		this.passwordToken = new PasswordToken(this.conn.getPass());
-		this.creds = new Credentials(this.conn.getUser(), this.passwordToken);
+		PasswordToken passwordToken = new PasswordToken(this.conn.getPass());
+		this.creds = new Credentials(this.conn.getUser(), passwordToken);
 
         //principal = username = this.conn.getUser()
         //System.out.println("about to make connector: user="+this.conn.getUser()+"   password="+ new String(this.passwordToken.getPassword()));
-        this.connector = this.instance.getConnector(this.conn.getUser(), this.passwordToken);
+        this.connector = this.instance.getConnector(this.conn.getUser(), passwordToken);
         //System.out.println("made connector");
         String [] sAuth = conn.getAuthorizations();
         if (sAuth != null && sAuth.length > 0) {
             this.auth = new Authorizations(sAuth);
         } else {
-            this.auth= org.apache.accumulo.core.Constants.NO_AUTHS;
+            this.auth= Authorizations.EMPTY;
         }
         log.debug("!!!WHOAMI="+this.connector.whoami());
 	}
@@ -72,44 +72,39 @@ public class AccumuloConnection {
 	public void createTable(String tableName) {
 		try {
 			connector.tableOperations().create(tableName);
-		} catch (AccumuloException e) {		
-			log.warn(e);
-		} catch (AccumuloSecurityException e) {
-
-			log.warn(e);
+		} catch (AccumuloException | AccumuloSecurityException e) {		
+			log.warn("",e);
 		} catch (TableExistsException e) {
 			log.warn("Table "+ tableName+"  exist.",e);
 		}
 	}
 
-	// batchwriter
+
 	public BatchWriter createBatchWriter (String table, long maxMemory, long maxLatency,int maxWriteThreads) throws TableNotFoundException {
-		return connector.createBatchWriter(table, maxMemory, maxLatency, maxWriteThreads);
+		BatchWriterConfig bwc = new BatchWriterConfig()
+				.setMaxLatency(maxLatency, TimeUnit.MILLISECONDS)
+				.setMaxMemory(maxMemory)
+				.setMaxWriteThreads(maxWriteThreads);
+		return connector.createBatchWriter(table, bwc);
 	}
 	public BatchWriter createBatchWriter (String table) throws TableNotFoundException {
 		return createBatchWriter(table, maxMemory, maxLatency, conn.getMaxNumThreads());
 	}
 
-	//Scanner
+
 	public Scanner createScanner(String tableName) throws TableNotFoundException {
 		return this.connector.createScanner(tableName, this.auth);
 	}
-	//BatchScanner
+
 	public BatchScanner getBatchScanner(String tableName, int numberOfThreads) throws TableNotFoundException  {
-		BatchScanner scanner = connector.createBatchScanner(tableName, this.auth, numberOfThreads);
-		return scanner;
+		return connector.createBatchScanner(tableName, this.auth, numberOfThreads);
 	}
 
 	public void deleteTable (String tableName)  {
 		try {
 			connector.tableOperations().delete(tableName);
-		} catch (AccumuloException e) {
-			// TODO Auto-generated catch block
-			log.warn(e);
-		} catch (AccumuloSecurityException e) {
-			log.warn(e);
-		} catch (TableNotFoundException e) {
-			log.warn(e);
+		} catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+			log.warn("",e);
 		}
 	}
 
@@ -121,15 +116,8 @@ public class AccumuloConnection {
 	public void addSplit(String tableName, SortedSet<Text> partitions) {
 		try {
 			connector.tableOperations().addSplits(tableName, partitions);
-		} catch (TableNotFoundException e) {
-
-			log.warn(e);
-		} catch (AccumuloException e) {
-
-			log.warn(e);
-		} catch (AccumuloSecurityException e) {
-
-			log.warn(e);
+		} catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
+			log.warn("",e);
 		}
 	}
 	public Instance getInstance() {	
@@ -142,21 +130,15 @@ public class AccumuloConnection {
 
 	public TabletClientService.Iface getTabletClient (String tserverAddress) throws TTransportException {
         //HostAndPort address = AddressUtil.parseAddress(tserverAddress, -1);
-		TabletClientService.Iface client = null;
-		client = ThriftUtil.getTServerClient( tserverAddress, connector.getInstance().getConfiguration());
-		return client;
+    return ThriftUtil.getTServerClient( tserverAddress, connector.getInstance().getConfiguration());
 	}
 
 	public Map<String, String> getNameToIdMap() {
 		//Map<String, String> nameToIdMap = Tables.getNameToIdMap(instance);
-		Map<String,String> _nameToIdMap = Tables.getNameToIdMap(getInstance());
-
-
-		return _nameToIdMap;
+		return Tables.getNameToIdMap(getInstance());
 	}
-	public Collection<Text> getSplits(String tableName) throws TableNotFoundException {
-		Collection<Text> splits = this.connector.tableOperations().getSplits(tableName);
-		return splits;
+	public Collection<Text> getSplits(String tableName) throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+		return this.connector.tableOperations().listSplits(tableName);
 	}
 	public SortedSet<String> getTableList() {
 		return this.connector.tableOperations().list();
@@ -168,17 +150,8 @@ public class AccumuloConnection {
 		TableOperations tops = this.connector.tableOperations();
 		try {
 			tops.attachIterator(tableName, iterSet); // adds on all scopes: majc, minc, scan 
-		} catch (AccumuloSecurityException e) {
-			log.warn(e);
-			//e.printStackTrace();
-			throw new D4mException(e);
-		} catch (AccumuloException e) {
-			log.warn(e);
-			//e.printStackTrace();
-			throw new D4mException(e);
-		} catch (TableNotFoundException e) {
-			log.warn(e);
-			//e.printStackTrace();
+		} catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
+			log.warn("",e);
 			throw new D4mException(e);
 		}
 	}
@@ -188,17 +161,8 @@ public class AccumuloConnection {
 		TableOperations tops = this.connector.tableOperations();
 		try {
 			return tops.listIterators(tableName);
-		} catch (AccumuloSecurityException e) {
-			log.warn(e);
-			//e.printStackTrace();
-			throw new D4mException(e);
-		} catch (AccumuloException e) {
-			log.warn(e);
-			//e.printStackTrace();
-			throw new D4mException(e);
-		} catch (TableNotFoundException e) {
-			log.warn(e);
-			//e.printStackTrace();
+		} catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
+			log.warn("",e);
 			throw new D4mException(e);
 		}
 	}
@@ -208,16 +172,8 @@ public class AccumuloConnection {
 		TableOperations tops = this.connector.tableOperations();
 		try {
 			return tops.getIteratorSetting(tableName, name, scope);
-		} catch (AccumuloSecurityException e) {
-			log.warn(e);
-			//e.printStackTrace();
-			throw new D4mException(e);
-		} catch (AccumuloException e) {
-			log.warn(e);
-			//e.printStackTrace();
-			throw new D4mException(e);
-		} catch (TableNotFoundException e) {
-			log.warn(e);
+		} catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
+			log.warn("",e);
 			//e.printStackTrace();
 			throw new D4mException(e);
 		}
@@ -228,64 +184,40 @@ public class AccumuloConnection {
 		TableOperations tops = this.connector.tableOperations();
 		try {
 			tops.removeIterator(tableName, name, scopes);
-		} catch (AccumuloSecurityException e) {
-			log.warn(e);
-			//e.printStackTrace();
-			throw new D4mException(e);
-		} catch (AccumuloException e) {
-			log.warn(e);
-			//e.printStackTrace();
-			throw new D4mException(e);
-		} catch (TableNotFoundException e) {
-			log.warn(e);
-			//e.printStackTrace();
+		} catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
+			log.warn("",e);
 			throw new D4mException(e);
 		}
-	}
+  }
 
 	public void checkIteratorConflicts(String tableName, IteratorSetting cfg, EnumSet<IteratorScope> scopes) throws D4mException 
 	{
 		TableOperations tops = this.connector.tableOperations();
 		try {
 			tops.checkIteratorConflicts(tableName, cfg, scopes);
-		} catch (AccumuloException e) {
-			log.warn(e);
-			//e.printStackTrace();
-			throw new D4mException(e);
-		} catch (TableNotFoundException e) {
-			log.warn(e);
-			//e.printStackTrace();
+		} catch (AccumuloException | TableNotFoundException e) {
+			log.warn("",e);
 			throw new D4mException(e);
 		}
 
-	}
+  }
 
 	public void merge(String tableName, String startRow, String endRow) throws D4mException {
 		TableOperations tops = this.connector.tableOperations();
 		try {
 			tops.merge(tableName, startRow == null ? null : new Text(startRow), endRow == null ? null : new Text(endRow));
-		} catch (AccumuloException e) {
-			log.warn(e);
-			//e.printStackTrace();
-			throw new D4mException(e);
-		} catch (TableNotFoundException e) {
-			log.warn(e);
-			//e.printStackTrace();
-			throw new D4mException(e);
-		} catch (AccumuloSecurityException e) {
-			log.warn(e);
-			//e.printStackTrace();
+		} catch (AccumuloException | TableNotFoundException | AccumuloSecurityException e) {
+			log.warn("",e);
 			throw new D4mException(e);
 		}
-	}
+  }
 
 	public  TCredentials getCredentials() throws D4mException {
 		TCredentials tCred = null;
 		try {
 			tCred =  this.creds.toThrift(this.instance);  //.create(this.conn.getUser(), this.passwordToken, this.instance.getInstanceID() );
 		} catch (Exception e) {
-			log.warn(e);
-			//e.printStackTrace();
+			log.warn("",e);
 			throw new D4mException(e);
 		}
 		return tCred;
@@ -299,7 +231,7 @@ public class AccumuloConnection {
 	 */	
 	public void setAuthorizations(String auths) {
 		if(auths == null) {
-			this.auth= org.apache.accumulo.core.Constants.NO_AUTHS;
+			this.auth= Authorizations.EMPTY;
 			return;
 		}
 		this.auth = new Authorizations(auths.split(","));
@@ -311,33 +243,26 @@ public class AccumuloConnection {
 		if(sAuth != null && sAuth.length > 0 )
 			this.auth = new Authorizations(sAuth);
 		else if( sAuth == null ){
-			this.auth= org.apache.accumulo.core.Constants.NO_AUTHS;
+			this.auth= Authorizations.EMPTY;
 		}
 	}
 
 	public String locateTablet(String tableName, String splitName) {
 		String tabletName = null;
-		TabletLocator tc = null;
 		try {
-			tc = TabletLocator.getLocator(this.instance, new Text(Tables.getTableId(this.instance, tableName))); // change to getLocator for 1.6
+			TabletLocator tc = TabletLocator.getLocator(this.instance, new Text(Tables.getTableId(this.instance, tableName))); // change to getLocator for 1.6
 			
 			org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation loc =
 					tc.locateTablet(this.creds, new Text(splitName), false, false);
 			tabletName = loc.tablet_location;
 			log.debug("TableName="+tableName+", TABLET_NAME = "+tabletName);
-		} catch (TableNotFoundException e) {
-			log.warn(e);
-			e.printStackTrace();
-		} catch (AccumuloException e) {
-			log.warn(e);
-			e.printStackTrace();
-		} catch (AccumuloSecurityException e) {
-			log.warn(e);
+		} catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
+			log.warn("",e);
 			e.printStackTrace();
 		}
 
 
-		return tabletName;
+    return tabletName;
 	}
 }
 

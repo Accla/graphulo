@@ -115,8 +115,8 @@ public class SQLConnection {
 	 * @throws SQLException: if a database access error occurs or the given SQL statement produces anything other than a single ResultSet object
 	 */
 	public ResultSet executeQuery(String sql) throws SQLException {
-		Statement statement = (Statement) dbConnection.createStatement();
-		ResultSet ret = (ResultSet) statement.executeQuery(sql);
+		Statement statement = dbConnection.createStatement();
+		ResultSet ret = statement.executeQuery(sql);
 		statement.close();
 		return ret;
 	}
@@ -161,7 +161,7 @@ public class SQLConnection {
 	 * @throws SQLException: if a database access error occurs or the given SQL statement produces a ResultSet object
 	 */
 	public int executeUpdate(String sql) throws SQLException {
-		Statement statement = (Statement) dbConnection.createStatement();
+		Statement statement = dbConnection.createStatement();
 		int ret = statement.executeUpdate(sql);
 		statement.close();
 		return ret;
@@ -203,11 +203,11 @@ public class SQLConnection {
 		if (statement != null) {
 			statement.close();
 		}
-		statement = (Statement) dbConnection.createStatement();
+		statement = dbConnection.createStatement();
 		boolean ret = statement.execute(sql);
 
 		if (ret)
-			return (ResultSet) statement.getResultSet();
+			return statement.getResultSet();
 		else
 			return statement.getUpdateCount();
 	}

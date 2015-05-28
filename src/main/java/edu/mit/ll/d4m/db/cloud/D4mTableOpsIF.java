@@ -26,12 +26,12 @@ public interface D4mTableOpsIF {
 	/** Create table
 	 * @param tableName
 	 */
-	public void createTable(String tableName);
+	void createTable(String tableName);
 	/**
 	 * Delete table
 	 * @param tableName
 	 */
-	public void deleteTable(String tableName);
+	void deleteTable(String tableName);
 	
 	/**
 	 * Split table at partitions
@@ -39,9 +39,9 @@ public interface D4mTableOpsIF {
 	 * @param tableName    name of table to split
 	 * @param partitions   comma-separated list of partition names
 	 */
-	public void splitTable(String tableName, String partitions);
-	public void splitTable(String tableName, String [] partitions);
-	public void splitTable(String tableName, SortedSet<Text> partitions);
+	void splitTable(String tableName, String partitions);
+	void splitTable(String tableName, String[] partitions);
+	void splitTable(String tableName, SortedSet<Text> partitions);
 
 
 	/**
@@ -50,22 +50,22 @@ public interface D4mTableOpsIF {
 	 * @param tableNames  list of tables
 	 * @return
 	 */
-	public long getNumberOfEntries(ArrayList<String>  tableNames);
+	long getNumberOfEntries(ArrayList<String> tableNames);
 	/**
 	 * Set the connection properties such as username , authorizations, etc
 	 * @param connProp
 	 */
-	public void setConnProps(ConnectionProperties connProp);
+	void setConnProps(ConnectionProperties connProp);
 	
-	public void setConnProps(String instanceName, String host, String username, String password);
+	void setConnProps(String instanceName, String host, String username, String password);
 	/**
 	 *  Make connection to cloud
 	 */
-	public void connect() throws Exception;
+	void connect() throws Exception;
 	
-	public List<String> getSplits(String tableName);
-	public List<String> getSplits(String tableName, boolean getNumInEachTablet) throws Exception;
-	public List<String> getSplitsNumInEachTablet(String tableName) throws Exception;
+	List<String> getSplits(String tableName);
+	List<String> getSplits(String tableName, boolean getNumInEachTablet) throws Exception;
+	List<String> getSplitsNumInEachTablet(String tableName) throws Exception;
 	/*
 	 *  GetTabletLocationsForSplits  will get the list of tablet server names that correspond
 	 *  to the list of split names.
@@ -73,7 +73,7 @@ public interface D4mTableOpsIF {
 	 *          splits     the list of splits
 	 *  OUTPUT    list of tablet servers
 	 */
-	public List<String> getTabletLocationsForSplits(String tableName,List<String> splits) throws D4mException;
+	List<String> getTabletLocationsForSplits(String tableName, List<String> splits) throws D4mException;
 
 	/**
 	 * Ensures that newSplitsString represents the state of splits of the table by merging away any splits present in the table not in newSplitsString.
@@ -82,19 +82,19 @@ public interface D4mTableOpsIF {
 	 * @param newSplitsString
 	 * @throws Exception TableNotFoundException
 	 */
-	public void putSplits(String tableName, String newSplitsString) throws D4mException;
-	public void addIterator(String tableName, IteratorSetting cfg) throws D4mException;
-	public Map<String, EnumSet<IteratorScope>> listIterators(String tableName) throws D4mException;
-	public IteratorSetting getIteratorSetting(String tableName, String iterName, IteratorScope scan) throws D4mException;
-	public void removeIterator(String tableName, String name, EnumSet<IteratorScope> allOf) throws D4mException;
-	public void checkIteratorConflicts(String tableName, IteratorSetting cfg, EnumSet<IteratorScope> allOf) throws D4mException;
+	void putSplits(String tableName, String newSplitsString) throws D4mException;
+	void addIterator(String tableName, IteratorSetting cfg) throws D4mException;
+	Map<String, EnumSet<IteratorScope>> listIterators(String tableName) throws D4mException;
+	IteratorSetting getIteratorSetting(String tableName, String iterName, IteratorScope scan) throws D4mException;
+	void removeIterator(String tableName, String name, EnumSet<IteratorScope> allOf) throws D4mException;
+	void checkIteratorConflicts(String tableName, IteratorSetting cfg, EnumSet<IteratorScope> allOf) throws D4mException;
 	//public void addSplits(String tableName, SortedSet<Text> splitsSet) throws D4mException;
-	public void merge(String tableName, String startRow, String endRow) throws D4mException;
-	public List<TabletStats> getTabletStatsForTables(List<String> tableNames);
+	void merge(String tableName, String startRow, String endRow) throws D4mException;
+	List<TabletStats> getTabletStatsForTables(List<String> tableNames);
 	
 	//10-23-2012 YEE - add for Combiner functionality
-	public void designateCombiningColumns(String tableName, String columnStrAll, String combineType, String columnFamily) throws D4mException;
-	public String listCombiningColumns(String tableName) throws D4mException;
-	public void revokeCombiningColumns(String tableName, String columnStr, String columnFamily) throws D4mException;
+	void designateCombiningColumns(String tableName, String columnStrAll, String combineType, String columnFamily) throws D4mException;
+	String listCombiningColumns(String tableName) throws D4mException;
+	void revokeCombiningColumns(String tableName, String columnStr, String columnFamily) throws D4mException;
 
 }

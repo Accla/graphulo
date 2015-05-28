@@ -2,43 +2,29 @@
  * 
  */
 package edu.mit.ll.d4m.db.cloud.accumulo;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.NavigableSet;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.Map.Entry;
-
+import edu.mit.ll.cloud.connection.ConnectionProperties;
+import edu.mit.ll.d4m.db.cloud.D4mException;
+import edu.mit.ll.d4m.db.cloud.D4mTableOpsIF;
+import edu.mit.ll.d4m.db.cloud.accumulo.AccumuloCombiner.CombiningType;
+import edu.mit.ll.d4m.db.cloud.util.D4mQueryUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.Tables;
-import org.apache.accumulo.core.client.impl.TabletLocator;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.TypedValueCombiner;
-import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.conf.ColumnSet;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.security.Credentials;
-//import org.apache.accumulo.core.security.thrift.AuthInfo;
-import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Pair;
@@ -47,14 +33,12 @@ import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransportException;
 
-import edu.mit.ll.cloud.connection.ConnectionProperties;
-import edu.mit.ll.d4m.db.cloud.D4mException;
-import edu.mit.ll.d4m.db.cloud.D4mTableOpsIF;
-import edu.mit.ll.d4m.db.cloud.util.D4mQueryUtil;
-import edu.mit.ll.d4m.db.cloud.accumulo.AccumuloCombiner;
-import edu.mit.ll.d4m.db.cloud.accumulo.AccumuloCombiner.CombiningType;
+import java.nio.ByteBuffer;
+import java.util.*;
+import java.util.Map.Entry;
+
+//import org.apache.accumulo.core.security.thrift.AuthInfo;
 
 /**
  * @author cyee
@@ -100,7 +84,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	public void splitTable(String tableName, String partitions) {
 		String [] pKeys = partitions.split(",");
 		//Make SortedSet
-		TreeSet<Text> set = new TreeSet<Text>();
+		TreeSet<Text> set = new TreeSet<>();
 
 		for(String pt : pKeys) {
 			Text text = new Text(pt);
@@ -122,12 +106,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 			ArrayList<TabletServerStatus> tserverStatusList = getTabletServers();
 			List<TabletStats> tabletStatsList = getTabletStatsList(tserverStatusList,  tableNames);
 			retval = getNumberOfEntries(tabletStatsList);
-		} catch (ThriftSecurityException e) {
-			log.warn(e);
-		} catch ( D4mException e)  {
-			log.warn(e);    
-		}
-		catch (TException e) {
+		} catch (D4mException | TException e) {
 			log.warn(e);
 		}
 
@@ -149,8 +128,6 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 
 	/**
 	 * Intended to be used for a single table.  Not for public use.
-	 * @param tableNames
-	 * @return
 	 */
 	@Override
 	public List<TabletStats> getTabletStatsForTables(List<String> tableNames) {
@@ -160,32 +137,24 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 		try {
 			ArrayList<TabletServerStatus> tserverStatusList = getTabletServers();
 			retval = getTabletStatsList(tserverStatusList,  tableNames);
-		} catch (ThriftSecurityException e) {
-			log.warn(e);
-		} catch ( D4mException e)  {
+		} catch ( D4mException | TException e)  {
 			log.warn(e);    
 		}
-		catch (TException e) {
-			log.warn(e);
-		}
-
 		// Connect to each tserver and get numEntries from each tableName
 		//    Get the TabletStat
-
 		return retval;
 	}
 
-	private ArrayList<TabletServerStatus> getTabletServers() throws ThriftSecurityException, TException {
-		ArrayList<TabletServerStatus> list = new ArrayList<TabletServerStatus>();// list of TServer info
+	private ArrayList<TabletServerStatus> getTabletServers() throws TException {
+		ArrayList<TabletServerStatus> list = new ArrayList<>();// list of TServer info
 		MasterClientService.Client client=null;
 		//		MasterClientService.Iface client=null;
 		try {
-			MasterMonitorInfo mmi=null; 
 			client = this.connection.getMasterClient();
 			//changed in accumulo-1.4
 			//			mmi = client.getMasterStats(null, getAuthInfo());
 			TInfo tinfo = new TInfo();
-			mmi = client.getMasterStats(tinfo,this.connection.getCredentials() );
+			MasterMonitorInfo mmi = client.getMasterStats(tinfo,this.connection.getCredentials() );
 
 			list.addAll(mmi.getTServerInfo());
 		} catch(D4mException e) {
@@ -196,7 +165,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 		return list;
 	}
 	private List<TabletStats> getTabletStatsList(List<TabletServerStatus> tserverNames, List<String> tableNames) throws D4mException {
-		List<TabletStats> tabStatsList=new ArrayList<TabletStats>();
+		List<TabletStats> tabStatsList= new ArrayList<>();
 		int cnt=0;
 		for(TabletServerStatus tss: tserverNames) {
 			cnt++;
@@ -216,7 +185,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 		MasterClientService.Iface masterClient= null;
 		TabletClientService.Iface tabClient = null;
 		//AuthInfo authInfo  = getAuthInfo();
-		List<TabletStats> tabStatsList = new ArrayList<TabletStats>();
+		List<TabletStats> tabStatsList = new ArrayList<>();
 		try {
 			masterClient = this.connection.getMasterClient();
 			tabClient = this.connection.getTabletClient(tserverName);
@@ -232,10 +201,6 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 				//		tabStatsList.addAll(tabClient.getTabletStats(null, authInfo, tableId));
 			}
 
-		} catch (TTransportException e) {
-			log.warn(e);
-		} catch (ThriftSecurityException e) {
-			log.warn(e);
 		} catch (TException e) {
 			log.warn(e);
 		} finally {
@@ -285,11 +250,9 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 //		return authinfo;
 //	}
 
-	public TCredentials tCred=null;
-
 	@Override
 	public void splitTable(String tableName, String[] partitions) {
-		TreeSet<Text> tset = new TreeSet<Text>();
+		TreeSet<Text> tset = new TreeSet<>();
 		for(String pt : partitions) {
 			tset.add(new Text(pt));
 		}
@@ -299,22 +262,19 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 
 	@Override
 	public void splitTable(String tableName, SortedSet<Text> partitions) {
-		// TODO Auto-generated method stub
 		this.connection.addSplit(tableName, partitions);
-
 	}
 
 	@Override
 	public List<String> getSplits(String tableName) {
-		Collection<Text> splitsColl=null;
-		List<String> list = new ArrayList<String>();
+		List<String> list = new ArrayList<>();
 		try {
-			splitsColl = this.connection.getSplits(tableName);
+			Collection<Text> splitsColl = this.connection.getSplits(tableName);
 			for(Text t: splitsColl) {
 				String s = t.toString();
 				list.add(s);
 			}
-		} catch (TableNotFoundException e) {
+		} catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
 			e.printStackTrace();
 		}
 
@@ -421,7 +381,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 			//LongCombiner.setEncodingType(itSet, BigDecimalEncoder.class);
 			TypedValueCombiner.setLossyness(itSet, true); // silently ignore bad values
 
-			List<IteratorSetting.Column> combineColumns = new LinkedList<IteratorSetting.Column>();
+			List<IteratorSetting.Column> combineColumns = new LinkedList<>();
 			for (String column : columnStrArr)
 				combineColumns.add(new IteratorSetting.Column(columnFamily, column));
 			Combiner.setColumns(itSet, combineColumns);
@@ -434,7 +394,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 			assert allColumnString != null && !allColumnString.isEmpty();
 
 			// ensure the column is not already in there
-			StringBuffer sb = new StringBuffer(allColumnString);
+			StringBuilder sb = new StringBuilder(allColumnString);
 			for (String column : columnStrArr)
 				if (!allColumnString.contains(ColumnSet.encodeColumns(new Text(columnFamily), new Text(column))))
 					sb.append(',').append(ColumnSet.encodeColumns(new Text(columnFamily), new Text(column)));
@@ -454,18 +414,14 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	{
 		ArgumentChecker.notNull(tableName);
 		//	doInit();
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 
 		// for each combiningtype
 		for (CombiningType ct : CombiningType.values())
 		{
 			//			IteratorSetting itSet = this.d4mTableOp.getIteratorSetting(tableName, ct.getIteratorName(), IteratorUtil.IteratorScope.scan); // any scope is ok
 			IteratorSetting itSet = getIteratorSetting(tableName, ct.getIteratorName(), IteratorUtil.IteratorScope.scan); // any scope is ok
-			if (itSet == null) {
-				// combiner does not exist in table
-				continue;
-			}
-			else {
+			if (itSet != null) { // not null means combiner exists in table
 				sb.append(ct.name()).append('\t');
 				// combiner exists in table; get the columns it combines
 				String allColumnString = itSet.getOptions().get("columns"); // use ColumnSet.decodeColumns if we want the original text
@@ -501,7 +457,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 			if (itSet == null)
 				continue; // combiner not present
 			String allColumnString = itSet.getOptions().get("columns"); // use ColumnSet.decodeColumns if we want the original text
-			StringBuffer sb = new StringBuffer(); // holds the new columns to add back
+			StringBuilder sb = new StringBuilder(); // holds the new columns to add back
 			boolean firstAppend = true;
 			for (String columnPairStr : allColumnString.split(",")) {
 				Pair<Text,Text> columnPair = ColumnSet.decodeColumns(columnPairStr);
@@ -546,7 +502,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 
 		List<String> newSplitsList = Arrays.asList(D4mQueryUtil.processParam(newSplitsString));
 		if(oldSplitsString != null ) {
-			NavigableSet<String> oldSplitsSet = new TreeSet<String>(oldSplitsString);
+			NavigableSet<String> oldSplitsSet = new TreeSet<>(oldSplitsString);
 
 			// algorithm: first go through old list and merge anything not in new
 			// then add the new set
@@ -580,7 +536,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	@Override
 	public List<String> getSplitsNumInEachTablet(String tableName)
 			throws Exception {
-		List<String> list = new ArrayList<String>();
+		List<String> list = new ArrayList<>();
 		AccumuloConnection ac = new AccumuloConnection(this.connProp);
 		org.apache.accumulo.core.client.Scanner scanner;
 		try {
@@ -597,23 +553,22 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 
 		List<TabletStats> tabStats = getTabletStatsForTables(Collections.singletonList(tableName));
 
-		for (Iterator<Entry<org.apache.accumulo.core.data.Key, org.apache.accumulo.core.data.Value>> iterator = scanner.iterator(); iterator.hasNext();) {
-			final Entry<org.apache.accumulo.core.data.Key, org.apache.accumulo.core.data.Value> next = iterator.next();
+		for (final Entry<Key, Value> next : scanner) {
 			if (METADATA_PREV_ROW_COLUMN.hasColumns(next.getKey())) { // may not be necessary
-			    org.apache.accumulo.core.data.KeyExtent extent = new org.apache.accumulo.core.data.KeyExtent(next.getKey().getRow(), next.getValue());
-			    final Text pr = extent.getPrevEndRow();
-			    final Text er = extent.getEndRow();
+				KeyExtent extent = new KeyExtent(next.getKey().getRow(), next.getValue());
+				final Text pr = extent.getPrevEndRow();
+				final Text er = extent.getEndRow();
 
-			    final ByteBuffer prb = pr == null ? null : ByteBuffer.wrap(pr.getBytes());
-			    final ByteBuffer erb = er == null ? null : ByteBuffer.wrap(er.getBytes());
-			    boolean foundIt = false;
-			    // find the TabletStats object that matches the current KeyExtent
-			    for (TabletStats tabStat : tabStats) {
-				//System.out.println("TabletStat name:" + new String(tabStat.extent.table.array()));
-				//System.out.println("Expected   name:"+internalTableName);
-				assert tabStat.extent.table.equals(ByteBuffer.wrap(internalTableName.getBytes()));
-					if ( (erb == null ? tabStat.extent.endRow == null : tabStat.extent.endRow != null && tabStat.extent.endRow.equals(erb) )
-							&&(prb == null ? tabStat.extent.prevEndRow == null : tabStat.extent.prevEndRow != null && tabStat.extent.prevEndRow.equals(prb))) {
+				final ByteBuffer prb = pr == null ? null : ByteBuffer.wrap(pr.getBytes());
+				final ByteBuffer erb = er == null ? null : ByteBuffer.wrap(er.getBytes());
+				boolean foundIt = false;
+				// find the TabletStats object that matches the current KeyExtent
+				for (TabletStats tabStat : tabStats) {
+					//System.out.println("TabletStat name:" + new String(tabStat.extent.table.array()));
+					//System.out.println("Expected   name:"+internalTableName);
+					assert tabStat.extent.table.equals(ByteBuffer.wrap(internalTableName.getBytes()));
+					if ((erb == null ? tabStat.extent.endRow == null : tabStat.extent.endRow != null && tabStat.extent.endRow.equals(erb))
+							&& (prb == null ? tabStat.extent.prevEndRow == null : tabStat.extent.prevEndRow != null && tabStat.extent.prevEndRow.equals(prb))) {
 						// found it!
 						list.add(Long.toString(tabStat.numEntries));
 						//					sb.append(tabStat.numEntries).append(',');
@@ -633,11 +588,10 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	@Override
 	public List<String> getTabletLocationsForSplits(String tableName,
 			List<String> splits) throws D4mException {
-		List<String>  results = new ArrayList<String>();
+		List<String>  results = new ArrayList<>();
 
 		try {
-			for (int i = 0, splitsSize = splits.size(); i < splitsSize; i++) {
-				String splitName = splits.get(i);
+			for (String splitName : splits) {
 				String tablet_location = this.connection.locateTablet(tableName, splitName);
 				results.add(tablet_location);
 				// DH2015: to test: (should provide tablet server of final tablet that
@@ -656,8 +610,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	 */
 	private String  concatString(List<String> strList) {
 		StringBuilder sb = new StringBuilder();
-		for(int i = 0; i < strList.size() ; i++) {
-			String s = strList.get(i);
+		for (String s : strList) {
 			sb.append(s).append(",");
 		}
 		return sb.toString();

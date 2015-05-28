@@ -7,6 +7,6 @@ cp target/graphulo-*.jar "$ACCUMULO_HOME/lib/ext"
 
 # Install client code + dependencies in D4M.
 cp target/graphulo-*.jar "$D4M_HOME/lib"
-unzip -ouq target/libext-*.zip -d "$D4M_HOME"
+unzip -ouq target/graphulo-*-libext.zip -d "$D4M_HOME"
 # Replace DBinit.m in D4M matlab_src with new version.
 mv "$D4M_HOME/DBinit.m" "$D4M_HOME/matlab_src"

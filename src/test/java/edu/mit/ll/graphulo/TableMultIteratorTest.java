@@ -219,7 +219,6 @@ public class TableMultIteratorTest {
       scannerB.clearScanIterators();
       scannerB.addScanIterator(itset);
       for (Map.Entry<Key, Value> entry : scannerB) {
-        ;
       }
       scannerB.close();
 

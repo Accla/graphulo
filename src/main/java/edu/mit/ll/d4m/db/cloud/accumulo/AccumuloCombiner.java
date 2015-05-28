@@ -39,7 +39,7 @@ import org.apache.hadoop.io.Text;
 
 public class AccumuloCombiner {
 
-	public static enum CombiningType { 
+	public enum CombiningType {
 		/*****************************************************************************************/
 		/*************************** ADD NEW COMBINER CLASS TYPES HERE ***************************/
 		/*****************************************************************************************/

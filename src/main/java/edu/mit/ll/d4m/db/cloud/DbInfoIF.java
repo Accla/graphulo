@@ -16,6 +16,6 @@ public interface DbInfoIF {
 	 *  Get a list of tables
 	 * @return  String
 	 */
-	public String getTableList() throws Exception;
-	public void setConnectionProp(ConnectionProperties connProps);
+	String getTableList() throws Exception;
+	void setConnectionProp(ConnectionProperties connProps);
 }

@@ -15,12 +15,11 @@ import edu.mit.ll.d4m.db.cloud.util.D4mQueryUtil;
  *
  */
 public class AccumuloDelete {
-	
-	private ConnectionProperties connectProps;
+
 	private AccumuloConnection connection;
 	
 	public AccumuloDelete(String instanceName, String host, String user, String pass) throws AccumuloSecurityException,AccumuloException {
-		connectProps = new ConnectionProperties(host, user, pass, instanceName, null); // let null inputs go
+		ConnectionProperties connectProps = new ConnectionProperties(host, user, pass, instanceName, null);
 		connection = new AccumuloConnection(connectProps);
 	}
 	

@@ -24,13 +24,8 @@ public class AccumuloInsert extends D4mInsertBase {
 	public AccumuloInsert() {
 		super();
 	}
-	/**
-	 * @param instanceName
-	 * @param hostName
-	 * @param tableName
-	 * @param username
-	 * @param password
-	 */
+
+
 	public AccumuloInsert(String instanceName, String hostName,
 			String tableName, String username, String password) {
 		super(instanceName, hostName, tableName, username, password);
@@ -57,15 +52,12 @@ public class AccumuloInsert extends D4mInsertBase {
 			//} else {
 			makeAndAddMutations();
 			//}
-		} catch (MutationsRejectedException e) {
-			log.error(e);
-            throw(e);
-		} catch (TableNotFoundException e) {
+		} catch (MutationsRejectedException | TableNotFoundException e) {
 			log.error(e);
             throw(e);
 		}
 
-	}
+  }
 
 	private void makeAndAddMutations() throws TableNotFoundException, MutationsRejectedException {
 		//		AccumuloConnection connection = new AccumuloConnection(super.connProps);

@@ -3,11 +3,8 @@
  */
 package edu.mit.ll.d4m.db.cloud.util;
 
-import java.util.HashMap;
-
-import org.apache.log4j.Logger;
-
 import edu.mit.ll.d4m.db.cloud.QueryMethod;
+import org.apache.log4j.Logger;
 
 /**
  *  Static methods
@@ -68,70 +65,6 @@ public class D4mQueryUtil {
 	}
 
 
-
-	public static HashMap<String, String> assocColumnWithRow(String rows, String cols) {
-
-//		HashMap<String, Object> rowMap = processParam(rows);
-//		HashMap<String, Object> columnMap = processParam(cols);
-		String[] rowArray = processParam(rows);//(String[]) rowMap.get("content");
-		String[] columnArray = processParam(cols);//(String[]) columnMap.get("content");
-
-		HashMap<String, String> resultMap = new HashMap<String, String>();
-		for (int i = 0; i < rowArray.length; i++) {
-			resultMap.put(rowArray[i], columnArray[i]);
-		}
-		return resultMap;
-	}
-
-	/*
-	 *  A common method called by loadRowMap and loadColumnMap.
-	 *  
-	 *   queryString   string   eg a comma-delimited list cat,:,rat,
-	 */
-	private static HashMap<String, String>  loadMap(String queryString) {
-		//HashMap<String, Object> tmpObjMap = processParam(queryString);
-		String[] contentArray = processParam(queryString);//(String[]) tmpObjMap.get("content");
-		HashMap<String, String> resultMap = loadMap(contentArray);
-		return resultMap;
-
-	}
-
-	private static HashMap<String,String> loadMap (String [] contentArray) {
-		HashMap<String, String> resultMap = new HashMap<String, String>();
-		for (int i = 0; i < contentArray.length; i++) {
-			resultMap.put(contentArray[i], contentArray[i]);
-		}
-		return resultMap;
-	}
-	public static HashMap<String, String> loadColumnMap(String cols) {
-
-		HashMap<String, String> resultMap = loadMap(cols);
-		return resultMap;
-	}
-
-	public static HashMap<String, String> loadColumnMap(String [] cols) {
-		HashMap<String, String> resultMap = loadMap(cols);
-		return resultMap;
-	}
-
-	public static HashMap<String, String> loadColumnMap(HashMap<String,Object> colMap) {
-		String[] contentArray = (String[]) colMap.get("content");
-		HashMap<String,String> resultMap = loadMap(contentArray);
-		return resultMap;
-	}
-
-	public static HashMap<String, String> loadRowMap(String rows) {
-
-		HashMap<String, String> resultMap = loadMap(rows);
-		return resultMap;
-	}
-
-	public static HashMap<String, String> loadRowMap(HashMap<String, Object> rowMap) {
-
-		String[] rowArray = (String[]) rowMap.get("content");
-		HashMap<String, String> resultMap = loadMap(rowArray);
-		return resultMap;
-	}
 
 	/**
 	 * Range Queries are the following 'a,:,b,',  'a,:,end,',  ',:,b,'.

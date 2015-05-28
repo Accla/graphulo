@@ -11,9 +11,9 @@ import org.junit.rules.TestRule;
 public interface IAccumuloTester extends TestRule {
 
 
-    public Connector getConnector();
-    public String getUsername();
-    public PasswordToken getPassword();
+    Connector getConnector();
+    String getUsername();
+    PasswordToken getPassword();
 
 
 }

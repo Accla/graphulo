@@ -42,7 +42,7 @@ public class AccumuloInfo implements DbInfoIF {
 		Iterator<String> it = set.iterator();
 		StringBuilder sb = new StringBuilder();
 		while (it.hasNext()) {
-			String tableName = (String) it.next();
+			String tableName = it.next();
 			sb.append(tableName + " ");
 		}
 		return sb.toString();

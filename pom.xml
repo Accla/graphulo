@@ -40,11 +40,27 @@
         <plugin>
           <artifactId>maven-assembly-plugin</artifactId>
           <version>2.5.4</version>
+        </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>2.10.3</version>
           <configuration>
-            <descriptors>
-              <descriptor>src/assembly/allJar_assembly.xml</descriptor>
-            </descriptors>
+            <links>
+              <link>https://accumulo.apache.org/${accumulo.version.majorminor}/apidocs</link>
+            </links>
+            <detectLinks>true</detectLinks>
           </configuration>
+          <executions>
+            <execution>
+              <id>gen-javadoc</id>
+              <phase>package</phase>
+              <goals>
+                <goal>javadoc</goal>
+              </goals>
+            </execution>
+          </executions>
         </plugin>
 
       </plugins>
@@ -57,6 +73,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <accumulo.version>1.6.1</accumulo.version>
+    <accumulo.version.majorminor>1.6</accumulo.version.majorminor>
   </properties>
 
   <dependencyManagement>

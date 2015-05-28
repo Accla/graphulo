@@ -45,8 +45,8 @@ graphulo/               d4m_api_java project directory
         log4j.xml       Logging configuration for tests.
         data/...        Data for testing graphulo. 
   target/
-    JAR
-    LIBEXT ZIP
+    graphulo-${version}.jar    Binaries for graphulo only.
+    libext-${version}.zip      JARs of graphulo's dependencies.
   pom.xml               Maven Project Object Model for graphulo.
   post-test.bash        Script to display output of tests from shippable/testresults.
 
@@ -59,8 +59,8 @@ d4m_api_java/           d4m_api_java project directory
 distribution/           Where the distribution build for graphulo occurs.
   src/assembly/...      Similar to graphulo/src/assembly/...
   target/
-    graphulo-...-bin.jar   Binaries for graphulo and d4m_api_java. Put this jar in a client code's classpath.
-    graphulo-...-dist.zip  Distribution zip file, containing all source and binaries.
+    graphulo-${version}-bin.jar   Binaries for graphulo and d4m_api_java.
+    graphulo-${version}-dist.zip  Distribution zip file, containing all source and binaries.
   pom.xml               Maven Project Object Model for creating the distribution build.
 
 deploy.sh               Script to deploy a graphulo build to Accumulo and Matlab D4M.

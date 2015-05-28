@@ -38,8 +38,6 @@ public abstract class D4mInsertBase {
 		connProps.setUser(username);
 		connProps.setPass(password);
 		this.tableName = tableName;
-
-
 	}
 
 	

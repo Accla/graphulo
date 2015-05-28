@@ -4,7 +4,6 @@
 package edu.mit.ll.d4m.db.cloud.accumulo;
 import edu.mit.ll.cloud.connection.ConnectionProperties;
 import edu.mit.ll.d4m.db.cloud.D4mException;
-import edu.mit.ll.d4m.db.cloud.D4mTableOpsIF;
 import edu.mit.ll.d4m.db.cloud.accumulo.AccumuloCombiner.CombiningType;
 import edu.mit.ll.d4m.db.cloud.util.D4mQueryUtil;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -42,7 +41,7 @@ import java.util.Map.Entry;
  * @author cyee
  *
  */
-public class AccumuloTableOperations implements D4mTableOpsIF {
+public class AccumuloTableOperations {
 	private static Logger log = Logger.getLogger(AccumuloTableOperations.class);
 
 	AccumuloConnection connection= null;
@@ -62,7 +61,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	/* (non-Javadoc)
 	 * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#createTable(java.lang.String)
 	 */
-	@Override
+	
 	public void createTable(String tableName) {
 		this.connection.createTable(tableName);
 	}
@@ -70,7 +69,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	/* (non-Javadoc)
 	 * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#deleteTable(java.lang.String)
 	 */
-	@Override
+	
 	public void deleteTable(String tableName) {
 		this.connection.deleteTable(tableName);
 	}
@@ -78,7 +77,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	/* (non-Javadoc)
 	 * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#splitTable(java.lang.String, java.lang.String)
 	 */
-	@Override
+	
 	public void splitTable(String tableName, String partitions) {
 		String [] pKeys = partitions.split(",");
 		//Make SortedSet
@@ -95,7 +94,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	/* (non-Javadoc)
 	 * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#getNumberOfEntries(java.util.ArrayList)
 	 */
-	@Override
+	
 	public long getNumberOfEntries(ArrayList<String> tableNames) {
 		long retval=0l;
 
@@ -127,7 +126,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	/**
 	 * Intended to be used for a single table.  Not for public use.
 	 */
-	@Override
+	
 	public List<TabletStats> getTabletStatsForTables(List<String> tableNames) {
 		List<TabletStats> retval = null;
 
@@ -212,7 +211,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	/* (non-Javadoc)
 	 * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#setConnProps(edu.mit.ll.cloud.connection.ConnectionProperties)
 	 */
-	@Override
+	
 	public void setConnProps(ConnectionProperties connProp) {
 		this.connProp = connProp;
 
@@ -221,7 +220,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	/* (non-Javadoc)
 	 * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#setConnProps(java.lang.String, java.lang.String, java.lang.String, java.lang.String)
 	 */
-	@Override
+	
 	public void setConnProps(String instanceName, String host, String username,
 			String password) {
 		this.connProp = new ConnectionProperties();
@@ -234,7 +233,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	/* (non-Javadoc)
 	 * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#connect()
 	 */
-	@Override
+	
 	public void connect() throws AccumuloException,AccumuloSecurityException {
 		this.connection = new AccumuloConnection(connProp);
 	}
@@ -248,7 +247,9 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 //		return authinfo;
 //	}
 
-	@Override
+	/**
+	 * Split table at partitions
+	 */
 	public void splitTable(String tableName, String[] partitions) {
 		TreeSet<Text> tset = new TreeSet<>();
 		for(String pt : partitions) {
@@ -258,12 +259,12 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 		splitTable(tableName,tset);
 	}
 
-	@Override
+	
 	public void splitTable(String tableName, SortedSet<Text> partitions) {
 		this.connection.addSplit(tableName, partitions);
 	}
 
-	@Override
+	
 	public List<String> getSplits(String tableName) {
 		List<String> list = new ArrayList<>();
 		try {
@@ -319,36 +320,36 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 	 */
 
 
-	@Override
+	
 	public void addIterator(String tableName, IteratorSetting cfg) throws D4mException {
 		this.connection.addIterator(tableName, cfg);
 	}
-	@Override
+	
 	public Map<String, EnumSet<IteratorScope>> listIterators(String tableName) throws D4mException {
 		return this.connection.listIterators(tableName);
 	}
-	@Override
+	
 	public IteratorSetting getIteratorSetting(String tableName,
 			String iterName, IteratorScope scope) throws D4mException {
 		return this.connection.getIteratorSetting(tableName, iterName, scope);
 	}
-	@Override
+	
 	public void removeIterator(String tableName, String name,
 			EnumSet<IteratorScope> scopes) throws D4mException {
 		this.connection.removeIterator(tableName, name, scopes);
 	}
-	@Override
+	
 	public void checkIteratorConflicts(String tableName, IteratorSetting cfg,
 			EnumSet<IteratorScope> scopes) throws D4mException {
 		this.connection.checkIteratorConflicts(tableName, cfg, scopes);
 
 	}
-	/*@Override
+	/*
 	public void addSplits(String tableName, SortedSet<Text> splitsSet) throws D4mException {
 		this.connection.addSplit(tableName, splitsSet);
 
 	}*/
-	@Override
+	
 	public void merge(String tableName, String startRow, String endRow) throws D4mException {
 		this.connection.merge(tableName, startRow, endRow);
 	}
@@ -483,12 +484,12 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 			}
 		}
 	}
-	/*
-	 *   newSplitsString = comma-delimited list
-	 * (non-Javadoc)
-	 * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#putSplits(java.lang.String, java.lang.String)
+
+	/**
+	 * Ensures that newSplitsString represents the state of splits of the table by merging away any splits present in the table not in newSplitsString.
+	 * Merges away all splits if newSplitsString is null or empty.
+	 * @throws D4mException
 	 */
-	@Override
 	public void putSplits(String tableName, String newSplitsString)
 			throws D4mException {
 		ArgumentChecker.notNull(tableName);
@@ -531,7 +532,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
     public final static String METADATA_TABLE_NAME = "accumulo.metadata"; // changed from 1.5 "!METADATA"
     public final static ColumnFQ METADATA_PREV_ROW_COLUMN = new ColumnFQ(new Text("~tab"), new Text("~pr"));
 
-	@Override
+	
 	public List<String> getSplitsNumInEachTablet(String tableName)
 			throws Exception {
 		List<String> list = new ArrayList<>();
@@ -583,7 +584,7 @@ public class AccumuloTableOperations implements D4mTableOpsIF {
 
 		return list;
 	}
-	@Override
+	
 	public List<String> getTabletLocationsForSplits(String tableName,
 			List<String> splits) throws D4mException {
 		List<String>  results = new ArrayList<>();

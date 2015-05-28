@@ -130,7 +130,7 @@ public class D4mDbInsert extends D4mParent {
 //		return map;
 //	}
 
-	/** calls to AccumuloInfo.getTableList() to retrieve the table list from the connector   */
+	/** calls to D4mDbInfo.getTableList() to retrieve the table list from the connector   */
 	public boolean doesTableExistFromMetadata(String tableName) {
 		boolean exist = false;
 		D4mDbInfo info = new D4mDbInfo(this.connProps);

@@ -15,7 +15,7 @@ public class D4mDbTableOperations extends D4mParent {
 	private static  Logger log = Logger.getLogger(D4mDbTableOperations.class.getName());
 	private ConnectionProperties connProps = new ConnectionProperties();
 
-	D4mTableOpsIF d4mTableOp = null;
+	AccumuloTableOperations d4mTableOp = null;
 	public D4mDbTableOperations() {
 		super();
 	}

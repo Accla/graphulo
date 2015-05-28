@@ -39,7 +39,7 @@ public class D4mDbQueryTest7 {
 	static String table = "";
 	static String columnFamily="";
 	int i127=127;
-	String ASCI_127 = new Character((char)i127).toString();
+	String ASCI_127 = Character.toString((char) i127);
 
 	static boolean isReady = false;
 
@@ -47,7 +47,6 @@ public class D4mDbQueryTest7 {
 	public static void tearDown() throws Exception {
 		//Delete table
 		D4mDbTableOperations dbTable = new D4mDbTableOperations(instanceName,host,username,password);
-		D4mConfig d4mConfig = D4mConfig.getInstance();
 
 		dbTable.init(instanceName, host, username, password, "Accumulo");
 	

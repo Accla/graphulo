@@ -19,7 +19,8 @@ public class D4mConfig {
 	public static String ACCUMULO="Accumulo";
 	public static boolean DEBUG=false;
 
-	private static D4mConfig instance= null;
+  // DH2015: This is redundant with D4mParent
+
 	static {
 		ClassLoader clsloader = D4mConfig.class.getClassLoader();
 		URL urlLog4j = clsloader.getResource("log4j.xml");
@@ -37,15 +38,5 @@ public class D4mConfig {
 		}
 		String tmpDebug = System.getProperty("d4m.debug", "false");
 		DEBUG = Boolean.parseBoolean(tmpDebug);
-	}
-	public D4mConfig() {
-
-	}
-	public static D4mConfig getInstance() {
-		if(instance == null)
-		{
-			instance = new D4mConfig();
-		}
-		return instance;
 	}
 }

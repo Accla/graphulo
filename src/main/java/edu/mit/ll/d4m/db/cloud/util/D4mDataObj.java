@@ -76,9 +76,8 @@ public class D4mDataObj {
 	}
 
 	public String toString() {
-		String s = "QUERY_METHOD:"+this.queryMethod+", ROW=["+
-		this.row+"], FAMILY=["+this.colFamily+"], QUALIFIER=["+this.colQualifier+"], VALUE=["+this.value+"]";
-		return s;
+		return "QUERY_METHOD:"+ this.queryMethod+", ROW=["+
+		this.row+"], FAMILY=["+ this.colFamily+"], QUALIFIER=["+ this.colQualifier+"], VALUE=["+ this.value+"]";
 	}
 	/**
 	 * Returns a String with the rows, column qualifiers, and values held in this data object in a nice tabular format.
@@ -107,7 +106,7 @@ public class D4mDataObj {
 			maxCol = bufs[i].length() > maxCol ? bufs[i].length() : maxCol;
 		}
 		maxCol++;
-		StringBuffer result = new StringBuffer(maxCol*bufs.length);
+		StringBuilder result = new StringBuilder(maxCol*bufs.length);
 		for (int i = 0; i < bufs.length; i++) {
 			result.append(bufs[i]);
 			for (int j = maxCol - bufs[i].length(); j > 0; j--)

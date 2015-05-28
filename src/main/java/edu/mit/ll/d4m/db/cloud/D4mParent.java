@@ -6,6 +6,8 @@ import org.apache.log4j.xml.DOMConfigurator;
 public abstract class D4mParent {
 	private static Logger log = Logger.getLogger(D4mParent.class);
 
+  // DH2015: This is redundant with D4mConfig
+
 	static {
     try {
       DOMConfigurator.configure(D4mParent.class.getClassLoader().getResource("log4j.xml"));

@@ -10,7 +10,7 @@ import org.apache.log4j.Logger;
  * @author CHV8091
  *
  */
-public abstract class D4mInsertBase implements D4mInserterIF {
+public abstract class D4mInsertBase {
 	private static Logger log = Logger.getLogger(D4mInsertBase.class);
 
 	protected String tableName = "";
@@ -30,7 +30,7 @@ public abstract class D4mInsertBase implements D4mInserterIF {
 		init(instanceName,hostName,tableName,username,password);
 	}
 
-	@Override
+	
 	public void init(String instanceName, String hostName, String tableName,
 			String username, String password) {
 		connProps.setInstanceName(instanceName);
@@ -42,10 +42,9 @@ public abstract class D4mInsertBase implements D4mInserterIF {
 
 	}
 
-	@Override
+	
 	public void doProcessing(String rows, String cols, String vals,
 			String family, String visibility)throws Exception {
-		// TODO Auto-generated method stub
 		this.rows = rows;
 		this.cols = cols;
 		this.vals = vals;

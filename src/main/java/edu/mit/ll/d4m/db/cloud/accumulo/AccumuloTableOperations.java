@@ -74,26 +74,6 @@ public class AccumuloTableOperations {
 		this.connection.deleteTable(tableName);
 	}
 
-	/* (non-Javadoc)
-	 * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#splitTable(java.lang.String, java.lang.String)
-	 */
-	
-	public void splitTable(String tableName, String partitions) {
-		String [] pKeys = partitions.split(",");
-		//Make SortedSet
-		TreeSet<Text> set = new TreeSet<>();
-
-		for(String pt : pKeys) {
-			Text text = new Text(pt);
-			set.add(text);
-		}
-		this.connection.addSplit(tableName, set);
-
-	}
-
-	/* (non-Javadoc)
-	 * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#getNumberOfEntries(java.util.ArrayList)
-	 */
 	
 	public long getNumberOfEntries(ArrayList<String> tableNames) {
 		long retval=0l;
@@ -342,7 +322,6 @@ public class AccumuloTableOperations {
 	public void checkIteratorConflicts(String tableName, IteratorSetting cfg,
 			EnumSet<IteratorScope> scopes) throws D4mException {
 		this.connection.checkIteratorConflicts(tableName, cfg, scopes);
-
 	}
 	/*
 	public void addSplits(String tableName, SortedSet<Text> splitsSet) throws D4mException {
@@ -485,54 +464,15 @@ public class AccumuloTableOperations {
 		}
 	}
 
-	/**
-	 * Ensures that newSplitsString represents the state of splits of the table by merging away any splits present in the table not in newSplitsString.
-	 * Merges away all splits if newSplitsString is null or empty.
-	 * @throws D4mException
-	 */
-	public void putSplits(String tableName, String newSplitsString)
-			throws D4mException {
-		ArgumentChecker.notNull(tableName);
-		if (newSplitsString == null || newSplitsString.isEmpty()) {
-			merge(tableName, null, null);
-			return;
-		}
-		List<String> oldSplitsString = getSplits(tableName);
+  public final static String METADATA_TABLE_NAME = "accumulo.metadata"; // changed from 1.5 "!METADATA"
+  public final static ColumnFQ METADATA_PREV_ROW_COLUMN = new ColumnFQ(new Text("~tab"), new Text("~pr"));
 
-		List<String> newSplitsList = Arrays.asList(D4mQueryUtil.processParam(newSplitsString));
-		if(oldSplitsString != null ) {
-			NavigableSet<String> oldSplitsSet = new TreeSet<>(oldSplitsString);
-
-			// algorithm: first go through old list and merge anything not in new
-			// then add the new set
-			for (Iterator<String> iter = oldSplitsSet.iterator(); iter.hasNext(); ) {
-				String oldSplit = iter.next();
-				if (!newSplitsList.contains(oldSplit)) {
-					// merge away oldSplit
-					String before = oldSplitsSet.lower(oldSplit);
-					String after  = oldSplitsSet.higher(oldSplit); // might be null for either or both
-					merge(tableName, before, after);
-					iter.remove(); // remove from oldSplitsSet now that we merged the split away
-				}
-			}
-
-		}
-		addSplits(tableName, newSplitsString);
-	}
-	private void addSplits(String tableName, String splitsStr) throws D4mException
-	{
-		ArgumentChecker.notNull(tableName, splitsStr);
-
-		String[] splitStrArr = D4mQueryUtil.processParam(splitsStr);
-
-		splitTable(tableName, splitStrArr);
-
-	}
-
-    public final static String METADATA_TABLE_NAME = "accumulo.metadata"; // changed from 1.5 "!METADATA"
-    public final static ColumnFQ METADATA_PREV_ROW_COLUMN = new ColumnFQ(new Text("~tab"), new Text("~pr"));
-
-	
+  /**
+   * Get the number of splits in each tablet.
+   * N+1 numbers where N is the number of splits and the (i)th number is the number of entries in
+   *  tablet holding the (i-1)st split and the (i)th split.
+   * Return a comma-delimited list
+   */
 	public List<String> getSplitsNumInEachTablet(String tableName)
 			throws Exception {
 		List<String> list = new ArrayList<>();
@@ -602,16 +542,5 @@ public class AccumuloTableOperations {
 			e.printStackTrace();
 		}
 		return results;
-	}
-
-	/*
-	 * Concatenate the string to a comma-delimited string
-	 */
-	private String  concatString(List<String> strList) {
-		StringBuilder sb = new StringBuilder();
-		for (String s : strList) {
-			sb.append(s).append(",");
-		}
-		return sb.toString();
 	}
 }

@@ -178,12 +178,12 @@ public class D4mDbTableOperations extends D4mParent {
 		return getSplits(tableName, true);
 	}
 
-	/*
-	 *  Return the list of split names a comma-delimited string
-	 *  eg   124,234,2334,5664,
-	 */	
+  /*
+   *  Return the list of split names a comma-delimited string
+   *  eg   124,234,2334,5664,
+   */
 	public String getSplitsString(String tableName) throws Exception {
-		String result = "";
+		String result;
 		List<String> splitList = this.d4mTableOp.getSplits(tableName);
 		result = concatStringListToCommaSeparatedString(splitList);
 		return result;
@@ -206,66 +206,10 @@ public class D4mDbTableOperations extends D4mParent {
 	public String[] getSplits(String tableName, boolean getNumInEachTablet) throws Exception {
 		ArgumentChecker.notNull(tableName);
 		doInit();
-
-		String [] results = getAllSplitsInfo(tableName);
-		return results;
-
+    return getAllSplitsInfo(tableName);
 	}
-	public String[] SAVE_getSplits(String tableName, boolean getNumInEachTablet) throws Exception
-	{
-		ArgumentChecker.notNull(tableName);
-		doInit();
-		List<String> splitList = this.d4mTableOp.getSplits(tableName,getNumInEachTablet );
-
-		String [] result = null;
-		StringBuffer sb1 = new StringBuffer();
-		StringBuffer sb2 = new StringBuffer();
-		boolean isFlag=false;
-		for(String split: splitList) {
-			if(split.equals(":") ) { 
-				isFlag= true;
-				continue;
-			}
-
-			if(!split.equals(":") && !isFlag)
-				sb1.append(split).append(",");
-
-			if(isFlag) {
-				//Get number of entries per tablet
-				sb2.append(split).append(",");
-			}
-		}
-		if(sb2.length() ==0) {
-			result = new String[] {sb1.toString()};
-		} else {
-			result = new String[2];
-			result[0] = sb1.toString();
-			result[1] = sb2.toString();
-		}
-		return result;
-	}
-
 	/**
-	 * Get the number of splits in each tablet.
-	 * N+1 numbers where N is the number of splits and the (i)th number is the number of entries in
-	 *  tablet holding the (i-1)st split and the (i)th split.
-	 * Return a comma-delimited list
-	 *  @param tableName
-	 */
-	public String [] getSplitsNumInEachTablet(String tableName) throws Exception {
-		List<String> list = this.d4mTableOp.getSplitsNumInEachTablet(tableName);
-		StringBuffer sb = new StringBuffer();
-		for(String s : list) {
-			sb.append(s).append(",");
-		}
-		String [] result = new String [1];
-		result[0] = sb.toString();
-		return result;
-	}
-
-	/**
-	 * Merge tablets between (startRow, endRow] on the table. 
-	 * @param tableName
+	 * Merge tablets between (startRow, endRow] on the table.
 	 * @param startRow single row name or the empty string/null to start at first tablet server
 	 * @param endRow single row name or the empty string/null to end at last tablet server
 	 */
@@ -283,8 +227,7 @@ public class D4mDbTableOperations extends D4mParent {
 	/**
 	 * Ensures that newSplitsString represents the state of splits of the table by merging away any splits present in the table not in newSplitsString.
 	 * Merges away all splits if newSplitsString is null or empty
-	 * @param tableName
-	 * @param newSplitsString
+	 * @param newSplitsString "split1,split6,"
 	 * @throws Exception TableNotFoundException
 	 */
 	public void putSplits(String tableName, String newSplitsString) throws Exception // TableNotFoundException
@@ -323,12 +266,10 @@ public class D4mDbTableOperations extends D4mParent {
 	 * Concatenate the string to a comma-delimited string
 	 */
 	private String  concatStringListToCommaSeparatedString(List<String> strList) {
-		StringBuffer sb = new StringBuffer();
-
-		for(int i = 0; i < strList.size() ; i++) {
-			String s = strList.get(i);
-			sb.append(s).append(",");
-		}
+		StringBuilder sb = new StringBuilder();
+    for (String s : strList) {
+      sb.append(s).append(",");
+    }
 		return sb.toString();
 	}
 

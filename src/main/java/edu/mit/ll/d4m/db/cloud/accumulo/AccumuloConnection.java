@@ -11,6 +11,8 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
+import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -24,6 +26,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.transport.TTransportException;
 
+import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Map;
@@ -43,7 +46,10 @@ public class AccumuloConnection {
 	private Authorizations auth= Authorizations.EMPTY;
 	public static long maxMemory= 1024000L;
 	public static long maxLatency = 30;
-	Credentials creds= null;
+
+	private String principal;
+	private AuthenticationToken token;
+
 	/**
 	 * 
 	 */
@@ -51,12 +57,12 @@ public class AccumuloConnection {
 		this.conn = conn;
 		ClientConfiguration cconfig = new ClientConfiguration().withInstance(conn.getInstanceName()).withZkHosts(conn.getHost()).withZkTimeout(conn.getSessionTimeOut());
 		this.instance = new ZooKeeperInstance(cconfig);
-		PasswordToken passwordToken = new PasswordToken(this.conn.getPass());
-		this.creds = new Credentials(this.conn.getUser(), passwordToken);
+		principal = conn.getUser();
+		token = new PasswordToken(conn.getPass());
 
         //principal = username = this.conn.getUser()
         //System.out.println("about to make connector: user="+this.conn.getUser()+"   password="+ new String(this.passwordToken.getPassword()));
-        this.connector = this.instance.getConnector(this.conn.getUser(), passwordToken);
+        this.connector = this.instance.getConnector(this.conn.getUser(), token);
         //System.out.println("made connector");
         String [] sAuth = conn.getAuthorizations();
         if (sAuth != null && sAuth.length > 0) {
@@ -213,9 +219,19 @@ public class AccumuloConnection {
   }
 
 	public  TCredentials getCredentials() throws D4mException {
-		TCredentials tCred = null;
+		TCredentials tCred;
 		try {
-			tCred =  this.creds.toThrift(this.instance);  //.create(this.conn.getUser(), this.passwordToken, this.instance.getInstanceID() );
+			// DH2015: Copied from
+			// 1.6: org.apache.accumulo.core.security.Credentials#toThrift()
+			// 1.7: org.apache.accumulo.core.client.impl.Credentials#toThrift()
+			// in order to create compatibility to 1.6 and 1.7, since the Credentials class moved.
+			// This may still break in later versions because Credentials is non-public API.
+			tCred = new TCredentials(principal, token.getClass().getName(),
+					ByteBuffer.wrap(AuthenticationToken.AuthenticationTokenSerializer.serialize(token)), instance.getInstanceID());
+			if (token.isDestroyed())
+				throw new RuntimeException("Token has been destroyed", new AccumuloSecurityException(principal, SecurityErrorCode.TOKEN_EXPIRED));
+
+//			tCred =  this.creds.toThrift(this.instance);  //.create(this.conn.getUser(), this.passwordToken, this.instance.getInstanceID() );
 		} catch (Exception e) {
 			log.warn("",e);
 			throw new D4mException(e);
@@ -253,7 +269,7 @@ public class AccumuloConnection {
 			TabletLocator tc = TabletLocator.getLocator(this.instance, new Text(Tables.getTableId(this.instance, tableName))); // change to getLocator for 1.6
 			
 			org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation loc =
-					tc.locateTablet(this.creds, new Text(splitName), false, false);
+					tc.locateTablet(new Credentials(this.principal, this.token), new Text(splitName), false, false);
 			tabletName = loc.tablet_location;
 			log.debug("TableName="+tableName+", TABLET_NAME = "+tabletName);
 		} catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {

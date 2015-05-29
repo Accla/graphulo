@@ -1,7 +1,6 @@
 package edu.mit.ll.graphulo;
 
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.*;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -11,6 +10,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.hadoop.io.Text;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -18,7 +18,7 @@ import java.util.*;
  */
 public class SmallLargeRowFilter implements SortedKeyValueIterator<Key, Value>, OptionDescriber {
 
-  public static final Value SUPPRESS_ROW_VALUE = new Value("SUPPRESS_ROW".getBytes(Constants.UTF8));
+  public static final Value SUPPRESS_ROW_VALUE = new Value("SUPPRESS_ROW".getBytes(StandardCharsets.UTF_8));
 
   private static final ByteSequence EMPTY = new ArrayByteSequence(new byte[]{});
 
@@ -29,8 +29,8 @@ public class SmallLargeRowFilter implements SortedKeyValueIterator<Key, Value>, 
   private SortedKeyValueIterator<Key, Value> source;
 
   // a cache of keys
-  private ArrayList<Key> keys = new ArrayList<Key>();
-  private ArrayList<Value> values = new ArrayList<Value>();
+  private ArrayList<Key> keys = new ArrayList<>();
+  private ArrayList<Value> values = new ArrayList<>();
 
   private int currentPosition;
 
@@ -181,11 +181,11 @@ public class SmallLargeRowFilter implements SortedKeyValueIterator<Key, Value>, 
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
 
     if (inclusive && !columnFamilies.contains(EMPTY)) {
-      columnFamilies = new HashSet<ByteSequence>(columnFamilies);
+      columnFamilies = new HashSet<>(columnFamilies);
       columnFamilies.add(EMPTY);
       dropEmptyColFams = true;
     } else if (!inclusive && columnFamilies.contains(EMPTY)) {
-      columnFamilies = new HashSet<ByteSequence>(columnFamilies);
+      columnFamilies = new HashSet<>(columnFamilies);
       columnFamilies.remove(EMPTY);
       dropEmptyColFams = true;
     } else {

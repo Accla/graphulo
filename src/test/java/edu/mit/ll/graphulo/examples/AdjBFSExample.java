@@ -1,7 +1,6 @@
 package edu.mit.ll.graphulo.examples;
 
 import edu.mit.ll.graphulo.Graphulo;
-import edu.mit.ll.graphulo.mult.LongMultiply;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
@@ -10,7 +9,9 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.LongCombiner;
+import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -29,17 +30,19 @@ import java.util.Map;
 public class AdjBFSExample extends AccumuloTestBase {
   private static final Logger log = LogManager.getLogger(AdjBFSExample.class);
 
-  /** Corresponds to saved files in the distribution. */
-  public static final int SCALE=10;
+  /**
+   * Corresponds to saved files in the distribution.
+   */
+  public static final int SCALE = 10;
 
-  public static final int numSteps=3;
+  public static final int numSteps = 3;
 
   @Test
-  public void exampleTableMult() throws FileNotFoundException, TableNotFoundException {
-    final String inputTable = "ex"+SCALE+"A";
-    final String outputTable = "ex"+SCALE+"step"+numSteps;
-    /** Start from node 1 (the supernode). */
-    final String v0 = "1,";
+  public void exampleAdjBFS() throws FileNotFoundException, TableNotFoundException {
+    final String inputTable = "ex" + SCALE + "A";
+    final String outputTable = "ex" + SCALE + "step" + numSteps;
+    /** Start from node 1 (the supernode) and a few others. */
+    final String v0 = "1,25,33,";
 
     // In your code, you would connect to an Accumulo instance by writing somehting similar to:
 //    ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance("instance").withZkHosts("localhost:2181").withZkTimeout(5000);
@@ -57,16 +60,20 @@ public class AdjBFSExample extends AccumuloTestBase {
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
 
     // Configure options for sum operator.
-    IteratorSetting sumSetting = new IteratorSetting(7, LongCombiner.class);
+    // We choose to use Accumulo's SummingCombiner as the plus operation.
+    // This iterator decodes values as longs and sums them using long-type addition.
+    int sumPriority = 6;
+    IteratorSetting sumSetting = new IteratorSetting(sumPriority, SummingCombiner.class);
     LongCombiner.setEncodingType(sumSetting, LongCombiner.Type.STRING);
-    LongCombiner.setCombineAllColumns(sumSetting, true);
+    Combiner.setCombineAllColumns(sumSetting, true);
 
     // Adjacency Table Breadth First Search.
     // This call blocks until the BFS completes.
     graphulo.AdjBFS(inputTable, v0, numSteps, outputTable,
         null,                             // Don't write the transpose of the result table.
-        inputTable+"Deg", "deg", false,   // Information on degree table.
-        0, Integer.MAX_VALUE);            // Don't use degree filtering.
+        inputTable + "Deg", "deg", false, // Information on degree table.
+        20, Integer.MAX_VALUE,            // Filter out nodes with degrees less than 20. (High-pass Filter)
+        sumSetting, false);               // Use our plus operation on the result table.
 
     // Result is in output table. Do whatever you like with it.
     BatchScanner bs = conn.createBatchScanner(outputTable, Authorizations.EMPTY, 2);
@@ -76,9 +83,7 @@ public class AdjBFSExample extends AccumuloTestBase {
       cnt++;
     }
     bs.close();
-    log.info("# of entries in output table "+outputTable+": "+cnt);
-
+    log.info("# of entries in output table " + outputTable + ": " + cnt);
   }
-
 
 }

@@ -1,4 +1,7 @@
-Includes `d4m_api_java` library.
+
+
+NOTES: 
+SCALE 10, 12, 14, 16.
 
 Graphulo
 ========
@@ -45,16 +48,16 @@ src/
       data/...        Data folder - contains pre-created graphs.
 
 target/
-  graphulo-${version}.jar           Binaries for graphulo and d4m_api_java.
-  graphulo-${version}-libext.zip    Contains JARs of all dependencies.
-  site/apidocs/...                  Javadoc.
-  graphulo-${version}-dist.zip      Distribution zip. Contains all source and binaries.
+  graphulo-${version}.jar         Binaries.
+  graphulo-${version}-libext.zip  ZIP of the JARs of all dependencies.
+  site/apidocs/...                Javadoc.
+  graphulo-${version}-dist.zip    Distribution ZIP. Contains all source and binaries.
   
 pom.xml               Maven Project Object Model. Defines how to build graphulo.
 post-test.bash        Script to display output of tests from shippable/testresults.
 deploy.sh             Script to deploy a graphulo build to Accumulo and Matlab D4M.
 README.md             This file.
-README-D4M.md         Readme for d4m_api_java.
+README-D4M.md         Readme for d4m_api_java, also included in this distribution.
                       (-Below files only in git repository-)
 .gitignore            Files and folders to exclude from git.
 .travis.yml           Enables continuous integration testing.
@@ -64,13 +67,13 @@ shippable.yml         Enables continuous integration testing.
 [Project Object Model]: https://maven.apache.org/guides/introduction/introduction-to-the-pom.html
 
 ### Build
-[![Build Status](https://api.shippable.com/projects/54f27f245ab6cc13528fd44d/badge?branchName=master)](https://app.shippable.com/projects/54f27f245ab6cc13528fd44d/builds/latest)
-[![Build Status](https://travis-ci.org/Accla/d4m_api_java.svg)](https://travis-ci.org/Accla/d4m_api_java)
+[![Shippable Build Status](https://api.shippable.com/projects/54f27f245ab6cc13528fd44d/badge?branchName=master)](https://app.shippable.com/projects/54f27f245ab6cc13528fd44d/builds/latest)
+[![Travis Build Status](https://travis-ci.org/Accla/d4m_api_java.svg)](https://travis-ci.org/Accla/d4m_api_java)
 
 Prerequisite: Install [Maven](https://maven.apache.org/download.cgi).
 
-Run `mvn package -DskipTests=true` to compile and build d4m_api_java and Graphulo.
-The main distribution files are a JAR containing d4m_api_java and Graphulo code, 
+Run `mvn package -DskipTests=true` to compile and build graphulo.
+The main distribution files are a JAR containing graphulo code, 
 and a libext ZIP file containing dependencies for both projects.
 The JAR and ZIP are created inside the `target/` directory.
 

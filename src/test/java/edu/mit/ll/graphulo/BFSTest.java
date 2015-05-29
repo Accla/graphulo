@@ -79,7 +79,7 @@ public class BFSTest extends AccumuloTestBase {
     Collection<Text> u3expect = GraphuloUtil.d4mRowToTexts("v0,vBig,");
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    String u3actual = graphulo.AdjBFS(tA, v0, 3, tR, tRT, tADeg, "", true, 1, 2, true);
+    String u3actual = graphulo.AdjBFS(tA, v0, 3, tR, tRT, tADeg, "", true, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, true);
     Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
 
     BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);

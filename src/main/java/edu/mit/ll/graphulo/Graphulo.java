@@ -8,6 +8,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.*;
+import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.io.Text;
@@ -22,6 +23,14 @@ import java.util.*;
  */
 public class Graphulo {
   private static final Logger log = LogManager.getLogger(Graphulo.class);
+
+  public static final IteratorSetting DEFAULT_PLUS_ITERATOR;
+  static {
+    IteratorSetting sumSetting = new IteratorSetting(6, SummingCombiner.class);
+    LongCombiner.setEncodingType(sumSetting, LongCombiner.Type.STRING);
+    Combiner.setCombineAllColumns(sumSetting, true);
+    DEFAULT_PLUS_ITERATOR = sumSetting;
+  }
 
   private Connector connector;
   private PasswordToken password;
@@ -234,14 +243,19 @@ public void TableMult(String ATtable, String Btable, String Ctable,
   }
 
 
+  /** Use LongCombiner to sum. */
   public String AdjBFS(String Atable, String v0, int k, String Rtable, String RtableTranspose,
                        String ADegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree) {
-    return AdjBFS(Atable, v0, k, Rtable, RtableTranspose, ADegtable, degColumn, degInColQ, minDegree, maxDegree, false);
+
+    return AdjBFS(Atable, v0, k, Rtable, RtableTranspose,
+        ADegtable, degColumn, degInColQ, minDegree, maxDegree,
+        DEFAULT_PLUS_ITERATOR, false);
   }
 
   @SuppressWarnings("unchecked")
   public String AdjBFS(String Atable, String v0, int k, String Rtable, String RtableTranspose,
                        String ADegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree,
+                       IteratorSetting sumSetting,
                        boolean trace) {
     if (Atable == null || Atable.isEmpty())
       throw new IllegalArgumentException("Please specify Adjacency table. Given: " + Atable);
@@ -261,6 +275,8 @@ public void TableMult(String ATtable, String Btable, String Ctable,
       if (degInColQ)
         throw new IllegalArgumentException("not allowed: degColumn != null && degInColQ==true");
     }
+    if (sumSetting != null && sumSetting.getPriority() >= 20)
+      log.warn("Sum iterator setting is >=20. Are you sure you want the priority after the default Versioning iterator priority? "+sumSetting);
     if (v0 == null)
       throw new IllegalArgumentException("null v0");
     Collection<Text> vktexts = GraphuloUtil.d4mRowToTexts(v0);
@@ -307,10 +323,10 @@ public void TableMult(String ATtable, String Btable, String Ctable,
       opt.put("username", user);
       opt.put("password", new String(password.getPassword()));
 
-      if (Rtable != null)
-        GraphuloUtil.addCombiner(tops, Rtable, log);
-      if (RtableTranspose != null)
-        GraphuloUtil.addCombiner(tops, RtableTranspose, log);
+      if (Rtable != null && sumSetting != null)
+        GraphuloUtil.applyIteratorSoft(sumSetting, tops, Rtable);
+      if (RtableTranspose != null && sumSetting != null)
+        GraphuloUtil.applyIteratorSoft(sumSetting, tops, RtableTranspose);
     }
     BatchScanner bs;
     try {

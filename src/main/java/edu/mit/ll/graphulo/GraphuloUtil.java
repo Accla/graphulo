@@ -11,6 +11,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.util.*;
@@ -19,6 +20,7 @@ import java.util.*;
  * Utility functions
  */
 public class GraphuloUtil {
+  private static final Logger log = LogManager.getLogger(GraphuloUtil.class);
 
   /**
    * Split options on period characters.
@@ -236,7 +238,6 @@ public class GraphuloUtil {
    * Call it "plus".
    */
   public static void addCombiner(TableOperations tops, String table, Logger log) {
-    // attach combiner on Ctable
     // TODO P2: Assign priority and name dynamically, checking for conflicts.
     Map<String, String> optSum = new HashMap<>();
     optSum.put("all", "true");
@@ -254,6 +255,32 @@ public class GraphuloUtil {
       tops.attachIterator(table, iSum, enumSet);
     } catch (AccumuloSecurityException | AccumuloException e) {
       log.error("error trying to add BigDecimalSummingCombiner to " + table, e);
+      throw new RuntimeException(e);
+    } catch (TableNotFoundException e) {
+      log.error("no table: "+table, e);
+      throw new RuntimeException(e);
+    }
+  }
+
+
+  /**
+   * Add the given Iterator to a table on scan, minc, majc scopes.
+   * If already present on a scope, does not re-add the iterator to that scope.
+   * Call it "plus".
+   */
+  public static void applyIteratorSoft(IteratorSetting itset, TableOperations tops, String table) {
+    // checking if iterator already exists. Not checking for conflicts.
+    try {
+      IteratorSetting existing;
+      EnumSet<IteratorUtil.IteratorScope> enumSet = EnumSet.noneOf(IteratorUtil.IteratorScope.class);
+      for (IteratorUtil.IteratorScope scope : IteratorUtil.IteratorScope.values()) {
+        existing = tops.getIteratorSetting(table, "plus", scope);
+        if (existing == null)
+          enumSet.add(scope);
+      }
+      tops.attachIterator(table, itset, enumSet);
+    } catch (AccumuloSecurityException | AccumuloException e) {
+      log.error("error trying to add "+itset+" to " + table, e);
       throw new RuntimeException(e);
     } catch (TableNotFoundException e) {
       log.error("no table: "+table, e);

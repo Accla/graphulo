@@ -3,15 +3,21 @@ package edu.mit.ll.graphulo.d4m;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.Scanner;
+import java.util.zip.GZIPInputStream;
 
 /**
  * Write row, column and (optionally) value files to a table.
  */
 public class D4MTripleFileWriter {
+  private static final Logger log = LogManager.getLogger(D4MTripleFileWriter.class);
 
   private Connector connector;
 
@@ -27,18 +33,17 @@ public class D4MTripleFileWriter {
    * @param baseName Name of tables is the base name plus "", "T", "Deg"
    * @param trackTime Log the rate of ingest or not.
    * @return Number of triples written.
-   * @throws FileNotFoundException
    */
   public long writeTripleFile(File rowFile, File colFile, File valFile,
                               String delimiter, String baseName,
-                              boolean deleteExistingTables, boolean trackTime) throws FileNotFoundException {
+                              boolean deleteExistingTables, boolean trackTime) {
     long count = 0, startTime, origStartTime;
     Text row = new Text(), col = new Text(), valText = null;
     Value val = D4MTableWriter.VALONE;
 
     Scanner valScanner = null;
-    try (Scanner rowScanner = new Scanner(rowFile);
-         Scanner colScanner = new Scanner(colFile)) {
+    try (Scanner rowScanner = new Scanner( rowFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(rowFile)) : new FileInputStream(rowFile) );
+         Scanner colScanner = new Scanner( colFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(colFile)) : new FileInputStream(colFile) )) {
       rowScanner.useDelimiter(delimiter);
       colScanner.useDelimiter(delimiter);
       if (valFile != null) {
@@ -84,6 +89,9 @@ public class D4MTripleFileWriter {
           }
         }
       }
+    } catch (IOException e) {
+      log.warn("",e);
+      throw new RuntimeException(e);
     } finally {
       if (valScanner != null)
         valScanner.close();

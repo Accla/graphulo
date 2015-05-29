@@ -1,8 +1,3 @@
-
-
-NOTES: 
-SCALE 10, 12, 14, 16.
-
 Graphulo
 ========
 
@@ -52,13 +47,16 @@ target/
   graphulo-${version}-libext.zip  ZIP of the JARs of all dependencies.
   site/apidocs/...                Javadoc.
   graphulo-${version}-dist.zip    Distribution ZIP. Contains all source and binaries.
+
+docs/...              Papers and presentations related to Graphulo.
   
 pom.xml               Maven Project Object Model. Defines how to build graphulo.
 post-test.bash        Script to display output of tests from shippable/testresults.
 deploy.sh             Script to deploy a graphulo build to Accumulo and Matlab D4M.
 README.md             This file.
 README-D4M.md         Readme for d4m_api_java, also included in this distribution.
-                      (-Below files only in git repository-)
+
+   -Below files only in git repository-
 .gitignore            Files and folders to exclude from git.
 .travis.yml           Enables continuous integration testing.
 shippable.yml         Enables continuous integration testing.
@@ -98,7 +96,7 @@ Run `mvn clean` to delete output from previously run tests.
 The classes in `src/test/java/edu/mit/ll/graphulo/examples/`
 contain simple, well-commented examples of how to use Graphulo.
 
-* `mvn test -Dtest=TableMultExample` to insert a SCALE 10 graph into MiniAccumulo,
+* `mvn test -Dtest=TableMultExample#` to insert a SCALE 10 graph into MiniAccumulo,
 store the result of multiplying it with itself, and count the number of resulting entries.
 * `mvn test -Dtest=AdjBFSExample` to insert a SCALE 10 graph into MiniAccumulo,
 create a new table with the union sum of three steps of Breadth First Search, 

@@ -14,6 +14,7 @@
         <include>post-test.bash</include>
         <include>pom.xml</include>
         <include>deploy.sh</include>
+        <include>docs/**</include>
       </includes>
     </fileSet>
     <fileSet>

@@ -17,12 +17,17 @@ public class ExampleUtil {
   private static final Logger log = LogManager.getLogger(ExampleUtil.class);
 
   /** Reads files from src/test/resource/data and inserts into Accumulo using D4M Schema table+transpose+degree. */
-  public static void ingestSCALE(int SCALE, String baseName, Connector conn) throws FileNotFoundException {
+  public static void ingestSCALE(int SCALE, char version, String baseName, Connector conn) throws FileNotFoundException {
     D4MTripleFileWriter tripleFileWriter = new D4MTripleFileWriter(conn);
-    URL url = Thread.currentThread().getContextClassLoader().getResource("data/"+SCALE+"r.txt");
+    URL url = Thread.currentThread().getContextClassLoader().getResource("data/"+SCALE+version+"r.txt");
+    if (url == null)
+      url = Thread.currentThread().getContextClassLoader().getResource("data/"+SCALE+version+"r.txt.gz");
     Assert.assertNotNull(url);
     File rowFile = new File(url.getPath());
-    url = Thread.currentThread().getContextClassLoader().getResource("data/"+SCALE+"c.txt");
+
+    url = Thread.currentThread().getContextClassLoader().getResource("data/"+SCALE+version+"c.txt");
+    if (url == null)
+      url = Thread.currentThread().getContextClassLoader().getResource("data/"+SCALE+version+"c.txt.gz");
     Assert.assertNotNull(url);
     File colFile = new File(url.getPath());
 

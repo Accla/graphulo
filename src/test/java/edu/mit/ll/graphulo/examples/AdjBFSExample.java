@@ -39,12 +39,14 @@ public class AdjBFSExample extends AccumuloTestBase {
 
   @Test
   public void exampleAdjBFS() throws FileNotFoundException, TableNotFoundException {
-    final String inputTable = "ex" + SCALE + "A";
-    final String outputTable = "ex" + SCALE + "step" + numSteps;
+    String inputTable = "ex" + SCALE + "A";
+    String degreeTable = "ex" + SCALE + "ADeg";
+    String degreeColumn = "deg";
+    String outputTable = "ex" + SCALE + "step" + numSteps;
     /** Start from node 1 (the supernode) and a few others. */
-    final String v0 = "1,25,33,";
+    String v0 = "1,25,33,";
 
-    // In your code, you would connect to an Accumulo instance by writing somehting similar to:
+    // In your code, you would connect to an Accumulo instance by writing something similar to:
 //    ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance("instance").withZkHosts("localhost:2181").withZkTimeout(5000);
 //    Instance instance = new ZooKeeperInstance(cc);
 //    Connector c = instance.getConnector("root", new PasswordToken("secret"));
@@ -52,9 +54,9 @@ public class AdjBFSExample extends AccumuloTestBase {
     // You can change this by passing the option -DTEST_CONFIG=local or -DTEST_CONFIG=txe1 or similar.
     Connector conn = tester.getConnector();
 
-    // Insert data from the file test/resources/data/10r.txt and 10c.txt into Accumulo.
+    // Insert data from the file test/resources/data/10Ar.txt and 10Ac.txt into Accumulo.
     // Deletes tables if they already exist.
-    ExampleUtil.ingestSCALE(SCALE, inputTable, conn);
+    ExampleUtil.ingestSCALE(SCALE, 'A', inputTable, conn);
 
     // Create Graphulo executor. Supply your password.
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
@@ -71,7 +73,7 @@ public class AdjBFSExample extends AccumuloTestBase {
     // This call blocks until the BFS completes.
     graphulo.AdjBFS(inputTable, v0, numSteps, outputTable,
         null,                             // Don't write the transpose of the result table.
-        inputTable + "Deg", "deg", false, // Information on degree table.
+        degreeTable, degreeColumn, false,        // Information on degree table.
         20, Integer.MAX_VALUE,            // Filter out nodes with degrees less than 20. (High-pass Filter)
         sumSetting, false);               // Use our plus operation on the result table.
 

@@ -48,6 +48,8 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
   private DOT_TYPE dot = DOT_TYPE.NONE;
   private Collection<ByteSequence> seekColumnFamilies;
   private boolean seekInclusive;
+  /** Track the row of AT and B emitted. For monitoring. */
+  private Text emittedRow = new Text();
 
   public static final String PREFIX_AT = "AT";
   public static final String PREFIX_B = "B";
@@ -101,7 +103,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
       if (entry.getValue().isEmpty())
         continue;
       String key = entry.getKey();
-      if (key.equals(PREFIX_AT+'.'+"emitNoMatch") || key.equals(PREFIX_B+'.'+"emitNoMatch"))
+      if (key.equals(PREFIX_AT+".emitNoMatch") || key.equals(PREFIX_B+".emitNoMatch"))
         //noinspection ResultOfMethodCallIgnored
         Boolean.parseBoolean(entry.getValue());
       else if (key.startsWith(PREFIX_AT))
@@ -265,9 +267,9 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
 //    System.out.println("DM inclusive: " + inclusive);
 
     Key sk = range.getStartKey();
-    // put range at beginning of row, no matter what
-    if (sk != null)
-      range = new Range(new Key(sk.getRow()), true, range.getEndKey(), range.isEndKeyInclusive());
+    // BAD: put range at beginning of row, no matter what
+//    if (sk != null)
+//      range = new Range(new Key(sk.getRow()), true, range.getEndKey(), range.isEndKeyInclusive());
 
     // if range is not infinite, see if there is a clear sign we want to restore state:
     if (sk != null && sk.getColumnFamilyData().length() == 0 && sk.getColumnQualifierData().length() == 0 && sk.getColumnVisibilityData().length() == 0
@@ -275,8 +277,13 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
       // assuming that we are seeking using a key previously returned by this iterator
       // therefore go to the next row
       Key followingRowKey = sk.followingKey(PartialKey.ROW);
-      if (range.getEndKey() != null && followingRowKey.compareTo(range.getEndKey()) > 0)
+      if (range.getEndKey() != null && followingRowKey.compareTo(range.getEndKey()) > 0) {
+        seekRange = range;
+        seekColumnFamilies = columnFamilies;
+        seekInclusive = inclusive;
+        bottomIter = null;
         return;
+      }
 
       range = new Range(followingRowKey, true, range.getEndKey(), range.isEndKeyInclusive());
     }
@@ -373,6 +380,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
           cmp = remoteAT.getTopKey().compareTo(remoteB.getTopKey(), pk);
         }
         //assert cmp == 0;
+        emittedRow = remoteAT.getTopKey().getRow(emittedRow);
 
         if (dot == DOT_TYPE.ROW_CARTESIAN) {
           SortedMap<Key, Value> ArowMap, BrowMap;
@@ -528,10 +536,11 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
       // the current top entry of bottomIter is the last in this cartesian product (bottomIter)
       // Save state at this row.  If reseek'd to this row, go to the next row (assume exclusive).
       assert bottomIter.peekFirst() != null;
-      final Key k =
-          dot == DOT_TYPE.ROW_CARTESIAN
-            ? GraphuloUtil.keyCopy(bottomIter.peekFirst().getKey(), PartialKey.ROW)
-            : bottomIter.peekFirst().getKey(); // second case should be okay without copying
+      final Key k = new Key(emittedRow);
+          // BAD!
+//          dot == DOT_TYPE.ROW_CARTESIAN
+//            ? GraphuloUtil.keyCopy(bottomIter.peekFirst().getKey(), PartialKey.ROW)
+//            : bottomIter.peekFirst().getKey(); // second case should be okay without copying
       final Value v = new Value(); // no additional information to return.
       return new Map.Entry<Key, Value>() {
         @Override

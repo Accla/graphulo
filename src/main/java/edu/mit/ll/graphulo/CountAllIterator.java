@@ -27,12 +27,25 @@ public class CountAllIterator implements SortedKeyValueIterator<Key,Value> {
     return new CountAllIterator();
   }
 
+  static final Key SPECIAL_KEY = new Key("");
+
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+//    if (!range.isInfiniteStartKey() && !range.isStartKeyInclusive() &&
+//        (range.getStartKey().equals(SPECIAL_KEY, PartialKey.ROW) ) ) {
+//      emitKey = null;
+//      emitValue = null;
+//      return;
+//    }
     source.seek(range, columnFamilies, inclusive);
     long cnt = countAll();
-    emitValue = new Value(Long.toString(cnt).getBytes());
-    emitKey = range.getStartKey() == null ? new Key("a") : range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL);
+    if (cnt != 0) {
+      emitValue = new Value(Long.toString(cnt).getBytes());
+      emitKey = range.getStartKey() == null ? SPECIAL_KEY : range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL);
+    } else {
+      emitValue = null;
+      emitKey = null;
+    }
 //    System.out.println("range "+range+" cnt "+Long.valueOf(new String(emitValue.get())) + " lastKey "+emitKey);
   }
 

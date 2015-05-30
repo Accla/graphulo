@@ -37,11 +37,11 @@ public class TableMultExample extends AccumuloTestBase {
   public static final int SCALE = 10;
 
   @Test
-  public void exampleTableMult() throws FileNotFoundException, TableNotFoundException {
-    String Atable = "ex" + SCALE + "A";     // Adjacency table A
-    String ATtable = "ex" + SCALE + "AT";   // Adjacency table A Transpose (row and column qualifier switched)
-    String Btable = "ex" + SCALE + "B";     // Adjacency table B
-    String Ctable = "ex" + SCALE + "C";     // Adjacency table C to contain the operation result
+  public void example1() throws FileNotFoundException, TableNotFoundException {
+    String Atable = "tmex" + SCALE + "A";     // Adjacency table A
+    String ATtable = "tmex" + SCALE + "AT";   // Adjacency table A Transpose (row and column qualifier switched)
+    String Btable = "tmex" + SCALE + "B";     // Adjacency table B
+    String Ctable = "tmex" + SCALE + "C";     // Adjacency table C to contain the operation result
 
     // In your code, you would connect to an Accumulo instance by writing something similar to:
 //    ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance("instance").withZkHosts("localhost:2181").withZkTimeout(5000);
@@ -93,7 +93,45 @@ public class TableMultExample extends AccumuloTestBase {
     }
     bs.close();
     log.info("# of entries in output table " + Ctable + ": " + cnt);
-
   }
+
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+  /*  Variations of above example:
+
+  1)  Replace: SummingCombiner.class ==>
+        MaxCombiner.class
+      and Replace: LongMultiply.class ==>
+        MinMultiply.class
+      to use max.min algebra.  We assume all nonzero values are integers greater than 0.
+      This maintains 0 as the additive identity since for any a, max(a,0)=a.
+      This maintains 0 as the multiplicative annihilator since for any a, min(a,0)=0.
+      The result will have the same sparsity pattern as the +.* algebra.
+      One difference is that if all nonzero input values are 1, then all nonzero output values are 1.
+
+  2)  Replace: Collection<Range> rowFilter = null; ==>
+        Collection<Range> rowFilter = Collections.singleton(new Range("1",false,null,false));
+      to include in the TableMult only columns after column "1" of A (which is a row of AT)
+      and rows after row "1" of B. This restricts the dimension of the tables on which they are "joined."
+
+  3)  Replace: String colFilterAT = null; ==>
+        String colFilterAT = "7,23,85,";
+      to include in the TableMult only rows "7", "23", "85" of A (which are columns of AT).
+      This restricts the rowspace of table C.
+      Applying a column filter to colFilterB similarly restricts the columnspace of table C.
+
+  4)  Change numEntriesCheckpoint to an amount greater than zero in order to receive
+      "monitoring entries" in the middle of the operation.  An Accumulo tablet server will send
+      one monitoring entry after numEntriesCheckpoint entries are processed.
+      NOTE: Monitoring will make concurrent scans on table B unstable
+            since it adjusts a table-level memory size property.
+
+  */
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
 
 }

@@ -11,6 +11,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.LongCombiner;
+import org.apache.accumulo.core.iterators.user.MinCombiner;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.log4j.LogManager;
@@ -89,5 +90,16 @@ public class AdjBFSExample extends AccumuloTestBase {
     bs.close();
     log.info("# of entries in output table " + Rtable + ": " + cnt);
   }
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+  /*  Variations of above example:
+
+      Change the minimum and maximum degrees, the starting nodes and the plus operation.
+      Setting plusOp to null means that entries sent to Rtable overwrite existing entries
+      instead of summing.
+
+  */
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 }

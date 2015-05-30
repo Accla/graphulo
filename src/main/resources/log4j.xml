@@ -42,21 +42,21 @@
     </appender>
 
     <logger name="org.apache">
-        <level value="ERROR"/>
+        <level value="WARN"/>
     </logger>
     <logger name="org.apache.zookeeper">
-        <level value="ERROR"/>
+        <level value="WARN"/>
     </logger>
 
 
     <logger name="edu.mit.ll.d4m" >  
-        <level value="ERROR" />
+        <level value="WARN" />
     </logger>
 
   
  
     <root>
-       <level value="ERROR"/>
+       <level value="WARN"/>
        <appender-ref ref="RollingFile"/>
        <appender-ref ref="CONSOLE"/> 
     </root>

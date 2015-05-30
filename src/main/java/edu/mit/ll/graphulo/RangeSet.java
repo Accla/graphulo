@@ -31,10 +31,7 @@ public class RangeSet {
     else {
       // find first range whose end key >= the start key of seekRange
       PeekingIterator1<Range> pi = getFirstRangeStarting(seekRange, targetRanges);
-      if (seekRange.isInfiniteStopKey())
-        return pi;
-      else
-        return new RangeSetIter(pi, seekRange);
+      return new RangeSetIter(pi, seekRange);
     }
   }
 

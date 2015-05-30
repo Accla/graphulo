@@ -96,8 +96,8 @@ Run `mvn clean` to delete output from previously run tests.
 The classes in `src/test/java/edu/mit/ll/graphulo/examples/`
 contain simple, well-commented examples of how to use Graphulo.
 
-* `mvn test -Dtest=TableMultExample#` to insert a SCALE 10 graph into MiniAccumulo,
-store the result of multiplying it with itself, and count the number of resulting entries.
+* `mvn test -Dtest=TableMultExample#` to insert two SCALE 10 graphs into MiniAccumulo,
+store the result of multiplying them, and count the number of resulting entries.
 * `mvn test -Dtest=AdjBFSExample` to insert a SCALE 10 graph into MiniAccumulo,
 create a new table with the union sum of three steps of Breadth First Search, 
 and count the number of resulting entries.
@@ -159,11 +159,21 @@ G = DBaddJavaOps('edu.mit.ll.graphulo.MatlabGraphulo','instance','localhost:2181
 res = G.AdjBFS('Atable','v0;v7;v9;',3,'Rtable','','ADegtable','OutDeg',false,5,15);
 ```
 
+### Defining custom plus (+) and multiply (*) operations
 
+To define a custom plus operation, create an `IteratorSetting` object 
+passing in an SKVI that implements the plus logic.
+Pass that setting to the Graphulo operation.
+Graphulo will apply the iterator to result tables.
 
+To define a custom multiply operation, create a class that implements `IMultiplyOp`.
+See the multiply classes in package `edu.mit.ll.graphulo.mult` for examples.
 
 
 ## Implementation
+
+Note: the current implementation only had SpGEMM and BFS completely tested. 
+The rest are partially implemented ideas.
 
 ### GraphBLAS mapping
 * SpGEMM uses TwoTableIterator connected to a RemoteSourceIterator on table AT and a local iterator on table B.

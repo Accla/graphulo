@@ -17,22 +17,12 @@ public abstract class D4mParentQuery extends D4mParent {
 	protected int limit=0;
 
 	protected String columnFamily = "";
-	/**
-	 * 
-	 */
+
 	public D4mParentQuery() {
 		super();
 		connProps = new ConnectionProperties();
 	}
 
-	/**
-	 * @param rows
-	 * @param cols
-	 * @param family
-	 * @param authorizations
-	 * @return
-	 * @throws D4mException
-	 */
 	abstract public D4mDbResultSet doMatlabQuery(String rows, String cols, String family, String authorizations) throws D4mException;
 	abstract public void next();
 	abstract public boolean hasNext();

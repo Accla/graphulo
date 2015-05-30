@@ -1,5 +1,6 @@
 package edu.mit.ll.graphulo;
 
+import com.google.common.collect.Iterators;
 import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -22,6 +23,9 @@ import java.util.*;
  */
 public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueIterator<Key, Value> {
   private static final Logger log = LogManager.getLogger(RemoteWriteIterator.class);
+
+  static final int REJECT_FAILURE_THRESHOLD = 10;
+  private int numRejects = 0;
 
   private SortedKeyValueIterator<Key, Value> source;
   private String instanceName;
@@ -421,7 +425,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
         try {
           writer.addMutation(m);
         } catch (MutationsRejectedException e) {
-          log.warn("ignoring rejected mutations; last one added is " + m, e);
+          numRejects++;
+          log.warn("rejected mutations #"+numRejects+"; last one added is " + m, e);
         } finally {
           watch.stop(Watch.PerfSpan.WriteAddMut);
         }
@@ -434,10 +439,17 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
         try {
           writerTranspose.addMutation(m);
         } catch (MutationsRejectedException e) {
-          log.warn("ignoring rejected mutations; last one added is " + m, e);
+          numRejects++;
+          log.warn("rejected mutations #"+numRejects+"; last one added is " + m, e);
         } finally {
           watch.stop(Watch.PerfSpan.WriteAddMut);
         }
+      }
+
+      if (numRejects >= REJECT_FAILURE_THRESHOLD) { // declare global failure after 10 rejects
+        rowRangeIterator = new PeekingIterator1<>(Iterators.<Range>emptyIterator());
+        // last entry emitted declares failure
+        return true;
       }
 
       entriesWritten++;
@@ -463,14 +475,17 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
   @Override
   public boolean hasTop() {
-    return rowRangeIterator.hasNext() ||
+    return numRejects >= REJECT_FAILURE_THRESHOLD ||
+        rowRangeIterator.hasNext() ||
         //source.hasTop() ||
         (gatherColQs && !setUniqueColQs.isEmpty());
   }
 
   @Override
   public void next() throws IOException {
-    if (rowRangeIterator.hasNext()) {
+    if (numRejects >= REJECT_FAILURE_THRESHOLD)
+      numRejects = -1;
+    else if (rowRangeIterator.hasNext()) {
       if (source.hasTop()) {
         Watch<Watch.PerfSpan> watch = Watch.getInstance();
         watch.start(Watch.PerfSpan.WriteGetNext);
@@ -492,7 +507,9 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
   @Override
   public Key getTopKey() {
-    if (source.hasTop())
+    if (numRejects >= REJECT_FAILURE_THRESHOLD)
+      return new Key(lastKeyEmitted).followingKey(PartialKey.ROW);
+    else if (source.hasTop())
       return ((SaveStateIterator) source).safeState().getKey();
     else if (gatherColQs && !setUniqueColQs.isEmpty()) {
       return new Key(lastKeyEmitted).followingKey(PartialKey.ROW);
@@ -502,12 +519,20 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
   @Override
   public Value getTopValue() {
-    if (source.hasTop()) {
-      Value orig = ((SaveStateIterator) source).safeState().getValue();
-      ByteBuffer bb = ByteBuffer.allocate(orig.getSize() + 4 + 2);
+    if (numRejects >= REJECT_FAILURE_THRESHOLD) {
+      byte[] orig = ((SaveStateIterator) source).safeState().getValue().get();
+      ByteBuffer bb = ByteBuffer.allocate(orig.length + 4 + 2);
       bb.putInt(entriesWritten)
           .putChar(',')
-          .put(orig.get())
+          .put("Server_BatchWrite_Entries_Rejected!".getBytes())
+          .rewind();
+      return new Value(bb);
+    } else if (source.hasTop()) {
+      byte[] orig = ((SaveStateIterator) source).safeState().getValue().get();
+      ByteBuffer bb = ByteBuffer.allocate(orig.length + 4 + 2);
+      bb.putInt(entriesWritten)
+          .putChar(',')
+          .put(orig)
           .rewind();
       return new Value(bb);
     } else if (gatherColQs && !setUniqueColQs.isEmpty()) {

@@ -76,11 +76,11 @@ public class Graphulo {
    * @param CTtable              Name of table to store transpose of result. Null means don't store the transpose.
    * @param multOp               An operation that "multiplies" two values.
    * @param plusOp               An SKVI to apply to the result table that "sums" values. Not applied if null.
-   * @param rowFilter            Optional. Row subset of ATtable and Btable, like "a,:,b,g,c,:,"
-   * @param colFilterAT          Optional. Column qualifier subset of AT, restricted to not allow ranges.
-   * @param colFilterB           Optional. Column qualifier subset of B, like "a,f,b,c,"
-   * @param numEntriesCheckpoint Optional. # of entries before we emit a checkpoint entry from the scan.
-   * @param trace                Optional. Enable server-side tracing.
+   * @param rowFilter            Row subset of ATtable and Btable, like "a,:,b,g,c,:,". Null means all rows.
+   * @param colFilterAT          Column qualifier subset of AT, restricted to not allow ranges. Null means all columns.
+   * @param colFilterB           Column qualifier subset of B, like "a,f,b,c,". Null means all columns.
+   * @param numEntriesCheckpoint # of entries before we emit a checkpoint entry from the scan. -1 means no monitoring.
+   * @param trace                Enable server-side performance tracing.
    */
   public void TableMult(String ATtable, String Btable, String Ctable, String CTtable,
                         Class<? extends IMultiplyOp> multOp, IteratorSetting plusOp,
@@ -202,19 +202,52 @@ public class Graphulo {
         bs.fetchColumn(EMPTY_TEXT, text);
       }
 
-    for (Map.Entry<Key, Value> entry : bs) {
-      if (Ctable != null || CTtable != null) {
-        Value v = entry.getValue();
-        ByteBuffer bb = ByteBuffer.wrap(v.get());
-        int numEntries = bb.getInt();
-        char c = bb.getChar();
-        String str = new Value(bb).toString();
-        System.out.println(entry.getKey() + " -> " + numEntries + c + str);
-      } else {
-        System.out.println(entry.getKey() + " -> " + entry.getValue());
+    // for monitoring: reduce table-level parameter controlling when Accumulo sends back an entry to the client
+    String prevPropTableScanMaxMem = null;
+    if (numEntriesCheckpoint > 0 && (Ctable != null || CTtable != null))
+      try {
+        for (Map.Entry<String, String> entry : tops.getProperties(Btable)) {
+          if (entry.getKey().equals("table.scan.max.memory"))
+            prevPropTableScanMaxMem = entry.getValue();
+        }
+//        System.out.println("prevPropTableScanMaxMem: "+prevPropTableScanMaxMem);
+        if (prevPropTableScanMaxMem == null)
+          log.warn("expected table.scan.max.memory to be set on table " + Btable);
+        else {
+          tops.setProperty(Btable, "table.scan.max.memory", "1B");
+        }
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        log.warn("error trying to get and set property table.scan.max.memory for " + Btable, e);
+      } catch (TableNotFoundException e) {
+        log.error("crazy", e);
+        throw new RuntimeException(e);
+      }
+
+    // Do the BatchScan on B
+    try {
+      for (Map.Entry<Key, Value> entry : bs) {
+        if (Ctable != null || CTtable != null) {
+          Value v = entry.getValue();
+          ByteBuffer bb = ByteBuffer.wrap(v.get());
+          int numEntries = bb.getInt();
+          char c = bb.getChar();
+          String str = new Value(bb).toString();
+          System.out.println(entry.getKey() + " -> " + numEntries + c + str);
+        } else {
+          System.out.println(entry.getKey() + " -> " + entry.getValue());
+        }
+      }
+    } finally {
+      bs.close();
+      if (prevPropTableScanMaxMem != null) {
+        try {
+          tops.setProperty(Btable, "table.scan.max.memory", prevPropTableScanMaxMem);
+        } catch (AccumuloException | AccumuloSecurityException e) {
+          log.error("cannot reset table.scan.max.memory property for " + Btable + " to " + prevPropTableScanMaxMem, e);
+        }
       }
     }
-    bs.close();
+
 
 //    // flush
 //    if (Ctable != null) {
@@ -238,6 +271,7 @@ public class Graphulo {
   /**
    * Use LongCombiner to sum.
    */
+
   public String AdjBFS(String Atable, String v0, int k, String Rtable, String RtableTranspose,
                        String ADegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree) {
 
@@ -246,6 +280,23 @@ public class Graphulo {
         DEFAULT_PLUS_ITERATOR, false);
   }
 
+  /**
+   * Adjacency table Breadth First Search. Sums entries into Rtable from each step of the BFS.
+   *
+   * @param Atable      Name of Accumulo table holding matrix transpose(A).
+   * @param v0          Starting nodes, like "a,f,b,c,"
+   * @param k           Number of steps
+   * @param Rtable      Name of table to store result. Null means don't store the result.
+   * @param RTtable     Name of table to store transpose of result. Null means don't store the transpose.
+   * @param ADegtable   Name of table holding out-degrees for A.
+   * @param degColumn   Name of column for out-degrees in ADegtable. Leave null if degInColQ==true.
+   * @param degInColQ   True means degree is in the Column Qualifier. False means degree is in the Value.
+   * @param minDegree   Minimum out-degree. Checked before doing any searching, at every step, from ADegtable.
+   * @param maxDegree   Maximum out-degree. Checked before doing any searching, at every step, from ADegtable.
+   * @param plusOp      An SKVI to apply to the result table that "sums" values. Not applied if null.
+   * @param trace       Enable server-side performance tracing.
+   * @return          The nodes reachable in exactly k steps from v0.
+   */
   @SuppressWarnings("unchecked")
   public String AdjBFS(String Atable, String v0, int k, String Rtable, String RTtable,
                        String ADegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree,

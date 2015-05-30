@@ -1,10 +1,12 @@
 package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.mult.LongMultiply;
-import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.xml.DOMConfigurator;
@@ -30,15 +32,15 @@ public class MatlabGraphulo extends Graphulo {
   }
 
   public void TableMult(String ATtable, String Btable, String Ctable) {
-    TableMult(ATtable, Btable, Ctable, 250000, true);
+    TableMult(ATtable, Btable, Ctable, -1, true);
   }
 
   public void TableMult(String ATtable, String Btable, String Ctable, String rowFilter, String colFilterAT, String colFilterB) {
-    TableMult(ATtable, Btable, Ctable, rowFilter, colFilterAT, colFilterB, 250000, true);
+    TableMult(ATtable, Btable, Ctable, rowFilter, colFilterAT, colFilterB, -1, true);
   }
 
   public void TableMult(String ATtable, String Btable, String Ctable, int numEntriesCheckpoint, boolean trace) {
-    TableMult(ATtable, Btable, Ctable, null, null, null, 250000, true);
+    TableMult(ATtable, Btable, Ctable, null, null, null, numEntriesCheckpoint, true);
   }
 
   public void TableMult(String ATtable, String Btable, String Ctable,
@@ -49,7 +51,7 @@ public class MatlabGraphulo extends Graphulo {
 
 
     TableMult(ATtable, Btable, Ctable, null,
-        LongMultiply.class, new IteratorSetting(1, "sum", BigDecimalCombiner.BigDecimalSummingCombiner.class),
+        LongMultiply.class, Graphulo.DEFAULT_PLUS_ITERATOR,
         rowFilterRanges, colFilterAT, colFilterB, numEntriesCheckpoint, trace);
   }
 

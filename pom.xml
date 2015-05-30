@@ -120,7 +120,7 @@
         <executions>
           <execution>
             <id>gen-javadoc</id>
-            <phase>package</phase>
+            <phase>install</phase>
             <goals>
               <goal>javadoc</goal>
             </goals>
@@ -144,7 +144,6 @@
               <goal>copy-dependencies</goal>
             </goals>
             <configuration>
-              <excludeTransitive>true</excludeTransitive>
               <outputDirectory>${project.build.directory}/libext</outputDirectory>
               <type>jar</type>
               <includeScope>runtime</includeScope>

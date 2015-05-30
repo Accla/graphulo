@@ -30,21 +30,22 @@ import java.util.Map;
 public class AdjBFSExample extends AccumuloTestBase {
   private static final Logger log = LogManager.getLogger(AdjBFSExample.class);
 
-  /**
-   * Corresponds to saved files in the distribution.
-   */
+  /** Corresponds to saved files in the distribution. */
   public static final int SCALE = 10;
 
   public static final int numSteps = 3;
 
   @Test
   public void exampleAdjBFS() throws FileNotFoundException, TableNotFoundException {
-    String inputTable = "ex" + SCALE + "A";
-    String degreeTable = "ex" + SCALE + "ADeg";
-    String degreeColumn = "deg";
-    String outputTable = "ex" + SCALE + "step" + numSteps;
-    /** Start from node 1 (the supernode) and a few others. */
-    String v0 = "1,25,33,";
+    String Atable = "ex" + SCALE + "A";                 // Adjacency table A.
+    String Rtable = "ex" + SCALE + "step" + numSteps;   // Result of BFS is summed into Rtable.
+    String RTtable = null;                              // Don't write transpose of BFS.
+    String ADegtable = "ex" + SCALE + "ADeg";           // Adjacency table A containing out-degrees.
+    String degColumn = "deg";                           // Name of column qualifier under which out-degrees appear in ADegtable.
+    boolean degInColQ = false;                          // Degree is stored in the Value, not the Column Qualifier.
+    int minDegree = 20;                                 // Bounding minimum degree: only include nodes with degree 20 or higher.
+    int maxDegree = Integer.MAX_VALUE;                  // Unbounded maximum degree.  This + the minimum degree make a High-pass Filter.
+    String v0 = "1,25,33,";                             // Starting nodes: start from node 1 (the supernode) and a few others.
 
     // In your code, you would connect to an Accumulo instance by writing something similar to:
 //    ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance("instance").withZkHosts("localhost:2181").withZkTimeout(5000);
@@ -56,36 +57,37 @@ public class AdjBFSExample extends AccumuloTestBase {
 
     // Insert data from the file test/resources/data/10Ar.txt and 10Ac.txt into Accumulo.
     // Deletes tables if they already exist.
-    ExampleUtil.ingestSCALE(SCALE, 'A', inputTable, conn);
+    ExampleUtil.ingestSCALE(SCALE, 'A', Atable, conn);
 
-    // Create Graphulo executor. Supply your password.
+    // Create Graphulo executor. Supply the password for your Accumulo user account.
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
 
     // Configure options for sum operator.
     // We choose to use Accumulo's SummingCombiner as the plus operation.
     // This iterator decodes values as longs and sums them using long-type addition.
+
+    // Plus operation. Satisfies requirement that 0 is additive identity.
     int sumPriority = 6;
-    IteratorSetting sumSetting = new IteratorSetting(sumPriority, SummingCombiner.class);
-    LongCombiner.setEncodingType(sumSetting, LongCombiner.Type.STRING);
-    Combiner.setCombineAllColumns(sumSetting, true);
+    IteratorSetting plusOp = new IteratorSetting(sumPriority, SummingCombiner.class);
+    // Options for plus operator: encode/decode with a string representation; act on all columns of Ctable.
+    LongCombiner.setEncodingType(plusOp, LongCombiner.Type.STRING);
+    Combiner.setCombineAllColumns(plusOp, true);
+    // Note: this is the same as Graphulo.DEFAULT_PLUS_ITERATOR
 
     // Adjacency Table Breadth First Search.
     // This call blocks until the BFS completes.
-    graphulo.AdjBFS(inputTable, v0, numSteps, outputTable,
-        null,                             // Don't write the transpose of the result table.
-        degreeTable, degreeColumn, false,        // Information on degree table.
-        20, Integer.MAX_VALUE,            // Filter out nodes with degrees less than 20. (High-pass Filter)
-        sumSetting, false);               // Use our plus operation on the result table.
+    graphulo.AdjBFS(Atable, v0, numSteps, Rtable, RTtable,
+        ADegtable, degColumn, false, minDegree, maxDegree, plusOp, false);
 
     // Result is in output table. Do whatever you like with it.
-    BatchScanner bs = conn.createBatchScanner(outputTable, Authorizations.EMPTY, 2);
+    BatchScanner bs = conn.createBatchScanner(Rtable, Authorizations.EMPTY, 2);
     bs.setRanges(Collections.singleton(new Range()));   // Scan whole table.
     int cnt = 0;
     for (Map.Entry<Key, Value> entry : bs) {
       cnt++;
     }
     bs.close();
-    log.info("# of entries in output table " + outputTable + ": " + cnt);
+    log.info("# of entries in output table " + Rtable + ": " + cnt);
   }
 
 }

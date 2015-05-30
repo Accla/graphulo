@@ -25,6 +25,7 @@ public class Graphulo {
   private static final Logger log = LogManager.getLogger(Graphulo.class);
 
   public static final IteratorSetting DEFAULT_PLUS_ITERATOR;
+
   static {
     IteratorSetting sumSetting = new IteratorSetting(6, SummingCombiner.class);
     LongCombiner.setEncodingType(sumSetting, LongCombiner.Type.STRING);
@@ -32,8 +33,8 @@ public class Graphulo {
     DEFAULT_PLUS_ITERATOR = sumSetting;
   }
 
-  private Connector connector;
-  private PasswordToken password;
+  protected Connector connector;
+  protected PasswordToken password;
 
   public Graphulo(Connector connector, PasswordToken password) {
     this.connector = connector;
@@ -56,35 +57,36 @@ public class Graphulo {
   private static final Text EMPTY_TEXT = new Text();
 
 
-  public void TableMult(String ATtable, String Btable, String Ctable,
-                        Class<? extends IMultiplyOp> multOp, IteratorSetting sumOp,
+  public void TableMult(String ATtable, String Btable, String Ctable, String CTtable,
+                        Class<? extends IMultiplyOp> multOp, IteratorSetting plusOp,
                         Collection<Range> rowFilter,
                         String colFilterAT, String colFilterB) {
-    TableMult(ATtable, Btable, Ctable, multOp, sumOp, rowFilter, colFilterAT, colFilterB, -1, false);
+    TableMult(ATtable, Btable, Ctable, CTtable, multOp, plusOp, rowFilter, colFilterAT, colFilterB, -1, false);
   }
 
-/**
- * C += A * B.
- * User-defined "plus" and "multiply". Requires transpose table AT instead of A.
- * If C is not given, then the scan itself returns the results of A * B.
- * After operation, flushes C and removes the "plus" combiner from C.
- *
- * @param ATtable              Name of Accumulo table holding matrix transpose(A).
- * @param Btable               Name of Accumulo table holding matrix B.
- * @param Ctable               Optional. Name of table to store result. Streams back result if null.
- * @param multOp               An operation that "multiplies" two values.
- * @param sumOp                An SKVI to apply to the result table that "sums" values.
- * @param rowFilter            Optional. Row subset of ATtable and Btable, like "a,:,b,g,c,:,"
- * @param colFilterAT          Optional. Column qualifier subset of AT, restricted to not allow ranges.
- * @param colFilterB           Optional. Column qualifier subset of B, like "a,f,b,c,"
- * @param numEntriesCheckpoint Optional. # of entries before we emit a checkpoint entry from the scan.
- * @param trace                Optional. Enable server-side tracing.
- */
-public void TableMult(String ATtable, String Btable, String Ctable,
-                      Class<? extends IMultiplyOp> multOp, IteratorSetting sumOp,
-                      Collection<Range> rowFilter,
-                      String colFilterAT, String colFilterB,
-                      int numEntriesCheckpoint, boolean trace) {
+  /**
+   * C += A * B.
+   * User-defined "plus" and "multiply". Requires transpose table AT instead of A.
+   * If C is not given, then the scan itself returns the results of A * B.
+   * After operation, flushes C and removes the "plus" combiner from C.
+   *
+   * @param ATtable              Name of Accumulo table holding matrix transpose(A).
+   * @param Btable               Name of Accumulo table holding matrix B.
+   * @param Ctable               Name of table to store result. Null means don't store the result.
+   * @param CTtable              Name of table to store transpose of result. Null means don't store the transpose.
+   * @param multOp               An operation that "multiplies" two values.
+   * @param plusOp               An SKVI to apply to the result table that "sums" values. Not applied if null.
+   * @param rowFilter            Optional. Row subset of ATtable and Btable, like "a,:,b,g,c,:,"
+   * @param colFilterAT          Optional. Column qualifier subset of AT, restricted to not allow ranges.
+   * @param colFilterB           Optional. Column qualifier subset of B, like "a,f,b,c,"
+   * @param numEntriesCheckpoint Optional. # of entries before we emit a checkpoint entry from the scan.
+   * @param trace                Optional. Enable server-side tracing.
+   */
+  public void TableMult(String ATtable, String Btable, String Ctable, String CTtable,
+                        Class<? extends IMultiplyOp> multOp, IteratorSetting plusOp,
+                        Collection<Range> rowFilter,
+                        String colFilterAT, String colFilterB,
+                        int numEntriesCheckpoint, boolean trace) {
     if (ATtable == null || ATtable.isEmpty())
       throw new IllegalArgumentException("Please specify table AT. Given: " + ATtable);
     if (Btable == null || Btable.isEmpty())
@@ -95,13 +97,21 @@ public void TableMult(String ATtable, String Btable, String Ctable,
     if (Btable.equals(Ctable))
 //      log.warn("Untested combination: Btable=Ctable=" + Btable);
       throw new UnsupportedOperationException("nyi: Btable=Ctable=" + Btable);
+    if (ATtable.equals(CTtable))
+      throw new UnsupportedOperationException("nyi: ATtable=CTtable=" + ATtable);
+    if (Btable.equals(CTtable))
+      throw new UnsupportedOperationException("nyi: Btable=CTtable=" + Btable);
+
     if (Ctable != null && Ctable.isEmpty())
       Ctable = null;
+    if (CTtable != null && CTtable.isEmpty())
+      CTtable = null;
+    if (Ctable == null && CTtable == null)
+      log.warn("Streaming back result of multiplication to client does not guarantee correctness." +
+          "In particular, if Accumulo destroys, re-inits and re-seeks an iterator stack, the stack may not recover.");
 
-//    if (multOp == null || !multOp.equals(BigDecimalMultiply.class))
-//      throw new UnsupportedOperationException("only supported multOp is BigDecimalMultiply, but given: "+multOp);
-//    if (sumOp == null || !sumOp.equals(BigDecimalCombiner.BigDecimalSummingCombiner.class))
-//      throw new UnsupportedOperationException("only supported sumOp is BigDecimalSummingCombiner, but given: "+multOp);
+    if (multOp == null)
+      throw new IllegalArgumentException("multOp is required but given null");
 
     TableOperations tops = connector.tableOperations();
     if (!tops.exists(ATtable))
@@ -113,10 +123,21 @@ public void TableMult(String ATtable, String Btable, String Ctable,
       try {
         tops.create(Ctable);
       } catch (AccumuloException | AccumuloSecurityException e) {
-        log.error("error trying to create C table " + Ctable, e);
+        log.error("error trying to create Ctable " + Ctable, e);
         throw new RuntimeException(e);
       } catch (TableExistsException e) {
-        log.error("impossible", e);
+        log.error("crazy", e);
+        throw new RuntimeException(e);
+      }
+
+    if (CTtable != null && !tops.exists(CTtable))
+      try {
+        tops.create(CTtable);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        log.error("error trying to create CTtable " + Ctable, e);
+        throw new RuntimeException(e);
+      } catch (TableExistsException e) {
+        log.error("crazy", e);
         throw new RuntimeException(e);
       }
 
@@ -126,7 +147,8 @@ public void TableMult(String ATtable, String Btable, String Ctable,
 
     Map<String, String> opt = new HashMap<>();
     opt.put("trace", String.valueOf(trace)); // logs timing on server
-    opt.put("dot", "ROW_CARTESIAN");
+    opt.put("dot", TwoTableIterator.DOT_TYPE.ROW_CARTESIAN.name());
+    opt.put("multiplyOp", multOp.getName());
 
     opt.put("AT.zookeeperHost", zookeepers);
     opt.put("AT.instanceName", instance);
@@ -135,40 +157,35 @@ public void TableMult(String ATtable, String Btable, String Ctable,
     opt.put("AT.password", new String(password.getPassword()));
     if (colFilterAT != null)
       opt.put("AT.colFilter", colFilterAT);
-//    opt.put("B.zookeeperHost", zookeepers);
-//    opt.put("B.instanceName", instance);
-//    opt.put("B.tableName", Btable);
-//    opt.put("B.username", user);
-//    opt.put("B.password", new String(password.getPassword()));
-    // DH: not needed. Use fetchColumn() on bs below.
-//    if (colFilterB != null)
-//      opt.put("B.colFilter", colFilterB);
 
-    if (Ctable != null) {
+    if (Ctable != null || CTtable != null) {
       opt.put("C.zookeeperHost", zookeepers);
       opt.put("C.instanceName", instance);
-      opt.put("C.tableName", Ctable);
+      if (Ctable != null)
+        opt.put("C.tableName", Ctable);
+      if (CTtable != null)
+        opt.put("C.tableNameTranspose", CTtable);
       opt.put("C.username", user);
       opt.put("C.password", new String(password.getPassword()));
-      opt.put("C.numEntriesCheckpoint", String.valueOf(numEntriesCheckpoint)); // TODO P1: hard-coded numEntriesCheckpoint
+      opt.put("C.numEntriesCheckpoint", String.valueOf(numEntriesCheckpoint));
     }
 
-    // attach combiner on Ctable
-    if (Ctable != null)
-      GraphuloUtil.addCombiner(tops, Ctable, log);
+    if (Ctable != null && plusOp != null)
+      GraphuloUtil.applyIteratorSoft(plusOp, tops, Ctable);
+    if (CTtable != null && plusOp != null)
+      GraphuloUtil.applyIteratorSoft(plusOp, tops, CTtable);
 
     // scan B with TableMultIterator
     BatchScanner bs;
     try {
       bs = connector.createBatchScanner(Btable, Authorizations.EMPTY, 50); // TODO P2: set number of batch scan threads
     } catch (TableNotFoundException e) {
-      log.error("impossible", e);
+      log.error("crazy", e);
       throw new RuntimeException(e);
     }
 
-
     if (rowFilter != null && !rowFilter.isEmpty()) {
-      if (Ctable != null) {
+      if (Ctable != null || CTtable != null) {
         opt.put("C.rowRanges", GraphuloUtil.rangesToD4MString(rowFilter)); // translate row filter to D4M notation
         bs.setRanges(Collections.singleton(new Range()));
       } else
@@ -186,7 +203,7 @@ public void TableMult(String ATtable, String Btable, String Ctable,
       }
 
     for (Map.Entry<Key, Value> entry : bs) {
-      if (Ctable != null && !Ctable.isEmpty()) {
+      if (Ctable != null || CTtable != null) {
         Value v = entry.getValue();
         ByteBuffer bb = ByteBuffer.wrap(v.get());
         int numEntries = bb.getInt();
@@ -206,7 +223,7 @@ public void TableMult(String ATtable, String Btable, String Ctable,
 //        tops.flush(Ctable, null, null, true);
 //        System.out.println("flush " + Ctable + " time: " + (System.currentTimeMillis() - st) + " ms");
 //      } catch (TableNotFoundException e) {
-//        log.error("impossible", e);
+//        log.error("crazy", e);
 //        throw new RuntimeException(e);
 //      } catch (AccumuloSecurityException | AccumuloException e) {
 //        log.error("error while flushing " + Ctable);
@@ -217,33 +234,10 @@ public void TableMult(String ATtable, String Btable, String Ctable,
 
   }
 
-  public void CancelCompact(String table) {
-    try {
-      connector.tableOperations().cancelCompaction(table);
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      log.error("error trying to cancel compaction for " + table, e);
-    } catch (TableNotFoundException e) {
-      log.error("", e);
-    }
-  }
 
-  public void addAllSumCombiner(String table) {
-    GraphuloUtil.addCombiner(connector.tableOperations(), table, log);
-  }
-
-  public void Compact(String table) {
-    System.out.println("Compacting " + table + "...");
-    try {
-      connector.tableOperations().compact(table, null, null, true, true);
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      log.error("error trying to compact " + table, e);
-    } catch (TableNotFoundException e) {
-      log.error("", e);
-    }
-  }
-
-
-  /** Use LongCombiner to sum. */
+  /**
+   * Use LongCombiner to sum.
+   */
   public String AdjBFS(String Atable, String v0, int k, String Rtable, String RtableTranspose,
                        String ADegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree) {
 
@@ -253,9 +247,9 @@ public void TableMult(String ATtable, String Btable, String Ctable,
   }
 
   @SuppressWarnings("unchecked")
-  public String AdjBFS(String Atable, String v0, int k, String Rtable, String RtableTranspose,
+  public String AdjBFS(String Atable, String v0, int k, String Rtable, String RTtable,
                        String ADegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree,
-                       IteratorSetting sumSetting,
+                       IteratorSetting plusOp,
                        boolean trace) {
     if (Atable == null || Atable.isEmpty())
       throw new IllegalArgumentException("Please specify Adjacency table. Given: " + Atable);
@@ -263,8 +257,8 @@ public void TableMult(String ATtable, String Btable, String Ctable,
       throw new IllegalArgumentException("We currently require the use of an out-degree table for the adjacency matrix. Given: " + Atable);
     if (Rtable != null && Rtable.isEmpty())
       Rtable = null;
-    if (RtableTranspose != null && RtableTranspose.isEmpty())
-      RtableTranspose = null;
+    if (RTtable != null && RTtable.isEmpty())
+      RTtable = null;
     if (minDegree < 1)
       minDegree = 1;
     if (maxDegree < minDegree)
@@ -275,8 +269,8 @@ public void TableMult(String ATtable, String Btable, String Ctable,
       if (degInColQ)
         throw new IllegalArgumentException("not allowed: degColumn != null && degInColQ==true");
     }
-    if (sumSetting != null && sumSetting.getPriority() >= 20)
-      log.warn("Sum iterator setting is >=20. Are you sure you want the priority after the default Versioning iterator priority? "+sumSetting);
+    if (plusOp != null && plusOp.getPriority() >= 20)
+      log.warn("Sum iterator setting is >=20. Are you sure you want the priority after the default Versioning iterator priority? " + plusOp);
     if (v0 == null)
       throw new IllegalArgumentException("null v0");
     Collection<Text> vktexts = GraphuloUtil.d4mRowToTexts(v0);
@@ -293,24 +287,24 @@ public void TableMult(String ATtable, String Btable, String Ctable,
         log.error("error trying to create R table " + Rtable, e);
         throw new RuntimeException(e);
       } catch (TableExistsException e) {
-        log.error("impossible", e);
+        log.error("crazy", e);
         throw new RuntimeException(e);
       }
-    if (RtableTranspose != null && !tops.exists(RtableTranspose))
+    if (RTtable != null && !tops.exists(RTtable))
       try {
-        tops.create(RtableTranspose);
+        tops.create(RTtable);
       } catch (AccumuloException | AccumuloSecurityException e) {
-        log.error("error trying to create R table transpose" + RtableTranspose, e);
+        log.error("error trying to create R table transpose" + RTtable, e);
         throw new RuntimeException(e);
       } catch (TableExistsException e) {
-        log.error("impossible", e);
+        log.error("crazy", e);
         throw new RuntimeException(e);
       }
 
     Map<String, String> opt = new HashMap<>();
     opt.put("trace", String.valueOf(trace)); // logs timing on server
     opt.put("gatherColQs", "true");
-    if (Rtable != null || RtableTranspose != null) {
+    if (Rtable != null || RTtable != null) {
       String instance = connector.getInstance().getInstanceName();
       String zookeepers = connector.getInstance().getZooKeepers();
       String user = connector.whoami();
@@ -318,21 +312,21 @@ public void TableMult(String ATtable, String Btable, String Ctable,
       opt.put("instanceName", instance);
       if (Rtable != null)
         opt.put("tableName", Rtable);
-      if (RtableTranspose != null)
-        opt.put("tableNameTranspose", RtableTranspose);
+      if (RTtable != null)
+        opt.put("tableNameTranspose", RTtable);
       opt.put("username", user);
       opt.put("password", new String(password.getPassword()));
 
-      if (Rtable != null && sumSetting != null)
-        GraphuloUtil.applyIteratorSoft(sumSetting, tops, Rtable);
-      if (RtableTranspose != null && sumSetting != null)
-        GraphuloUtil.applyIteratorSoft(sumSetting, tops, RtableTranspose);
+      if (Rtable != null && plusOp != null)
+        GraphuloUtil.applyIteratorSoft(plusOp, tops, Rtable);
+      if (RTtable != null && plusOp != null)
+        GraphuloUtil.applyIteratorSoft(plusOp, tops, RTtable);
     }
     BatchScanner bs;
     try {
       bs = connector.createBatchScanner(Atable, Authorizations.EMPTY, 2); // TODO P2: set number of batch scan threads
     } catch (TableNotFoundException e) {
-      log.error("impossible", e);
+      log.error("crazy", e);
       throw new RuntimeException(e);
     }
 
@@ -341,7 +335,7 @@ public void TableMult(String ATtable, String Btable, String Ctable,
     for (int thisk = 1; thisk <= k; thisk++) {
       if (trace)
         System.out.println("k=" + thisk + " before filter" +
-          (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
+            (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
       long t1 = System.currentTimeMillis(), dur;
       vktexts = filterTextsDegreeTable(ADegtable, degColumnText, degInColQ, minDegree, maxDegree, vktexts);
       dur = System.currentTimeMillis() - t1;
@@ -350,7 +344,7 @@ public void TableMult(String ATtable, String Btable, String Ctable,
         System.out.println("Degree Lookup Time: " + dur + " ms");
       if (trace)
         System.out.println("k=" + thisk + " after  filter" +
-          (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
+            (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
       if (vktexts.isEmpty())
         break;
 
@@ -409,7 +403,7 @@ public void TableMult(String ATtable, String Btable, String Ctable,
     try {
       bs = connector.createBatchScanner(ADegtable, Authorizations.EMPTY, 2); // TODO P2: set number of batch scan threads
     } catch (TableNotFoundException e) {
-      log.error("impossible", e);
+      log.error("crazy", e);
       throw new RuntimeException(e);
     }
     bs.setRanges(GraphuloUtil.textsToRanges(texts));
@@ -475,13 +469,14 @@ public void TableMult(String ATtable, String Btable, String Ctable,
    * % Verify:
    * [splits,entriesPerSplit] = getSplits(T);
    * </pre>
-   * @param numSplitPoints # of desired tablets = numSplitPoints+1
+   *
+   * @param numSplitPoints      # of desired tablets = numSplitPoints+1
    * @param numEntriesPerTablet desired #entries per tablet = (total #entries in table) / (#desired tablets)
    * @return String with the split points with a newline separator, e.g. "ca\nf\nq\n"
    */
   public String findEvenSplits(String table, int numSplitPoints, int numEntriesPerTablet) {
     if (numSplitPoints < 0)
-      throw new IllegalArgumentException("numSplitPoints: "+numSplitPoints);
+      throw new IllegalArgumentException("numSplitPoints: " + numSplitPoints);
     if (numSplitPoints == 0)
       return "";
 
@@ -548,7 +543,7 @@ public void TableMult(String ATtable, String Btable, String Ctable,
     try {
       bs = connector.createBatchScanner(Btable, Authorizations.EMPTY, 50); // TODO P2: set number of batch scan threads
     } catch (TableNotFoundException e) {
-      log.error("impossible", e);
+      log.error("crazy", e);
       throw new RuntimeException(e);
     }
 

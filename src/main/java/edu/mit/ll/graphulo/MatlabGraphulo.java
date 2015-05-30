@@ -1,22 +1,23 @@
 package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.mult.LongMultiply;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
-import org.apache.accumulo.core.iterators.user.SummingCombiner;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.apache.log4j.xml.DOMConfigurator;
 
 import java.util.Collection;
 
 /**
- * Matlab interface to Graphulo.
+ * Contains convenience functions for calling Graphulo functions from Matlab.
+ * Matlab works best when the arguments are all primitive types and strings.
  */
+@SuppressWarnings("unused") // Used in Matlab
 public class MatlabGraphulo extends Graphulo {
+  private static final Logger log = LogManager.getLogger(MatlabGraphulo.class);
 
   static {
     // load log4j once, when this class is loaded
@@ -47,12 +48,32 @@ public class MatlabGraphulo extends Graphulo {
       rowFilter != null && !rowFilter.isEmpty() ? GraphuloUtil.d4mRowToRanges(rowFilter) : null;
 
 
-    TableMult(ATtable, Btable, Ctable,
-        //BigDecimalMultiply.class, BigDecimalCombiner.BigDecimalSummingCombiner.class,
+    TableMult(ATtable, Btable, Ctable, null,
         LongMultiply.class, new IteratorSetting(1, "sum", BigDecimalCombiner.BigDecimalSummingCombiner.class),
         rowFilterRanges, colFilterAT, colFilterB, numEntriesCheckpoint, trace);
   }
 
 
+  public void CancelCompact(String table) {
+    try {
+      connector.tableOperations().cancelCompaction(table);
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      log.error("error trying to cancel compaction for " + table, e);
+    } catch (TableNotFoundException e) {
+      log.error("", e);
+    }
+  }
+
+  /** Full major compact a table and wait for it to finish. */
+  public void Compact(String table) {
+    System.out.println("Compacting " + table + "...");
+    try {
+      connector.tableOperations().compact(table, null, null, true, true);
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      log.error("error trying to compact " + table, e);
+    } catch (TableNotFoundException e) {
+      log.error("", e);
+    }
+  }
 
 }

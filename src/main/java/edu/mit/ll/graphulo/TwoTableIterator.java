@@ -81,6 +81,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
   }
 
   TwoTableIterator(TwoTableIterator other) {
+    this.dot = other.dot;
     this.multiplyOp = other.multiplyOp;
   }
 

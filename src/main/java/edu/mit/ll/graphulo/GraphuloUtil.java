@@ -234,36 +234,6 @@ public class GraphuloUtil {
   }
 
   /**
-   * Add BigDecimalSummingCombiner on as many scopes as possible (scan, minc, majc).
-   * Call it "plus".
-   */
-  public static void addCombiner(TableOperations tops, String table, Logger log) {
-    // TODO P2: Assign priority and name dynamically, checking for conflicts.
-    Map<String, String> optSum = new HashMap<>();
-    optSum.put("all", "true");
-    IteratorSetting iSum = new IteratorSetting(19,"plus",BigDecimalCombiner.BigDecimalSummingCombiner.class, optSum);
-
-    // checking if iterator already exists. Not checking for conflicts.
-    try {
-      IteratorSetting existing;
-      EnumSet<IteratorUtil.IteratorScope> enumSet = EnumSet.noneOf(IteratorUtil.IteratorScope.class);
-      for (IteratorUtil.IteratorScope scope : IteratorUtil.IteratorScope.values()) {
-        existing = tops.getIteratorSetting(table, "plus", scope);
-        if (existing == null)
-          enumSet.add(scope);
-      }
-      tops.attachIterator(table, iSum, enumSet);
-    } catch (AccumuloSecurityException | AccumuloException e) {
-      log.error("error trying to add BigDecimalSummingCombiner to " + table, e);
-      throw new RuntimeException(e);
-    } catch (TableNotFoundException e) {
-      log.error("no table: "+table, e);
-      throw new RuntimeException(e);
-    }
-  }
-
-
-  /**
    * Add the given Iterator to a table on scan, minc, majc scopes.
    * If already present on a scope, does not re-add the iterator to that scope.
    * Call it "plus".
@@ -288,28 +258,6 @@ public class GraphuloUtil {
     }
   }
 
-  /**
-   * Remove "plus" combiner from every scope it is configured on.
-   */
-  public static void removeCombiner(TableOperations tops, String table, Logger log) {
-    // remove on the scopes the iterator is set on
-    try {
-      IteratorSetting existing;
-      EnumSet<IteratorUtil.IteratorScope> enumSet = EnumSet.allOf(IteratorUtil.IteratorScope.class);
-      for (IteratorUtil.IteratorScope scope : IteratorUtil.IteratorScope.values()) {
-        existing = tops.getIteratorSetting(table, "plus", scope);
-        if (existing == null)
-          enumSet.remove(scope);
-      }
-      tops.removeIterator(table, "plus", enumSet);
-    } catch (AccumuloSecurityException | AccumuloException e) {
-      log.error("error trying to remove \"plus\" Combiner from " + table, e);
-      throw new RuntimeException(e);
-    } catch (TableNotFoundException e) {
-      log.error("no table: "+table, e);
-      throw new RuntimeException(e);
-    }
-  }
 
   private static final byte[] EMPTY_BYTES = new byte[0];
 
@@ -336,7 +284,7 @@ public class GraphuloUtil {
       case ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL:
         return new Key(key.getRowData().getBackingArray(), key.getColumnFamilyData().getBackingArray(), key.getColumnQualifierData().getBackingArray(), key.getColumnVisibilityData().getBackingArray(), key.getTimestamp(), key.isDeleted(), true);
       default:
-        throw new AssertionError();
+        throw new AssertionError("unknown pk: "+pk);
     }
   }
 

@@ -11,10 +11,7 @@ import org.apache.log4j.Logger;
 import org.junit.Rule;
 import org.junit.rules.TestName;
 
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.SortedSet;
+import java.util.*;
 
 /**
  * Helper methods for testing.
@@ -163,15 +160,26 @@ public class TestUtil {
 //        return className + "<" + valueString + ">";
 //    }
 
-    public static Map<Key,Value> tranposeMap(Map<Key,Value> mapOrig) {
-        Map<Key, Value> m = new HashMap<>(mapOrig.size());
-        for (Map.Entry<Key, Value> entry : mapOrig.entrySet()) {
-            Key k0 = entry.getKey();
-            Key k = new Key(k0.getColumnQualifier(), k0.getColumnFamily(),
-                k0.getRow(), k0.getColumnVisibilityParsed(), k0.getTimestamp());
-            m.put(k, entry.getValue());
-        }
-        return m;
+  /** Switches row and column qualifier. Returns HashMap. */
+  public static Map<Key,Value> tranposeMap(Map<Key,Value> mapOrig) {
+      Map<Key, Value> m = new HashMap<>(mapOrig.size());
+      return transposeMapHelp(mapOrig, m);
+  }
+
+  /** Switches row and column qualifier. Use same comparator as the given map. Returns TreeMap. */
+  public static SortedMap<Key,Value> tranposeMap(SortedMap<Key,Value> mapOrig) {
+    SortedMap<Key, Value> m = new TreeMap<>(mapOrig.comparator());
+    return transposeMapHelp(mapOrig, m);
+  }
+
+  private static <M extends Map<Key,Value>> M transposeMapHelp(Map<Key,Value> orig, M neww) {
+    for (Map.Entry<Key, Value> entry : orig.entrySet()) {
+      Key k0 = entry.getKey();
+      Key k = new Key(k0.getColumnQualifier(), k0.getColumnFamily(),
+          k0.getRow(), k0.getColumnVisibilityParsed(), k0.getTimestamp());
+      neww.put(k, entry.getValue());
     }
+    return neww;
+  }
 
 }

@@ -19,7 +19,7 @@ Our core approach is performing a scan with iterators that allow reading from mu
 and writing to multiple tables, as opposed to ordinary scans 
 that read from a single table and send results back to the client.
 
-Graphulo is tested on Accumulo 1.6.0 and 1.6.1. 
+Graphulo is tested on Accumulo 1.6 and 1.7 
 
 [Accumulo]: https://accumulo.apache.org/
 [GraphBLAS]: http://istc-bigdata.org/GraphBlas/
@@ -34,6 +34,7 @@ src/
   assembly/...        Files for building graphulo.
   main/               Main code and resources. Included in output JAR.
     java/...          
+    java-templates/...  Code from d4m_api_java that needs preprocessing for Accumulo 1.6-1.7 compatibility.
     resources/        Contents copied into output JAR.
       log4j.xml       Logging configuration for clients at runtime.
   test/               Test code and resources. Not included in output JAR.
@@ -71,9 +72,14 @@ shippable.yml         Enables continuous integration testing.
 Prerequisite: Install [Maven](https://maven.apache.org/download.cgi).
 
 Run `mvn package -DskipTests=true` to compile and build graphulo.
+Compilation runs against 1.7 by default.
 The main distribution files are a JAR containing graphulo code, 
 and a libext ZIP file containing dependencies for both projects.
 The JAR and ZIP are created inside the `target/` directory.
+
+Run `mvn package -Paccumulo1.6 -DskipTests=true` to explicitly compile against Accumulo 1.6,
+but this should not be necessary because Accumulo 1.7 is backward-compatible with 1.6.
+More generally, append `-Paccumulo1.6` to any mvn command to act on Accumulo 1.7. 
 
 The maven script will build everything on Unix-like systems.
 On Windows systems, `DBinit.m` may not be built (used in D4M installation). 

@@ -3,7 +3,6 @@ package edu.mit.ll.d4m.db.cloud.accumulo;
 import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.hadoop.io.Text;
 
 import edu.mit.ll.cloud.connection.ConnectionProperties;

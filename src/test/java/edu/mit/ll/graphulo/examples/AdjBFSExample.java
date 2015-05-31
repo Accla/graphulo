@@ -98,6 +98,8 @@ public class AdjBFSExample extends AccumuloTestBase {
       Setting plusOp to null means that entries sent to Rtable overwrite existing entries
       instead of summing.
 
+      Increase the SCALE parameter to 12, 14 or 16 to run on larger graphs.
+
   */
   ////////////////////////////////////////////////////////////////////////////////////////////////
 

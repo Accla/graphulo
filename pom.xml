@@ -8,7 +8,8 @@
   <artifactId>graphulo</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <packaging>jar</packaging>
-  <description>Graphulo: Accumulo library of matrix math primitives and graph algorithms. Includes d4m_api_java.
+  <description>
+    Graphulo: Accumulo library of matrix math primitives and graph algorithms. Includes d4m_api_java.
   </description>
   <url>http://graphulo.mit.edu/</url>
   <organization>
@@ -24,8 +25,10 @@
     <DBinit.path.libextZip>graphulo-${project.version}-libext</DBinit.path.libextZip>
     <test>TEST_CONFIG</test>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <accumulo.version>1.6.1</accumulo.version>
-    <accumulo.version.majorminor>1.6</accumulo.version.majorminor>
+    <accumulo.version>1.7.0</accumulo.version>
+    <accumulo.version.majorminor>1.7</accumulo.version.majorminor>
+    <accumulo.VERSION.1.7>  </accumulo.VERSION.1.7>
+    <accumulo.VERSION.1.6>//</accumulo.VERSION.1.6>
   </properties>
 
 
@@ -60,6 +63,26 @@
 
 
     <plugins>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>templating-maven-plugin</artifactId>
+        <version>1.0-alpha-3</version>
+        <executions>
+          <execution>
+            <id>filter-src</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>filter-sources</goal>
+            </goals>
+            <configuration>
+              <sourceDirectory>${basedir}/src/main/java-templates</sourceDirectory> <!-- Defaults -->
+              <outputDirectory>${project.build.directory}/generated-sources/java-templates</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -257,6 +280,17 @@
         </plugins>
       </build>
     </profile>
+
+    <profile>
+      <id>accumulo1.6</id>
+      <properties>
+        <accumulo.version>1.6.1</accumulo.version>
+        <accumulo.version.majorminor>1.6</accumulo.version.majorminor>
+        <accumulo.VERSION.1.7>//</accumulo.VERSION.1.7>
+        <accumulo.VERSION.1.6>  </accumulo.VERSION.1.6>
+      </properties>
+    </profile>
+
   </profiles>
 
     <dependencies>

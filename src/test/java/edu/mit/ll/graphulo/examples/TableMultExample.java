@@ -99,6 +99,8 @@ public class TableMultExample extends AccumuloTestBase {
   ////////////////////////////////////////////////////////////////////////////////////////////////
   /*  Variations of above example:
 
+  0)  Increase the SCALE parameter to 12, 14 or 16 to run on larger graphs.
+
   1)  Replace: SummingCombiner.class ==>
         MaxCombiner.class
       and Replace: LongMultiply.class ==>

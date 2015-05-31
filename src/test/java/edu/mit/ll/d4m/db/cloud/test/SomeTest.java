@@ -32,7 +32,7 @@ import org.junit.rules.TemporaryFolder;
  * Temporary class for testing code.
  */
 public class SomeTest {
-    private String instanceName = "instance";
+    private String instanceName = "instance-1.7.0";
     private String zookeeperHost = "localhost";//:2181";
     private String username = "root";
     private String password = "secret";

@@ -10,7 +10,7 @@ public class ConnectionProperties {
 	public static int MAX_NUM_THREADS=25;
     private int maxNumThreads=MAX_NUM_THREADS;  //50
     private int sessionTimeOut=100000; //millisec
-    
+
     public ConnectionProperties() {}
     
 	public ConnectionProperties(String host, String user, String pass,

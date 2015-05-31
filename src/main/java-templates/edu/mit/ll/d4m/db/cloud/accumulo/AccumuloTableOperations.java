@@ -27,8 +27,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import edu.mit.ll.d4m.db.cloud.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.ThriftUtil;
-import org.apache.accumulo.trace.thrift.TInfo;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
@@ -36,6 +34,12 @@ import org.apache.thrift.TException;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.Map.Entry;
+
+${accumulo.VERSION.1.6}import org.apache.accumulo.core.util.ThriftUtil; // 1.6
+${accumulo.VERSION.1.7}import org.apache.accumulo.core.rpc.ThriftUtil; // 1.7
+
+${accumulo.VERSION.1.6}import org.apache.accumulo.trace.thrift.TInfo; // 1.6
+${accumulo.VERSION.1.7}import org.apache.accumulo.core.trace.thrift.TInfo; // 1.7
 
 /**
  * @author cyee

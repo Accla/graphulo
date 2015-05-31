@@ -18,10 +18,9 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.Credentials;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.util.ThriftUtil;
+import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.transport.TTransportException;
@@ -32,6 +31,13 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.concurrent.TimeUnit;
+
+${accumulo.VERSION.1.6}import org.apache.accumulo.core.security.Credentials;  // 1.6
+${accumulo.VERSION.1.7}import org.apache.accumulo.core.client.impl.ClientContext; // 1.7
+${accumulo.VERSION.1.7}import org.apache.accumulo.core.client.impl.Credentials; // 1.7
+
+${accumulo.VERSION.1.6}import org.apache.accumulo.core.util.ThriftUtil; // 1.6
+${accumulo.VERSION.1.7}import org.apache.accumulo.core.rpc.ThriftUtil; // 1.7
 
 /**
  * @author cyee
@@ -131,15 +137,17 @@ public class AccumuloConnection {
 	}
 
 	public MasterClientService.Client getMasterClient() throws TTransportException {
-		return MasterClient.getConnection(getInstance());
+		${accumulo.VERSION.1.6}return MasterClient.getConnection(getInstance()); // 1.6
+    ${accumulo.VERSION.1.7}return MasterClient.getConnection(new ClientContext(instance, new Credentials(principal, token), instance.getConfiguration())); // 1.7
 	}
 
 	public TabletClientService.Iface getTabletClient (String tserverAddress) throws TTransportException {
-        //HostAndPort address = AddressUtil.parseAddress(tserverAddress, -1);
-    return ThriftUtil.getTServerClient( tserverAddress, connector.getInstance().getConfiguration());
+		${accumulo.VERSION.1.7}com.google.common.net.HostAndPort address = AddressUtil.parseAddress(tserverAddress,false);
+    ${accumulo.VERSION.1.6}return ThriftUtil.getTServerClient( tserverAddress, instance.getConfiguration()); // 1.6
+    ${accumulo.VERSION.1.7}return ThriftUtil.getTServerClient( address, new ClientContext(instance, new Credentials(principal, token), instance.getConfiguration())); // 1.7
 	}
 
-	public Map<String, String> getNameToIdMap() {
+  public Map<String, String> getNameToIdMap() {
 		//Map<String, String> nameToIdMap = Tables.getNameToIdMap(instance);
 		return Tables.getNameToIdMap(getInstance());
 	}
@@ -266,10 +274,14 @@ public class AccumuloConnection {
 	public String locateTablet(String tableName, String splitName) {
 		String tabletName = null;
 		try {
-			TabletLocator tc = TabletLocator.getLocator(this.instance, new Text(Tables.getTableId(this.instance, tableName))); // change to getLocator for 1.6
+			${accumulo.VERSION.1.6}TabletLocator tc = TabletLocator.getLocator(instance, new Text(Tables.getTableId(instance, tableName))); // 1.6 change to getLocator for 1.6
+      ${accumulo.VERSION.1.7}ClientContext cc = new ClientContext(instance, new Credentials(principal, token), instance.getConfiguration()); // 1.7
+      ${accumulo.VERSION.1.7}TabletLocator tc = TabletLocator.getLocator(cc, new Text(Tables.getTableId(instance, tableName))); // 1.7
+
 			
 			org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation loc =
-					tc.locateTablet(new Credentials(this.principal, this.token), new Text(splitName), false, false);
+					${accumulo.VERSION.1.6}tc.locateTablet(new Credentials(principal, token), new Text(splitName), false, false); // 1.6
+          ${accumulo.VERSION.1.7}tc.locateTablet(cc, new Text(splitName), false, false); // 1.7
 			tabletName = loc.tablet_location;
 			log.debug("TableName="+tableName+", TABLET_NAME = "+tabletName);
 		} catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {

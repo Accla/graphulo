@@ -40,7 +40,7 @@ src/
   test/               Test code and resources. Not included in output JAR.
     java/...             
     resources/        Contents available for tests and examples.
-      log4j.xml       Logging configuration.
+      log4j.xml       Logging configuration for tests and examples.
       data/...        Data folder - contains pre-created graphs.
 
 target/
@@ -99,10 +99,10 @@ Run `mvn clean` to delete output from previously run tests.
 [MiniAccumulo]: https://accumulo.apache.org/1.6/accumulo_user_manual.html#_mini_accumulo_cluster
 
 ### Examples
-The classes in `src/test/java/edu/mit/ll/graphulo/examples/`
+The classes in [`src/test/java/edu/mit/ll/graphulo/examples/`](src/test/java/edu/mit/ll/graphulo/examples/)
 contain simple, well-commented examples of how to use Graphulo.
 
-* `mvn test -Dtest=TableMultExample#` to insert two SCALE 10 graphs into MiniAccumulo,
+* `mvn test -Dtest=TableMultExample` to insert two SCALE 10 graphs into MiniAccumulo,
 store the result of multiplying them, and count the number of resulting entries.
 * `mvn test -Dtest=AdjBFSExample` to insert a SCALE 10 graph into MiniAccumulo,
 create a new table with the union sum of three steps of Breadth First Search, 

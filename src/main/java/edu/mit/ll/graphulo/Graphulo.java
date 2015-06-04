@@ -305,7 +305,8 @@ public class Graphulo {
    * @param k           Number of steps
    * @param Rtable      Name of table to store result. Null means don't store the result.
    * @param RTtable     Name of table to store transpose of result. Null means don't store the transpose.
-   * @param ADegtable   Name of table holding out-degrees for A. Can be null if no degree filtering used (min=0, max=Inf).
+   * @param ADegtable   Name of table holding out-degrees for A. Leave null to filter on the fly with
+   *                    the {@link edu.mit.ll.graphulo.SmallLargeRowFilter}, or do no filtering if minDegree=0 and maxDegree=Integer.MAX_VALUE.
    * @param degColumn   Name of column for out-degrees in ADegtable. Leave null if degInColQ==true.
    * @param degInColQ   True means degree is in the Column Qualifier. False means degree is in the Value.
    * @param minDegree   Minimum out-degree. Checked before doing any searching, at every step, from ADegtable. Pass 0 for no filtering.
@@ -322,9 +323,7 @@ public class Graphulo {
     boolean needDegreeFiltering = minDegree > 0 || maxDegree < Integer.MAX_VALUE;
     if (Atable == null || Atable.isEmpty())
       throw new IllegalArgumentException("Please specify Adjacency table. Given: " + Atable);
-    if (needDegreeFiltering && (ADegtable == null || ADegtable.isEmpty()))
-      throw new IllegalArgumentException("We currently require the use of an out-degree table for the adjacency matrix. Given: " + Atable);
-    if (!needDegreeFiltering || (ADegtable != null && ADegtable.isEmpty()))
+    if (ADegtable != null && ADegtable.isEmpty())
       ADegtable = null;
     if (Rtable != null && Rtable.isEmpty())
       Rtable = null;
@@ -349,8 +348,6 @@ public class Graphulo {
     TableOperations tops = connector.tableOperations();
     if (!tops.exists(Atable))
       throw new IllegalArgumentException("Table A does not exist. Given: " + Atable);
-    if (needDegreeFiltering && !tops.exists(ADegtable))
-      throw new IllegalArgumentException("Table ADeg does not exist. Given: " + Atable);
     if (Rtable != null && !tops.exists(Rtable))
       try {
         tops.create(Rtable);
@@ -401,6 +398,13 @@ public class Graphulo {
       throw new RuntimeException(e);
     }
 
+    IteratorSetting itsetDegreeFilter = null;
+    if (needDegreeFiltering && ADegtable == null) {
+      itsetDegreeFilter = new IteratorSetting(3, SmallLargeRowFilter.class);
+      SmallLargeRowFilter.setMinColumns(itsetDegreeFilter, minDegree);
+      SmallLargeRowFilter.setMaxColumns(itsetDegreeFilter, maxDegree);
+    }
+
 
     long degTime = 0, scanTime = 0;
     for (int thisk = 1; thisk <= k; thisk++) {
@@ -408,7 +412,8 @@ public class Graphulo {
         System.out.println("k=" + thisk + " before filter" +
             (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
       long t1 = System.currentTimeMillis(), dur;
-      vktexts = needDegreeFiltering
+
+      vktexts = needDegreeFiltering && ADegtable != null
               ? filterTextsDegreeTable(ADegtable, degColumnText, degInColQ, minDegree, maxDegree, vktexts)
               : vktexts;
       dur = System.currentTimeMillis() - t1;
@@ -425,6 +430,8 @@ public class Graphulo {
       bs.setRanges(Collections.singleton(new Range()));
       opt.put("rowRanges", GraphuloUtil.textsToD4mString(vktexts, v0.isEmpty() ? '\n' : v0.charAt(v0.length() - 1)));
       bs.clearScanIterators();
+      if (needDegreeFiltering && ADegtable == null)
+        bs.addScanIterator(itsetDegreeFilter);
       IteratorSetting itset = new IteratorSetting(4, RemoteWriteIterator.class, opt);
       bs.addScanIterator(itset);
 

@@ -64,11 +64,19 @@ public class Graphulo {
     TableMult(ATtable, Btable, Ctable, CTtable, multOp, plusOp, rowFilter, colFilterAT, colFilterB, -1, false);
   }
 
+  public void SpEWiseX(String Atable, String Btable, String Ctable, String CTtable,
+                       Class<? extends IMultiplyOp> multOp, IteratorSetting plusOp,
+                       Collection<Range> rowFilter,
+                       String colFilterAT, String colFilterB,
+                       int numEntriesCheckpoint, boolean trace) {
+    TwoTable(Atable, Btable, Ctable, CTtable, TwoTableIterator.DOT_TYPE.ROW_COLF_COLQ_MATCH,
+            multOp, plusOp, rowFilter, colFilterAT, colFilterB, numEntriesCheckpoint, trace);
+  }
+
   /**
    * C += A * B.
    * User-defined "plus" and "multiply". Requires transpose table AT instead of A.
-   * If C is not given, then the scan itself returns the results of A * B.
-   * After operation, flushes C and removes the "plus" combiner from C.
+   * If C is not given, then the scan itself returns the results of A * B. (not thoroughly tested)
    *
    * @param ATtable              Name of Accumulo table holding matrix transpose(A).
    * @param Btable               Name of Accumulo table holding matrix B.
@@ -83,6 +91,15 @@ public class Graphulo {
    * @param trace                Enable server-side performance tracing.
    */
   public void TableMult(String ATtable, String Btable, String Ctable, String CTtable,
+                        Class<? extends IMultiplyOp> multOp, IteratorSetting plusOp,
+                        Collection<Range> rowFilter,
+                        String colFilterAT, String colFilterB,
+                        int numEntriesCheckpoint, boolean trace) {
+    TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOT_TYPE.ROW_CARTESIAN,
+            multOp, plusOp, rowFilter, colFilterAT, colFilterB, numEntriesCheckpoint, trace);
+  }
+
+  public void TwoTable(String ATtable, String Btable, String Ctable, String CTtable, TwoTableIterator.DOT_TYPE dot,
                         Class<? extends IMultiplyOp> multOp, IteratorSetting plusOp,
                         Collection<Range> rowFilter,
                         String colFilterAT, String colFilterB,
@@ -147,7 +164,7 @@ public class Graphulo {
 
     Map<String, String> opt = new HashMap<>();
     opt.put("trace", String.valueOf(trace)); // logs timing on server
-    opt.put("dot", TwoTableIterator.DOT_TYPE.ROW_CARTESIAN.name());
+    opt.put("dot", dot.name());
     opt.put("multiplyOp", multOp.getName());
 
     opt.put("AT.zookeeperHost", zookeepers);

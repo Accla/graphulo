@@ -161,13 +161,13 @@ public class TestUtil {
 //    }
 
   /** Switches row and column qualifier. Returns HashMap. */
-  public static Map<Key,Value> tranposeMap(Map<Key,Value> mapOrig) {
+  public static Map<Key,Value> transposeMap(Map<Key, Value> mapOrig) {
       Map<Key, Value> m = new HashMap<>(mapOrig.size());
       return transposeMapHelp(mapOrig, m);
   }
 
   /** Switches row and column qualifier. Use same comparator as the given map. Returns TreeMap. */
-  public static SortedMap<Key,Value> tranposeMap(SortedMap<Key,Value> mapOrig) {
+  public static SortedMap<Key,Value> transposeMap(SortedMap<Key, Value> mapOrig) {
     SortedMap<Key, Value> m = new TreeMap<>(mapOrig.comparator());
     return transposeMapHelp(mapOrig, m);
   }

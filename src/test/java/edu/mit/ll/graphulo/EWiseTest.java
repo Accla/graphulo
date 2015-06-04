@@ -1,7 +1,6 @@
 package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.mult.LongEWiseX;
-import edu.mit.ll.graphulo.mult.LongMultiply;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import edu.mit.ll.graphulo.util.TestUtil;
 import org.apache.accumulo.core.client.*;
@@ -62,7 +61,7 @@ public class EWiseTest extends AccumuloTestBase {
         SortedMap<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
         expect.put(new Key("A1", "", "C2"), new Value("6".getBytes()));
         expect.put(new Key("A2", "", "C1"), new Value("12".getBytes()));
-        SortedMap<Key,Value> expectT = TestUtil.tranposeMap(expect);
+        SortedMap<Key,Value> expectT = TestUtil.transposeMap(expect);
 
         Graphulo graphulo = new Graphulo(conn, tester.getPassword());
         graphulo.SpEWiseX(tAT, tB, tC, tCT,

@@ -48,7 +48,7 @@ public class TableMultIteratorTest {
       input.put(new Key("A1", "", "C1"), new Value("2".getBytes()));
       input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
       input.put(new Key("A2", "", "C1"), new Value("2".getBytes()));
-      input = TestUtil.tranposeMap(input);
+      input = TestUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tableNameA, null, input);
     }
 
@@ -59,7 +59,7 @@ public class TableMultIteratorTest {
       input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
-      input = TestUtil.tranposeMap(input);
+      input = TestUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tableNameBT, null, input);
     }
 
@@ -127,7 +127,7 @@ public class TableMultIteratorTest {
       input.put(new Key("A1", "", "C1"), new Value("2".getBytes()));
       input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
       input.put(new Key("A2", "", "C1"), new Value("2".getBytes()));
-      input = TestUtil.tranposeMap(input);
+      input = TestUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tableNameAT, null, input);
     }
     SortedSet<Text> splitSet = new TreeSet<>();
@@ -141,7 +141,7 @@ public class TableMultIteratorTest {
       input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
-      input = TestUtil.tranposeMap(input);
+      input = TestUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tableNameB, null, input);
     }
 

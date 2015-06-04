@@ -14,7 +14,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
-import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -53,7 +52,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
       input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
       setUniqueColQsExpect.add("C1");
       expectR.putAll(input);
-      expectRT.putAll(TestUtil.tranposeMap(input));
+      expectRT.putAll(TestUtil.transposeMap(input));
 
       input.put(new Key("A00", "", "C1"), new Value("21".getBytes()));
       input.put(new Key("ZZZ", "", "C1"), new Value("22".getBytes()));

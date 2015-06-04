@@ -1,13 +1,11 @@
 package edu.mit.ll.graphulo;
 
-import edu.mit.ll.graphulo.mult.BigDecimalMultiply;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import edu.mit.ll.graphulo.util.TestUtil;
 import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
@@ -56,7 +54,7 @@ public class BFSTest extends AccumuloTestBase {
       input.put(new Key("v1", "", "vBig"), new Value("7".getBytes()));
       input.put(new Key("v2", "", "vBig"), new Value("7".getBytes()));
       expect.putAll(input);
-      expectTranspose.putAll(TestUtil.tranposeMap(input));
+      expectTranspose.putAll(TestUtil.transposeMap(input));
       input.put(new Key("vBig", "", "v0"), new Value("9".getBytes()));
       input.put(new Key("vBig", "", "v1"), new Value("9".getBytes()));
       input.put(new Key("vBig", "", "v2"), new Value("9".getBytes()));

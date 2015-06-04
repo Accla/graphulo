@@ -49,7 +49,7 @@ public class TableMultTest extends AccumuloTestBase {
       input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
       input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
       input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
-      input = TestUtil.tranposeMap(input);
+      input = TestUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tAT, null, input);
     }
     {
@@ -58,14 +58,14 @@ public class TableMultTest extends AccumuloTestBase {
       input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
-      input = TestUtil.tranposeMap(input);
+      input = TestUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tB, null, input);
     }
     SortedMap<Key,Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
     expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
     expect.put(new Key("A1", "", "B2"), new Value("21".getBytes()));
     expect.put(new Key("A2", "", "B2"), new Value("12".getBytes()));
-    SortedMap<Key,Value> expectT = TestUtil.tranposeMap(expect);
+    SortedMap<Key,Value> expectT = TestUtil.transposeMap(expect);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     graphulo.TableMult(tAT, tB, tC, tCT,
@@ -121,7 +121,7 @@ public class TableMultTest extends AccumuloTestBase {
       input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
       input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
       input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
-      input = TestUtil.tranposeMap(input);
+      input = TestUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tAT, null, input);
     }
     {
@@ -130,7 +130,7 @@ public class TableMultTest extends AccumuloTestBase {
       input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
-      input = TestUtil.tranposeMap(input);
+      input = TestUtil.transposeMap(input);
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("C15"));
       TestUtil.createTestTable(conn, tB, splits, input);
@@ -183,7 +183,7 @@ public class TableMultTest extends AccumuloTestBase {
       input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
       input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
       input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
-      input = TestUtil.tranposeMap(input);
+      input = TestUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tAT, null, input);
     }
     {
@@ -192,7 +192,7 @@ public class TableMultTest extends AccumuloTestBase {
       input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
-      input = TestUtil.tranposeMap(input);
+      input = TestUtil.transposeMap(input);
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("C15"));
       TestUtil.createTestTable(conn, tB, splits, input);
@@ -238,7 +238,7 @@ public class TableMultTest extends AccumuloTestBase {
       input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
       input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
       input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
-      input = TestUtil.tranposeMap(input);
+      input = TestUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tAT, null, input);
     }
     {
@@ -247,7 +247,7 @@ public class TableMultTest extends AccumuloTestBase {
       input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
-      input = TestUtil.tranposeMap(input);
+      input = TestUtil.transposeMap(input);
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("C15"));
       TestUtil.createTestTable(conn, tB, splits, input);

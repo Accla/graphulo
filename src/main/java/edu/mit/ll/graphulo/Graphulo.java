@@ -84,9 +84,9 @@ public class Graphulo {
    * @param CTtable              Name of table to store transpose of result. Null means don't store the transpose.
    * @param multOp               An operation that "multiplies" two values.
    * @param plusOp               An SKVI to apply to the result table that "sums" values. Not applied if null.
-   * @param rowFilter            Row subset of ATtable and Btable, like "a,:,b,g,c,:,". Null means all rows.
-   * @param colFilterAT          Column qualifier subset of AT, restricted to not allow ranges. Null means all columns.
-   * @param colFilterB           Column qualifier subset of B, like "a,f,b,c,". Null means all columns.
+   * @param rowFilter            Row subset of ATtable and Btable, like "a,:,b,g,c,:,". Null means run on all rows.
+   * @param colFilterAT          Column qualifier subset of AT, restricted to not allow ranges. Null means run on all columns.
+   * @param colFilterB           Column qualifier subset of B, like "a,f,b,c,". Null means run on all columns.
    * @param numEntriesCheckpoint # of entries before we emit a checkpoint entry from the scan. -1 means no monitoring.
    * @param trace                Enable server-side performance tracing.
    */

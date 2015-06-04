@@ -88,7 +88,7 @@ public class AdjBFSExample extends AccumuloTestBase {
       cnt++;
     }
     bs.close();
-    log.info("# of entries in output table " + Rtable + ": " + cnt);
+    log.info("# of entries in output table '" + Rtable + ": " + cnt);
   }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////

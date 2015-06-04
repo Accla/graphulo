@@ -1,5 +1,6 @@
 package edu.mit.ll.graphulo;
 
+import edu.mit.ll.graphulo.mult.LongEWiseX;
 import edu.mit.ll.graphulo.mult.LongMultiply;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import edu.mit.ll.graphulo.util.TestUtil;
@@ -19,7 +20,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 /**
- * 
+ *
  */
 public class EWiseTest extends AccumuloTestBase {
     private static final Logger log = LogManager.getLogger(EWiseTest.class);
@@ -48,7 +49,6 @@ public class EWiseTest extends AccumuloTestBase {
             input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
             input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
             input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
-            input = TestUtil.tranposeMap(input);
             TestUtil.createTestTable(conn, tAT, null, input);
         }
         {
@@ -57,7 +57,6 @@ public class EWiseTest extends AccumuloTestBase {
             input.put(new Key("A1", "", "C3"), new Value("3".getBytes()));
             input.put(new Key("A2", "", "C1"), new Value("3".getBytes()));
             input.put(new Key("A2", "", "C2"), new Value("3".getBytes()));
-            input = TestUtil.tranposeMap(input);
             TestUtil.createTestTable(conn, tB, null, input);
         }
         SortedMap<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
@@ -67,7 +66,7 @@ public class EWiseTest extends AccumuloTestBase {
 
         Graphulo graphulo = new Graphulo(conn, tester.getPassword());
         graphulo.SpEWiseX(tAT, tB, tC, tCT,
-                LongMultiply.class, null,
+                LongEWiseX.class, null,
                 null, null, null, 1, false);
 
         Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);

@@ -305,11 +305,11 @@ public class Graphulo {
    * @param k           Number of steps
    * @param Rtable      Name of table to store result. Null means don't store the result.
    * @param RTtable     Name of table to store transpose of result. Null means don't store the transpose.
-   * @param ADegtable   Name of table holding out-degrees for A.
+   * @param ADegtable   Name of table holding out-degrees for A. Can be null if no degree filtering used (min=0, max=Inf).
    * @param degColumn   Name of column for out-degrees in ADegtable. Leave null if degInColQ==true.
    * @param degInColQ   True means degree is in the Column Qualifier. False means degree is in the Value.
-   * @param minDegree   Minimum out-degree. Checked before doing any searching, at every step, from ADegtable.
-   * @param maxDegree   Maximum out-degree. Checked before doing any searching, at every step, from ADegtable.
+   * @param minDegree   Minimum out-degree. Checked before doing any searching, at every step, from ADegtable. Pass 0 for no filtering.
+   * @param maxDegree   Maximum out-degree. Checked before doing any searching, at every step, from ADegtable. Pass Integer.MAX_VALUE for no filtering.
    * @param plusOp      An SKVI to apply to the result table that "sums" values. Not applied if null.
    * @param trace       Enable server-side performance tracing.
    * @return          The nodes reachable in exactly k steps from v0.
@@ -319,10 +319,13 @@ public class Graphulo {
                        String ADegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree,
                        IteratorSetting plusOp,
                        boolean trace) {
+    boolean needDegreeFiltering = minDegree > 0 || maxDegree < Integer.MAX_VALUE;
     if (Atable == null || Atable.isEmpty())
       throw new IllegalArgumentException("Please specify Adjacency table. Given: " + Atable);
-    if (ADegtable == null || ADegtable.isEmpty())
+    if (needDegreeFiltering && (ADegtable == null || ADegtable.isEmpty()))
       throw new IllegalArgumentException("We currently require the use of an out-degree table for the adjacency matrix. Given: " + Atable);
+    if (!needDegreeFiltering || (ADegtable != null && ADegtable.isEmpty()))
+      ADegtable = null;
     if (Rtable != null && Rtable.isEmpty())
       Rtable = null;
     if (RTtable != null && RTtable.isEmpty())
@@ -332,7 +335,7 @@ public class Graphulo {
     if (maxDegree < minDegree)
       throw new IllegalArgumentException("maxDegree=" + maxDegree + " should be >= minDegree=" + minDegree);
     Text degColumnText = null;
-    if (degColumn != null && !degColumn.isEmpty()) {
+    if (needDegreeFiltering && degColumn != null && !degColumn.isEmpty()) {
       degColumnText = new Text(degColumn);
       if (degInColQ)
         throw new IllegalArgumentException("not allowed: degColumn != null && degInColQ==true");
@@ -346,7 +349,7 @@ public class Graphulo {
     TableOperations tops = connector.tableOperations();
     if (!tops.exists(Atable))
       throw new IllegalArgumentException("Table A does not exist. Given: " + Atable);
-    if (!tops.exists(ADegtable))
+    if (needDegreeFiltering && !tops.exists(ADegtable))
       throw new IllegalArgumentException("Table ADeg does not exist. Given: " + Atable);
     if (Rtable != null && !tops.exists(Rtable))
       try {
@@ -405,7 +408,9 @@ public class Graphulo {
         System.out.println("k=" + thisk + " before filter" +
             (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
       long t1 = System.currentTimeMillis(), dur;
-      vktexts = filterTextsDegreeTable(ADegtable, degColumnText, degInColQ, minDegree, maxDegree, vktexts);
+      vktexts = needDegreeFiltering
+              ? filterTextsDegreeTable(ADegtable, degColumnText, degInColQ, minDegree, maxDegree, vktexts)
+              : vktexts;
       dur = System.currentTimeMillis() - t1;
       degTime += dur;
       if (trace)

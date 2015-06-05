@@ -301,7 +301,7 @@ public class Graphulo {
    * Adjacency table Breadth First Search. Sums entries into Rtable from each step of the BFS.
    *
    * @param Atable      Name of Accumulo table holding matrix transpose(A).
-   * @param v0          Starting nodes, like "a,f,b,c,"
+   * @param v0          Starting nodes, like "a,f,b,c,". Null or empty string "" means start from all nodes.
    * @param k           Number of steps
    * @param Rtable      Name of table to store result. Null means don't store the result.
    * @param RTtable     Name of table to store transpose of result. Null means don't store the transpose.
@@ -341,9 +341,9 @@ public class Graphulo {
     }
     if (plusOp != null && plusOp.getPriority() >= 20)
       log.warn("Sum iterator setting is >=20. Are you sure you want the priority after the default Versioning iterator priority? " + plusOp);
-    if (v0 == null)
-      throw new IllegalArgumentException("null v0");
-    Collection<Text> vktexts = GraphuloUtil.d4mRowToTexts(v0);
+    if (v0 != null && v0.isEmpty())
+      v0 = null;
+    Collection<Text> vktexts = v0 == null ? null : GraphuloUtil.d4mRowToTexts(v0);
 
     TableOperations tops = connector.tableOperations();
     if (!tops.exists(Atable))
@@ -409,8 +409,11 @@ public class Graphulo {
     long degTime = 0, scanTime = 0;
     for (int thisk = 1; thisk <= k; thisk++) {
       if (trace)
-        System.out.println("k=" + thisk + " before filter" +
+        if (vktexts != null)
+          System.out.println("k=" + thisk + " before filter" +
             (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
+        else
+          System.out.println("k=" + thisk + " ALL nodes");
       long t1 = System.currentTimeMillis(), dur;
 
       vktexts = needDegreeFiltering && ADegtable != null
@@ -420,15 +423,16 @@ public class Graphulo {
       degTime += dur;
       if (trace)
         System.out.println("Degree Lookup Time: " + dur + " ms");
-      if (trace)
+      if (trace && vktexts != null)
         System.out.println("k=" + thisk + " after  filter" +
             (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
-      if (vktexts.isEmpty())
+      if (vktexts != null && vktexts.isEmpty())
         break;
 
 //      bs.setRanges(GraphuloUtil.textsToRanges(vktexts));
       bs.setRanges(Collections.singleton(new Range()));
-      opt.put("rowRanges", GraphuloUtil.textsToD4mString(vktexts, v0.isEmpty() ? '\n' : v0.charAt(v0.length() - 1)));
+      if (vktexts != null)
+        opt.put("rowRanges", GraphuloUtil.textsToD4mString(vktexts, v0.isEmpty() ? '\n' : v0.charAt(v0.length() - 1)));
       bs.clearScanIterators();
       if (needDegreeFiltering && ADegtable == null)
         bs.addScanIterator(itsetDegreeFilter);
@@ -456,12 +460,12 @@ public class Graphulo {
       System.out.println("Total BatchScan/Iterator Time: " + scanTime + " ms");
 
     bs.close();
-    return GraphuloUtil.textsToD4mString(vktexts, v0.isEmpty() ? ',' : v0.charAt(v0.length() - 1));
+    return GraphuloUtil.textsToD4mString(vktexts, v0 == null ? ',' : v0.charAt(v0.length() - 1));
   }
 
   /**
    * Modifies texts in place, removing the entries that are out of range.
-   * Assumes degrees are in the column qualifier.
+   * Does nothing if texts is null or the empty collection.
    * Todo: Add a local cache parameter for known good nodes and known bad nodes,
    * so that we don't have to look them up.
    *
@@ -472,13 +476,13 @@ public class Graphulo {
   private Collection<Text> filterTextsDegreeTable(String ADegtable, Text degColQ, boolean degInColQ,
                                                   int minDegree, int maxDegree,
                                                   Collection<Text> texts) {
+    if (texts == null || texts.isEmpty())
+      return texts;
     if (degColQ != null && degColQ.getLength() == 0)
       degColQ = null;
     TableOperations tops = connector.tableOperations();
     assert ADegtable != null && !ADegtable.isEmpty() && minDegree > 0 && maxDegree >= minDegree
-        && texts != null && tops.exists(ADegtable) && !(degColQ != null && degInColQ);
-    if (texts.isEmpty())
-      return texts;
+        && tops.exists(ADegtable) && !(degColQ != null && degInColQ);
     BatchScanner bs;
     try {
       bs = connector.createBatchScanner(ADegtable, Authorizations.EMPTY, 2); // TODO P2: set number of batch scan threads

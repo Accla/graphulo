@@ -151,10 +151,34 @@ Connector connector = instance.getConnector(USERNAME, PASSWORD_TOKEN);
 Graphulo graphulo = new Graphulo(connector, PASSWORD_TOKEN);
 
 // call Graphulo functions...
-graphulo.AdjBFS("Atable", v0, 3, "Rtable", null, "ADegtable", "deg", false, 5, 15);
+graphulo.AdjBFS("Atable", "v0,", 3, "Rtable", null, "ADegtable", "deg", false, 5, 15);
 ```
 
 See Examples above for more elaborate client code usage.
+
+#### Creating custom addition and multiplication operators
+To create a custom addition operator, 
+create a Java class implementing [SortedKeyValueIterator][] with the addition logic.
+Then pass an [IteratorSetting][] to the Graphulo functions,
+which will apply the iterator to tables.
+Addition is *lazy*, in the sense that the addition runs when a table is scanned or compacted,
+ which may be significantly after an operation finishes.
+Do not remove addition iterators from a table until every entry in the table
+is summed together, which one can guarantee by performing a full major compaction.
+
+To create a custom multiplication operation, 
+create a Java class implementing [IMultiplyOp][] with the multiplication logic.
+For simple TableMult multiplication, you can extend the [SimpleMultiply][] class instead of implementing the full interface.
+For simple element-wise multiplication, you can extend the [SimpleEWiseX][] class instead of implementing the full interface.
+See the classes in the mult package for examples.
+Non-simple multiplication that should implement [IMultiplyOp][] directly are multiplication logic
+ that manipulates returned Keys in non-standard ways or returns more than one entry per multiplication.
+
+[SortedKeyValueIterator]: https://accumulo.apache.org/1.7/apidocs/org/apache/accumulo/core/iterators/SortedKeyValueIterator.html
+[IteratorSetting]: https://accumulo.apache.org/1.7/apidocs/org/apache/accumulo/core/client/IteratorSetting.html
+[IMultiplyOp]: src/main/java/edu/mit/ll/graphulo/IMultiplyOp.java
+[SimpleMultiply]: src/main/java/edu/mit/ll/graphulo/mult/SimpleMultiply.java
+[SimpleEWiseX]: src/main/java/edu/mit/ll/graphulo/mult/SimpleEWiseX.java
 
 ### How to use Graphulo in Matlab client code with D4M
 The following code snippet is a good starting point for using Graphulo,

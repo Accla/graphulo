@@ -43,7 +43,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
   private IMultiplyOp multiplyOp = new BigDecimalMultiply();
   private SortedKeyValueIterator<Key, Value> remoteAT, remoteB;
   private boolean emitNoMatchA = false, emitNoMatchB = false;
-  private PeekingIterator2<Map.Entry<Key, Value>> bottomIter; // = new TreeMap<>(new ColFamilyQualifierComparator());
+  private PeekingIterator2<? extends Map.Entry<Key, Value>> bottomIter; // = new TreeMap<>(new ColFamilyQualifierComparator());
   private Range seekRange;
   private DOT_TYPE dot = DOT_TYPE.NONE;
   private Collection<ByteSequence> seekColumnFamilies;
@@ -405,12 +405,10 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
           }
           bottomIter = new PeekingIterator2<>(new CartesianDotIter(ArowMap, BrowMap, multiplyOp));
         } else if (dot == DOT_TYPE.ROW_COLF_COLQ_MATCH) {
-          bottomIter = new PeekingIterator2<>(
-              Iterators.singletonIterator(
-                  multiplyOp.multiplyEntry(remoteAT.getTopKey().getRowData(), remoteAT.getTopKey().getColumnFamilyData(),
-                      remoteAT.getTopKey().getColumnQualifierData(), remoteB.getTopKey().getColumnFamilyData(),
-                      remoteB.getTopKey().getColumnQualifierData(), remoteAT.getTopValue(), remoteB.getTopValue())
-              ));
+          multiplyOp.multiply(remoteAT.getTopKey().getRowData(), remoteAT.getTopKey().getColumnFamilyData(),
+              remoteAT.getTopKey().getColumnQualifierData(), remoteB.getTopKey().getColumnFamilyData(),
+              remoteB.getTopKey().getColumnQualifierData(), remoteAT.getTopValue(), remoteB.getTopValue());
+          bottomIter = new PeekingIterator2<>(multiplyOp);
           remoteAT.next();
           remoteB.next();
         }
@@ -498,29 +496,39 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
       ArowMapIter = new PeekingIterator1<>(ArowMap.entrySet().iterator());
       BrowMapIter = BrowMap.entrySet().iterator();
       this.multiplyOp = multiplyOp;
+      prepNext();
     }
 
     @Override
     public boolean hasNext() {
-      return BrowMapIter.hasNext();
+      return multiplyOp.hasNext();
     }
 
     @Override
     public Map.Entry<Key, Value> next() {
-      Map.Entry<Key, Value> eA, eB = BrowMapIter.next();
-      if (!BrowMapIter.hasNext()) {
-        eA = ArowMapIter.next(); // advance ArowMapIter
-        if (ArowMapIter.hasNext())
-          BrowMapIter = BrowMap.entrySet().iterator(); // STOP if no more ArowMapIter
-      } else
-        eA = ArowMapIter.peek();
-      return multiplyEntry(eA, eB);
+      Map.Entry<Key,Value> ret = multiplyOp.next();
+      if (!multiplyOp.hasNext() && BrowMapIter.hasNext())
+        prepNext();
+      return ret;
     }
 
-    private Map.Entry<Key, Value> multiplyEntry(Map.Entry<Key, Value> e1, Map.Entry<Key, Value> e2) {
+    private void prepNext() {
+      do {
+        Map.Entry<Key, Value> eA, eB = BrowMapIter.next();
+        if (!BrowMapIter.hasNext()) {
+          eA = ArowMapIter.next(); // advance ArowMapIter
+          if (ArowMapIter.hasNext())
+            BrowMapIter = BrowMap.entrySet().iterator(); // STOP if no more ArowMapIter
+        } else
+          eA = ArowMapIter.peek();
+        multiplyEntry(eA, eB);
+      } while (!multiplyOp.hasNext() && BrowMapIter.hasNext());
+    }
+
+    private void multiplyEntry(Map.Entry<Key, Value> e1, Map.Entry<Key, Value> e2) {
       assert e1.getKey().getRowData().compareTo(e2.getKey().getRowData()) == 0;
       Key k1 = e1.getKey(), k2 = e2.getKey();
-      return multiplyOp.multiplyEntry(k1.getRowData(), k1.getColumnFamilyData(), k1.getColumnQualifierData(),
+      multiplyOp.multiply(k1.getRowData(), k1.getColumnFamilyData(), k1.getColumnQualifierData(),
           k2.getColumnFamilyData(), k2.getColumnQualifierData(), e1.getValue(), e2.getValue());
     }
 

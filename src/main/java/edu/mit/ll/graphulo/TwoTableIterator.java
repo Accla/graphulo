@@ -313,8 +313,20 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
   }
 
   private void prepNextRowMatch(/*boolean doNext*/) throws IOException {
-    if (!remoteAT.hasTop() || !remoteB.hasTop()) {
+    if ((!remoteAT.hasTop() && !remoteB.hasTop())
+        || (remoteAT.hasTop() && !remoteB.hasTop() && !emitNoMatchA)
+        || (!remoteAT.hasTop() && remoteB.hasTop() && !emitNoMatchB)) {
       bottomIter = null;
+      return;
+    }
+    if (remoteAT.hasTop() && !remoteB.hasTop() && emitNoMatchA) {
+      bottomIter = new PeekingIterator2<>(Iterators.singletonIterator(copyTopEntry(remoteAT)));
+      remoteAT.next();
+      return;
+    }
+    if (!remoteAT.hasTop() && remoteB.hasTop() && emitNoMatchB) {
+      bottomIter = new PeekingIterator2<>(Iterators.singletonIterator(copyTopEntry(remoteB)));
+      remoteB.next();
       return;
     }
     /*if (doNext) {
@@ -342,10 +354,10 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
 
     if (dot == DOT_TYPE.ROW_CARTESIAN || dot == DOT_TYPE.ROW_COLF_COLQ_MATCH) {
       PartialKey pk = null;
-      if (dot == DOT_TYPE.ROW_CARTESIAN)
-        pk = PartialKey.ROW;
-      else if (dot == DOT_TYPE.ROW_COLF_COLQ_MATCH)
-        pk = PartialKey.ROW_COLFAM_COLQUAL;
+      switch (dot) {
+        case ROW_CARTESIAN: pk = PartialKey.ROW; break;
+        case ROW_COLF_COLQ_MATCH: pk = PartialKey.ROW_COLFAM_COLQUAL; break;
+      }
 
 
       Watch<Watch.PerfSpan> watch = Watch.getInstance();

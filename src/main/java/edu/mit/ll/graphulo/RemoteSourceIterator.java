@@ -26,7 +26,7 @@ import java.util.*;
  *
  * Impl. note: possible to simplify class since the rowRanges option is not used.
  */
-public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>, OptionDescriber {
+public class RemoteSourceIterator implements EmitSKVI, OptionDescriber {
   private static final Logger log = LogManager.getLogger(RemoteSourceIterator.class);
 
   private String instanceName;
@@ -325,23 +325,17 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>,
     next();
   }
 
-//  /**
-//   * Restrict columns fetched to the ones given. Takes effect on next seek().
-//   *
-//   * @param columns Columns to fetch. Null or empty collection for all columns.
-//   * @throws IOException
-//   */
-//  public void setFetchColumns(Collection<IteratorSetting.Column> columns) throws IOException {
-//    scanner.clearColumns();
-//    if (columns != null)
-//      for (IteratorSetting.Column column : columns) {
-//        if (column.getColumnQualifier() == null)    // fetch all columns in this column family
-//          scanner.fetchColumnFamily(column.getColumnFamily());
-//        else
-//          scanner.fetchColumn(column.getColumnFamily(), column.getColumnQualifier());
-//      }
-//  }
 
+  @Override
+  public void seekEmit(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive, OutputCollector oc) throws IOException {
+    seek(range, columnFamilies, inclusive);
+    while (hasTop() && !oc.shouldStop()) {
+      oc.collect(getTopKey(), getTopValue());
+      next();
+    }
+    if (!hasTop())
+      oc.close();
+  }
 
   @Override
   public boolean hasTop() {

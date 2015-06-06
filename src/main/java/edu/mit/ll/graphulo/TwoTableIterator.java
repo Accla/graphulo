@@ -259,6 +259,27 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
     };
   }
 
+  public OutputCollector genOutputCollector(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive, OutputCollector oc) {
+
+  }
+
+  class TwoTableOutputCollector implements OutputCollector {
+
+    @Override
+    public void collect(Key k, Value v) throws IOException {
+
+    }
+
+    @Override
+    public boolean shouldStop() {
+      return false;
+    }
+
+    @Override
+    public void close() throws IOException {
+
+    }
+  }
 
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {

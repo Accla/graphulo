@@ -159,7 +159,6 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
                   try {
                     multiplyOp = cm.newInstance();
                   } catch (InstantiationException | IllegalAccessException e) {
-//                    log.warn("can't instantiate new instance of "+cm.getName(), e);
                     throw new IllegalArgumentException("can't instantiate new instance of " + cm.getName(), e);
                   }
                   break;

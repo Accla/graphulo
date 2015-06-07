@@ -1,7 +1,15 @@
 package edu.mit.ll.graphulo;
 
-import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.ClientSideIteratorScanner;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -11,16 +19,20 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.user.ColumnSliceFilter;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
-
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * Reads from a remote Accumulo table.
@@ -224,39 +236,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>,
     if (doClientSideIterators)
       scanner = new ClientSideIteratorScanner(scanner);
 
-    if (!colFilter.isEmpty()) {
-      int pos1 = colFilter.indexOf(':');
-      if (pos1 == -1) { // no ranges - collection of singleton texts
-        for (Text text : GraphuloUtil.d4mRowToTexts(colFilter)) {
-          scanner.fetchColumn(EMPTY_TEXT, text);
-        }
-      } else {
-        SortedSet<Range> ranges = GraphuloUtil.d4mRowToRanges(colFilter);
-//        boolean max2 = pos1 == 0 || pos1 == colFilter.length()-2;
-//        int pc1,pc2,pc3 = -1;
-//        int l = colFilter.length();
-//        char c = colFilter.charAt(l-1);
-//        pc1 = colFilter.indexOf(c);
-//        pc2 = colFilter.indexOf(c,pc1+1);
-//        if (pc2 != l-1 && pc2 != -1)
-//          pc3 = colFilter.indexOf(c,pc2+1);
-////        int pos2 = colFilter.indexOf(':',pos1+1);
-//        if (pc3 == -1 || (!max2 && colFilter.indexOf(c,pc3+1) == -1)) {
-        assert ranges.size() > 0;
-        IteratorSetting s;
-        if (ranges.size() == 1) { // single range - use ColumnSliceFilter
-          Range r = ranges.first();
-          s = new IteratorSetting(2, ColumnSliceFilter.class);
-          ColumnSliceFilter.setSlice(s, r.isInfiniteStartKey() ? null : r.getStartKey().toString(),
-              true, r.isInfiniteStopKey() ? null : r.getEndKey().toString(), true);
-        } else { // multiple ranges
-          Map<String,String> map = new HashMap<>();
-          map.put("colRanges",colFilter);
-          s = new IteratorSetting(2, D4mColumnRangeFilter.class, map);
-        }
-        scanner.addScanIterator(s);
-      }
-    }
+    GraphuloUtil.applyGeneralColumnFilter(colFilter,scanner,4);
 
     if (doWholeRow) {
       // TODO: make priority dynamic in case 25 is taken; make name dynamic in case iterator name already exists. Or buffer here.

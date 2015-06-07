@@ -61,11 +61,11 @@ public class TableMultTest extends AccumuloTestBase {
       input = TestUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tB, null, input);
     }
-    SortedMap<Key,Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
+    SortedMap<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
     expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
     expect.put(new Key("A1", "", "B2"), new Value("21".getBytes()));
     expect.put(new Key("A2", "", "B2"), new Value("12".getBytes()));
-    SortedMap<Key,Value> expectT = TestUtil.transposeMap(expect);
+    SortedMap<Key, Value> expectT = TestUtil.transposeMap(expect);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     graphulo.TableMult(tAT, tB, tC, tCT,
@@ -138,7 +138,7 @@ public class TableMultTest extends AccumuloTestBase {
 
     TestUtil.createTestTable(conn, tC);
 
-    Map<Key,Value> expect = new HashMap<Key, Value>();
+    Map<Key, Value> expect = new HashMap<>();
     expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
     expect.put(new Key("A1", "", "B2"), new Value("6".getBytes()));
     expect = Collections.unmodifiableMap(expect);
@@ -171,12 +171,13 @@ public class TableMultTest extends AccumuloTestBase {
   public void testRowFilterColFilterATB() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
     Connector conn = tester.getConnector();
 
-    final String tAT, tB, tC;
+    final String tAT, tB, tC, tCT;
     {
-      String[] names = getUniqueNames(3);
+      String[] names = getUniqueNames(4);
       tAT = names[0];
       tB = names[1];
       tC = names[2];
+      tCT = names[3];
     }
     {
       Map<Key, Value> input = new HashMap<>();
@@ -199,12 +200,11 @@ public class TableMultTest extends AccumuloTestBase {
     }
     TestUtil.createTestTable(conn, tC);
 
-    Map<Key,Value> expect = new HashMap<Key, Value>();
+    Map<Key, Value> expect = new HashMap<>();
     expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
-    expect = Collections.unmodifiableMap(expect);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    graphulo.TableMult(tAT, tB, tC,null,
+    graphulo.TableMult(tAT, tB, tC, null,
         BigDecimalMultiply.class, Graphulo.DEFAULT_PLUS_ITERATOR,
         GraphuloUtil.d4mRowToRanges("C2,:,"),
         "A1,", "B1,", 1, false);
@@ -214,13 +214,27 @@ public class TableMultTest extends AccumuloTestBase {
     for (Map.Entry<Key, Value> entry : scanner) {
       actual.put(entry.getKey(), entry.getValue());
     }
-    System.out.println(expect.equals(actual));
-    System.out.println(actual.equals(expect));
     Assert.assertEquals(expect, actual);
+    scanner.close();
+
+    // now check more advanced column filter, write to transpose
+    expect = TestUtil.transposeMap(expect);
+    graphulo.TableMult(tAT, tB, null, tCT,
+        BigDecimalMultiply.class, Graphulo.DEFAULT_PLUS_ITERATOR,
+        GraphuloUtil.d4mRowToRanges("C2,:,"),
+        "A1,:,A15,", "B1,:,B15,F,", 1, false);
+    scanner = conn.createScanner(tCT, Authorizations.EMPTY);
+    actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+    for (Map.Entry<Key, Value> entry : scanner) {
+      actual.put(entry.getKey(), entry.getValue());
+    }
+    Assert.assertEquals(expect, actual);
+    scanner.close();
 
     conn.tableOperations().delete(tAT);
     conn.tableOperations().delete(tB);
     conn.tableOperations().delete(tC);
+    conn.tableOperations().delete(tCT);
   }
 
   @Test

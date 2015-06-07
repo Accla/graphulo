@@ -3,12 +3,14 @@ package edu.mit.ll.graphulo;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.iterators.user.ColumnSliceFilter;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -308,6 +310,48 @@ public class GraphuloUtil {
 //    }
 //    tops.checkIteratorConflicts(tableName, setting, scopes);
 //  }
+
+  /**
+   * Apply an appropriate column filter based on the input string.
+   * Four modes of operation:
+   1. Null or blank ("") `colFilter`: do nothing.
+   2. No ranges `colFilter`: use scanner.fetchColumn() which invokes an Accumulo system ColumnQualifierFilter.
+   3. Singleton range `colFilter`: use Accumulo user ColumnSliceFilter.
+   4. Multi-range `colFilter`: use Graphulo D4mColumnRangeFilter.
+   * @param colFilter column filter string
+   * @param scanner to call fetchColumn() on, for case #2
+   * @param priority to use for scan iterator setting, for case #3 and #4
+   */
+  public static void applyGeneralColumnFilter(String colFilter, ScannerBase scanner, int priority) {
+//    System.err.println("colFilter: "+colFilter);
+    if (colFilter != null && !colFilter.isEmpty()) {
+      int pos1 = colFilter.indexOf(':');
+      if (pos1 == -1) { // no ranges - collection of singleton texts
+        for (Text text : GraphuloUtil.d4mRowToTexts(colFilter)) {
+          scanner.fetchColumn(RemoteSourceIterator.EMPTY_TEXT, text);
+        }
+      } else {
+        SortedSet<Range> ranges = GraphuloUtil.d4mRowToRanges(colFilter);
+        assert ranges.size() > 0;
+        IteratorSetting s;
+        if (ranges.size() == 1) { // single range - use ColumnSliceFilter
+          Range r = ranges.first();
+          s = new IteratorSetting(priority, ColumnSliceFilter.class);
+//          System.err.println("start: "+(r.isInfiniteStartKey() ? null : r.getStartKey().getRow().toString())
+//              +"end: "+(r.isInfiniteStopKey() ? null : r.getEndKey().getRow().toString()));
+          ColumnSliceFilter.setSlice(s, r.isInfiniteStartKey() ? null : r.getStartKey().getRow().toString(),
+              true, r.isInfiniteStopKey() ? null : r.getEndKey().getRow().toString(), true);
+//          System.err.println("!ok "+GraphuloUtil.d4mRowToRanges(colFilter));
+        } else { // multiple ranges
+//          System.err.println("ok "+GraphuloUtil.d4mRowToRanges(colFilter));
+          Map<String,String> map = new HashMap<>();
+          map.put("colRanges",colFilter);
+          s = new IteratorSetting(priority, D4mColumnRangeFilter.class, map);
+        }
+        scanner.addScanIterator(s);
+      }
+    }
+  }
 
 
 }

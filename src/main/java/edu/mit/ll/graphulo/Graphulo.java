@@ -211,13 +211,10 @@ public class Graphulo {
       bs.setRanges(Collections.singleton(new Range()));
 
     // TODO P2: Assign priority and name dynamically, checking for conflicts.
-    IteratorSetting itset = new IteratorSetting(2, TableMultIterator.class, opt);
+    IteratorSetting itset = new IteratorSetting(5, TableMultIterator.class, opt);
     bs.addScanIterator(itset);
 
-    if (colFilterB != null)
-      for (Text text : GraphuloUtil.d4mRowToTexts(colFilterB)) {
-        bs.fetchColumn(EMPTY_TEXT, text);
-      }
+    GraphuloUtil.applyGeneralColumnFilter(colFilterB, bs, 4);
 
     // for monitoring: reduce table-level parameter controlling when Accumulo sends back an entry to the client
     String prevPropTableScanMaxMem = null;

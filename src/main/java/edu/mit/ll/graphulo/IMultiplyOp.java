@@ -3,7 +3,9 @@ package edu.mit.ll.graphulo;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -16,6 +18,23 @@ public interface IMultiplyOp extends Iterator<Map.Entry<Key,Value>> {
    * Useful for ignoring column visibility.
    */
   byte EMPTY_BYTES[] = new byte[0];
+
+
+  /**
+   * Initializes the multiply object.
+   * Options are passed from <tt>multiplyOp.opt.OPTION_NAME</tt> in the options for {@link TwoTableIterator}.
+   *
+   * @param options
+   *          <tt>Map</tt> map of string option names to option values.
+   * @param env
+   *          <tt>IteratorEnvironment</tt> environment in which iterator is being run.
+   * @throws IOException
+   *           unused.
+   * @exception IllegalArgumentException
+   *              if there are problems with the options.
+   */
+  void init(Map<String,String> options, IteratorEnvironment env) throws IOException;
+
 
   /**
    * Multiplication operation on 2 entries with matching rows.

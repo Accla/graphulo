@@ -4,8 +4,11 @@ import edu.mit.ll.graphulo.IMultiplyOp;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 
+import java.io.IOException;
 import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.Map;
 import java.util.Map.Entry;
 
 /**
@@ -18,6 +21,11 @@ public abstract class SimpleMultiply implements IMultiplyOp {
   public abstract Value multiply(Value ATval, Value Bval);
 
   private Entry<Key,Value> kv;
+
+  @Override
+  public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
+
+  }
 
   @Override
   public void multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence BcolF, ByteSequence BcolQ, Value ATval, Value Bval) {

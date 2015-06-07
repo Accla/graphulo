@@ -41,6 +41,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
   private static final Logger log = LogManager.getLogger(TwoTableIterator.class);
 
   private IMultiplyOp multiplyOp = new BigDecimalMultiply();
+  private Map<String, String> multiplyOpOptions = new HashMap<>();
   private SortedKeyValueIterator<Key, Value> remoteAT, remoteB;
   private boolean emitNoMatchA = false, emitNoMatchB = false;
   private PeekingIterator2<? extends Map.Entry<Key, Value>> bottomIter; // = new TreeMap<>(new ColFamilyQualifierComparator());
@@ -48,7 +49,9 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
   private DOT_TYPE dot = DOT_TYPE.NONE;
   private Collection<ByteSequence> seekColumnFamilies;
   private boolean seekInclusive;
-  /** Track the row of AT and B emitted. For monitoring. */
+  /**
+   * Track the row of AT and B emitted. For monitoring.
+   */
   private Text emittedRow = new Text();
 
   public static final String PREFIX_AT = "AT";
@@ -63,15 +66,15 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
   static {
     final Map<String, String> optDesc = new LinkedHashMap<>();
     for (Map.Entry<String, String> entry : RemoteSourceIterator.iteratorOptions.getNamedOptions().entrySet()) {
-      optDesc.put(PREFIX_AT + '.'+entry.getKey(), "Table AT:" + entry.getValue());
+      optDesc.put(PREFIX_AT + '.' + entry.getKey(), "Table AT:" + entry.getValue());
     }
     for (Map.Entry<String, String> entry : RemoteSourceIterator.iteratorOptions.getNamedOptions().entrySet()) {
-      optDesc.put(PREFIX_B + '.'+entry.getKey(), "Table B:" + entry.getValue());
+      optDesc.put(PREFIX_B + '.' + entry.getKey(), "Table B:" + entry.getValue());
     }
 
     optDesc.put("dot", "Type of dot product: NONE, ROW_CARTESIAN, ROW_COLF_COLQ_MATCH");
-    optDesc.put(PREFIX_AT+'.'+"emitNoMatch", "Emit entries that do not match the other table");
-    optDesc.put(PREFIX_B+'.'+"emitNoMatch", "Emit entries that do not match the other table");
+    optDesc.put(PREFIX_AT + '.' + "emitNoMatch", "Emit entries that do not match the other table");
+    optDesc.put(PREFIX_B + '.' + "emitNoMatch", "Emit entries that do not match the other table");
 
     iteratorOptions = new OptionDescriber.IteratorOptions("DotMultIterator",
         "Outer product on A and B, given AT and B. Does not sum.",
@@ -85,6 +88,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
   TwoTableIterator(TwoTableIterator other) {
     this.dot = other.dot;
     this.multiplyOp = other.multiplyOp;
+    this.multiplyOpOptions = other.multiplyOpOptions;
   }
 
   @Override
@@ -99,7 +103,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
 
   public boolean validateOptionsStatic(Map<String, String> options) {
     Map<String, String> optAT = new HashMap<>(), optB = new HashMap<>();
-    new TwoTableIterator().parseOptions(options,optAT,optB);
+    new TwoTableIterator().parseOptions(options, optAT, optB);
     if (!optAT.isEmpty())
       RemoteSourceIterator.validateOptionsStatic(optAT);
     if (!optB.isEmpty())
@@ -107,82 +111,78 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
     return true;
   }
 
-  private void parseOptions(Map<String, String> options, final Map<String, String> optAT, final Map<String, String> optB)
-    {
-      Map<String, Map<String, String>> prefixMap = GraphuloUtil.splitMapPrefix(options);
-      for (Map.Entry<String, Map<String, String>> prefixEntry : prefixMap.entrySet()) {
-        String prefix = prefixEntry.getKey();
-        Map<String, String> entryMap = prefixEntry.getValue();
-        switch (prefix) {
-          case PREFIX_AT: {
-            String v = entryMap.remove("doWholeRow");
-            if (v != null && Boolean.parseBoolean(v))
-              log.warn("Forcing doWholeRow option on table A to FALSE. Given: " + v);
-            v = entryMap.remove("emitNoMatch");
-            if (v != null)
-              emitNoMatchA = Boolean.parseBoolean(v);
-            optAT.putAll(entryMap);
-            optAT.put("doWholeRow", "false");
+  private void parseOptions(Map<String, String> options, final Map<String, String> optAT, final Map<String, String> optB) {
+    for (Map.Entry<String, String> optionEntry : options.entrySet()) {
+      String optionKey = optionEntry.getKey();
+      String optionValue = optionEntry.getValue();
+      if (optionKey.startsWith(PREFIX_AT + '.')) {
+        String keyAfterPrefix = optionKey.substring(PREFIX_AT.length() + 1);
+        switch (keyAfterPrefix) {
+          case "doWholeRow":
+            if (Boolean.parseBoolean(optionValue))
+              log.warn("Forcing doWholeRow option on table A to FALSE. Given: " + optionValue);
+            continue;
+          case "emitNoMatch":
+            emitNoMatchA = Boolean.parseBoolean(optionValue);
             break;
-          }
-          case PREFIX_B: {
-            String v = entryMap.remove("doWholeRow");
-            if (v != null && Boolean.parseBoolean(v)) {
-              log.warn("Forcing doWholeRow option on table BT to FALSE. Given: " + v);
-            }
-            v = entryMap.remove("emitNoMatch");
-            if (v != null)
-              emitNoMatchB = Boolean.parseBoolean(v);
-            optB.putAll(entryMap);
-            optB.put("doWholeRow", "false");
-            break;
-          }
-          case "": {
-            for (Map.Entry<String, String> entry : entryMap.entrySet()) {
-              switch (entry.getKey()) {
-                case "dot":
-                  dot = DOT_TYPE.valueOf(entry.getValue());
-                  break;
-                case "multiplyOp":
-                  Class<?> c;
-                  try {
-                    c = Class.forName(entry.getValue());
-                  } catch (ClassNotFoundException e) {
-                    throw new IllegalArgumentException("Can't find multiplyOp class: " + entry.getValue(), e);
-                  }
-                  Class<? extends IMultiplyOp> cm;
-                  try {
-                    cm = c.asSubclass(IMultiplyOp.class);
-                  } catch (ClassCastException e) {
-                    throw new IllegalArgumentException("multiplyOp is not a subclass of IMultiplyOp: " + c.getName(), e);
-                  }
-                  try {
-                    multiplyOp = cm.newInstance();
-                  } catch (InstantiationException | IllegalAccessException e) {
-                    throw new IllegalArgumentException("can't instantiate new instance of " + cm.getName(), e);
-                  }
-                  break;
-                default:
-                  log.warn("Unrecognized option: " + prefix + '.' + entry);
-                  break;
-              }
-            }
-            break;
-          }
           default:
-            for (Map.Entry<String, String> entry : entryMap.entrySet()) {
-              log.warn("Unrecognized option: " + prefix + '.' + entry);
+            optAT.put(keyAfterPrefix, optionValue);
+            break;
+        }
+      } else if (optionKey.startsWith(PREFIX_B + '.')) {
+        String keyAfterPrefix = optionKey.substring(PREFIX_B.length() + 1);
+        switch (keyAfterPrefix) {
+          case "doWholeRow":
+            if (Boolean.parseBoolean(optionValue))
+              log.warn("Forcing doWholeRow option on table A to FALSE. Given: " + optionValue);
+            continue;
+          case "emitNoMatch":
+            emitNoMatchB = Boolean.parseBoolean(optionValue);
+            break;
+          default:
+            optB.put(keyAfterPrefix, optionValue);
+            break;
+        }
+      } else if (optionKey.startsWith("multiplyOp.opt.")) {
+        String keyAfterPrefix = optionKey.substring("multiplyOp.opt.".length());
+        multiplyOpOptions.put(keyAfterPrefix, optionValue);
+      } else {
+        switch (optionKey) {
+          case "dot":
+            dot = DOT_TYPE.valueOf(optionValue);
+            break;
+          case "multiplyOp":
+            Class<?> c;
+            try {
+              c = Class.forName(optionValue);
+            } catch (ClassNotFoundException e) {
+              throw new IllegalArgumentException("Can't find multiplyOp class: " + optionValue, e);
             }
+            Class<? extends IMultiplyOp> cm;
+            try {
+              cm = c.asSubclass(IMultiplyOp.class);
+            } catch (ClassCastException e) {
+              throw new IllegalArgumentException("multiplyOp is not a subclass of IMultiplyOp: " + c.getName(), e);
+            }
+            try {
+              multiplyOp = cm.newInstance();
+            } catch (InstantiationException | IllegalAccessException e) {
+              throw new IllegalArgumentException("can't instantiate new instance of " + cm.getName(), e);
+            }
+            break;
+          default:
+            log.warn("Unrecognized option: " + optionEntry);
             break;
         }
       }
     }
+  }
 
   @Override
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
     // parse options, pass correct options to RemoteSourceIterator init()
     Map<String, String> optAT = new HashMap<>(), optB = new HashMap<>();
-    parseOptions(options,optAT,optB);
+    parseOptions(options, optAT, optB);
     if (optAT.isEmpty())
       optAT = null;
     if (optB.isEmpty())
@@ -218,20 +218,24 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
         remoteAT = remoteB.deepCopy(env);     // ~A B ~S
     }
 
+    multiplyOp.init(multiplyOpOptions,env);
+
   }
 
-  private static Map.Entry<Key,Value> copyTopEntry(SortedKeyValueIterator<Key,Value> skvi) {
+  private static Map.Entry<Key, Value> copyTopEntry(SortedKeyValueIterator<Key, Value> skvi) {
     final Key k = GraphuloUtil.keyCopy(skvi.getTopKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL);
     final Value v = new Value(skvi.getTopValue());
-    return new Map.Entry<Key,Value>() {
+    return new Map.Entry<Key, Value>() {
       @Override
       public Key getKey() {
         return k;
       }
+
       @Override
       public Value getValue() {
         return v;
       }
+
       @Override
       public Value setValue(Value value) {
         throw new UnsupportedOperationException();
@@ -335,8 +339,12 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
     if (dot == DOT_TYPE.ROW_CARTESIAN || dot == DOT_TYPE.ROW_COLF_COLQ_MATCH) {
       PartialKey pk = null;
       switch (dot) {
-        case ROW_CARTESIAN: pk = PartialKey.ROW; break;
-        case ROW_COLF_COLQ_MATCH: pk = PartialKey.ROW_COLFAM_COLQUAL; break;
+        case ROW_CARTESIAN:
+          pk = PartialKey.ROW;
+          break;
+        case ROW_COLF_COLQ_MATCH:
+          pk = PartialKey.ROW_COLFAM_COLQUAL;
+          break;
       }
 
 
@@ -347,7 +355,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
           if (cmp < 0) {
             if (emitNoMatchA) {
               bottomIter = new PeekingIterator2<>(Iterators.singletonIterator(
-                      copyTopEntry(remoteAT)));
+                  copyTopEntry(remoteAT)));
               remoteAT.next();
               return;
             }
@@ -486,7 +494,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
 
     @Override
     public Map.Entry<Key, Value> next() {
-      Map.Entry<Key,Value> ret = multiplyOp.next();
+      Map.Entry<Key, Value> ret = multiplyOp.next();
       if (!multiplyOp.hasNext() && BrowMapIter.hasNext())
         prepNext();
       return ret;
@@ -537,7 +545,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
       // Save state at this row.  If reseek'd to this row, go to the next row (assume exclusive).
       assert bottomIter.peekFirst() != null;
       final Key k = new Key(emittedRow);
-          // BAD!
+      // BAD!
 //          dot == DOT_TYPE.ROW_CARTESIAN
 //            ? GraphuloUtil.keyCopy(bottomIter.peekFirst().getKey(), PartialKey.ROW)
 //            : bottomIter.peekFirst().getKey(); // second case should be okay without copying

@@ -160,7 +160,7 @@ See Examples above for more elaborate client code usage.
 To create a custom addition operator, 
 create a Java class implementing [SortedKeyValueIterator][] with the addition logic.
 Then pass an [IteratorSetting][] to the Graphulo functions,
-which will apply the iterator to tables.
+which will apply the iterator to result tables.
 Addition is *lazy*, in the sense that the addition runs when a table is scanned or compacted,
  which may be significantly after an operation finishes.
 Do not remove addition iterators from a table until every entry in the table
@@ -170,9 +170,11 @@ To create a custom multiplication operation,
 create a Java class implementing [IMultiplyOp][] with the multiplication logic.
 For simple TableMult multiplication, you can extend the [SimpleMultiply][] class instead of implementing the full interface.
 For simple element-wise multiplication, you can extend the [SimpleEWiseX][] class instead of implementing the full interface.
-See the classes in the mult package for examples.
-Non-simple multiplication that should implement [IMultiplyOp][] directly are multiplication logic
- that manipulates returned Keys in non-standard ways or returns more than one entry per multiplication.
+See the classes in the `edu.mit.ll.graphulo.mult` package for examples.
+Non-simple multiplication that should implement [IMultiplyOp][] directly are multiplication logic that 
+1. manipulates returned Keys in non-standard ways; 
+2. takes init options (passed from the client through `multiplyOp.opt.OPTION_NAME`); or 
+3. returns more than one entry per multiplication.
 
 [SortedKeyValueIterator]: https://accumulo.apache.org/1.7/apidocs/org/apache/accumulo/core/iterators/SortedKeyValueIterator.html
 [IteratorSetting]: https://accumulo.apache.org/1.7/apidocs/org/apache/accumulo/core/client/IteratorSetting.html
@@ -188,16 +190,6 @@ assuming the D4M libraries are also installed:
 G = DBaddJavaOps('edu.mit.ll.graphulo.MatlabGraphulo','instance','localhost:2181','root','secret');
 res = G.AdjBFS('Atable','v0;v7;v9;',3,'Rtable','','ADegtable','OutDeg',false,5,15);
 ```
-
-### Defining custom plus (+) and multiply (*) operations
-
-To define a custom plus operation, create an `IteratorSetting` object 
-passing in an SKVI that implements the plus logic.
-Pass that setting to the Graphulo operation.
-Graphulo will apply the iterator to result tables.
-
-To define a custom multiply operation, create a class that implements `IMultiplyOp`.
-See the multiply classes in package `edu.mit.ll.graphulo.mult` for examples.
 
 
 ## Implementation
@@ -240,7 +232,7 @@ Four modes of operation:
 * `password` Anyone who can read the Accumulo table config or log files will see the password in plaintext.
 * `iter.7` Class name of an iterator to place on the remote table scan, running on the remote Accumulo server at the specified priority. 
 Run as many as desired, each with its own priority.
-* `iter.7.type` e.g. "STRING". An option supplied to the LongCombiner iterator.
+* `iter.7.OPTION_NAME` An option supplied to a remote iterator.
 
 ##### TwoTableIterator
 * `B. ... ` All the options of RemoteSourceIterator, to read table A from a remote Accumulo table. 
@@ -248,6 +240,7 @@ Don't specify when operating on a single table.
 * `(A/B).emitNoMatchEntries` Both false for multiply (intersection of entries); both true for sum (union of entries)
 * `dot` Either "ROW_CARTESIAN_PRODUCT" or "ROW_COLF_COLQ_MATCH" or nothing.
 * `multiplyOp` Name of class that implements IMultiplyOp. 
+  * `multiplyOp.opt.OPTION_NAME` An option supplied to the multiply class's `init` function.
 
 ##### Future: PreSumCacheIterator
 * `combiner` Name of class for "pre-summing" entries.

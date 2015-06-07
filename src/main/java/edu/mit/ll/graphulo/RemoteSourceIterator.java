@@ -11,6 +11,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.user.ColumnSliceFilter;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
 
@@ -52,7 +53,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>,
    * Goes through the part of ranges after seeking to the beginning of the seek() clip.
    */
   private Iterator<Range> rowRangeIterator;
-  private Collection<Text> colFilter = null;
+  private String colFilter = "";
 
   /**
    * Created in init().
@@ -101,7 +102,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>,
     optDesc.put("doWholeRow", "Apply WholeRowIterator to remote table scan? (default no)");
     optDesc.put("doClientSideIterators", "Use a ClientSideIteratorScanner? (default no)");
     optDesc.put("rowRanges", "Row ranges to scan for remote Accumulo table, Matlab syntax. (default ':,' all)");
-    optDesc.put("colFilter", "String representation of column qualifiers, e.g. 'a,b,c,' (default blank)");
+    optDesc.put("colFilter", "Range on column qualifiers, e.g. 'a,b,c,' (default blank for all). More efficient with simpler filters.");
     iteratorOptions = new IteratorOptions("RemoteSourceIterator",
         "Reads from a remote Accumulo table. Replaces parent iterator with the remote table.",
         Collections.unmodifiableMap(optDesc), null);
@@ -118,65 +119,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>,
   }
 
   public static boolean validateOptionsStatic(Map<String, String> options) {
-    // Shadow all the fields =)
-    String zookeeperHost = null, instanceName = null, tableName = null, username = null;
-    AuthenticationToken auth = null;
-    //int timeout;
-    //SortedSet<Range> rowRanges;
-    Collection<Text> colFilter;
-    boolean doWholeRow = false, doClientSideIterators = false;
-
-    for (Map.Entry<String, String> entry : options.entrySet()) {
-      if (entry.getValue().isEmpty())
-        continue;
-      switch (entry.getKey()) {
-        case "zookeeperHost":
-          zookeeperHost = entry.getValue();
-          break;
-        case "timeout":
-          try {
-            int t = Integer.parseInt(entry.getValue());
-            if (t < 1000 || t > 300000)
-              throw new IllegalArgumentException("timeout out of range [1000,300000]: " + t);
-          } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("bad timeout", e);
-          }
-          break;
-        case "instanceName":
-          instanceName = entry.getValue();
-          break;
-        case "tableName":
-          tableName = entry.getValue();
-          break;
-        case "username":
-          username = entry.getValue();
-          break;
-        case "password":
-          auth = new PasswordToken(entry.getValue());
-          break;
-        case "doWholeRow":
-          doWholeRow = Boolean.parseBoolean(entry.getValue());
-          break;
-        case "doClientSideIterators":
-          doClientSideIterators = Boolean.parseBoolean(entry.getValue());
-          break;
-        case "rowRanges":
-          parseRanges(entry.getValue());
-          break;
-        case "colFilter":
-          colFilter = GraphuloUtil.d4mRowToTexts(entry.getValue());
-          break;
-        default:
-          throw new IllegalArgumentException("unknown option: " + entry);
-      }
-    }
-    // Required options
-    if (zookeeperHost == null ||
-        instanceName == null ||
-        tableName == null ||
-        username == null ||
-        auth == null)
-      throw new IllegalArgumentException("not enough options provided");
+    new RemoteSourceIterator().parseOptions(options);
     return true;
   }
 
@@ -211,7 +154,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>,
           rowRanges = parseRanges(entry.getValue());
           break;
         case "colFilter":
-          colFilter = GraphuloUtil.d4mRowToTexts(entry.getValue());
+          colFilter = entry.getValue(); //GraphuloUtil.d4mRowToTexts(entry.getValue());
           break;
         case "doClientSideIterators":
           doClientSideIterators = Boolean.parseBoolean(entry.getValue());
@@ -229,7 +172,6 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>,
         username == null ||
         auth == null)
       throw new IllegalArgumentException("not enough options provided");
-
   }
 
   /**
@@ -239,7 +181,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>,
    * @param s -
    * @return a bunch of ranges
    */
-  private static SortedSet<Range> parseRanges(String s) {
+  static SortedSet<Range> parseRanges(String s) {
     Collection<Range> rngs = GraphuloUtil.d4mRowToRanges(s);
     rngs = Range.mergeOverlapping(rngs);
     return new TreeSet<>(rngs);
@@ -279,13 +221,42 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>,
       throw new RuntimeException(e);
     }
 
-    if (colFilter != null)
-      for (Text text : colFilter) {
-        scanner.fetchColumn(EMPTY_TEXT, text);
-      }
-
     if (doClientSideIterators)
       scanner = new ClientSideIteratorScanner(scanner);
+
+    if (!colFilter.isEmpty()) {
+      int pos1 = colFilter.indexOf(':');
+      if (pos1 == -1) { // no ranges - collection of singleton texts
+        for (Text text : GraphuloUtil.d4mRowToTexts(colFilter)) {
+          scanner.fetchColumn(EMPTY_TEXT, text);
+        }
+      } else {
+        SortedSet<Range> ranges = GraphuloUtil.d4mRowToRanges(colFilter);
+//        boolean max2 = pos1 == 0 || pos1 == colFilter.length()-2;
+//        int pc1,pc2,pc3 = -1;
+//        int l = colFilter.length();
+//        char c = colFilter.charAt(l-1);
+//        pc1 = colFilter.indexOf(c);
+//        pc2 = colFilter.indexOf(c,pc1+1);
+//        if (pc2 != l-1 && pc2 != -1)
+//          pc3 = colFilter.indexOf(c,pc2+1);
+////        int pos2 = colFilter.indexOf(':',pos1+1);
+//        if (pc3 == -1 || (!max2 && colFilter.indexOf(c,pc3+1) == -1)) {
+        assert ranges.size() > 0;
+        IteratorSetting s;
+        if (ranges.size() == 1) { // single range - use ColumnSliceFilter
+          Range r = ranges.first();
+          s = new IteratorSetting(2, ColumnSliceFilter.class);
+          ColumnSliceFilter.setSlice(s, r.isInfiniteStartKey() ? null : r.getStartKey().toString(),
+              true, r.isInfiniteStopKey() ? null : r.getEndKey().toString(), true);
+        } else { // multiple ranges
+          Map<String,String> map = new HashMap<>();
+          map.put("colRanges",colFilter);
+          s = new IteratorSetting(2, D4mColumnRangeFilter.class, map);
+        }
+        scanner.addScanIterator(s);
+      }
+    }
 
     if (doWholeRow) {
       // TODO: make priority dynamic in case 25 is taken; make name dynamic in case iterator name already exists. Or buffer here.

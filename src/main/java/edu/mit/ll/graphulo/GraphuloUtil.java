@@ -9,12 +9,20 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.IteratorUtil;
-import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * Utility functions
@@ -107,7 +115,7 @@ public class GraphuloUtil {
         if (pi.peekThird() == null) { // [1,+Inf)
           rngset.add(new Range(pi.peekFirst(), true, null, false));
           return rngset;
-        } else { // [1,3)
+        } else { // [1,3]
           if (pi.peekThird().equals(":"))
             throw new IllegalArgumentException("Bad D4M rowStr: " + rowStr);
           rngset.add(new Range(pi.peekFirst(), true, pi.peekThird(), true));

@@ -97,47 +97,17 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
     return validateOptionsStatic(options);
   }
 
-  public static boolean validateOptionsStatic(Map<String, String> options) {
+  public boolean validateOptionsStatic(Map<String, String> options) {
     Map<String, String> optAT = new HashMap<>(), optB = new HashMap<>();
-    for (Map.Entry<String, String> entry : options.entrySet()) {
-      if (entry.getValue().isEmpty())
-        continue;
-      String key = entry.getKey();
-      if (key.equals(PREFIX_AT+".emitNoMatch") || key.equals(PREFIX_B+".emitNoMatch"))
-        //noinspection ResultOfMethodCallIgnored
-        Boolean.parseBoolean(entry.getValue());
-      else if (key.startsWith(PREFIX_AT))
-        optAT.put(key.substring(PREFIX_AT.length()), entry.getValue());
-      else if (key.startsWith(PREFIX_B))
-        optB.put(key.substring(PREFIX_B.length()), entry.getValue());
-      else switch (key) {
-          case "dot":
-            DOT_TYPE.valueOf(entry.getValue());
-          case "multiplyOp":
-            Class<?> c;
-            try {
-              c = Class.forName(entry.getValue());
-            } catch (ClassNotFoundException e) {
-              throw new IllegalArgumentException("Can't find multiplyOp class: " + entry.getValue(), e);
-            }
-            try {
-              c.asSubclass(IMultiplyOp.class);
-            } catch (ClassCastException e) {
-              throw new IllegalArgumentException("multiplyOp is not a subclass of IMultiplyOp: " + c.getName(), e);
-            }
-          default:
-            throw new IllegalArgumentException("unknown option: " + entry);
-        }
-    }
-    return
-        (optAT.isEmpty() || RemoteSourceIterator.validateOptionsStatic(optAT)) &&
-            (optB.isEmpty() || RemoteSourceIterator.validateOptionsStatic(optB));
+    new TwoTableIterator().parseOptions(options,optAT,optB);
+    if (!optAT.isEmpty())
+      RemoteSourceIterator.validateOptionsStatic(optAT);
+    if (!optB.isEmpty())
+      RemoteSourceIterator.validateOptionsStatic(optB);
+    return true;
   }
 
-  @Override
-  public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
-    // parse options, pass correct options to RemoteSourceIterator init()
-    Map<String, String> optAT = null, optB = null;
+  private void parseOptions(Map<String, String> options, final Map<String, String> optAT, final Map<String, String> optB)
     {
       Map<String, Map<String, String>> prefixMap = GraphuloUtil.splitMapPrefix(options);
       for (Map.Entry<String, Map<String, String>> prefixEntry : prefixMap.entrySet()) {
@@ -151,7 +121,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
             v = entryMap.remove("emitNoMatch");
             if (v != null)
               emitNoMatchA = Boolean.parseBoolean(v);
-            optAT = entryMap;
+            optAT.putAll(entryMap);
             optAT.put("doWholeRow", "false");
             break;
           }
@@ -163,7 +133,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
             v = entryMap.remove("emitNoMatch");
             if (v != null)
               emitNoMatchB = Boolean.parseBoolean(v);
-            optB = entryMap;
+            optB.putAll(entryMap);
             optB.put("doWholeRow", "false");
             break;
           }
@@ -209,6 +179,16 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
       }
     }
 
+  @Override
+  public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
+    // parse options, pass correct options to RemoteSourceIterator init()
+    Map<String, String> optAT = new HashMap<>(), optB = new HashMap<>();
+    parseOptions(options,optAT,optB);
+    if (optAT.isEmpty())
+      optAT = null;
+    if (optB.isEmpty())
+      optB = null;
+
     if (optAT == null && optB == null && source == null) { // ~A ~B ~S
       throw new IllegalArgumentException("optAT, optB, and source cannot all be null");
     }
@@ -238,6 +218,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
       else
         remoteAT = remoteB.deepCopy(env);     // ~A B ~S
     }
+
   }
 
   private static Map.Entry<Key,Value> copyTopEntry(SortedKeyValueIterator<Key,Value> skvi) {

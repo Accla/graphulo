@@ -202,7 +202,7 @@ See the multiply classes in package `edu.mit.ll.graphulo.mult` for examples.
 
 ## Implementation
 
-Note: the current implementation only had SpGEMM and BFS completely tested. 
+Note: the current implementation only has SpGEMM and BFS completely tested. 
 The rest are partially implemented ideas.
 
 ### GraphBLAS mapping
@@ -226,8 +226,12 @@ and either send to client or to a RemoteWriteIterator.
 
 ##### RemoteSourceIterator
 * `rowRanges` Row ranges to fetch from remote Accumulo table, Matlab syntax. (default ":" all) 
-* `colFilter` String representation of column qualifiers, e.g. "a,b,c," (default "" = no filter) (no ranges allowed) 
-Future: allow ranges and [Filter](https://accumulo.apache.org/1.6/apidocs/org/apache/accumulo/core/iterators/Filter.html) them
+* `colFilter` String representation of column qualifiers, e.g. "a,b,c,".
+Four modes of operation:
+  1. Blank `colFilter`: do nothing.
+  2. No ranges `colFilter`: use scanner.fetchColumn() which invokes an Accumulo system ColumnQualifierFilter.
+  3. Singleton range `colFilter`: use Accumulo user ColumnSliceFilter.
+  4. Multi-range `colFilter`: use Graphulo D4mColumnRangeFilter.
 * `zookeeperHost` Address and port, e.g. "localhost:2181". Future: extract from Accumulo config if not provided
 * `timeout` Zookeeper timeout between 1000 and 300000 (default 1000). Future: extract from Accumulo config if not provided
 * `instanceName`

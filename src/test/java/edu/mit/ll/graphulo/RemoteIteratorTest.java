@@ -264,6 +264,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     }
     Assert.assertFalse(expectIter.hasNext());
 
+    scanner.close();
     conn.tableOperations().delete(tableName);
     conn.tableOperations().delete(tableName2);
   }
@@ -315,9 +316,35 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     for (Map.Entry<Key, Value> entry : scanner) {
       actual.put(entry.getKey(), entry.getValue());
     }
-    scanner.close();
     Assert.assertEquals(expect, actual);
 
+    // now repeat using a column range
+    scanner.clearScanIterators();
+    itprops.put("colFilter", "c,:,cq15,"); // *
+    itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.RemoteSourceIterator", itprops);
+    scanner.addScanIterator(itset);
+
+    actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    scanner.setRange(range);
+    for (Map.Entry<Key, Value> entry : scanner) {
+      actual.put(entry.getKey(), entry.getValue());
+    }
+    Assert.assertEquals(expect, actual);
+
+    // now repeat using a multi-column range
+    scanner.clearScanIterators();
+    itprops.put("colFilter", "a,b,:,b2,b3,c,:,cq15,"); // *
+    itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.RemoteSourceIterator", itprops);
+    scanner.addScanIterator(itset);
+
+    actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    scanner.setRange(range);
+    for (Map.Entry<Key, Value> entry : scanner) {
+      actual.put(entry.getKey(), entry.getValue());
+    }
+    Assert.assertEquals(expect, actual);
+
+    scanner.close();
     conn.tableOperations().delete(tableName);
     conn.tableOperations().delete(tableName2);
   }

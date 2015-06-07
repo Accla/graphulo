@@ -129,69 +129,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   }
 
   public static boolean validateOptionsStatic(Map<String, String> options) {
-    // Shadow all the fields =)
-    String zookeeperHost = null, instanceName = null, tableName = null, username = null, tableNameTranspose = null;
-    AuthenticationToken auth = null;
-    boolean gatherColQs = false;
-
-    for (Map.Entry<String, String> entry : options.entrySet()) {
-      switch (entry.getKey()) {
-        case "zookeeperHost":
-          zookeeperHost = entry.getValue();
-          break;
-        case "timeout":
-          try {
-            int t = Integer.parseInt(entry.getValue());
-            if (t < 1000 || t > 300000)
-              throw new IllegalArgumentException("timeout out of range [1000,300000]: " + t);
-          } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("bad timeout", e);
-          }
-          break;
-        case "instanceName":
-          instanceName = entry.getValue();
-          break;
-        case "tableName":
-          tableName = entry.getValue();
-          if (tableName.isEmpty())
-            tableName = null;
-          break;
-        case "tableNameTranspose":
-          tableNameTranspose = entry.getValue();
-          if (tableNameTranspose.isEmpty())
-            tableNameTranspose = null;
-          break;
-        case "username":
-          username = entry.getValue();
-          break;
-        case "password":
-          auth = new PasswordToken(entry.getValue());
-          break;
-
-        case "numEntriesCheckpoint":
-          //noinspection ResultOfMethodCallIgnored
-          Integer.parseInt(entry.getValue());
-          break;
-        case "gatherColQs":
-          gatherColQs = Boolean.parseBoolean(entry.getValue());
-          break;
-
-        case "rowRanges":
-          parseRanges(entry.getValue());
-          break;
-
-        default:
-          throw new IllegalArgumentException("unknown option: " + entry);
-      }
-    }
-    // Required options
-    if ((tableName == null && tableNameTranspose == null && !gatherColQs) ||
-        ((tableName != null || tableNameTranspose != null) &&
-            (zookeeperHost == null ||
-                instanceName == null ||
-                username == null ||
-                auth == null)))
-      throw new IllegalArgumentException("not enough options provided");
+    new RemoteWriteIterator().parseOptions(options);
     return true;
   }
 

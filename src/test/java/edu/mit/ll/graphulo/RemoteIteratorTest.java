@@ -248,9 +248,82 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     }
     Assert.assertFalse(expectIter.hasNext());
 
+    // should work the same if we set rowRanges instead of setting the Scanner range
+    scanner.setRange(new Range());
+    scanner.clearScanIterators();
+    itprops.put("rowRanges",GraphuloUtil.rangesToD4MString(Collections.singleton(range)));
+    itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.RemoteSourceIterator", itprops);
+    scanner.addScanIterator(itset);
+    expectIter = expectList.iterator();
+    for (Map.Entry<Key, Value> entry : scanner) {
+      SortedMap<Key, Value> actualMap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+      actualMap.putAll(WholeRowIterator.decodeRow(entry.getKey(), entry.getValue()));
+      Assert.assertTrue(expectIter.hasNext());
+      SortedMap<Key, Value> expectMap = expectIter.next();
+      Assert.assertEquals(expectMap, actualMap);
+    }
+    Assert.assertFalse(expectIter.hasNext());
+
     conn.tableOperations().delete(tableName);
     conn.tableOperations().delete(tableName2);
   }
+
+
+  /** Now with column subsets in addition to row subsets. */
+  @Test
+  public void testSourceSubsetColumns() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
+    Connector conn = tester.getConnector();
+
+    final String tableName, tableName2;
+    {
+      String[] names = getUniqueNames(2);
+      tableName = names[0];
+      tableName2 = names[1];
+    }
+    {
+      Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("ccc", "", "cq"), new Value("7".getBytes()));
+      input.put(new Key("ddd", "", "cq"), new Value("7".getBytes()));
+      input.put(new Key("pogo", "", "cq"), new Value("7".getBytes()));
+      input.put(new Key("ddd", "", "cq2"), new Value("8".getBytes()));
+      input.put(new Key("ggg", "", "cq2"), new Value("8".getBytes()));
+      input.put(new Key("pogo", "", "cq2"), new Value("8".getBytes()));
+      input.put(new Key("xyz", "", "cq2"), new Value("8".getBytes()));
+      TestUtil.createTestTable(conn, tableName, null, input);
+    }
+    TestUtil.createTestTable(conn, tableName2);
+
+    SortedMap<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    expect.put(new Key("ddd", "", "cq"), new Value("7".getBytes()));
+    expect.put(new Key("pogo", "", "cq"), new Value("7".getBytes()));
+
+    Scanner scanner = conn.createScanner(tableName2, Authorizations.EMPTY);
+    Map<String, String> itprops = new HashMap<>();
+    itprops.put("instanceName", conn.getInstance().getInstanceName());
+    itprops.put("tableName", tableName);
+    itprops.put("zookeeperHost", conn.getInstance().getZooKeepers());
+    //itprops.put("timeout","5000");
+    itprops.put("username", tester.getUsername());
+    itprops.put("password", new String(tester.getPassword().getPassword()));
+    itprops.put("colFilter", "cq,"); // *
+    IteratorSetting itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.RemoteSourceIterator", itprops);
+    scanner.addScanIterator(itset);
+
+    SortedMap<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Range range = new Range("ddd", "xxx");
+    scanner.setRange(range);
+    for (Map.Entry<Key, Value> entry : scanner) {
+      actual.put(entry.getKey(), entry.getValue());
+    }
+    scanner.close();
+    Assert.assertEquals(expect, actual);
+
+    conn.tableOperations().delete(tableName);
+    conn.tableOperations().delete(tableName2);
+  }
+
+
+
 
   @Test
   public void testMerge() throws AccumuloSecurityException, AccumuloException, TableNotFoundException, TableExistsException, IOException {

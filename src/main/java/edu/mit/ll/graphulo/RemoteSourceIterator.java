@@ -305,11 +305,12 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>,
    */
   public Iterator<Range> getFirstRangeStarting(Range seekRange) {
     PeekingIterator1<Range> iter = new PeekingIterator1<>(rowRanges.iterator());
-    while (iter.hasNext() && !iter.peek().isInfiniteStopKey()
-        && ((iter.peek().getEndKey().equals(seekRange.getStartKey()) && !seekRange.isEndKeyInclusive())
-        || iter.peek().getEndKey().compareTo(seekRange.getStartKey()) < 0)) {
-      iter.next();
-    }
+    if (!seekRange.isInfiniteStartKey())
+      while (iter.hasNext() && !iter.peek().isInfiniteStopKey()
+          && ((iter.peek().getEndKey().equals(seekRange.getStartKey()) && !seekRange.isEndKeyInclusive())
+          || iter.peek().getEndKey().compareTo(seekRange.getStartKey()) < 0)) {
+        iter.next();
+      }
     return iter;
   }
 

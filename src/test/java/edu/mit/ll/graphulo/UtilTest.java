@@ -1,15 +1,32 @@
 package edu.mit.ll.graphulo;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import org.apache.accumulo.core.client.lexicoder.AbstractEncoder;
+import org.apache.accumulo.core.data.ArrayByteSequence;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.WritableComparator;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 public class UtilTest {
 
@@ -295,7 +312,26 @@ public class UtilTest {
     set.add("k");
     set.add("g");
     System.out.println(set);
+  }
 
+
+  /** Small bug in Accumulo. */
+  @Ignore("KnownBug: ACCUMULO-XXXX")
+  @Test
+  public void testAbstractEncoderDecode() {
+    AbstractEncoder<Long> encoder = new LongCombiner.StringEncoder();
+    byte[] bytes = "a334".getBytes();
+    Assert.assertEquals(334, encoder.decode(bytes, 1, 3).longValue());
+  }
+
+  /** Comparing bytes from text objects and such. */
+  @Test
+  public void testTextCompare() {
+    String s1 = "abcd", s2 = "ab";
+    Text t1 = new Text(s1), t2 = new Text(s2);
+    Assert.assertEquals(0, WritableComparator.compareBytes(t1.getBytes(), 0, t2.getLength(), t2.getBytes(), 0, t2.getLength()));
+//    Assert.assertEquals(0, t1.compareTo(t2.getBytes(), 0, t2.getLength()));
+    ByteSequence bs1 = new ArrayByteSequence(t1.getBytes());
   }
 
 

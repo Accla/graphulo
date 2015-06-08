@@ -171,7 +171,8 @@ create a Java class implementing [IMultiplyOp][] with the multiplication logic.
 For simple TableMult multiplication, you can extend the [SimpleMultiply][] class instead of implementing the full interface.
 For simple element-wise multiplication, you can extend the [SimpleEWiseX][] class instead of implementing the full interface.
 See the classes in the `edu.mit.ll.graphulo.mult` package for examples.
-Non-simple multiplication that should implement [IMultiplyOp][] directly are multiplication logic that 
+Non-simple multiplication that should implement [IMultiplyOp][] directly are multiplication logic that
+
 1. manipulates returned Keys in non-standard ways; 
 2. takes init options (passed from the client through `multiplyOp.opt.OPTION_NAME`); or 
 3. returns more than one entry per multiplication.

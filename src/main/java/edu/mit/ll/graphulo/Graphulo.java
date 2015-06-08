@@ -1,22 +1,39 @@
 package edu.mit.ll.graphulo;
 
-import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.lexicoder.AbstractEncoder;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.*;
+import org.apache.accumulo.core.iterators.Combiner;
+import org.apache.accumulo.core.iterators.LongCombiner;
+import org.apache.accumulo.core.iterators.ValueFormatException;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.WritableComparator;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Holds a {@link org.apache.accumulo.core.client.Connector} to an Accumulo instance for calling core client Graphulo operations.
@@ -304,7 +321,8 @@ public class Graphulo {
    * @param RTtable     Name of table to store transpose of result. Null means don't store the transpose.
    * @param ADegtable   Name of table holding out-degrees for A. Leave null to filter on the fly with
    *                    the {@link edu.mit.ll.graphulo.SmallLargeRowFilter}, or do no filtering if minDegree=0 and maxDegree=Integer.MAX_VALUE.
-   * @param degColumn   Name of column for out-degrees in ADegtable. Leave null if degInColQ==true.
+   * @param degColumn   Name of column for out-degrees in ADegtable like "deg", and null means the empty column "".
+   *                    If degInColQ==true, this is the prefix before the numeric portion of the column like "deg|", and null means no prefix.
    * @param degInColQ   True means degree is in the Column Qualifier. False means degree is in the Value.
    * @param minDegree   Minimum out-degree. Checked before doing any searching, at every step, from ADegtable. Pass 0 for no filtering.
    * @param maxDegree   Maximum out-degree. Checked before doing any searching, at every step, from ADegtable. Pass Integer.MAX_VALUE for no filtering.
@@ -330,12 +348,10 @@ public class Graphulo {
       minDegree = 1;
     if (maxDegree < minDegree)
       throw new IllegalArgumentException("maxDegree=" + maxDegree + " should be >= minDegree=" + minDegree);
-    Text degColumnText = null;
-    if (needDegreeFiltering && degColumn != null && !degColumn.isEmpty()) {
-      degColumnText = new Text(degColumn);
-      if (degInColQ)
-        throw new IllegalArgumentException("not allowed: degColumn != null && degInColQ==true");
-    }
+
+    if (degColumn == null)
+      degColumn = "";
+    Text degColumnText = new Text(degColumn);
     if (plusOp != null && plusOp.getPriority() >= 20)
       log.warn("Sum iterator setting is >=20. Are you sure you want the priority after the default Versioning iterator priority? " + plusOp);
     if (v0 != null && v0.isEmpty())
@@ -462,24 +478,25 @@ public class Graphulo {
 
   /**
    * Modifies texts in place, removing the entries that are out of range.
+   * Decodes degrees using {@link LongCombiner#STRING_ENCODER}.
+   * We disqualify a node if we cannot parse its degree.
    * Does nothing if texts is null or the empty collection.
-   * Todo: Add a local cache parameter for known good nodes and known bad nodes,
-   * so that we don't have to look them up.
+   * Todo: Add a local cache parameter for known good nodes and known bad nodes, so that we don't have to look them up.
    *
-   * @param degColQ   Name of the degree column qualifier. Blank/null means fetch all columns, and disqualify node if any have bad degree.
-   * @param degInColQ False means degree in value. True means degree in column qualifier (cannot use degColQ in this case).
-   * @return The same texts object.
+   * @param degColumnText   Name of the degree column qualifier. Blank/null means fetch the empty ("") column.
+   * @param degInColQ False means degree in value. True means degree in column qualifier and that degColumnText is a prefix before the numeric portion of the column qualifier degree.
+   * @return The same texts object, with nodes that fail the degree filter removed.
    */
-  private Collection<Text> filterTextsDegreeTable(String ADegtable, Text degColQ, boolean degInColQ,
+  private Collection<Text> filterTextsDegreeTable(String ADegtable, Text degColumnText, boolean degInColQ,
                                                   int minDegree, int maxDegree,
                                                   Collection<Text> texts) {
     if (texts == null || texts.isEmpty())
       return texts;
-    if (degColQ != null && degColQ.getLength() == 0)
-      degColQ = null;
+    if (degColumnText.getLength() == 0)
+      degColumnText = null;
     TableOperations tops = connector.tableOperations();
     assert ADegtable != null && !ADegtable.isEmpty() && minDegree > 0 && maxDegree >= minDegree
-        && tops.exists(ADegtable) && !(degColQ != null && degInColQ);
+        && tops.exists(ADegtable);
     BatchScanner bs;
     try {
       bs = connector.createBatchScanner(ADegtable, Authorizations.EMPTY, 2); // TODO P2: set number of batch scan threads
@@ -488,20 +505,36 @@ public class Graphulo {
       throw new RuntimeException(e);
     }
     bs.setRanges(GraphuloUtil.textsToRanges(texts));
-    if (degColQ != null)
-      bs.fetchColumn(EMPTY_TEXT, degColQ);
-    Text badRow = new Text();
+    if (!degInColQ)
+      bs.fetchColumn(EMPTY_TEXT, degColumnText == null ? EMPTY_TEXT : degColumnText);
+
+    Text badRow = new Text(), colQ = new Text();
+    int degColumnTextLength = degColumnText == null ? -1 : degColumnText.getLength();
+    byte[] degColumnTextBytes = degColumnText == null ? null : degColumnText.getBytes();
+    AbstractEncoder<Long> encoder = new LongCombiner.StringEncoder();
+
     for (Map.Entry<Key, Value> entry : bs) {
       boolean bad = false;
 //      log.debug("Deg Entry: " + entry.getKey() + " -> " + entry.getValue());
       try {
-        long deg = LongCombiner.STRING_ENCODER.decode(
-            degInColQ ? entry.getKey().getColumnQualifierData().getBackingArray()
-                : entry.getValue().get()
-        );
+        long deg;
+        if (degInColQ) {
+          if (degColumnText != null) {
+            entry.getKey().getColumnQualifier(colQ);
+            byte[] colQbytes = colQ.getBytes();
+            if (0 != WritableComparator.compareBytes(colQbytes, 0, degColumnTextLength, degColumnTextBytes, 0, degColumnTextLength))
+              continue;
+            // could hit Accumulo bug
+//            deg = encoder.decode(colQ.getBytes(), degColumnTextLength, colQ.getLength()-degColumnTextLength);
+            // safer --
+            deg = Long.parseLong(new String(colQ.getBytes(), degColumnTextLength, colQ.getLength()-degColumnTextLength, UTF_8));
+          } else
+            deg = encoder.decode(entry.getKey().getColumnQualifierData().getBackingArray());
+        } else
+          deg = LongCombiner.STRING_ENCODER.decode(entry.getValue().get());
         if (deg < minDegree || deg > maxDegree)
           bad = true;
-      } catch (ValueFormatException e) {
+      } catch (NumberFormatException | ValueFormatException e) {
         log.warn("Trouble parsing degree entry as long; assuming bad degree: " + entry.getKey() + " -> " + entry.getValue(), e);
         bad = true;
       }

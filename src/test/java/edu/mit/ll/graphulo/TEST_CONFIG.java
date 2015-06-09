@@ -15,7 +15,8 @@ import org.junit.runners.Suite;
     TableMultIteratorTest.class,
     TableMultTest.class,
     TableFilterTest.class,
-    BFSTest.class
+    BFSTest.class,
+    CountAllIterator.class
 })
 
 /**

@@ -36,11 +36,15 @@ public class GatherColQReducer implements Reducer<HashSet<String>> {
     setColQ.addAll(another);
   }
 
+  @Override
+  public boolean hasTop() {
+    return !setColQ.isEmpty();
+  }
 
 
   @Override
   public HashSet<String> get() {
-    return setColQ.isEmpty() ? null : setColQ;
+    return setColQ;
   }
 
 }

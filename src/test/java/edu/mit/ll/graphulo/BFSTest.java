@@ -361,4 +361,96 @@ public class BFSTest extends AccumuloTestBase {
   }
 
 
+  /**
+   * <pre>
+   *    ->vBig<-
+   *   /   ^    \
+   *  v    v     v
+   * v0--->v1--->v2--v
+   *  ^--<------<----/
+   * </pre>
+   */
+  @Test
+  public void testEdgeBFS() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
+    Connector conn = tester.getConnector();
+    final String tE, tETDeg, tR, tRT;
+    {
+      String[] names = getUniqueNames(4);
+      tE = names[0];
+      tETDeg = names[1];
+      tR = names[2];
+      tRT = names[3];
+    }
+    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+        expectTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actualTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+
+    {
+      Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("e0", "", "out|v0"), new Value("5".getBytes()));
+      input.put(new Key("e0", "", "in|v1"), new Value("5".getBytes()));
+      input.put(new Key("e1", "", "out|v1"), new Value("2".getBytes()));
+      input.put(new Key("e1", "", "in|v2"), new Value("2".getBytes()));
+      input.put(new Key("e2", "", "out|v2"), new Value("4".getBytes()));
+      input.put(new Key("e2", "", "in|v0"), new Value("4".getBytes()));
+      input.put(new Key("e3", "", "out|v0"), new Value("7".getBytes()));
+      input.put(new Key("e3", "", "in|vBig"), new Value("7".getBytes()));
+      input.put(new Key("e4", "", "out|v1"), new Value("7".getBytes()));
+      input.put(new Key("e4", "", "in|vBig"), new Value("7".getBytes()));
+      input.put(new Key("e5", "", "out|v2"), new Value("7".getBytes()));
+      input.put(new Key("e5", "", "in|vBig"), new Value("7".getBytes()));
+      expect.putAll(input);
+      expectTranspose.putAll(TestUtil.transposeMap(input));
+      input.put(new Key("e6", "", "out|vBig"), new Value("9".getBytes()));
+      input.put(new Key("e6", "", "in|v0"), new Value("9".getBytes()));
+      input.put(new Key("e7", "", "out|vBig"), new Value("9".getBytes()));
+      input.put(new Key("e7", "", "in|v1"), new Value("9".getBytes()));
+      input.put(new Key("e8", "", "out|vBig"), new Value("9".getBytes()));
+      input.put(new Key("e8", "", "in|v2"), new Value("9".getBytes()));
+      SortedSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("e33"));
+      TestUtil.createTestTable(conn, tE, splits, input);
+    }
+    {
+      Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("v0", "", "2"), new Value("1".getBytes()));
+      input.put(new Key("v1", "", "2"), new Value("1".getBytes()));
+      input.put(new Key("v2", "", "2"), new Value("1".getBytes()));
+      input.put(new Key("vBig", "", "3"), new Value("1".getBytes()));
+      SortedSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("v15"));
+      TestUtil.createTestTable(conn, tETDeg, splits, input);
+    }
+
+    String v0 = "v0,";
+    Collection<Text> u3expect = GraphuloUtil.d4mRowToTexts("v0,vBig,");
+
+    Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+    String u3actual = graphulo.EdgeBFS(tE, v0, 3, tR, tRT, "out|", "in|", tETDeg, "", true, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, true);
+    Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
+
+    BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
+    scanner.setRanges(Collections.singleton(new Range()));
+    for (Map.Entry<Key, Value> entry : scanner) {
+      actual.put(entry.getKey(), entry.getValue());
+    }
+    scanner.close();
+    Assert.assertEquals(expect, actual);
+
+    scanner = conn.createBatchScanner(tRT, Authorizations.EMPTY, 2);
+    scanner.setRanges(Collections.singleton(new Range()));
+    for (Map.Entry<Key, Value> entry : scanner) {
+      actualTranspose.put(entry.getKey(), entry.getValue());
+    }
+    scanner.close();
+    Assert.assertEquals(expectTranspose, actualTranspose);
+
+    conn.tableOperations().delete(tE);
+    conn.tableOperations().delete(tETDeg);
+    conn.tableOperations().delete(tR);
+    conn.tableOperations().delete(tRT);
+  }
+
+
 }

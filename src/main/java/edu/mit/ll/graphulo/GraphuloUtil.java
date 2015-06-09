@@ -12,6 +12,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.user.ColumnSliceFilter;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.WritableComparator;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -25,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Utility functions
@@ -371,6 +374,42 @@ public class GraphuloUtil {
     } catch (InstantiationException | IllegalAccessException e) {
       throw new IllegalArgumentException("can't instantiate new instance of " + cm.getName(), e);
     }
+  }
+
+  /**
+   *
+   * May break with unicode.
+   * @param startPrefix e.g. "out|"
+   * @param vktexts Set of nodes like "v1,v3,v0,"
+   * @return "out|v1,out|v3,out|v0," or "out|,:,out}," if v0 vktexts is null or empty
+   */
+  public static String prependStartPrefix(String startPrefix, String v0, Collection<Text> vktexts) {
+    char sep = v0 == null || v0.isEmpty() ? '\n' : v0.charAt(v0.length()-1);
+    if (vktexts == null || vktexts.isEmpty()) {
+      byte[] orig = startPrefix.getBytes();
+      byte[] newb = new byte[orig.length*2+4];
+      System.arraycopy(orig,0,newb,0,orig.length);
+      newb[orig.length] = (byte)sep;
+      newb[orig.length+1] = ':';
+      newb[orig.length+2] = (byte)sep;
+      System.arraycopy(orig,0,newb,orig.length+3,orig.length-1);
+      newb[orig.length*2+2] = (byte) (orig[orig.length-1]+1);
+      newb[orig.length*2+3] = (byte)sep;
+      return new String(newb);
+    } else {
+      StringBuilder ret = new StringBuilder();
+      for (Text vktext : vktexts) {
+        ret.append(startPrefix).append(vktext).append(sep);
+      }
+      return ret.toString();
+    }
+  }
+
+  /** If str begins with prefix, return a String containing the characters after the prefix. Otherwise return null. */
+  public static String stringAfter(byte[] prefix, byte[] str) {
+    return 0 == WritableComparator.compareBytes(str, 0, prefix.length, prefix, 0, prefix.length)
+        ? new String(str, prefix.length, str.length - prefix.length, UTF_8)
+        : null;
   }
 
 

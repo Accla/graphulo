@@ -10,11 +10,14 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -23,12 +26,16 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 public class UtilTest {
+  private static final Logger log = LogManager.getLogger(UtilTest.class);
 
   /**
    * Retained in case it is useful again.
@@ -327,6 +334,48 @@ public class UtilTest {
     Assert.assertEquals(0, WritableComparator.compareBytes(t1.getBytes(), 0, t2.getLength(), t2.getBytes(), 0, t2.getLength()));
 //    Assert.assertEquals(0, t1.compareTo(t2.getBytes(), 0, t2.getLength()));
     ByteSequence bs1 = new ArrayByteSequence(t1.getBytes());
+  }
+
+  @Test
+  public void testKeyColQSubstring() {
+    byte[] inBytes = "col".getBytes();
+    Key k = new Key("row","colF","colQ");
+    byte[] cqBytes = k.getColumnQualifierData().getBackingArray();
+    Assert.assertEquals(0, WritableComparator.compareBytes(cqBytes, 0, inBytes.length, inBytes, 0, inBytes.length));
+    String label = new String(cqBytes, inBytes.length, cqBytes.length-inBytes.length, UTF_8);
+    Assert.assertEquals("Q",label);
+
+    Assert.assertEquals("Q",GraphuloUtil.stringAfter(inBytes, cqBytes));
+    Assert.assertEquals("colQ",GraphuloUtil.stringAfter("".getBytes(), cqBytes));
+    Assert.assertEquals("colQ",GraphuloUtil.stringAfter(new byte[0], cqBytes));
+    Assert.assertNull(GraphuloUtil.stringAfter("ca".getBytes(), cqBytes));
+   }
+
+  @Test
+  public void testPrependStartPrefix() {
+    String startPrefix = "out|";
+    String v0 = "v1,v3,v0,";
+    Collection<Text> vktexts = GraphuloUtil.d4mRowToTexts(v0);
+    String expect = "out|v1,out|v3,out|v0,";
+    String actual = GraphuloUtil.prependStartPrefix(startPrefix, v0, vktexts);
+    Set<String> expectSet = new HashSet<>(Arrays.asList(expect.split(","))),
+        actualSet = new HashSet<>(Arrays.asList(actual.split(",")));
+    Assert.assertEquals(expectSet, actualSet);
+
+    expect = "out|,:,out},";
+    Assert.assertEquals(expect, GraphuloUtil.prependStartPrefix(startPrefix, v0, null));
+  }
+
+  @Test
+  public void testRowMiddle() {
+    byte[] prefix = "pre|".getBytes();
+    byte[] prefixMod = new byte[prefix.length];
+    System.arraycopy(prefix,0,prefixMod,0,prefix.length-1);
+    prefixMod[prefix.length-1] = (byte) (prefix[prefix.length-1]+1);
+
+    log.debug("prefixMod="+new String(prefixMod));
+    Range r = new Range(new String(prefix), true, new String(prefixMod), true);
+    Assert.assertTrue(r.contains(new Key("pre|a")));
   }
 
 

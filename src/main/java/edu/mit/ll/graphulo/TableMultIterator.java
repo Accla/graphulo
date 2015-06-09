@@ -9,7 +9,9 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * SpGEMM on Accumulo tables: C += A * B. Requires transpose(A)=AT is stored as a separate table.
@@ -101,6 +103,7 @@ public class TableMultIterator extends BranchIterator implements OptionDescriber
                   log.warn("Unrecognized option: " + prefix + '.' + entry);
                   break;
               }
+//              optDM.put(entry.getKey(), entry.getValue());
             }
             break;
         }
@@ -115,6 +118,14 @@ public class TableMultIterator extends BranchIterator implements OptionDescriber
 //    SortedKeyValueIterator<Key,Value> sc = new BigDecimalCombiner.BigDecimalSummingCombiner();
 //    sc.init(bottomIter, optSum, env);
 //    bottomIter = sc;
+
+
+    // for debugging
+//    DebugInfoIterator debug = new DebugInfoIterator();
+//    debug.init(bottomIter, Collections.<String,String>emptyMap(), env);
+//    bottomIter = debug;
+
+
     if (optC.isEmpty()) {
       log.debug("Not configured to write to a table C with a BatchWriter.");
     } else {

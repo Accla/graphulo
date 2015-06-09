@@ -1,5 +1,7 @@
 package edu.mit.ll.graphulo;
 
+import edu.mit.ll.graphulo.mult.EdgeBFSMultiply;
+import edu.mit.ll.graphulo.reducer.EdgeBFSReducer;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -20,7 +22,6 @@ import org.apache.accumulo.core.iterators.ValueFormatException;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.WritableComparator;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -31,8 +32,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Holds a {@link org.apache.accumulo.core.client.Connector} to an Accumulo instance for calling core client Graphulo operations.
@@ -316,7 +315,7 @@ public class Graphulo {
    * @param RTtable     Name of table to store transpose of result. Null means don't store the transpose.
    * @param ADegtable   Name of table holding out-degrees for A. Leave null to filter on the fly with
    *                    the {@link edu.mit.ll.graphulo.SmallLargeRowFilter}, or do no filtering if minDegree=0 and maxDegree=Integer.MAX_VALUE.
-   * @param degColumn   Name of column for out-degrees in ADegtable like "deg", and null means the empty column "".
+   * @param degColumn   Name of column for out-degrees in ADegtable like "deg". Null means the empty column "".
    *                    If degInColQ==true, this is the prefix before the numeric portion of the column like "deg|", and null means no prefix.
    * @param degInColQ   True means degree is in the Column Qualifier. False means degree is in the Value.
    * @param minDegree   Minimum out-degree. Checked before doing any searching, at every step, from ADegtable. Pass 0 for no filtering.
@@ -351,6 +350,7 @@ public class Graphulo {
       log.warn("Sum iterator setting is >=20. Are you sure you want the priority after the default Versioning iterator priority? " + plusOp);
     if (v0 != null && v0.isEmpty())
       v0 = null;
+    // todo: allow v0 to be a range string. Lookup the matching nodes from the degree table scan. Only applies to first degree table lookup.
     Collection<Text> vktexts = v0 == null ? null : GraphuloUtil.d4mRowToTexts(v0);
 
     TableOperations tops = connector.tableOperations();
@@ -370,7 +370,7 @@ public class Graphulo {
       try {
         tops.create(RTtable);
       } catch (AccumuloException | AccumuloSecurityException e) {
-        log.error("error trying to create R table transpose" + RTtable, e);
+        log.error("error trying to create R table transpose " + RTtable, e);
         throw new RuntimeException(e);
       } catch (TableExistsException e) {
         log.error("crazy", e);
@@ -461,10 +461,10 @@ public class Graphulo {
         RemoteWriteIterator.decodeValue(entry.getValue(), reducer);
       }
       dur = System.currentTimeMillis() - t2;
+      scanTime += dur;
       for (String uk : reducer.get()) {
         uktexts.add(new Text(uk));
       }
-      scanTime += dur;
       if (trace)
         System.out.println("BatchScan/Iterator Time: " + dur + " ms");
       vktexts = uktexts;
@@ -510,8 +510,8 @@ public class Graphulo {
       bs.fetchColumn(EMPTY_TEXT, degColumnText == null ? EMPTY_TEXT : degColumnText);
 
     Text badRow = new Text(), colQ = new Text();
-    int degColumnTextLength = degColumnText == null ? -1 : degColumnText.getLength();
-    byte[] degColumnTextBytes = degColumnText == null ? null : degColumnText.getBytes();
+//    int degColumnTextLength = degColumnText == null ? -1 : degColumnText.getLength();
+//    byte[] degColumnTextBytes = degColumnText == null ? null : degColumnText.getBytes();
     AbstractEncoder<Long> encoder = new LongCombiner.StringEncoder();
 
     for (Map.Entry<Key, Value> entry : bs) {
@@ -521,14 +521,11 @@ public class Graphulo {
         long deg;
         if (degInColQ) {
           if (degColumnText != null) {
-            entry.getKey().getColumnQualifier(colQ);
-            byte[] colQbytes = colQ.getBytes();
-            if (0 != WritableComparator.compareBytes(colQbytes, 0, degColumnTextLength, degColumnTextBytes, 0, degColumnTextLength))
+            String degString = GraphuloUtil.stringAfter(degColumnText.getBytes(), entry.getKey().getColumnQualifierData().getBackingArray());
+            if (degString == null)
               continue;
-            // could hit Accumulo bug
-//            deg = encoder.decode(colQ.getBytes(), degColumnTextLength, colQ.getLength()-degColumnTextLength);
-            // safer --
-            deg = Long.parseLong(new String(colQ.getBytes(), degColumnTextLength, colQ.getLength()-degColumnTextLength, UTF_8));
+            else
+              deg = Long.parseLong(degString);
           } else
             deg = encoder.decode(entry.getKey().getColumnQualifierData().getBackingArray());
         } else
@@ -553,17 +550,181 @@ public class Graphulo {
    * Out-degree-filtered Breadth First Search on Incidence table.
    * Conceptually k iterations of: v0 ==startPrefix==> edge ==endPrefix==> v1.
    *
-   * @param Etable         Incidence table; rows are edges, column qualifiers are nodes.
-   * @param v0             Starting vertices, like "v0,v5,v6,"
-   * @param k              # of hops.
-   * @param startPrefix    Prefix of 'start' of an edge including separator, e.g. 'out|'
-   * @param endPrefix      Prefix of 'end' of an edge including separator, e.g. 'in|'
-   * @param minDegree      Optional. Minimum out-degree.
-   * @param maxDegree      Optional. Maximum out-degree.
-   * @param outputNormal   Create E of subgraph for each of the k hops.
-   * @param outputTranpose Create ET of subgraph for each of the k hops.
+   * @param Etable        Incidence table; rows are edges, column qualifiers are nodes.
+   * @param v0            Starting vertices, like "v0,v5,v6,"
+   * @param k             # of hops.
+   * @param Rtable        Name of table to store result. Null means don't store the result.
+   * @param RTtable       Name of table to store transpose of result. Null means don't store the transpose.
+   * @param startPrefix   Prefix of 'start' of an edge including separator, e.g. 'out|'
+   * @param endPrefix     Prefix of 'end' of an edge including separator, e.g. 'in|'
+   * @param ETDegtable    Name of table holding out-degrees for ET. Must be specified if degree filtering is used.
+   * @param degColumn   Name of column for out-degrees in ETDegtable like "deg". Null means the empty column "".
+   *                    If degInColQ==true, this is the prefix before the numeric portion of the column like "deg|", and null means no prefix.
+   * @param degInColQ   True means degree is in the Column Qualifier. False means degree is in the Value.
+   * @param minDegree     Minimum out-degree. Checked before doing any searching, at every step, from ADegtable. Pass 0 for no filtering.
+   * @param maxDegree     Maximum out-degree. Checked before doing any searching, at every step, from ADegtable. Pass Integer.MAX_VALUE for no filtering.
+   * @param plusOp      An SKVI to apply to the result table that "sums" values. Not applied if null.
+   * @param trace       Enable server-side performance tracing.
+   * LATER: @ return              The nodes reachable in exactly k steps from v0.
    */
-  void EdgeBFS(String Etable, String v0, int k, String startPrefix, String endPrefix, int minDegree, int maxDegree, boolean outputNormal, boolean outputTranpose) {
+  public String  EdgeBFS(String Etable, String v0, int k, String Rtable, String RTtable,
+               String startPrefix, String endPrefix,
+               String ETDegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree,
+               IteratorSetting plusOp, boolean trace) {
+    boolean needDegreeFiltering = minDegree > 0 || maxDegree < Integer.MAX_VALUE;
+    if (Etable == null || Etable.isEmpty())
+      throw new IllegalArgumentException("Please specify Incidence table. Given: " + Etable);
+    if (needDegreeFiltering && (ETDegtable == null || ETDegtable.isEmpty()))
+      throw new IllegalArgumentException("Need degree table for EdgeBFS. Given: "+ETDegtable);
+    if (Rtable != null && Rtable.isEmpty())
+      Rtable = null;
+    if (RTtable != null && RTtable.isEmpty())
+      RTtable = null;
+    if (minDegree < 1)
+      minDegree = 1;
+    if (maxDegree < minDegree)
+      throw new IllegalArgumentException("maxDegree=" + maxDegree + " should be >= minDegree=" + minDegree);
+
+    if (degColumn == null)
+      degColumn = "";
+    Text degColumnText = new Text(degColumn);
+    if (plusOp != null && plusOp.getPriority() >= 20)
+      log.warn("Sum iterator setting is >=20. Are you sure you want the priority after the default Versioning iterator priority? " + plusOp);
+    if (v0 != null && v0.isEmpty())
+      v0 = null;
+    Collection<Text> vktexts = v0 == null ? null : GraphuloUtil.d4mRowToTexts(v0);
+
+    TableOperations tops = connector.tableOperations();
+    if (!tops.exists(Etable))
+      throw new IllegalArgumentException("Table E does not exist. Given: " + Etable);
+    if (Rtable != null && !tops.exists(Rtable))
+      try {
+        tops.create(Rtable);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        log.error("error trying to create R table " + Rtable, e);
+        throw new RuntimeException(e);
+      } catch (TableExistsException e) {
+        log.error("crazy", e);
+        throw new RuntimeException(e);
+      }
+    if (RTtable != null && !tops.exists(RTtable))
+      try {
+        tops.create(RTtable);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        log.error("error trying to create R table transpose " + RTtable, e);
+        throw new RuntimeException(e);
+      } catch (TableExistsException e) {
+        log.error("crazy", e);
+        throw new RuntimeException(e);
+      }
+
+    Map<String, String> opt = new HashMap<>();
+    opt.put("trace", String.valueOf(trace)); // logs timing on server
+//    opt.put("gatherColQs", "true");  No gathering right now.  Need to implement more general gathering function on RemoteWriteIterator.
+    opt.put("dot", TwoTableIterator.DOT_TYPE.ROW_CARTESIAN.name());
+    opt.put("multiplyOp", EdgeBFSMultiply.class.getName());
+    String instance = connector.getInstance().getInstanceName();
+    String zookeepers = connector.getInstance().getZooKeepers();
+    String user = connector.whoami();
+    opt.put("AT.zookeeperHost", zookeepers);
+    opt.put("AT.instanceName", instance);
+    opt.put("AT.tableName", Etable); // todo: reconfigure TwoTableIterator to use a deepCopy of the local iterator instead of reading the same table through a Scanner
+    opt.put("AT.username", user);
+    opt.put("AT.password", new String(password.getPassword()));
+
+
+    if (Rtable != null || RTtable != null) {
+      opt.put("C.zookeeperHost", zookeepers);
+      opt.put("C.instanceName", instance);
+      if (Rtable != null)
+        opt.put("C.tableName", Rtable);
+      if (RTtable != null)
+        opt.put("C.tableNameTranspose", RTtable);
+      opt.put("C.username", user);
+      opt.put("C.password", new String(password.getPassword()));
+      opt.put("C.reducer", EdgeBFSReducer.class.getName());
+      opt.put("C.reducer.opt.inColumnPrefix", endPrefix);
+//      opt.put("C.numEntriesCheckpoint", String.valueOf(numEntriesCheckpoint));
+
+      if (Rtable != null && plusOp != null)
+        GraphuloUtil.applyIteratorSoft(plusOp, tops, Rtable);
+      if (RTtable != null && plusOp != null)
+        GraphuloUtil.applyIteratorSoft(plusOp, tops, RTtable);
+    }
+
+    BatchScanner bs;
+    try {
+      bs = connector.createBatchScanner(Etable, Authorizations.EMPTY, 2); // TODO P2: set number of batch scan threads
+    } catch (TableNotFoundException e) {
+      log.error("crazy", e);
+      throw new RuntimeException(e);
+    }
+
+    String colFilterB = GraphuloUtil.prependStartPrefix(endPrefix, v0, null);
+    log.debug("fetchColumn "+colFilterB);
+//    bs.fetchColumn(EMPTY_TEXT, new Text(GraphuloUtil.prependStartPrefix(endPrefix, v0, null)));
+
+    long degTime = 0, scanTime = 0;
+    for (int thisk = 1; thisk <= k; thisk++) {
+      if (trace)
+        if (vktexts != null)
+          System.out.println("k=" + thisk + " before filter" +
+              (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
+        else
+          System.out.println("k=" + thisk + " ALL nodes");
+
+      long t1 = System.currentTimeMillis(), dur;
+      vktexts = needDegreeFiltering
+          ? filterTextsDegreeTable(ETDegtable, degColumnText, degInColQ, minDegree, maxDegree, vktexts)
+          : vktexts;
+      dur = System.currentTimeMillis() - t1;
+      degTime += dur;
+      if (trace)
+        System.out.println("Degree Lookup Time: " + dur + " ms");
+      if (trace && vktexts != null)
+        System.out.println("k=" + thisk + " after  filter" +
+            (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
+      if (vktexts != null && vktexts.isEmpty())
+        break;
+
+      log.debug("AT.colFilter: "+GraphuloUtil.prependStartPrefix(startPrefix, v0, vktexts));
+      opt.put("AT.colFilter", GraphuloUtil.prependStartPrefix(startPrefix, v0, vktexts));
+
+      bs.setRanges(Collections.singleton(new Range()));
+      bs.clearScanIterators();
+      bs.clearColumns();
+      GraphuloUtil.applyGeneralColumnFilter(colFilterB, bs, 4);
+      IteratorSetting itset = new IteratorSetting(5, TableMultIterator.class, opt);
+      bs.addScanIterator(itset);
+
+      Collection<Text> uktexts = new HashSet<>();
+      EdgeBFSReducer reducer = new EdgeBFSReducer();
+      try {
+        reducer.init(Collections.singletonMap("inColumnPrefix",endPrefix), null);
+      } catch (IOException e) {
+        log.warn("crazy",e);
+        throw new RuntimeException(e);
+      }
+      long t2 = System.currentTimeMillis();
+      for (Map.Entry<Key, Value> entry : bs) {
+//        System.out.println("A Entry: "+entry.getKey() + " -> " + entry.getValue());
+        RemoteWriteIterator.decodeValue(entry.getValue(), reducer);
+      }
+      dur = System.currentTimeMillis() - t2;
+      scanTime += dur;
+      for (String uk : reducer.get()) {
+        uktexts.add(new Text(uk));
+      }
+      if (trace)
+        System.out.println("BatchScan/Iterator Time: " + dur + " ms");
+      vktexts = uktexts;
+    }
+    if (trace) {
+      System.out.println("Total Degree Lookup Time: " + degTime + " ms");
+      System.out.println("Total BatchScan/Iterator Time: " + scanTime + " ms");
+    }
+    bs.close();
+    return GraphuloUtil.textsToD4mString(vktexts, v0 == null ? ',' : v0.charAt(v0.length() - 1));
 
   }
 

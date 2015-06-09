@@ -62,16 +62,18 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   private int timeout = -1;
   private int numEntriesCheckpoint = -1;
   /** Reduce-like functionality. */
-  private Reducer reducer = new NOOP_REDUCER();
-  static final class NOOP_REDUCER implements Reducer {
+  private Reducer<? extends Serializable> reducer = new NOOP_REDUCER();
+  static final class NOOP_REDUCER implements Reducer<Serializable> {
     @Override
-    public void init(Map options, IteratorEnvironment env) throws IOException {}
+    public void init(Map<String,String> options, IteratorEnvironment env) throws IOException {}
     @Override
     public void reset() throws IOException {}
     @Override
     public void update(Key k, Value v) {}
     @Override
     public void combine(Serializable another) {}
+    @Override
+    public boolean hasTop() { return false; }
     @Override
     public Serializable get() {
       return null;
@@ -169,6 +171,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     return true;
   }
 
+  @SuppressWarnings("unchecked")
   private void parseOptions(Map<String, String> map) {
     for (Map.Entry<String, String> optionEntry : map.entrySet()) {
       String optionKey = optionEntry.getKey();
@@ -397,9 +400,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
       Key k = source.getTopKey();
       Value v = source.getTopValue();
 
-      if (reducer != null) {
-        reducer.update(k, v);
-      }
+      reducer.update(k, v);
 
       if (writer != null) {
         m = new Mutation(k.getRowData().getBackingArray());
@@ -464,7 +465,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
         (numRejects >= REJECT_FAILURE_THRESHOLD ||
         rowRangeIterator.hasNext() ||
         //source.hasTop() ||
-        reducer.get() != null);
+        reducer.hasTop());
   }
 
   @Override
@@ -508,9 +509,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
           .rewind();
       return new Value(bb);
     } else {
-      Serializable s = reducer.get();
       byte[] orig = //((SaveStateIterator) source).safeState().getValue().get();
-          s == null ? new byte[0] : SerializationUtils.serialize(s);
+          reducer.hasTop() ? SerializationUtils.serialize(reducer.get()) : new byte[0];
       ByteBuffer bb = ByteBuffer.allocate(orig.length + 4 + 2);
       bb.putInt(entriesWritten)
           .putChar(',')
@@ -521,6 +521,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public RemoteWriteIterator deepCopy(IteratorEnvironment iteratorEnvironment) {
     RemoteWriteIterator copy = new RemoteWriteIterator(this);
     copy.source = source.deepCopy(iteratorEnvironment);

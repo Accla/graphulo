@@ -277,7 +277,13 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
       watch.stop(Watch.PerfSpan.Bnext);
     }
 
+    log.debug("remoteAT.hasTop()="+remoteAT.hasTop()+" remoteB.hasTop()="+remoteB.hasTop());
     prepNextRowMatch(/*false*/);
+    log.debug("remoteAT.hasTop()="+remoteAT.hasTop()+" remoteB.hasTop()="+remoteB.hasTop());
+    if (remoteAT.hasTop())
+      log.debug("remoteAT.getTopKey()="+remoteAT.getTopKey());
+    if (remoteB.hasTop())
+      log.debug("remoteB.getTopKey()="+remoteB.getTopKey());
   }
 
   private void prepNextRowMatch(/*boolean doNext*/) throws IOException {
@@ -372,6 +378,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
           try {
             ArowMap = readRow(remoteAT, watch, Watch.PerfSpan.ATnext);
             BrowMap = readRow(remoteB, watch, Watch.PerfSpan.Bnext);
+            log.debug("ArowMap: "+ArowMap+"   BrowMap: "+BrowMap);
           } finally {
             watch.stop(Watch.PerfSpan.RowDecodeBoth);
           }

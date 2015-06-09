@@ -40,10 +40,10 @@ public interface Reducer<E extends Serializable> {
   /** Update internal state with a collection of entries. */
   void combine(E another);
 
-//  /** Signals whether the reducer has an element ready to serialize and send to the client.
-//   * Should always be false after reset() is called.
-//   */
-//  boolean hasTop();
+  /** Signals whether the reducer has an element ready to serialize and send to the client.
+   * Should always be false after reset() is called.
+   */
+  boolean hasTop();
 
   /**
    * Emit the serialized state.

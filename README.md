@@ -251,8 +251,7 @@ Don't specify when operating on a single table.
 * `updater` Used to "collect" something to send to the client. Name of class that implements `KVUpdater` interface. 
 The final state of the updater is sent to the client once the scan finishes,
 or when at a checkpoint. (Updater must be capable of being sent in parts to the client in this case.)
-* `checkpointNumEntries` Assume safe time to checkpoint is at the end of a row. Agh-- how to know the end of a row? 
-Okay--- sacrifice minor, minor, minor performance for switching at the beginning of the next row.
+* `checkpointNumEntries` Emit a monitoring entry after this number of entries. Not working presently for EWiseX. 
 * `checkpointTime` (in milliseconds) More useful than NumEntries.
 * `tableName`
 * `tableNameTranspose`

@@ -1,21 +1,43 @@
 package edu.mit.ll.graphulo;
 
 import com.google.common.collect.Iterators;
-import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.MultiTableBatchWriter;
+import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.data.*;
+import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.PartialKey;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * SKVI that writes to an Accumulo table.
@@ -39,7 +61,23 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
    */
   private int timeout = -1;
   private int numEntriesCheckpoint = -1;
-  private boolean gatherColQs = false;
+  /** Reduce-like functionality. */
+  private Reducer reducer = new NOOP_REDUCER();
+  static final class NOOP_REDUCER implements Reducer {
+    @Override
+    public void init(Map options, IteratorEnvironment env) throws IOException {}
+    @Override
+    public void reset() throws IOException {}
+    @Override
+    public void update(Key k, Value v) {}
+    @Override
+    public void combine(Serializable another) {}
+    @Override
+    public Serializable get() {
+      return null;
+    }
+  }
+  private Map<String,String> reducerOptions = new HashMap<>();
 
   /**
    * Created in init().
@@ -52,10 +90,9 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
    */
   private int entriesWritten;
   /**
-   * Ensure that entry from setUniqueColQs comes after any monitor entries emitted.
+   * The last key returned by the source's safe state, or the seekRange's start key.
    */
-  private Key lastKeyEmitted = new Key();
-  private HashSet<String> setUniqueColQs = null;
+  private Key lastSafeKey = new Key();
 
   /**
    * The range given by seek. Clip to this range.
@@ -94,7 +131,6 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     other.auth = auth;
     other.timeout = timeout;
     other.numEntriesCheckpoint = numEntriesCheckpoint;
-    other.setUniqueColQs = setUniqueColQs == null ? null : new HashSet<>(setUniqueColQs);
     other.rowRanges = rowRanges;
     other.setupConnectorWriter();
   }
@@ -111,7 +147,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     optDesc.put("username", "");
     optDesc.put("password", "(Anyone who can read the Accumulo table config OR the log files will see your password in plaintext.)");
     optDesc.put("numEntriesCheckpoint", "(optional) #entries until sending back a progress monitor");
-    optDesc.put("gatherColQs", "(default false) gather set of unique column qualifiers passed in and send back all of them at the end");
+    optDesc.put("reducer", "(default does nothing) reducing function");
     optDesc.put("rowRanges", "(optional) rows to seek to");
     iteratorOptions = new IteratorOptions("RemoteWriteIterator",
         "Write to a remote Accumulo table.",
@@ -134,53 +170,61 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   }
 
   private void parseOptions(Map<String, String> map) {
-    for (Map.Entry<String, String> entry : map.entrySet()) {
-      switch (entry.getKey()) {
-        case "zookeeperHost":
-          zookeeperHost = entry.getValue();
-          break;
-        case "timeout":
-          timeout = Integer.parseInt(entry.getValue());
-          break;
-        case "instanceName":
-          instanceName = entry.getValue();
-          break;
-        case "tableName":
-          tableName = entry.getValue();
-          if (tableName.isEmpty())
-            tableName = null;
-          break;
-        case "tableNameTranspose":
-          tableNameTranspose = entry.getValue();
-          if (tableNameTranspose.isEmpty())
-            tableNameTranspose = null;
-          break;
-        case "username":
-          username = entry.getValue();
-          break;
-        case "password":
-          auth = new PasswordToken(entry.getValue());
-          break;
+    for (Map.Entry<String, String> optionEntry : map.entrySet()) {
+      String optionKey = optionEntry.getKey();
+      String optionValue = optionEntry.getValue();
+      if (optionKey.startsWith("reducer.opt.")) {
+        String keyAfterPrefix = optionKey.substring("reducer.opt.".length());
+        reducerOptions.put(keyAfterPrefix, optionValue);
+      } else {
+        switch (optionKey) {
+          case "zookeeperHost":
+            zookeeperHost = optionValue;
+            break;
+          case "timeout":
+            timeout = Integer.parseInt(optionValue);
+            break;
+          case "instanceName":
+            instanceName = optionValue;
+            break;
+          case "tableName":
+            tableName = optionValue;
+            if (tableName.isEmpty())
+              tableName = null;
+            break;
+          case "tableNameTranspose":
+            tableNameTranspose = optionValue;
+            if (tableNameTranspose.isEmpty())
+              tableNameTranspose = null;
+            break;
+          case "username":
+            username = optionValue;
+            break;
+          case "password":
+            auth = new PasswordToken(optionValue);
+            break;
 
-        case "numEntriesCheckpoint":
-          numEntriesCheckpoint = Integer.parseInt(entry.getValue());
-          break;
-        case "gatherColQs":
-          gatherColQs = Boolean.parseBoolean(entry.getValue());
-          break;
+          case "reducer":
+            reducer = GraphuloUtil.subclassNewInstance(optionValue, Reducer.class);
+            break;
 
-        case "rowRanges":
-          rowRanges.setTargetRanges(parseRanges(entry.getValue()));
-          break;
+          case "numEntriesCheckpoint":
+            numEntriesCheckpoint = Integer.parseInt(optionValue);
+            break;
 
-        default:
-          log.warn("Unrecognized option: " + entry);
-          continue;
+          case "rowRanges":
+            rowRanges.setTargetRanges(parseRanges(optionValue));
+            break;
+
+          default:
+            log.warn("Unrecognized option: " + optionEntry);
+            continue;
+        }
+        log.trace("Option OK: " + optionEntry);
       }
-      log.trace("Option OK: " + entry);
     }
     // Required options
-    if ((tableName == null && tableNameTranspose == null && !gatherColQs) ||
+    if ((tableName == null && tableNameTranspose == null && reducer.getClass().equals(NOOP_REDUCER.class)) ||
         ((tableName != null || tableNameTranspose != null) &&
             (zookeeperHost == null ||
                 instanceName == null ||
@@ -220,8 +264,9 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     if (!(source instanceof SaveStateIterator)) {
       numEntriesCheckpoint = -2; // disable save state
     }
-    if (gatherColQs)
-      setUniqueColQs = new HashSet<>();
+
+    if (reducer != null)
+      reducer.init(reducerOptions, iteratorEnvironment);
 
     setupConnectorWriter();
 
@@ -283,9 +328,10 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-    log.debug("RemoteWrite on table " + tableName + " passed seek(): " + range);
+    log.debug("RemoteWrite on table " + tableName + " / "+tableNameTranspose+" seek(): " + range);
     //System.out.println("RW passed seek " + range + "(thread " + Thread.currentThread().getName() + ")");
 
+    reducer.reset();
     seekRange = range;
     seekColumnFamilies = columnFamilies;
     seekInclusive = inclusive;
@@ -303,8 +349,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
         if (doSeekNext) {
           Range thisTargetRange = rowRangeIterator.peek();
           assert thisTargetRange.clip(seekRange, true) != null : "problem with RangeSet iterator intersecting seekRange";
-          if (thisTargetRange.getStartKey() != null && thisTargetRange.getStartKey().compareTo(lastKeyEmitted) > 0)
-            lastKeyEmitted.set(thisTargetRange.getStartKey());
+          if (thisTargetRange.getStartKey() != null && thisTargetRange.getStartKey().compareTo(lastSafeKey) > 0)
+            lastSafeKey.set(thisTargetRange.getStartKey());
           log.debug("RemoteWrite actual seek " + thisTargetRange);// + "(thread " + Thread.currentThread().getName() + ")");
           // We could use the 10x next() heuristic here...
           source.seek(thisTargetRange, seekColumnFamilies, seekInclusive);
@@ -351,8 +397,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
       Key k = source.getTopKey();
       Value v = source.getTopValue();
 
-      if (gatherColQs) {
-        setUniqueColQs.add(new String(k.getColumnQualifierData().getBackingArray()));
+      if (reducer != null) {
+        reducer.update(k, v);
       }
 
       if (writer != null) {
@@ -385,17 +431,18 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
       }
 
       if (numRejects >= REJECT_FAILURE_THRESHOLD) { // declare global failure after 10 rejects
-        rowRangeIterator = new PeekingIterator1<>(Iterators.<Range>emptyIterator());
         // last entry emitted declares failure
+        rowRangeIterator = new PeekingIterator1<>(Iterators.<Range>emptyIterator());
+        reducer = new NOOP_REDUCER();
         return true;
       }
 
       entriesWritten++;
       // check to see if we can save state
       if (numEntriesCheckpoint > 0 && entriesWritten >= numEntriesCheckpoint) {
-        Map.Entry<Key, Value> safeState = ((SaveStateIterator) source).safeState();
-        if (safeState != null) {
-          lastKeyEmitted.set(safeState.getKey());
+        Key safeKey = ((SaveStateIterator) source).safeState();
+        if (safeKey != null) {
+          lastSafeKey.set(safeKey);
           return true;
         }
       }
@@ -413,17 +460,19 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
   @Override
   public boolean hasTop() {
-    return numRejects >= REJECT_FAILURE_THRESHOLD ||
+    return numRejects != -1 &&
+        (numRejects >= REJECT_FAILURE_THRESHOLD ||
         rowRangeIterator.hasNext() ||
         //source.hasTop() ||
-        (gatherColQs && !setUniqueColQs.isEmpty());
+        reducer.get() != null);
   }
 
   @Override
   public void next() throws IOException {
     if (numRejects >= REJECT_FAILURE_THRESHOLD)
       numRejects = -1;
-    else if (rowRangeIterator.hasNext()) {
+    reducer.reset();
+    if (rowRangeIterator.hasNext()) {
       if (source.hasTop()) {
         Watch<Watch.PerfSpan> watch = Watch.getInstance();
         watch.start(Watch.PerfSpan.WriteGetNext);
@@ -437,53 +486,82 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
         rowRangeIterator.next();
         writeWrapper(true);
       }
-    } else if (gatherColQs && !setUniqueColQs.isEmpty()) {
-      setUniqueColQs.clear();
-    } else
-      throw new IllegalStateException();
+    }
   }
 
   @Override
   public Key getTopKey() {
-    if (numRejects >= REJECT_FAILURE_THRESHOLD)
-      return new Key(lastKeyEmitted).followingKey(PartialKey.ROW);
-    else if (source.hasTop())
-      return ((SaveStateIterator) source).safeState().getKey();
-    else if (gatherColQs && !setUniqueColQs.isEmpty()) {
-      return new Key(lastKeyEmitted).followingKey(PartialKey.ROW);
-    } else
-      return null;
+    if (source.hasTop())
+      return new Key(lastSafeKey);
+    else
+      return new Key(lastSafeKey).followingKey(PartialKey.ROW_COLFAM_COLQUAL);
   }
 
   @Override
   public Value getTopValue() {
     if (numRejects >= REJECT_FAILURE_THRESHOLD) {
-      byte[] orig = ((SaveStateIterator) source).safeState().getValue().get();
-      ByteBuffer bb = ByteBuffer.allocate(orig.length + 4 + 2);
-      bb.putInt(entriesWritten)
-          .putChar(',')
-          .put("Server_BatchWrite_Entries_Rejected!".getBytes())
-          .rewind();
-      return new Value(bb);
-    } else if (source.hasTop()) {
-      byte[] orig = ((SaveStateIterator) source).safeState().getValue().get();
+      byte[] orig = REJECT_MESSAGE;
       ByteBuffer bb = ByteBuffer.allocate(orig.length + 4 + 2);
       bb.putInt(entriesWritten)
           .putChar(',')
           .put(orig)
           .rewind();
       return new Value(bb);
-    } else if (gatherColQs && !setUniqueColQs.isEmpty()) {
-      return new Value(SerializationUtils.serialize(setUniqueColQs));
-    } else
-      return null;
+    } else {
+      Serializable s = reducer.get();
+      byte[] orig = //((SaveStateIterator) source).safeState().getValue().get();
+          s == null ? new byte[0] : SerializationUtils.serialize(s);
+      ByteBuffer bb = ByteBuffer.allocate(orig.length + 4 + 2);
+      bb.putInt(entriesWritten)
+          .putChar(',')
+          .put(orig)
+          .rewind();
+      return new Value(bb);
+    }
   }
 
   @Override
   public RemoteWriteIterator deepCopy(IteratorEnvironment iteratorEnvironment) {
     RemoteWriteIterator copy = new RemoteWriteIterator(this);
     copy.source = source.deepCopy(iteratorEnvironment);
+    copy.reducerOptions.putAll(reducerOptions);
+      try {
+        copy.reducer = reducer.getClass().newInstance();
+      } catch (InstantiationException | IllegalAccessException e) {
+        throw new RuntimeException(e);
+      }
+      try {
+        copy.reducer.init(reducerOptions, iteratorEnvironment);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     return copy;
+  }
+
+  static final byte[] REJECT_MESSAGE = "Server_BatchWrite_Entries_Rejected!".getBytes();
+
+  /**
+   *
+   * @param v Value from Scanner or BatchScanner.
+   * @param reducer Calls combine() on the element inside if present. Pass null to ignore elements if any returned.
+   * @param <E> Class of the element inside to deserialize.
+   * @return Number of entries.
+   */
+  @SuppressWarnings("unchecked")
+  public static <E extends Serializable> int decodeValue(Value v, Reducer<E> reducer) {
+    ByteBuffer bb = ByteBuffer.wrap(v.get());
+    int numEntries = bb.getInt();
+    bb.getChar(); // ','
+    if (reducer != null && bb.hasRemaining())  {
+      byte[] rest = new byte[bb.remaining()];
+      if (Arrays.equals(REJECT_MESSAGE, rest)) {
+        log.error("mutations rejected at server!");
+      } else {
+        bb.get(rest);
+        reducer.combine((E) SerializationUtils.deserialize(rest));
+      }
+    }
+    return numEntries;
   }
 
 

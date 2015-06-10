@@ -152,23 +152,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
             dot = DOT_TYPE.valueOf(optionValue);
             break;
           case "multiplyOp":
-            Class<?> c;
-            try {
-              c = Class.forName(optionValue);
-            } catch (ClassNotFoundException e) {
-              throw new IllegalArgumentException("Can't find multiplyOp class: " + optionValue, e);
-            }
-            Class<? extends IMultiplyOp> cm;
-            try {
-              cm = c.asSubclass(IMultiplyOp.class);
-            } catch (ClassCastException e) {
-              throw new IllegalArgumentException("multiplyOp is not a subclass of IMultiplyOp: " + c.getName(), e);
-            }
-            try {
-              multiplyOp = cm.newInstance();
-            } catch (InstantiationException | IllegalAccessException e) {
-              throw new IllegalArgumentException("can't instantiate new instance of " + cm.getName(), e);
-            }
+            multiplyOp = GraphuloUtil.subclassNewInstance(optionValue, IMultiplyOp.class);
             break;
           default:
             log.warn("Unrecognized option: " + optionEntry);
@@ -535,7 +519,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
   }
 
   @Override
-  public Map.Entry<Key, Value> safeState() {
+  public Key safeState() {
     if (bottomIter == null || bottomIter.peekSecond() != null) {
       // either we have no entries left to emit, or we need to
       // finish the row's cartesian product first (until bottomIter has one left)
@@ -544,28 +528,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
       // the current top entry of bottomIter is the last in this cartesian product (bottomIter)
       // Save state at this row.  If reseek'd to this row, go to the next row (assume exclusive).
       assert bottomIter.peekFirst() != null;
-      final Key k = new Key(emittedRow);
-      // BAD!
-//          dot == DOT_TYPE.ROW_CARTESIAN
-//            ? GraphuloUtil.keyCopy(bottomIter.peekFirst().getKey(), PartialKey.ROW)
-//            : bottomIter.peekFirst().getKey(); // second case should be okay without copying
-      final Value v = new Value(); // no additional information to return.
-      return new Map.Entry<Key, Value>() {
-        @Override
-        public Key getKey() {
-          return k;
-        }
-
-        @Override
-        public Value getValue() {
-          return v;
-        }
-
-        @Override
-        public Value setValue(Value value) {
-          throw new UnsupportedOperationException();
-        }
-      };
+      return new Key(emittedRow);
     }
   }
 

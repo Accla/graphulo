@@ -2,14 +2,19 @@ package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import edu.mit.ll.graphulo.util.TestUtil;
-import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -17,7 +22,17 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 /**
  * Test RemoteSourceIterator and RemoteMergeIterator.
@@ -30,7 +45,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
    */
   @SuppressWarnings("unchecked")
   @Test
-  public void testWriteTableTranspose() throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+  public void testWriteTableTranspose() throws AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
     Connector conn = tester.getConnector();
 
     final String tA, tR, tRT;
@@ -42,7 +57,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     }
     Map<Key,Value> expectR = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
       expectRT = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-    HashSet<String> setUniqueColQsExpect = new HashSet<>(), setUniqueColQsActual=new HashSet<>();
+    HashSet<String> setUniqueColQsExpect = new HashSet<>(), setUniqueColQsActual;
     {
       Map<Key, Value> input = new HashMap<>();
       input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
@@ -73,13 +88,17 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     opt.put("tableNameTranspose", tRT);
     opt.put("username", conn.whoami());
     opt.put("password", new String(tester.getPassword().getPassword()));
-    opt.put("gatherColQs", "true");
+    opt.put("reducer", GatherColQReducer.class.getName());
     IteratorSetting is = new IteratorSetting(12,RemoteWriteIterator.class, opt);
     bs.addScanIterator(is);
+
+    GatherColQReducer reducer = new GatherColQReducer();
+    reducer.init(Collections.<String,String>emptyMap(), null);
     for (Map.Entry<Key, Value> entry : bs) {
-//      log.warn("Unexpected output: "+entry.getKey()+" -> "+entry.getValue());
-      setUniqueColQsActual.addAll((HashSet<String>) SerializationUtils.deserialize(entry.getValue().get()));
+      RemoteWriteIterator.decodeValue(entry.getValue(), reducer);
+//      setUniqueColQsActual.addAll((HashSet<String>) SerializationUtils.deserialize(entry.getValue().get()));
     }
+    setUniqueColQsActual = reducer.get();
     Assert.assertEquals(setUniqueColQsExpect, setUniqueColQsActual);
     bs.close();
 

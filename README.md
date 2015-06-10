@@ -211,8 +211,7 @@ PreSumCacheIterator is important for efficiency.
 * SpRef -- use RemoteWriteIterator with rowRanges and colFilter to output results to another table.
 * SpAsgn -- unimplemented.
 * Apply -- use an iterator with the function to apply + RemoteWriteIterator.
-* Reduce -- use an iterator that does the reduction (say, count the number of columns in a row) 
-and either send to client or to a RemoteWriteIterator.
+* Reduce -- use a RemoteWriteIterator's `reduce` function.
 
 
 ### Iterators
@@ -248,9 +247,9 @@ Don't specify when operating on a single table.
 * `size` in bytes or entries?
 
 ##### RemoteWriteIterator
-* `updater` Used to "collect" something to send to the client. Name of class that implements `KVUpdater` interface. 
-The final state of the updater is sent to the client once the scan finishes,
-or when at a checkpoint. (Updater must be capable of being sent in parts to the client in this case.)
+* `reducer` Used to "collect" something to send to the client. Name of class that implements `Reducer` interface. 
+The final state of the reducer is sent to the client once the scan finishes, or when at a checkpoint.
+The reduce operation must therefore be commutative and associative.
 * `checkpointNumEntries` Emit a monitoring entry after this number of entries. Not working presently for EWiseX. 
 * `checkpointTime` (in milliseconds) More useful than NumEntries.
 * `tableName`

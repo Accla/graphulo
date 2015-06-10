@@ -306,12 +306,7 @@ public class UtilTest {
   /** temporary */
   @Test
   public void testTest() {
-    HashSet<String> set = new HashSet<>();
-    set.add("a");
-    set.add("g");
-    set.add("k");
-    set.add("g");
-    System.out.println(set);
+
   }
 
 

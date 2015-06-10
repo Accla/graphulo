@@ -353,5 +353,25 @@ public class GraphuloUtil {
     }
   }
 
+  public static <E> E subclassNewInstance(String classname, Class<E> parentClass) {
+    Class<?> c;
+    try {
+      c = Class.forName(classname);
+    } catch (ClassNotFoundException e) {
+      throw new IllegalArgumentException("Can't find class: " + classname, e);
+    }
+    Class<? extends E> cm;
+    try {
+      cm = c.asSubclass(parentClass);
+    } catch (ClassCastException e) {
+      throw new IllegalArgumentException(classname+" is not a subclass of "+parentClass.getName(), e);
+    }
+    try {
+      return cm.newInstance();
+    } catch (InstantiationException | IllegalAccessException e) {
+      throw new IllegalArgumentException("can't instantiate new instance of " + cm.getName(), e);
+    }
+  }
+
 
 }

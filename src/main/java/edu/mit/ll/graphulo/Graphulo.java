@@ -19,13 +19,12 @@ import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.ValueFormatException;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import java.nio.ByteBuffer;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -258,12 +257,8 @@ public class Graphulo {
     try {
       for (Map.Entry<Key, Value> entry : bs) {
         if (Ctable != null || CTtable != null) {
-          Value v = entry.getValue();
-          ByteBuffer bb = ByteBuffer.wrap(v.get());
-          int numEntries = bb.getInt();
-          char c = bb.getChar();
-          String str = new Value(bb).toString();
-          System.out.println(entry.getKey() + " -> " + numEntries + c + str);
+          int numEntries = RemoteWriteIterator.decodeValue(entry.getValue(), null);
+          System.out.println(entry.getKey() + " -> " + numEntries + "entries processed");
         } else {
           System.out.println(entry.getKey() + " -> " + entry.getValue());
         }
@@ -384,7 +379,7 @@ public class Graphulo {
 
     Map<String, String> opt = new HashMap<>();
     opt.put("trace", String.valueOf(trace)); // logs timing on server
-    opt.put("gatherColQs", "true");
+    opt.put("reducer", GatherColQReducer.class.getName());
     if (Rtable != null || RTtable != null) {
       String instance = connector.getInstance().getInstanceName();
       String zookeepers = connector.getInstance().getZooKeepers();
@@ -453,25 +448,31 @@ public class Graphulo {
       bs.addScanIterator(itset);
 
       Collection<Text> uktexts = new HashSet<>();
+      GatherColQReducer reducer = new GatherColQReducer();
+      try {
+        reducer.init(Collections.<String,String>emptyMap(), null);
+      } catch (IOException e) {
+        log.warn("crazy",e);
+        throw new RuntimeException(e);
+      }
       long t2 = System.currentTimeMillis();
       for (Map.Entry<Key, Value> entry : bs) {
 //        System.out.println("A Entry: "+entry.getKey() + " -> " + entry.getValue());
-        for (String uk : (HashSet<String>) SerializationUtils.deserialize(entry.getValue().get())) {
-          uktexts.add(new Text(uk));
-        }
-
+        RemoteWriteIterator.decodeValue(entry.getValue(), reducer);
       }
       dur = System.currentTimeMillis() - t2;
+      for (String uk : reducer.get()) {
+        uktexts.add(new Text(uk));
+      }
       scanTime += dur;
       if (trace)
         System.out.println("BatchScan/Iterator Time: " + dur + " ms");
       vktexts = uktexts;
     }
-    if (trace)
+    if (trace) {
       System.out.println("Total Degree Lookup Time: " + degTime + " ms");
-    if (trace)
       System.out.println("Total BatchScan/Iterator Time: " + scanTime + " ms");
-
+    }
     bs.close();
     return GraphuloUtil.textsToD4mString(vktexts, v0 == null ? ',' : v0.charAt(v0.length() - 1));
   }

@@ -9,6 +9,8 @@ import java.io.Serializable;
 import java.util.Map;
 
 /**
+ * Holds the logic for a commutative and associative <i>Reduce</i> operation.
+ * <p>
  * A class that receives every entry passed through a {@link RemoteWriteIterator}.
  * It holds some {@link java.io.Serializable} state that is serialized and sent to the client
  * after all entries in a tablet are processed.

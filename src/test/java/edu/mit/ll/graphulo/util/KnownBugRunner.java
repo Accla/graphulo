@@ -33,11 +33,25 @@ public class KnownBugRunner extends BlockJUnit4ClassRunner {
   protected void runChild(final FrameworkMethod method, RunNotifier notifier) {
     Description description = describeChild(method);
     Ignore ignore = method.getAnnotation(Ignore.class);
-    if (ignore != null && ignore.value().startsWith("KnownBug")) {
+    if (ignore != null && !ignore.value().startsWith("KnownBug")) {
       notifier.fireTestIgnored(description);
     } else {
-      RunRules runRules = new RunRules(methodBlock(method), Arrays.asList(new TestRule[]{new KnownBugRule()}), description);
-      runLeaf(runRules, description, notifier);
+//      Result result = new Result();
+//      RunListener listenerResult = result.createListener(),
+//        listenerText = new TextListener(System.out);
+////      RunNotifier topNotifier = new RunNotifier();
+//      notifier.addListener(listenerResult);
+//      notifier.addListener(listenerText);
+//      notifier.fireTestStarted(description);
+      try {
+        RunRules runRules = new RunRules(methodBlock(method), Arrays.asList(new TestRule[]{new KnownBugRule()}), description);
+        runLeaf(runRules, description, notifier);
+      } finally {
+//        notifier.fireTestFinished(description);
+//        notifier.removeListener(listenerResult);
+//        notifier.removeListener(listenerText);
+      }
+
     }
   }
 
@@ -56,7 +70,7 @@ public class KnownBugRunner extends BlockJUnit4ClassRunner {
           } catch (AssumptionViolatedException e) {
             // some other assumption failed
             throw e;
-          } catch (Throwable e) {
+          } catch (Exception e) {
             if (ignore != null) {
               log.info("KnownBug Test Failure: "+ignore.value()+" ["+testclassname+'#'+testmethodname+']',e);
               throw new AssumptionViolatedException("KnownBug Test Failure: "+ignore.value(), e);

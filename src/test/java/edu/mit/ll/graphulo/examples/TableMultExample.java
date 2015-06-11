@@ -38,10 +38,10 @@ public class TableMultExample extends AccumuloTestBase {
 
   @Test
   public void example1() throws FileNotFoundException, TableNotFoundException {
-    String Atable = "tmex" + SCALE + "A";     // Adjacency table A
-    String ATtable = "tmex" + SCALE + "AT";   // Adjacency table A Transpose (row and column qualifier switched)
-    String Btable = "tmex" + SCALE + "B";     // Adjacency table B
-    String Ctable = "tmex" + SCALE + "C";     // Adjacency table C to contain the operation result
+    String Atable = "ex" + SCALE + "A";     // Adjacency table A
+    String ATtable = "ex" + SCALE + "AT";   // Adjacency table A Transpose (row and column qualifier switched)
+    String Btable = "ex" + SCALE + "B";     // Adjacency table B
+    String Ctable = "ex" + SCALE + "C";     // Adjacency table C to contain the operation result
 
     // In your code, you would connect to an Accumulo instance by writing something similar to:
 //    ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance("instance").withZkHosts("localhost:2181").withZkTimeout(5000);
@@ -53,9 +53,9 @@ public class TableMultExample extends AccumuloTestBase {
 
     // Insert data from the file test/resources/data/10Ar.txt and 10Ac.txt into Accumulo.
     // Deletes tables if they already exist.
-    ExampleUtil.ingestSCALE(SCALE, 'A', Atable, conn);
+    ExampleUtil.ingestSCALE(SCALE, 'A', Atable, conn, false);
     // Insert second table from 10Br.txt and 10Bc.txt
-    ExampleUtil.ingestSCALE(SCALE, 'B', Btable, conn);
+    ExampleUtil.ingestSCALE(SCALE, 'B', Btable, conn, false);
 
     // Create Graphulo executor. Supply the password for your Accumulo user account.
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());

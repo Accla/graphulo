@@ -45,8 +45,13 @@ public class D4MTableWriter implements AutoCloseable {
         useTableDeg = false,
         useTableDegT = false,
         useTableField = false,
-        useTableFieldT = false;
-    public Text textDegCol = DEFAULT_DEGCOL;
+        useTableFieldT = false,
+    useSameDegTable = false,
+    useSameFieldTable = false,
+        sumTable = false,
+        sumTableT = false;
+    public Text colDeg = DEFAULT_DEGCOL;
+    public Text colDegT = DEFAULT_DEGCOL;
     public Text cf = EMPTYCF;
     /** The number of bytes until we flush data to the server. */
     public long batchBytes = 2_000_000L;
@@ -63,10 +68,15 @@ public class D4MTableWriter implements AutoCloseable {
       useTableDegT = c.useTableDegT;
       useTableField = c.useTableField;
       useTableFieldT = c.useTableFieldT;
-      textDegCol = c.textDegCol;
+      useSameDegTable = c.useSameDegTable;
+      useSameFieldTable = c.useSameFieldTable;
+      colDeg = c.colDeg;
+      colDegT = c.colDegT;
       batchBytes = c.batchBytes;
       cf = c.cf;
       deleteExistingTables = c.deleteExistingTables;
+      sumTable = c.sumTable;
+      sumTableT = c.sumTableT;
     }
   }
   private final D4MTableConfig tconf;
@@ -100,7 +110,7 @@ public class D4MTableWriter implements AutoCloseable {
       log.info("table "+tableName+": iterator "+ITER_SUMALL_NAME+" already exists with priority "+cfg.getPriority()+" and options: "+cfg.getOptions());
 
     } else {
-      cfg = new IteratorSetting(19, ITER_SUMALL_NAME, SummingCombiner.class);
+      cfg = new IteratorSetting(2, ITER_SUMALL_NAME, SummingCombiner.class);
       //Combiner.setColumns(cfg, columnList);
       Combiner.setCombineAllColumns(cfg, true);
       LongCombiner.setEncodingType(cfg, LongCombiner.Type.STRING);
@@ -150,9 +160,9 @@ public class D4MTableWriter implements AutoCloseable {
     if (tconf.useTable)     TNtable=baseName;
     if (tconf.useTableT)    TNtableT=baseName+"T";
     if (tconf.useTableDeg)  TNtableDeg=baseName+"Deg";
-    if (tconf.useTableDegT) TNtableDegT =baseName + "DegT";
+    if (tconf.useTableDegT) TNtableDegT = tconf.useSameDegTable ? TNtableDeg : baseName + "DegT";
     if (tconf.useTableField) TNtableField =baseName + "Field";
-    if (tconf.useTableFieldT) TNtableFieldT =baseName + "FieldT";
+    if (tconf.useTableFieldT) TNtableFieldT = tconf.useSameFieldTable ? TNtableField : baseName + "FieldT";
   }
 
 
@@ -161,14 +171,15 @@ public class D4MTableWriter implements AutoCloseable {
    * Sets up iterators on degree tables if enabled.
    */
   public void createTablesSoft() {
-    boolean btDeg=false, btDegT=false, btField=false, btFieldT=false;
-    if (tconf.useTable)     createTableSoft(TNtable, tconf.connector, tconf.deleteExistingTables);
-    if (tconf.useTableT)     createTableSoft(TNtableT, tconf.connector, tconf.deleteExistingTables);
+    boolean btReg=false, btRegT=false, btDeg=false, btDegT=false, btField=false, btFieldT=false;
+    if (tconf.useTable)    btReg = createTableSoft(TNtable, tconf.connector, tconf.deleteExistingTables);
+    if (tconf.useTableT && !TNtableT.equals(TNtable))   btRegT =  createTableSoft(TNtableT, tconf.connector, tconf.deleteExistingTables);
     if (tconf.useTableDeg)  btDeg = createTableSoft(TNtableDeg, tconf.connector, tconf.deleteExistingTables);
-    if (tconf.useTableDegT) btDegT = createTableSoft(TNtableDegT, tconf.connector, tconf.deleteExistingTables);
+    if (tconf.useTableDegT && !TNtableDegT.equals(TNtableDeg)) btDegT = createTableSoft(TNtableDegT, tconf.connector, tconf.deleteExistingTables);
     if (tconf.useTableField) btField = createTableSoft(TNtableField, tconf.connector, tconf.deleteExistingTables);
-    if (tconf.useTableFieldT) btFieldT = createTableSoft(TNtableFieldT, tconf.connector, tconf.deleteExistingTables);
-    //List<IteratorSetting.Column> columns = Collections.singletonList(new IteratorSetting.Column(tconf.cf, tconf.textDegCol));
+    if (tconf.useTableFieldT && !TNtableFieldT.equals(TNtableField)) btFieldT = createTableSoft(TNtableFieldT, tconf.connector, tconf.deleteExistingTables);
+    if (btReg && tconf.sumTable) assignDegreeAccumulator(TNtable, tconf.connector);
+    if (btRegT && tconf.sumTableT) assignDegreeAccumulator(TNtableT, tconf.connector);
     if (btDeg)  assignDegreeAccumulator(TNtableDeg, tconf.connector);
     if (btDegT) assignDegreeAccumulator(TNtableDegT, tconf.connector);
     if (btField) assignDegreeAccumulator(TNtableField, tconf.connector);
@@ -178,7 +189,7 @@ public class D4MTableWriter implements AutoCloseable {
   public void openIngest() {
     switch(state) {
       case New: createTablesSoft(); break;
-      case Open: throw new IllegalStateException("tried to open ingset when already open");
+      case Open: throw new IllegalStateException("tried to open ingest when already open");
       case Closed: break;
     }
 
@@ -187,11 +198,11 @@ public class D4MTableWriter implements AutoCloseable {
     mtbw = tconf.connector.createMultiTableBatchWriter(BWconfig);
     try {
       if (tconf.useTable) Btable         = mtbw.getBatchWriter(TNtable);
-      if (tconf.useTableT) BtableT       = mtbw.getBatchWriter(TNtableT);
+      if (tconf.useTableT) BtableT       = TNtableT.equals(TNtable) ? Btable : mtbw.getBatchWriter(TNtableT);
       if (tconf.useTableDeg) BtableDeg   = mtbw.getBatchWriter(TNtableDeg);
-      if (tconf.useTableDegT) BtableDegT = mtbw.getBatchWriter(TNtableDegT);
+      if (tconf.useTableDegT) BtableDegT = TNtableDegT.equals(TNtableDeg) ? BtableDeg : mtbw.getBatchWriter(TNtableDegT);
       if (tconf.useTableField) BtableField = mtbw.getBatchWriter(TNtableField);
-      if (tconf.useTableFieldT) BtableFieldT = mtbw.getBatchWriter(TNtableFieldT);
+      if (tconf.useTableFieldT) BtableFieldT = TNtableFieldT.equals(TNtableField) ? BtableField : mtbw.getBatchWriter(TNtableFieldT);
     } catch (TableNotFoundException e) {
       log.error("impossible! Tables should have been created!", e);
     } catch (AccumuloSecurityException | AccumuloException e) {
@@ -249,8 +260,8 @@ public class D4MTableWriter implements AutoCloseable {
       openIngest();
     if (tconf.useTable)     ingestRow(Btable    , rowID, tconf.cf, cq, v);
     if (tconf.useTableT)    ingestRow(BtableT   , cq, tconf.cf, rowID, v);
-    if (tconf.useTableDeg)  ingestRow(BtableDeg , rowID, tconf.cf, tconf.textDegCol, VALONE);
-    if (tconf.useTableDegT) ingestRow(BtableDegT, cq, tconf.cf, tconf.textDegCol, VALONE);
+    if (tconf.useTableDeg)  ingestRow(BtableDeg , rowID, tconf.cf, tconf.colDeg, VALONE);
+    if (tconf.useTableDegT) ingestRow(BtableDegT, cq, tconf.cf, tconf.colDegT, VALONE);
     if (tconf.useTableField) {
       String rowIDString = rowID.toString();
       int fieldSepPos;
@@ -258,7 +269,7 @@ public class D4MTableWriter implements AutoCloseable {
         log.warn(TNtableField +" is turned on, but the row "+rowIDString+" to ingest does not have a field seperator "+FIELD_SEPERATOR);
       else {
         Text rowIDField = new Text(rowIDString.substring(0, fieldSepPos));
-        ingestRow(BtableField, rowIDField, tconf.cf, tconf.textDegCol, VALONE);
+        ingestRow(BtableField, rowIDField, tconf.cf, tconf.colDeg, VALONE);
       }
     }
     if (tconf.useTableFieldT){
@@ -268,7 +279,7 @@ public class D4MTableWriter implements AutoCloseable {
         log.warn(TNtableFieldT +" is turned on, but the row "+cqString+" to ingest does not have a field seperator "+FIELD_SEPERATOR);
       else {
         Text cqField = new Text(cqString.substring(0, fieldSepPos));
-        ingestRow(BtableFieldT, cqField, tconf.cf, tconf.textDegCol, VALONE);
+        ingestRow(BtableFieldT, cqField, tconf.cf, tconf.colDegT, VALONE);
       }
     }
   }

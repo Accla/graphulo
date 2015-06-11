@@ -257,7 +257,7 @@ public class GraphuloUtil {
       IteratorSetting existing;
       EnumSet<IteratorUtil.IteratorScope> enumSet = EnumSet.noneOf(IteratorUtil.IteratorScope.class);
       for (IteratorUtil.IteratorScope scope : IteratorUtil.IteratorScope.values()) {
-        existing = tops.getIteratorSetting(table, "plus", scope);
+        existing = tops.getIteratorSetting(table, itset.getName(), scope);
         if (existing == null)
           enumSet.add(scope);
       }

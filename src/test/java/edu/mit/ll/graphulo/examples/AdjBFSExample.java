@@ -11,7 +11,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.LongCombiner;
-import org.apache.accumulo.core.iterators.user.MinCombiner;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.log4j.LogManager;
@@ -39,14 +38,15 @@ public class AdjBFSExample extends AccumuloTestBase {
   @Test
   public void exampleAdjBFS() throws FileNotFoundException, TableNotFoundException {
     String Atable = "ex" + SCALE + "A";                 // Adjacency table A.
-    String Rtable = "ex" + SCALE + "step" + numSteps;   // Result of BFS is summed into Rtable.
+    String Rtable = "ex" + SCALE + "Astep" + numSteps;   // Result of BFS is summed into Rtable.
     String RTtable = null;                              // Don't write transpose of BFS.
     String ADegtable = "ex" + SCALE + "ADeg";           // Adjacency table A containing out-degrees.
-    String degColumn = "deg";                           // Name of column qualifier under which out-degrees appear in ADegtable.
+    String degColumn = "out";                           // Name of column qualifier under which out-degrees appear in ADegtable.
     boolean degInColQ = false;                          // Degree is stored in the Value, not the Column Qualifier.
     int minDegree = 20;                                 // Bounding minimum degree: only include nodes with degree 20 or higher.
     int maxDegree = Integer.MAX_VALUE;                  // Unbounded maximum degree.  This + the minimum degree make a High-pass Filter.
     String v0 = "1,25,33,";                             // Starting nodes: start from node 1 (the supernode) and a few others.
+    boolean trace = false;                              // Disable debug printing.
 
     // In your code, you would connect to an Accumulo instance by writing something similar to:
 //    ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance("instance").withZkHosts("localhost:2181").withZkTimeout(5000);
@@ -58,7 +58,7 @@ public class AdjBFSExample extends AccumuloTestBase {
 
     // Insert data from the file test/resources/data/10Ar.txt and 10Ac.txt into Accumulo.
     // Deletes tables if they already exist.
-    ExampleUtil.ingestSCALE(SCALE, 'A', Atable, conn);
+    ExampleUtil.ingestSCALE(SCALE, 'A', Atable, conn, false);
 
     // Create Graphulo executor. Supply the password for your Accumulo user account.
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
@@ -78,7 +78,7 @@ public class AdjBFSExample extends AccumuloTestBase {
     // Adjacency Table Breadth First Search.
     // This call blocks until the BFS completes.
     graphulo.AdjBFS(Atable, v0, numSteps, Rtable, RTtable,
-        ADegtable, degColumn, false, minDegree, maxDegree, plusOp, false);
+        ADegtable, degColumn, degInColQ, minDegree, maxDegree, plusOp, trace);
 
     // Result is in output table. Do whatever you like with it.
     BatchScanner bs = conn.createBatchScanner(Rtable, Authorizations.EMPTY, 2);

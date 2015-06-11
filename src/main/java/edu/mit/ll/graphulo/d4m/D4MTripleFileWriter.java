@@ -8,7 +8,6 @@ import org.apache.log4j.Logger;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Scanner;
 import java.util.zip.GZIPInputStream;
@@ -31,6 +30,7 @@ public class D4MTripleFileWriter {
    * @param valFile Optional value file. Uses "1" if not given.
    * @param delimiter Delimiter that separates items.
    * @param baseName Name of tables is the base name plus "", "T", "Deg"
+   * @param deleteExistingTables Delete tables if present.
    * @param trackTime Log the rate of ingest or not.
    * @return Number of triples written.
    */
@@ -55,11 +55,15 @@ public class D4MTripleFileWriter {
       D4MTableWriter.D4MTableConfig config = new D4MTableWriter.D4MTableConfig();
       config.baseName = baseName;
       config.useTable = config.useTableT = true;
+      config.sumTable = config.sumTableT = true;
       config.useTableDeg = true;
-      config.useTableDegT = false;
-      config.useTableField = false;
-      config.useTableFieldT = false;
+      config.useTableDegT = true;
+      config.useTableField = config.useTableFieldT = false;
+      config.useSameDegTable = true;
+      config.colDeg = new Text("out");
+      config.colDegT = new Text("in");
       config.connector = connector;
+      config.deleteExistingTables = deleteExistingTables;
 
       origStartTime = startTime = System.currentTimeMillis();
       try (D4MTableWriter tw = new D4MTableWriter(config)) {

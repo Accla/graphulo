@@ -17,7 +17,7 @@ public class ExampleUtil {
   private static final Logger log = LogManager.getLogger(ExampleUtil.class);
 
   /** Reads files from src/test/resource/data and inserts into Accumulo using D4M Schema table+transpose+degree. */
-  public static void ingestSCALE(int SCALE, char version, String baseName, Connector conn) throws FileNotFoundException {
+  public static void ingestSCALE(int SCALE, char version, String baseName, Connector conn, boolean includeEdgeTable) throws FileNotFoundException {
     D4MTripleFileWriter tripleFileWriter = new D4MTripleFileWriter(conn);
     URL url = Thread.currentThread().getContextClassLoader().getResource("data/"+SCALE+version+"r.txt");
     if (url == null)
@@ -34,6 +34,17 @@ public class ExampleUtil {
     // deleteExistingTables
     long cnt = tripleFileWriter.writeTripleFile(rowFile, colFile, null, ",", baseName, true, false);
     log.info("Wrote "+cnt+" triples to D4M tables with base name "+baseName);
+
+    if (includeEdgeTable)
+      ingestSCALEEdgeTable(SCALE, version, baseName, conn);
+
+  }
+
+  private static void ingestSCALEEdgeTable(int SCALE, char version, String baseName, Connector conn) {
+//    D4mDbTableOperations d4mtops = new D4mDbTableOperations(conn.getInstance().getInstanceName(), conn.getInstance().getZooKeepers(),
+//        conn.whoami(), );
+
+
   }
 
 }

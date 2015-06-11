@@ -378,7 +378,7 @@ public class Graphulo {
       }
 
     Map<String, String> opt = new HashMap<>();
-    opt.put("trace", String.valueOf(trace)); // logs timing on server
+//    opt.put("trace", String.valueOf(trace)); // logs timing on server
     opt.put("reducer", GatherColQReducer.class.getName());
     if (Rtable != null || RTtable != null) {
       String instance = connector.getInstance().getInstanceName();
@@ -619,7 +619,7 @@ public class Graphulo {
       }
 
     Map<String, String> opt = new HashMap<>();
-    opt.put("trace", String.valueOf(trace)); // logs timing on server
+//    opt.put("trace", String.valueOf(trace)); // logs timing on server
 //    opt.put("gatherColQs", "true");  No gathering right now.  Need to implement more general gathering function on RemoteWriteIterator.
     opt.put("dot", TwoTableIterator.DOT_TYPE.ROW_CARTESIAN.name());
     opt.put("multiplyOp", EdgeBFSMultiply.class.getName());

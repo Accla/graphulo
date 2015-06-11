@@ -1,7 +1,12 @@
 package edu.mit.ll.graphulo.d4m;
 
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
@@ -10,6 +15,8 @@ import org.apache.log4j.Logger;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.zip.GZIPInputStream;
 
@@ -164,7 +171,7 @@ public class D4MTripleFileWriter {
           }
 
           count++;
-          Text edgeID = new Text(StringUtils.rightPad(StringUtils.reverse(Long.toString(count)),numBits,'0'));
+          Text edgeID = new Text(StringUtils.rightPad(StringUtils.reverse(Long.toString(count)), numBits, '0'));
 
           tw.ingestRow(row, col, val, edgeID);
 
@@ -185,6 +192,67 @@ public class D4MTripleFileWriter {
     } finally {
       if (valScanner != null)
         valScanner.close();
+    }
+    return count;
+  }
+
+  public long writeFromAdjacency_Incidence(String baseName,
+                                           boolean deleteExistingTables, boolean trackTime, long estimateNumEntries) {
+    int numBits = (int) (Math.log10(estimateNumEntries) + 1);
+
+    long count = 0, startTime, origStartTime;
+
+
+    BatchScanner bs;
+    try {
+      bs = connector.createBatchScanner(baseName, Authorizations.EMPTY, 2);
+    } catch (TableNotFoundException e) {
+      throw new RuntimeException("Table " + baseName + " does not exist", e);
+    }
+    bs.setRanges(Collections.singleton(new Range()));
+
+    D4MTableWriter.D4MTableConfig config = new D4MTableWriter.D4MTableConfig();
+    config.baseName = baseName;
+    config.useTable = config.useTableT = false;
+    config.sumTable = config.sumTableT = true;
+    config.useTableDeg = config.useTableDegT = false;
+    config.useTableField = config.useTableFieldT = false;
+    config.useEdgeTable = config.useEdgeTableT = true;
+    config.useEdgeTableDegT = true;
+//      config.useSameDegTable = true;
+    config.colDeg = new Text("out");
+    config.colDegT = new Text("in");
+    config.connector = connector;
+    config.deleteExistingTables = deleteExistingTables;
+    config.degreeUseValue = true;
+
+    origStartTime = startTime = System.currentTimeMillis();
+    try (D4MTableWriter tw = new D4MTableWriter(config)) {
+
+      Text outNode = new Text(), inNode = new Text();
+      for (Map.Entry<Key, Value> entry : bs) {
+
+        Key k = entry.getKey();
+        outNode = k.getRow(outNode);
+        inNode = k.getColumnQualifier(inNode);
+
+        count++;
+        Text edgeID = new Text(StringUtils.rightPad(StringUtils.reverse(Long.toString(count)), numBits, '0'));
+
+        tw.ingestRow(outNode, inNode, entry.getValue(), edgeID);
+
+
+        if (trackTime && count % 100000 == 0) {
+          long stopTime = System.currentTimeMillis();
+          if (startTime - stopTime > 1000 * 60) {
+            System.out.printf("Ingest: %9d cnt, %6d secs, %8d entries/sec\n", count, (stopTime - origStartTime) / 1000,
+                Math.round(count / ((stopTime - origStartTime) / 1000.0)));
+            startTime = stopTime;
+          }
+        }
+      }
+    } finally {
+      bs.close();
     }
     return count;
   }

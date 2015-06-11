@@ -32,7 +32,7 @@ public class ExampleUtil {
 
     // deleteExistingTables
     long cnt = tripleFileWriter.writeTripleFile_Adjacency(rowFile, colFile, null, ",", baseName, true, false);
-    log.info("Wrote "+cnt+" triples to D4M Adjacency tables with base name "+baseName);
+    log.info("Wrote "+cnt+" edges to D4M Adjacency tables with base name "+baseName);
   }
 
   public static void ingestIncidenceSCALE(int SCALE, char version, String baseName, Connector conn) {
@@ -44,8 +44,19 @@ public class ExampleUtil {
 
     // deleteExistingTables
     System.out.println("estimate "+(1 << SCALE)*16);
-    long cnt = tripleFileWriter.writeTripleFile_Incidence(rowFile, colFile, null, ",", baseName, true, false, (1 << SCALE) * 16);
-    log.info("Wrote "+cnt+" triples to D4M Incidence tables with base name "+baseName);
+    long cnt = tripleFileWriter.writeTripleFile_Incidence(rowFile, colFile, null, ",", baseName, true, false, (1 << SCALE) * 16); // upper bound on #edges
+    log.info("Wrote "+cnt+" edges to D4M Incidence tables with base name "+baseName);
+  }
+
+  public static void ingestIncidenceFromAdjacencySCALE(int SCALE, char version, String baseName, Connector conn) {
+//    D4mDbTableOperations d4mtops = new D4mDbTableOperations(conn.getInstance().getInstanceName(), conn.getInstance().getZooKeepers(),
+//        conn.whoami(), pass );
+    D4MTripleFileWriter tripleFileWriter = new D4MTripleFileWriter(conn);
+
+    // deleteExistingTables
+    System.out.println("estimate "+(1 << SCALE)*16);
+    long cnt = tripleFileWriter.writeFromAdjacency_Incidence(baseName, true, false, (1 << SCALE) * 16); // upper bound on #edges
+    log.info("Wrote "+cnt+" edges to D4M Incidence tables with base name "+baseName);
   }
 
 }

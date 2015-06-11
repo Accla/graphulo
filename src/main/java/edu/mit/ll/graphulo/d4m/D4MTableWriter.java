@@ -52,7 +52,8 @@ public class D4MTableWriter implements AutoCloseable {
         sumTableT = false,
     useEdgeTable = false,
     useEdgeTableT = false,
-    useEdgeTableDegT = false;
+    useEdgeTableDegT = false,
+    degreeUseValue = false; // true = sum value in degree, false = sum 1 in degree per entry
     public Text colDeg = DEFAULT_DEGCOL;
     public Text colDegT = DEFAULT_DEGCOL;
     public Text cf = EMPTYCF;
@@ -83,6 +84,7 @@ public class D4MTableWriter implements AutoCloseable {
       useEdgeTable = c.useEdgeTable;
       useEdgeTableDegT = c.useEdgeTableDegT;
       useEdgeTableT = c.useEdgeTableT;
+      degreeUseValue = c.degreeUseValue;
     }
   }
   private final D4MTableConfig tconf;
@@ -285,8 +287,8 @@ public class D4MTableWriter implements AutoCloseable {
       openIngest();
     if (tconf.useTable)     ingestRow(Btable    , rowID, tconf.cf, cq, v);
     if (tconf.useTableT)    ingestRow(BtableT   , cq, tconf.cf, rowID, v);
-    if (tconf.useTableDeg)  ingestRow(BtableDeg , rowID, tconf.cf, tconf.colDeg, VALONE);
-    if (tconf.useTableDegT) ingestRow(BtableDegT, cq, tconf.cf, tconf.colDegT, VALONE);
+    if (tconf.useTableDeg)  ingestRow(BtableDeg , rowID, tconf.cf, tconf.colDeg, tconf.degreeUseValue ? v : VALONE);
+    if (tconf.useTableDegT) ingestRow(BtableDegT, cq, tconf.cf, tconf.colDegT, tconf.degreeUseValue ? v : VALONE);
     if (tconf.useTableField) {
       String rowIDString = rowID.toString();
       int fieldSepPos;
@@ -294,7 +296,7 @@ public class D4MTableWriter implements AutoCloseable {
         log.warn(TNtableField +" is turned on, but the row "+rowIDString+" to ingest does not have a field seperator "+FIELD_SEPERATOR);
       else {
         Text rowIDField = new Text(rowIDString.substring(0, fieldSepPos));
-        ingestRow(BtableField, rowIDField, tconf.cf, tconf.colDeg, VALONE);
+        ingestRow(BtableField, rowIDField, tconf.cf, tconf.colDeg, tconf.degreeUseValue ? v : VALONE);
       }
     }
     if (tconf.useTableFieldT){
@@ -304,7 +306,7 @@ public class D4MTableWriter implements AutoCloseable {
         log.warn(TNtableFieldT +" is turned on, but the row "+cqString+" to ingest does not have a field seperator "+FIELD_SEPERATOR);
       else {
         Text cqField = new Text(cqString.substring(0, fieldSepPos));
-        ingestRow(BtableFieldT, cqField, tconf.cf, tconf.colDegT, VALONE);
+        ingestRow(BtableFieldT, cqField, tconf.cf, tconf.colDegT, tconf.degreeUseValue ? v : VALONE);
       }
     }
   }
@@ -338,8 +340,8 @@ public class D4MTableWriter implements AutoCloseable {
       }
     }
     if (tconf.useEdgeTableDegT) {
-      ingestRow(BtableEdgeDegT, rowID, tconf.cf, tconf.colDeg, VALONE);
-      ingestRow(BtableEdgeDegT, cq, tconf.cf, tconf.colDegT, VALONE);
+      ingestRow(BtableEdgeDegT, rowID, tconf.cf, tconf.colDeg, tconf.degreeUseValue ? v : VALONE);
+      ingestRow(BtableEdgeDegT, cq, tconf.cf, tconf.colDegT, tconf.degreeUseValue ? v : VALONE);
     }
   }
 

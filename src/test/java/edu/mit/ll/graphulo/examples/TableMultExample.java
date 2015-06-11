@@ -37,7 +37,7 @@ public class TableMultExample extends AccumuloTestBase {
   public static final int SCALE = 10;
 
   @Test
-  public void example1() throws FileNotFoundException, TableNotFoundException {
+  public void example1() throws FileNotFoundException, TableNotFoundException, AccumuloSecurityException, AccumuloException {
     String Atable = "ex" + SCALE + "A";     // Adjacency table A
     String ATtable = "ex" + SCALE + "AT";   // Adjacency table A Transpose (row and column qualifier switched)
     String Btable = "ex" + SCALE + "B";     // Adjacency table B
@@ -50,6 +50,10 @@ public class TableMultExample extends AccumuloTestBase {
     // Here, we connect to the Accumulo instance given by TEST_CONFIG.java.
     // You can change this by passing the option -DTEST_CONFIG=local or -DTEST_CONFIG=txe1 or similar.
     Connector conn = tester.getConnector();
+
+    // Delete result table if it exists, so that we don't sum in previous runs with our results.
+    if (conn.tableOperations().exists(Ctable))
+      conn.tableOperations().delete(Ctable);
 
     // Insert data from the file test/resources/data/10Ar.txt and 10Ac.txt into Accumulo.
     // Deletes tables if they already exist.

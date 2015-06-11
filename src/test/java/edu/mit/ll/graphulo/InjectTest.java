@@ -271,7 +271,7 @@ public class InjectTest extends AccumuloTestBase {
    * Test injecting data into an empty table at manual full major compaction.
    */
   @Test
-  @Ignore("KnownBug: ACCUMULO-3645")
+  @Ignore("KnownBug: ACCUMULO-3645 Fixed in Accumulo 1.7.0")
   public void testInjectOnCompact_Empty() throws Exception {
     Connector conn = tester.getConnector();
 

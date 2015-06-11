@@ -70,8 +70,8 @@ public class KnownBugRunner extends BlockJUnit4ClassRunner {
           } catch (AssumptionViolatedException e) {
             // some other assumption failed
             throw e;
-          } catch (Exception e) {
-            if (ignore != null) {
+          } catch (AssertionError | Exception e) {
+            if (ignore != null && ignore.value().startsWith("KnownBug")) {
               log.info("KnownBug Test Failure: "+ignore.value()+" ["+testclassname+'#'+testmethodname+']',e);
               throw new AssumptionViolatedException("KnownBug Test Failure: "+ignore.value(), e);
             } else {

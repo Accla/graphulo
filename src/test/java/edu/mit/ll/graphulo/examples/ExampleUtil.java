@@ -16,35 +16,36 @@ import java.net.URL;
 public class ExampleUtil {
   private static final Logger log = LogManager.getLogger(ExampleUtil.class);
 
-  /** Reads files from src/test/resource/data and inserts into Accumulo using D4M Schema table+transpose+degree. */
-  public static void ingestSCALE(int SCALE, char version, String baseName, Connector conn, boolean includeEdgeTable) throws FileNotFoundException {
-    D4MTripleFileWriter tripleFileWriter = new D4MTripleFileWriter(conn);
-    URL url = Thread.currentThread().getContextClassLoader().getResource("data/"+SCALE+version+"r.txt");
+  static File getDataFile(String name) {
+    URL url = Thread.currentThread().getContextClassLoader().getResource("data/"+name);
     if (url == null)
-      url = Thread.currentThread().getContextClassLoader().getResource("data/"+SCALE+version+"r.txt.gz");
+      url = Thread.currentThread().getContextClassLoader().getResource("data/"+name+".gz");
     Assert.assertNotNull(url);
-    File rowFile = new File(url.getPath());
-
-    url = Thread.currentThread().getContextClassLoader().getResource("data/"+SCALE+version+"c.txt");
-    if (url == null)
-      url = Thread.currentThread().getContextClassLoader().getResource("data/"+SCALE+version+"c.txt.gz");
-    Assert.assertNotNull(url);
-    File colFile = new File(url.getPath());
-
-    // deleteExistingTables
-    long cnt = tripleFileWriter.writeTripleFile(rowFile, colFile, null, ",", baseName, true, false);
-    log.info("Wrote "+cnt+" triples to D4M tables with base name "+baseName);
-
-    if (includeEdgeTable)
-      ingestSCALEEdgeTable(SCALE, version, baseName, conn);
-
+    return new File(url.getPath());
   }
 
-  private static void ingestSCALEEdgeTable(int SCALE, char version, String baseName, Connector conn) {
+  /** Reads files from src/test/resource/data and inserts into Accumulo using D4M Schema table+transpose+degree. */
+  public static void ingestAdjacencySCALE(int SCALE, char version, String baseName, Connector conn) throws FileNotFoundException {
+    D4MTripleFileWriter tripleFileWriter = new D4MTripleFileWriter(conn);
+    File rowFile = getDataFile(String.valueOf(SCALE)+version+"r.txt");
+    File colFile = getDataFile(String.valueOf(SCALE)+version+"c.txt");
+
+    // deleteExistingTables
+    long cnt = tripleFileWriter.writeTripleFile_Adjacency(rowFile, colFile, null, ",", baseName, true, false);
+    log.info("Wrote "+cnt+" triples to D4M Adjacency tables with base name "+baseName);
+  }
+
+  public static void ingestIncidenceSCALE(int SCALE, char version, String baseName, Connector conn) {
 //    D4mDbTableOperations d4mtops = new D4mDbTableOperations(conn.getInstance().getInstanceName(), conn.getInstance().getZooKeepers(),
-//        conn.whoami(), );
+//        conn.whoami(), pass );
+    D4MTripleFileWriter tripleFileWriter = new D4MTripleFileWriter(conn);
+    File rowFile = getDataFile(String.valueOf(SCALE)+version+"r.txt");
+    File colFile = getDataFile(String.valueOf(SCALE)+version+"c.txt");
 
-
+    // deleteExistingTables
+    System.out.println("estimate "+(1 << SCALE)*16);
+    long cnt = tripleFileWriter.writeTripleFile_Incidence(rowFile, colFile, null, ",", baseName, true, false, (1 << SCALE) * 16);
+    log.info("Wrote "+cnt+" triples to D4M Incidence tables with base name "+baseName);
   }
 
 }

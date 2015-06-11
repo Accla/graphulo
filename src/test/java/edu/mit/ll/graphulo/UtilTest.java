@@ -310,13 +310,6 @@ public class UtilTest {
     Assert.assertTrue(Iterators.elementsEqual(targetRanges.iterator(), rs.iteratorWithRangeMask(r)));
   }
 
-  /** temporary */
-  @Test
-  public void testTest() {
-
-  }
-
-
   /** Small bug in Accumulo. */
   @Ignore("KnownBug: ACCUMULO-XXXX")
   @Test
@@ -376,6 +369,38 @@ public class UtilTest {
     log.debug("prefixMod="+new String(prefixMod));
     Range r = new Range(new String(prefix), true, new String(prefixMod), true);
     Assert.assertTrue(r.contains(new Key("pre|a")));
+  }
+
+  private void printArray(String header, byte[] arr) {
+    System.out.print(header + ' ');
+    for (byte b : arr)
+      System.out.print(b+" ");
+    System.out.println();
+  }
+
+  /** temporary */
+  @Test
+  public void testTest() {
+//    AbstractEncoder<Long> encoder = new ULongLexicoder();
+//    printArray("1  ",encoder.encode(1l));
+//    printArray("2  ",encoder.encode(2l));
+//    printArray("10 ",encoder.encode(10l));
+    byte[][] bs = new byte[3][];
+    bs[0] = "abc".getBytes();
+    bs[1] = "".getBytes();
+    bs[2] = "xyz".getBytes();
+
+    int totlen = 0;
+    for (byte[] b : bs)
+      totlen += b.length;
+    byte[] ret = new byte[totlen];
+    int pos = 0;
+    for (byte[] b : bs) {
+      System.arraycopy(b,0,ret,pos,b.length);
+      pos += b.length;
+    }
+
+    Assert.assertEquals("abcxyz",new String(ret,UTF_8));
   }
 
 

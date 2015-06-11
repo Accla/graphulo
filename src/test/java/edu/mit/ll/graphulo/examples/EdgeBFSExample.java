@@ -1,33 +1,18 @@
 package edu.mit.ll.graphulo.examples;
 
-import edu.mit.ll.graphulo.Graphulo;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
-import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.Combiner;
-import org.apache.accumulo.core.iterators.LongCombiner;
-import org.apache.accumulo.core.iterators.user.SummingCombiner;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
 import java.io.FileNotFoundException;
-import java.util.Collections;
-import java.util.Map;
 
 /**
- * Example demonstrating
- * (1) ingest the adjacency matrix representation of a graph into the D4M Schema tables ex10A, ex10AT, ex10ADeg;
- * (2) create a new Accumulo table ex10step3 with the union sum of three BFS steps from node 1;
- * (3) count the number of entries in ex10step3.
+ * Created by dhutchis on 6/11/15.
  */
-public class AdjBFSExample extends AccumuloTestBase {
+public class EdgeBFSExample extends AccumuloTestBase {
   private static final Logger log = LogManager.getLogger(AdjBFSExample.class);
 
   /** Corresponds to saved files in the test/java/resources/data folder. */
@@ -36,7 +21,7 @@ public class AdjBFSExample extends AccumuloTestBase {
   public static final int numSteps = 3;
 
   @Test
-  public void exampleAdjBFS() throws FileNotFoundException, TableNotFoundException {
+  public void exampleEdgeBFS() throws FileNotFoundException, TableNotFoundException {
     String Atable = "ex" + SCALE + "A";                 // Adjacency table A.
     String Rtable = "ex" + SCALE + "Astep" + numSteps;   // Result of BFS is summed into Rtable.
     String RTtable = null;                              // Don't write transpose of BFS.
@@ -58,37 +43,37 @@ public class AdjBFSExample extends AccumuloTestBase {
 
     // Insert data from the file test/resources/data/10Ar.txt and 10Ac.txt into Accumulo.
     // Deletes tables if they already exist.
-    ExampleUtil.ingestAdjacencySCALE(SCALE, 'A', Atable, conn);
+    ExampleUtil.ingestIncidenceSCALE(SCALE, 'A', Atable, conn);
 
-    // Create Graphulo executor. Supply the password for your Accumulo user account.
-    Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-
-    // Configure options for sum operator.
-    // We choose to use Accumulo's SummingCombiner as the plus operation.
-    // This iterator decodes values as longs and sums them using long-type addition.
-
-    // Plus operation. Satisfies requirement that 0 is additive identity.
-    int sumPriority = 6;
-    IteratorSetting plusOp = new IteratorSetting(sumPriority, SummingCombiner.class);
-    // Options for plus operator: encode/decode with a string representation; act on all columns of Ctable.
-    LongCombiner.setEncodingType(plusOp, LongCombiner.Type.STRING);
-    Combiner.setCombineAllColumns(plusOp, true);
-    // Note: this is the same as Graphulo.DEFAULT_PLUS_ITERATOR
-
-    // Adjacency Table Breadth First Search.
-    // This call blocks until the BFS completes.
-    graphulo.AdjBFS(Atable, v0, numSteps, Rtable, RTtable,
-        ADegtable, degColumn, degInColQ, minDegree, maxDegree, plusOp, trace);
-
-    // Result is in output table. Do whatever you like with it.
-    BatchScanner bs = conn.createBatchScanner(Rtable, Authorizations.EMPTY, 2);
-    bs.setRanges(Collections.singleton(new Range()));   // Scan whole table.
-    int cnt = 0;
-    for (Map.Entry<Key, Value> entry : bs) {
-      cnt++;
-    }
-    bs.close();
-    log.info("# of entries in output table '" + Rtable + ": " + cnt);
+//    // Create Graphulo executor. Supply the password for your Accumulo user account.
+//    Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+//
+//    // Configure options for sum operator.
+//    // We choose to use Accumulo's SummingCombiner as the plus operation.
+//    // This iterator decodes values as longs and sums them using long-type addition.
+//
+//    // Plus operation. Satisfies requirement that 0 is additive identity.
+//    int sumPriority = 6;
+//    IteratorSetting plusOp = new IteratorSetting(sumPriority, SummingCombiner.class);
+//    // Options for plus operator: encode/decode with a string representation; act on all columns of Ctable.
+//    LongCombiner.setEncodingType(plusOp, LongCombiner.Type.STRING);
+//    Combiner.setCombineAllColumns(plusOp, true);
+//    // Note: this is the same as Graphulo.DEFAULT_PLUS_ITERATOR
+//
+//    // Adjacency Table Breadth First Search.
+//    // This call blocks until the BFS completes.
+//    graphulo.AdjBFS(Atable, v0, numSteps, Rtable, RTtable,
+//        ADegtable, degColumn, degInColQ, minDegree, maxDegree, plusOp, trace);
+//
+//    // Result is in output table. Do whatever you like with it.
+//    BatchScanner bs = conn.createBatchScanner(Rtable, Authorizations.EMPTY, 2);
+//    bs.setRanges(Collections.singleton(new Range()));   // Scan whole table.
+//    int cnt = 0;
+//    for (Map.Entry<Key, Value> entry : bs) {
+//      cnt++;
+//    }
+//    bs.close();
+//    log.info("# of entries in output table '" + Rtable + ": " + cnt);
   }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -102,6 +87,5 @@ public class AdjBFSExample extends AccumuloTestBase {
 
   */
   ////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 }

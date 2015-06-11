@@ -35,7 +35,7 @@ public class DataTest extends AccumuloTestBase {
     File colFile = new File(url.getPath());
 
     // deleteExistingTables
-    long cnt = tripleFileWriter.writeTripleFile(rowFile, colFile, null, ",", baseName, true, false);
+    long cnt = tripleFileWriter.writeTripleFile_Adjacency(rowFile, colFile, null, ",", baseName, true, false);
     log.info("Wrote "+cnt+" triples to D4M tables with base name "+baseName);
   }
 

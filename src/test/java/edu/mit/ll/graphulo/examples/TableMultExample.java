@@ -32,7 +32,7 @@ public class TableMultExample extends AccumuloTestBase {
   private static final Logger log = LogManager.getLogger(TableMultExample.class);
 
   /**
-   * Corresponds to saved files in the distribution.
+   * Corresponds to saved files in the test/java/resources/data folder.
    */
   public static final int SCALE = 10;
 
@@ -53,9 +53,9 @@ public class TableMultExample extends AccumuloTestBase {
 
     // Insert data from the file test/resources/data/10Ar.txt and 10Ac.txt into Accumulo.
     // Deletes tables if they already exist.
-    ExampleUtil.ingestSCALE(SCALE, 'A', Atable, conn, false);
+    ExampleUtil.ingestAdjacencySCALE(SCALE, 'A', Atable, conn);
     // Insert second table from 10Br.txt and 10Bc.txt
-    ExampleUtil.ingestSCALE(SCALE, 'B', Btable, conn, false);
+    ExampleUtil.ingestAdjacencySCALE(SCALE, 'B', Btable, conn);
 
     // Create Graphulo executor. Supply the password for your Accumulo user account.
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());

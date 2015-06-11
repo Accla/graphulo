@@ -49,7 +49,10 @@ public class D4MTableWriter implements AutoCloseable {
     useSameDegTable = false,
     useSameFieldTable = false,
         sumTable = false,
-        sumTableT = false;
+        sumTableT = false,
+    useEdgeTable = false,
+    useEdgeTableT = false,
+    useEdgeTableDegT = false;
     public Text colDeg = DEFAULT_DEGCOL;
     public Text colDegT = DEFAULT_DEGCOL;
     public Text cf = EMPTYCF;
@@ -77,18 +80,24 @@ public class D4MTableWriter implements AutoCloseable {
       deleteExistingTables = c.deleteExistingTables;
       sumTable = c.sumTable;
       sumTableT = c.sumTableT;
+      useEdgeTable = c.useEdgeTable;
+      useEdgeTableDegT = c.useEdgeTableDegT;
+      useEdgeTableT = c.useEdgeTableT;
     }
   }
   private final D4MTableConfig tconf;
 
-  private String TNtable,TNtableT,TNtableDeg, TNtableDegT, TNtableField, TNtableFieldT;
+  private String TNtable,TNtableT,TNtableDeg, TNtableDegT, TNtableField, TNtableFieldT, TNtableEdge, TNtableEdgeT, TNtableEdgeDegT;
   private BatchWriter
       Btable=null,
       BtableT=null,
       BtableDeg=null,
       BtableDegT =null,
       BtableField=null,
-      BtableFieldT=null;
+      BtableFieldT=null,
+  BtableEdge=null,
+  BtableEdgeT=null,
+  BtableEdgeDegT=null;
   private MultiTableBatchWriter mtbw;
 
 
@@ -163,6 +172,9 @@ public class D4MTableWriter implements AutoCloseable {
     if (tconf.useTableDegT) TNtableDegT = tconf.useSameDegTable ? TNtableDeg : baseName + "DegT";
     if (tconf.useTableField) TNtableField =baseName + "Field";
     if (tconf.useTableFieldT) TNtableFieldT = tconf.useSameFieldTable ? TNtableField : baseName + "FieldT";
+    if (tconf.useEdgeTable) TNtableEdge=baseName+"Edge";
+    if (tconf.useEdgeTableT) TNtableEdgeT=baseName+"EdgeT";
+    if (tconf.useEdgeTableDegT) TNtableEdgeDegT=baseName+"EdgeDegT";
   }
 
 
@@ -171,19 +183,26 @@ public class D4MTableWriter implements AutoCloseable {
    * Sets up iterators on degree tables if enabled.
    */
   public void createTablesSoft() {
-    boolean btReg=false, btRegT=false, btDeg=false, btDegT=false, btField=false, btFieldT=false;
+    boolean btReg=false, btRegT=false, btDeg=false, btDegT=false, btField=false, btFieldT=false, btEdge=false, btEdgeT=false, btEdgeDegT=false;
     if (tconf.useTable)    btReg = createTableSoft(TNtable, tconf.connector, tconf.deleteExistingTables);
     if (tconf.useTableT && !TNtableT.equals(TNtable))   btRegT =  createTableSoft(TNtableT, tconf.connector, tconf.deleteExistingTables);
     if (tconf.useTableDeg)  btDeg = createTableSoft(TNtableDeg, tconf.connector, tconf.deleteExistingTables);
     if (tconf.useTableDegT && !TNtableDegT.equals(TNtableDeg)) btDegT = createTableSoft(TNtableDegT, tconf.connector, tconf.deleteExistingTables);
     if (tconf.useTableField) btField = createTableSoft(TNtableField, tconf.connector, tconf.deleteExistingTables);
     if (tconf.useTableFieldT && !TNtableFieldT.equals(TNtableField)) btFieldT = createTableSoft(TNtableFieldT, tconf.connector, tconf.deleteExistingTables);
+    if (tconf.useEdgeTable) btEdge = createTableSoft(TNtableEdge, tconf.connector, tconf.deleteExistingTables);
+    if (tconf.useEdgeTableT) btEdgeT= createTableSoft(TNtableEdgeT, tconf.connector, tconf.deleteExistingTables);
+    if (tconf.useEdgeTableDegT) btEdgeDegT= createTableSoft(TNtableEdgeDegT, tconf.connector, tconf.deleteExistingTables);
     if (btReg && tconf.sumTable) assignDegreeAccumulator(TNtable, tconf.connector);
     if (btRegT && tconf.sumTableT) assignDegreeAccumulator(TNtableT, tconf.connector);
     if (btDeg)  assignDegreeAccumulator(TNtableDeg, tconf.connector);
     if (btDegT) assignDegreeAccumulator(TNtableDegT, tconf.connector);
     if (btField) assignDegreeAccumulator(TNtableField, tconf.connector);
     if (btFieldT) assignDegreeAccumulator(TNtableFieldT, tconf.connector);
+    if (btEdge && tconf.sumTable) assignDegreeAccumulator(TNtableEdge, tconf.connector);
+    if (btEdgeT && tconf.sumTableT) assignDegreeAccumulator(TNtableEdgeT, tconf.connector);
+    if (btEdgeDegT) assignDegreeAccumulator(TNtableEdgeDegT, tconf.connector);
+
   }
 
   public void openIngest() {
@@ -203,8 +222,11 @@ public class D4MTableWriter implements AutoCloseable {
       if (tconf.useTableDegT) BtableDegT = TNtableDegT.equals(TNtableDeg) ? BtableDeg : mtbw.getBatchWriter(TNtableDegT);
       if (tconf.useTableField) BtableField = mtbw.getBatchWriter(TNtableField);
       if (tconf.useTableFieldT) BtableFieldT = TNtableFieldT.equals(TNtableField) ? BtableField : mtbw.getBatchWriter(TNtableFieldT);
+      if (tconf.useEdgeTable) BtableEdge         = mtbw.getBatchWriter(TNtableEdge);
+      if (tconf.useEdgeTableT) BtableEdgeT         = mtbw.getBatchWriter(TNtableEdgeT);
+      if (tconf.useEdgeTableDegT) BtableEdgeDegT         = mtbw.getBatchWriter(TNtableEdgeDegT);
     } catch (TableNotFoundException e) {
-      log.error("impossible! Tables should have been created!", e);
+      log.error("crazy. Tables should have been created.", e);
     } catch (AccumuloSecurityException | AccumuloException e) {
       log.warn("error creating one of the batch writers for D4MTableWriter base " + TNtable, e);
     }
@@ -233,6 +255,9 @@ public class D4MTableWriter implements AutoCloseable {
     BtableDegT = null;
     BtableField = null;
     BtableFieldT = null;
+    BtableEdge = null;
+    BtableEdgeT = null;
+    BtableEdgeDegT = null;
     try {
       mtbw.close();
     } catch (MutationsRejectedException e) {
@@ -281,6 +306,40 @@ public class D4MTableWriter implements AutoCloseable {
         Text cqField = new Text(cqString.substring(0, fieldSepPos));
         ingestRow(BtableFieldT, cqField, tconf.cf, tconf.colDegT, VALONE);
       }
+    }
+  }
+
+  static byte[] concatBytes(byte[]... bs) {
+    int totlen = 0;
+    for (byte[] b : bs)
+      totlen += b.length;
+    byte[] ret = new byte[totlen];
+    int pos = 0;
+    for (byte[] b : bs) {
+      System.arraycopy(b,0,ret,pos,b.length);
+      pos += b.length;
+    }
+    return ret;
+  }
+
+  /** In addiiton to {@link #ingestRow(Text, Text, Value)}, handles edge table. */
+  public void ingestRow(Text rowID, Text cq, Value v, Text edgeID) {
+    ingestRow(rowID, cq, v);
+    if (tconf.useEdgeTable || tconf.useEdgeTableT) {
+      Text out = new Text(concatBytes(tconf.colDeg.getBytes(), String.valueOf(FIELD_SEPERATOR).getBytes(), rowID.getBytes()));
+      Text in = new Text(concatBytes(tconf.colDegT.getBytes(), String.valueOf(FIELD_SEPERATOR).getBytes(), cq.getBytes()));
+      if (tconf.useEdgeTable) {
+        ingestRow(BtableEdge, edgeID, tconf.cf, out, v);
+        ingestRow(BtableEdge, edgeID, tconf.cf, in, v);
+      }
+      if (tconf.useEdgeTableT) {
+        ingestRow(BtableEdgeT, out, tconf.cf, edgeID, v);
+        ingestRow(BtableEdgeT, in,  tconf.cf, edgeID, v);
+      }
+    }
+    if (tconf.useEdgeTableDegT) {
+      ingestRow(BtableEdgeDegT, rowID, tconf.cf, tconf.colDeg, VALONE);
+      ingestRow(BtableEdgeDegT, cq, tconf.cf, tconf.colDegT, VALONE);
     }
   }
 

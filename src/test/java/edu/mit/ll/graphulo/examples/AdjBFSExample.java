@@ -81,8 +81,10 @@ public class AdjBFSExample extends AccumuloTestBase {
 
     // Adjacency Table Breadth First Search.
     // This call blocks until the BFS completes.
-    graphulo.AdjBFS(Atable, v0, numSteps, Rtable, RTtable,
+    String vReached = graphulo.AdjBFS(Atable, v0, numSteps, Rtable, RTtable,
         ADegtable, degColumn, degInColQ, minDegree, maxDegree, plusOp, trace);
+    System.out.println("First few nodes reachable in exactly "+numSteps+" steps: " +
+            vReached.substring(0,Math.min(20,vReached.length())));
 
     // Result is in output table. Do whatever you like with it.
     BatchScanner bs = conn.createBatchScanner(Rtable, Authorizations.EMPTY, 2);
@@ -98,15 +100,17 @@ public class AdjBFSExample extends AccumuloTestBase {
   ////////////////////////////////////////////////////////////////////////////////////////////////
   /*  Variations of above example:
 
-      Change the minimum and maximum degrees, the starting nodes and the plus operation.
+  1)  Change the minimum and maximum degrees, the starting nodes and the plus operation.
       Setting plusOp to null means that entries sent to Rtable overwrite existing entries
       instead of summing.
 
-      Increase the SCALE parameter to 12, 14 or 16 to run on larger graphs.
+  2)  Increase the SCALE parameter to 12, 14 or 16 to run on larger graphs.
 
-      Set ADegtable to null to instruct Graphulo to filter degrees on the fly using an iterator.
+  3)  Set ADegtable to null to instruct Graphulo to filter degrees on the fly using an iterator.
 
-
+  4)  Set Rtable and RTtable both to null to obtain the nodes reachable
+      in exactly numSteps as a return value from the BFS call,
+      without writing the subgraph traversed at each step to result tables.
 
   */
   ////////////////////////////////////////////////////////////////////////////////////////////////

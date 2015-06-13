@@ -37,7 +37,7 @@ public class ReducerTest {
   @Test
   public void testSingleBFSReducer() {
     SingleBFSReducer r = new SingleBFSReducer();
-    r.init(Collections.singletonMap(SingleBFSReducer.FIELD_SEP, "|"), null);
+    r.init(Collections.singletonMap(SingleBFSReducer.EDGE_SEP, "|"), null);
     r.update(new Key("v1"), new Value());
     r.update(new Key("v1|v2"), new Value());
     r.update(new Key("v1|v3"), new Value());
@@ -49,7 +49,7 @@ public class ReducerTest {
     e.add("v4");
     Assert.assertEquals(e, r.get());
     SingleBFSReducer r2 = new SingleBFSReducer();
-    r2.init(Collections.singletonMap(SingleBFSReducer.FIELD_SEP, "|"), null);
+    r2.init(Collections.singletonMap(SingleBFSReducer.EDGE_SEP, "|"), null);
     r2.update(new Key("v1|v3"), new Value());
     r2.update(new Key("v2|v2"), new Value());
     r2.update(new Key("v8|v5"), new Value());

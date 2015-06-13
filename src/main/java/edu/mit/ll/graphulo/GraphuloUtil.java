@@ -1,5 +1,6 @@
 package edu.mit.ll.graphulo;
 
+import com.google.common.base.Preconditions;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -89,6 +90,10 @@ public class GraphuloUtil {
    * @return Ex: (-Inf,r1] [r3,r3) [r5,r7] [r9,+Inf)
    */
   public static SortedSet<Range> d4mRowToRanges(String rowStr) {
+    return d4mRowToRanges(rowStr, false);
+  }
+
+  static SortedSet<Range> d4mRowToRanges(String rowStr, boolean singletonsArePrefix) {
     if (rowStr == null || rowStr.isEmpty())
       return new TreeSet<>();
     // could write my own version that does not do regex, but probably not worth optimizing
@@ -113,8 +118,10 @@ public class GraphuloUtil {
 
     while (pi.hasNext()) {
       if (pi.peekSecond() == null) { // last singleton row [1,1~)
-        Key key = new Key(pi.peekFirst());
-        rngset.add(new Range(key, true, key.followingKey(PartialKey.ROW), false));
+        if (singletonsArePrefix)
+          rngset.add(Range.prefix(pi.peekFirst()));
+        else
+          rngset.add(Range.exact(pi.peekFirst()));
         return rngset;
       } else if (pi.peekSecond().equals(":")) {
         if (pi.peekThird() == null) { // [1,+Inf)
@@ -129,8 +136,10 @@ public class GraphuloUtil {
           pi.next();
         }
       } else { // [1,1~)
-        Key key = new Key(pi.peekFirst());
-        rngset.add(new Range(key, true, key.followingKey(PartialKey.ROW), false));
+        if (singletonsArePrefix)
+          rngset.add(Range.prefix(pi.peekFirst()));
+        else
+          rngset.add(Range.exact(pi.peekFirst()));
         pi.next();
       }
     }
@@ -192,11 +201,15 @@ public class GraphuloUtil {
       return endRow;
   }
 
+  static final char LAST_ONE_BYTE_CHAR = Character.toChars(Byte.MAX_VALUE)[0];
+
   private static String prevRow(String row) {
     if (row.charAt(row.length()-1) == '\0')
       return row.substring(0, row.length() - 1);
     else
-      return row.substring(0,row.length()-1)+ (char)((int)row.charAt(row.length()-1)-1);
+      return row.substring(0,row.length()-1)
+          + (char)((int)row.charAt(row.length()-1)-1)
+          + LAST_ONE_BYTE_CHAR;
   }
 
   /**
@@ -411,7 +424,9 @@ public class GraphuloUtil {
 
   /** Prepend a prefix to every part of a D4M string.
    * "a,b,:,v,:," ==> "pre|a,pre|b,:,pre|v,:,"
+   * @deprecated Switch to {@link #padD4mString}.
    * */
+  @Deprecated
   public static String prependStartPrefix(String prefix, String v0) {
     char sep = v0.charAt(v0.length() - 1);
     StringBuilder sb = new StringBuilder();
@@ -430,6 +445,130 @@ public class GraphuloUtil {
     return 0 == WritableComparator.compareBytes(str, 0, prefix.length, prefix, 0, prefix.length)
         ? new String(str, prefix.length, str.length - prefix.length, UTF_8)
         : null;
+  }
+
+  /** Add prefix and/or suffix to every part of a D4M string.
+   * prependStartPrefix("pre|","X","a,b,:,v,:,") ==>
+   *  "pre|aX,pre|bX,:,pre|vX,:,"
+   * */
+  public static String padD4mString(String prefix, String suffix, String str) {
+    if (prefix == null)
+      prefix = "";
+    if (suffix == null)
+      suffix = "";
+    if (prefix.isEmpty() && suffix.isEmpty())
+      return str;
+    char sep = str.charAt(str.length() - 1);
+    StringBuilder sb = new StringBuilder();
+    String[] split = str.split(String.valueOf(sep));
+    for (String part : split) {
+      if (part.equals(":"))
+        sb.append(part).append(sep);
+      else
+        sb.append(prefix).append(part).append(suffix).append(sep);
+    }
+    return sb.toString();
+  }
+
+  /**
+   * Makes each input term into a prefix range.
+   * <pre>
+   *  "v1,v5," => "v1|,:,v1},v5|,:,v5},"
+   *  "v1,:,v3,v5," => "v1,:,v3,v5|,:,v5},"
+   * </pre>
+   */
+  public static String makeRangesD4mString(String str) {
+    Preconditions.checkNotNull(str);
+    Preconditions.checkArgument(!str.isEmpty());
+//    Preconditions.checkArgument(str.indexOf(':') != -1, "Cannot have the ':' character: "+str);
+    char sep = str.charAt(str.length() - 1);
+
+    if (str.indexOf(':') == -1) {
+      StringBuilder sb = new StringBuilder();
+      for (String vktext : str.split(String.valueOf(sep))) {
+        sb.append(vktext).append(sep)
+            .append(':').append(sep)
+            .append(prevRow(Range.followingPrefix(new Text(vktext)).toString()))
+            .append(sep);
+      }
+      return sb.toString();
+    }
+
+//    Collection<Range> origRngs = d4mRowToRanges(str);
+//    for (Range rng : origRngs) {
+//      // if a singleton row, then make into a prefix row
+//
+//    }
+
+//    String[] strSplit = str.substring(0, str.length() - 1)
+//        .split(String.valueOf(sep));
+//    List<String> strList = Arrays.asList(strSplit);
+//    PeekingIterator3<String> pi = new PeekingIterator3<>(strList.iterator());
+//    SortedSet<Range> rngset = new TreeSet<>();
+//
+//    if (pi.peekFirst().equals(":")) { // (-Inf,
+//      if (pi.peekSecond() == null) {
+//        return str; // (-Inf,+Inf)
+//      } else {
+//        if (pi.peekSecond().equals(":") || (pi.peekThird() != null && pi.peekThird().equals(":")))
+//          throw new IllegalArgumentException("Bad D4M rowStr: " + str);
+////        sb.append(':').append(sep).append(pi.peekSecond()).append(sep); // (-Inf,2]
+//        rngset.add(new Range(null, false, pi.peekSecond(), true)); // (-Inf,2]
+//        pi.next();
+//        pi.next();
+//      }
+//    }
+//
+//    while (pi.hasNext()) {
+//      if (pi.peekSecond() == null) { // last singleton row [1,1~)
+////        sb.append(pi.peekFirst()).append(sep)
+////            .append(':').append(sep)
+////            .append(Range.followingPrefix(new Text(pi.peekFirst())).toString()).append(sep);
+//        rngset.add(Range.prefix(pi.peekFirst()));
+//
+//      } else if (pi.peekSecond().equals(":")) {
+//        if (pi.peekThird() == null) { // [1,+Inf)
+////          sb.append(pi.peekFirst()).append(sep).append(':').append(sep);
+//          rngset.add(new Range(pi.peekFirst(), true, null, false));
+//
+//        } else { String s = GraphuloUtil.makeRangesD4mString(vktexts, sep);// [1,3]
+//          if (pi.peekThird().equals(":"))
+//            throw new IllegalArgumentException("Bad D4M rowStr: " + str);
+////          sb.append(pi.peekFirst()).append(sep)
+////              .append(':').append(sep)
+////              .append(pi.peekThird()).append(sep);
+//          rngset.add(new Range(pi.peekFirst(), true, pi.peekThird(), true));
+//          pi.next();
+//          pi.next();
+//          pi.next();
+//        }
+//      } else { // [1,1~)
+////        sb.append(pi.peekFirst()).append(sep)
+////            .append(':').append(sep)
+////            .append(Range.followingPrefix(new Text(pi.peekFirst())).toString()).append(sep);
+//        rngset.add(Range.prefix(pi.peekFirst()));
+//        pi.next();
+//      }
+//    }
+
+    Collection<Range> prefixRngs = d4mRowToRanges(str, true);
+//    log.info(prefixRngs);
+    return rangesToD4MString(prefixRngs, sep);
+  }
+
+  /**
+   * Makes each input term into a prefix range.
+   * "v1,v5," => "v1|,:,v1},v5|,:,v5},"
+   */
+  public static String makeRangesD4mString(Collection<Text> vktexts, char sep) {
+    StringBuilder sb = new StringBuilder();
+    for (Text vktext : vktexts) {
+      sb.append(vktext.toString()).append(sep)
+          .append(':').append(sep)
+          .append(prevRow(Range.followingPrefix(new Text(vktext)).toString()))
+          .append(sep);
+    }
+    return sb.toString();
   }
 
 

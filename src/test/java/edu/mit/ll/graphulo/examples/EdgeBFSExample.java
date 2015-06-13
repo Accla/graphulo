@@ -84,9 +84,11 @@ public class EdgeBFSExample extends AccumuloTestBase {
 
     // Incidence Table Breadth First Search.
     // This call blocks until the BFS completes.
-    graphulo.EdgeBFS(Etable, v0, numSteps, Rtable, RTtable,
+    String vReached = graphulo.EdgeBFS(Etable, v0, numSteps, Rtable, RTtable,
         startPrefix, endPrefix, EDegTtable, degColumn, degInColQ, minDegree, maxDegree,
         plusOp, trace);
+    System.out.println("First few nodes reachable in exactly "+numSteps+" steps: " +
+        vReached.substring(0,Math.min(20,vReached.length())));
 
     // Result is in output table. Do whatever you like with it.
     BatchScanner bs = conn.createBatchScanner(Rtable, Authorizations.EMPTY, 2);
@@ -123,7 +125,9 @@ public class EdgeBFSExample extends AccumuloTestBase {
         ExampleUtil.ingestIncidenceFromAdjacencySCALE(SCALE, 'A', Atable, conn);
       which uses the summing together of edges in the adjacency table representation.
 
-
+  3)  Set Rtable and RTtable both to null to obtain the nodes reachable
+      in exactly numSteps as a return value from the BFS call,
+      without writing the subgraph traversed at each step to result tables.
 
   */
   ////////////////////////////////////////////////////////////////////////////////////////////////

@@ -381,7 +381,7 @@ public class UtilTest {
 
   /** temporary */
   @Test
-  public void testTest() {
+  public void test1() {
 //    AbstractEncoder<Long> encoder = new ULongLexicoder();
 //    printArray("1  ",encoder.encode(1l));
 //    printArray("2  ",encoder.encode(2l));
@@ -404,19 +404,68 @@ public class UtilTest {
     Assert.assertEquals("abcxyz",new String(ret,UTF_8));
   }
 
+  /** temporary */
   @Test
-  public void testPrependStartPrefix_D4MRange() {
-    Assert.assertEquals("pre|a,pre|b,:,pre|v,:,",
-        GraphuloUtil.prependStartPrefix("pre|","a,b,:,v,:,"));
+  public void test2() {
+    byte[] a = "a".getBytes();
+    byte[] b = new byte[a.length+1];
+    System.arraycopy(a,0,b,0,a.length);
+    b[a.length] = Byte.MAX_VALUE;
+
+    Range r = new Range(new Text(a), new Text(b));
+    Assert.assertTrue(r.contains(new Key("anfmkjdrngbukjrnfgkjrf")));
+    Assert.assertTrue(r.contains(new Key("a")));
+    Assert.assertTrue(r.contains(new Key("a\127")));
+    Assert.assertTrue(r.contains(new Key("a2")));
+    Assert.assertFalse(r.contains(new Key("b")));
   }
 
   @Test
-  public void testAddSepAndMakePrefix() {
+  public void testPrependStartPrefix_D4MRange() {
+    Assert.assertEquals("pre|a,pre|b,:,pre|v,:,",
+        GraphuloUtil.padD4mString("pre|","","a,b,:,v,:,"));
+    Assert.assertEquals("pre|aX,pre|bX,:,pre|vX,:,",
+        GraphuloUtil.padD4mString("pre|", "X", "a,b,:,v,:,"));
+    Assert.assertEquals(":,a,b,",
+        GraphuloUtil.padD4mString(null, null, ":,a,b,"));
+    Assert.assertEquals(":,ax,bx,",
+        GraphuloUtil.padD4mString("", "x", ":,a,b,"));
+  }
+
+  @Test
+  public void testMakeRangesD4mString() {
     Collection<Text> c = new ArrayList<>();
-    c.add(new Text("v1"));
-    c.add(new Text("v5"));
-    Assert.assertEquals("v1|,:,v1},v5|,:,v5},",
-        Graphulo.addSepAndMakePrefix(c, ',', "|"));
+    c.add(new Text("v1|"));
+    c.add(new Text("v5|"));
+    Assert.assertEquals("v1|,:,v1|" + GraphuloUtil.LAST_ONE_BYTE_CHAR + ",v5|,:,v5|" + GraphuloUtil.LAST_ONE_BYTE_CHAR+",",
+        GraphuloUtil.makeRangesD4mString(c, ','));
+    Assert.assertEquals("v1|,:,v1|" + GraphuloUtil.LAST_ONE_BYTE_CHAR + ",v5|,:,v5|" + GraphuloUtil.LAST_ONE_BYTE_CHAR+",",
+        GraphuloUtil.makeRangesD4mString("v1|,v5|,"));
+
+    Collection<Range> rngs = GraphuloUtil.d4mRowToRanges(GraphuloUtil.makeRangesD4mString("v1|,v5|,"));
+    boolean ok = false;
+    for (Range rng : rngs) {
+      if (rng.contains(new Key("v1|zfdwefwserdfsd")))
+        ok = true;
+    }
+    Assert.assertTrue(ok);
+
+    Assert.assertEquals("v1,:,v3,",
+        GraphuloUtil.makeRangesD4mString("v1,:,v3,"));
+    for (char b : Character.toChars(Byte.MAX_VALUE))
+      System.out.print(b);
+    System.out.println("   OK char length "+Character.toChars(Byte.MAX_VALUE).length);
+    String s = GraphuloUtil.makeRangesD4mString(":,v3,v5,v9,");
+    byte[] b = s.getBytes();
+    log.debug(Key.toPrintableString(b, 0, b.length, b.length));
+
+    Collection<Range> set = GraphuloUtil.d4mRowToRanges(s, true);
+    log.debug(set);
+    String s2 = GraphuloUtil.rangesToD4MString(set,',');
+    byte[] b2 = s.getBytes();
+    log.debug(Key.toPrintableString(b, 0, b.length, b.length));
+    // establish fixpoint
+    Assert.assertEquals(s, s2);
   }
 
 }

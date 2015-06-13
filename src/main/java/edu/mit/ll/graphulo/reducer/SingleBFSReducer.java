@@ -19,8 +19,8 @@ import java.util.Map;
 public class SingleBFSReducer implements Reducer<HashSet<String>> {
   private static final Logger log = LogManager.getLogger(SingleBFSReducer.class);
 
-  public static final String FIELD_SEP = "fieldSep";
-  private char fieldSep;
+  public static final String EDGE_SEP = "edgeSep";
+  private char edgeSep;
 
   private HashSet<String> setNodesReached = new HashSet<>();
 
@@ -30,10 +30,10 @@ public class SingleBFSReducer implements Reducer<HashSet<String>> {
       String optionKey = optionEntry.getKey();
       String optionValue = optionEntry.getValue();
       switch (optionKey) {
-        case FIELD_SEP:
+        case EDGE_SEP:
           if (optionValue.length() != 1)
-            throw new IllegalArgumentException("bad "+FIELD_SEP+": "+optionValue);
-          fieldSep = optionValue.charAt(0);
+            throw new IllegalArgumentException("bad "+ EDGE_SEP +": "+optionValue);
+          edgeSep = optionValue.charAt(0);
           gotFieldSep = true;
           break;
         default:
@@ -42,7 +42,7 @@ public class SingleBFSReducer implements Reducer<HashSet<String>> {
       }
     }
     if (!gotFieldSep)
-      throw new IllegalArgumentException("no "+FIELD_SEP);
+      throw new IllegalArgumentException("no "+ EDGE_SEP);
   }
 
   @Override
@@ -62,7 +62,7 @@ public class SingleBFSReducer implements Reducer<HashSet<String>> {
       ByteSequence rowData = k.getRowData();
       rStr = new String(rowData.getBackingArray(), rowData.offset(), rowData.length());
     }
-    int pos = rStr.indexOf(fieldSep);
+    int pos = rStr.indexOf(edgeSep);
     if (pos == -1)
       return;        // this is a degree row, not an edge row.
     String toNode = rStr.substring(pos+1);

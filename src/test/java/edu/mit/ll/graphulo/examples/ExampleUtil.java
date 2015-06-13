@@ -31,7 +31,7 @@ public class ExampleUtil {
     File colFile = getDataFile(String.valueOf(SCALE)+version+"c.txt");
 
     // deleteExistingTables
-    long cnt = tripleFileWriter.writeTripleFile_Adjacency(rowFile, colFile, null, ",", baseName, true, false);
+    long cnt = tripleFileWriter.writeTripleFile_Adjacency(rowFile, colFile, null, ",", baseName, true, true);
     log.info("Wrote "+cnt+" edges to D4M Adjacency tables with base name "+baseName);
   }
 
@@ -44,7 +44,7 @@ public class ExampleUtil {
 
     // deleteExistingTables
     System.out.println("estimate "+(1 << SCALE)*16);
-    long cnt = tripleFileWriter.writeTripleFile_Incidence(rowFile, colFile, null, ",", baseName, true, false, (1 << SCALE) * 16); // upper bound on #edges
+    long cnt = tripleFileWriter.writeTripleFile_Incidence(rowFile, colFile, null, ",", baseName, true, true, (1 << SCALE) * 16); // upper bound on #edges
     log.info("Wrote "+cnt+" edges to D4M Incidence tables with base name "+baseName);
   }
 
@@ -55,8 +55,19 @@ public class ExampleUtil {
 
     // deleteExistingTables
     System.out.println("estimate "+(1 << SCALE)*16);
-    long cnt = tripleFileWriter.writeFromAdjacency_Incidence(baseName, true, false, (1 << SCALE) * 16); // upper bound on #edges
+    long cnt = tripleFileWriter.writeFromAdjacency_Incidence(baseName, true, true, (1 << SCALE) * 16); // upper bound on #edges
     log.info("Wrote "+cnt+" edges to D4M Incidence tables with base name "+baseName);
+  }
+
+  /** Reads files from src/test/resource/data and inserts into Accumulo single-table schema. */
+  public static void ingestSingleSCALE(int SCALE, char version, String baseName, Connector conn) throws FileNotFoundException {
+    D4MTripleFileWriter tripleFileWriter = new D4MTripleFileWriter(conn);
+    File rowFile = getDataFile(String.valueOf(SCALE)+version+"r.txt");
+    File colFile = getDataFile(String.valueOf(SCALE)+version+"c.txt");
+
+    // deleteExistingTables
+    long cnt = tripleFileWriter.writeTripleFile_Single(rowFile, colFile, null, ",", baseName, true, true);
+    log.info("Wrote "+cnt+" edges to single-table with base name "+baseName);
   }
 
 }

@@ -1,9 +1,15 @@
 package edu.mit.ll.graphulo.d4m;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -256,5 +262,111 @@ public class D4MTripleFileWriter {
     }
     return count;
   }
+
+  /**
+   * Writes triples from component files to a main table, transpose table and degree table.
+   *
+   * @param valFile Optional value file. Uses "1" if not given.
+   * @param delimiter Delimiter that separates items.
+   * @param baseName Name of tables is the base name plus "", "T", "Deg"
+   * @param deleteExistingTables Delete tables if present.
+   * @param trackTime Log the rate of ingest or not.
+   * @return Number of triples written.
+   */
+  public long writeTripleFile_Single(File rowFile, File colFile, File valFile,
+                                        String delimiter, String baseName,
+                                        boolean deleteExistingTables, boolean trackTime) {
+    long count = 0, startTime, origStartTime;
+    Text text = new Text(), valText = null;
+    Value val = D4MTableWriter.VALONE;
+
+    Scanner valScanner = null;
+    try (Scanner rowScanner = new Scanner( rowFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(rowFile)) : new FileInputStream(rowFile) );
+         Scanner colScanner = new Scanner( colFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(colFile)) : new FileInputStream(colFile) )) {
+      rowScanner.useDelimiter(delimiter);
+      colScanner.useDelimiter(delimiter);
+      if (valFile != null) {
+        valScanner = new Scanner(valFile);
+        valScanner.useDelimiter(delimiter);
+        valText = new Text();
+      }
+
+      Text outCol = new Text("out"),
+        inCol = new Text("in"),
+        edgeCol = new Text("edge");
+      String Stable = baseName+"Single";
+      char edgeSep = '|';
+
+      if (connector.tableOperations().exists(Stable))
+        if (deleteExistingTables)
+          connector.tableOperations().delete(Stable);
+        else
+          return -1; //throw new TableExistsException(Stable+" already exists");
+      connector.tableOperations().create(Stable);
+      D4MTableWriter.assignDegreeAccumulator(Stable, connector);
+
+      BatchWriterConfig bwc = new BatchWriterConfig();
+      BatchWriter bw = connector.createBatchWriter(Stable, bwc);
+
+      origStartTime = startTime = System.currentTimeMillis();
+      try {
+        while (rowScanner.hasNext()) {
+          if (!colScanner.hasNext() || (valScanner != null && !valScanner.hasNext())) {
+            throw new IllegalArgumentException("row, col and val files do not have the same number of elements. " +
+                " rowScanner.hasNext()=" + rowScanner.hasNext() +
+                " colScanner.hasNext()=" + colScanner.hasNext() +
+                (valScanner == null ? "" : " valScanner.hasNext()=" + valScanner.hasNext()));
+          }
+          String rowStr = rowScanner.next(), colStr = colScanner.next();
+          if (valFile != null) {
+            valText.set(valScanner.next());
+            val.set(valText.copyBytes());
+          }
+
+          text.set(rowStr);
+          Mutation mut = new Mutation(text);
+          mut.put(D4MTableWriter.EMPTYCF, outCol, val);
+          bw.addMutation(mut);
+
+          text.set(colStr);
+          mut = new Mutation(text);
+          mut.put(D4MTableWriter.EMPTYCF, inCol, val);
+          bw.addMutation(mut);
+
+          text.set(rowStr+edgeSep+colStr);
+          mut = new Mutation(text);
+          mut.put(D4MTableWriter.EMPTYCF, edgeCol, val);
+          bw.addMutation(mut);
+
+          count++;
+
+          if (trackTime && count % 100000 == 0) {
+            long stopTime = System.currentTimeMillis();
+            if (startTime - stopTime > 1000*60) {
+              System.out.printf("Ingest: %9d cnt, %6d secs, %8d entries/sec\n", count, (stopTime - origStartTime)/1000,
+                  Math.round(count / ((stopTime - origStartTime)/1000.0)));
+              startTime = stopTime;
+            }
+          }
+        }
+      } finally {
+        bw.close();
+      }
+    } catch (IOException e) {
+      log.warn("",e);
+      throw new RuntimeException(e);
+    } catch (TableExistsException | TableNotFoundException e) {
+      log.error("crazy",e);
+      throw new RuntimeException(e);
+    } catch (AccumuloSecurityException | AccumuloException e) {
+      log.warn(" ", e);
+      throw new RuntimeException(e);
+    } finally {
+      if (valScanner != null)
+        valScanner.close();
+    }
+    return count;
+  }
+
 
 }

@@ -36,6 +36,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class GraphuloUtil {
   private static final Logger log = LogManager.getLogger(GraphuloUtil.class);
 
+  public static final char DEFAULT_SEP_D4M_STRING = '\t';
+
+
   /**
    * Split options on period characters.
    * "" holds entries without a period.
@@ -93,6 +96,11 @@ public class GraphuloUtil {
     return d4mRowToRanges(rowStr, false);
   }
 
+  /**
+   * @see #d4mRowToRanges(String)
+   * @param singletonsArePrefix If true, then singleton entries in the D4M string are
+   *                            made into prefix ranges instead of single row ranges.
+   */
   static SortedSet<Range> d4mRowToRanges(String rowStr, boolean singletonsArePrefix) {
     if (rowStr == null || rowStr.isEmpty())
       return new TreeSet<>();
@@ -147,7 +155,7 @@ public class GraphuloUtil {
   }
 
   public static String rangesToD4MString(Collection<Range> ranges) {
-    return rangesToD4MString(ranges, '\t');
+    return rangesToD4MString(ranges, DEFAULT_SEP_D4M_STRING);
   }
 
   public static String rangesToD4MString(Collection<Range> ranges, char sep) {
@@ -238,7 +246,7 @@ public class GraphuloUtil {
   }
 
   public static String textsToD4mString(Collection<Text> texts) {
-    return textsToD4mString(texts, '\t');
+    return textsToD4mString(texts, DEFAULT_SEP_D4M_STRING);
   }
 
   public static String textsToD4mString(Collection<Text> texts, char sep) {
@@ -390,56 +398,6 @@ public class GraphuloUtil {
   }
 
 
-
-  /**
-   * Todo? Replace with {@link Range#prefix} or {@link Range#followingPrefix(Text)}.
-   * May break with unicode.
-   * @param prefix e.g. "out|"
-   * @param vktexts Set of nodes like "v1,v3,v0,"
-   * @return "out|v1,out|v3,out|v0," or "out|,:,out}," if vktexts is null or empty
-   */
-  public static String prependStartPrefix(String prefix, char sep, Collection<Text> vktexts) {
-    if (vktexts == null || vktexts.isEmpty()) {
-//      byte[] orig = prefix.getBytes();
-//      byte[] newb = new byte[orig.length*2+4];
-//      System.arraycopy(orig,0,newb,0,orig.length);
-//      newb[orig.length] = (byte)sep;
-//      newb[orig.length+1] = ':';
-//      newb[orig.length+2] = (byte)sep;
-//      System.arraycopy(orig,0,newb,orig.length+3,orig.length-1);
-//      newb[orig.length*2+2] = (byte) (orig[orig.length-1]+1);
-//      newb[orig.length*2+3] = (byte)sep;
-//      return new String(newb);
-      Text pt = new Text(prefix);
-      Text after = Range.followingPrefix(pt);
-      return prefix + sep + ':' + sep + after.toString() + sep;
-    } else {
-      StringBuilder ret = new StringBuilder();
-      for (Text vktext : vktexts) {
-        ret.append(prefix).append(vktext.toString()).append(sep);
-      }
-      return ret.toString();
-    }
-  }
-
-  /** Prepend a prefix to every part of a D4M string.
-   * "a,b,:,v,:," ==> "pre|a,pre|b,:,pre|v,:,"
-   * @deprecated Switch to {@link #padD4mString}.
-   * */
-  @Deprecated
-  public static String prependStartPrefix(String prefix, String v0) {
-    char sep = v0.charAt(v0.length() - 1);
-    StringBuilder sb = new StringBuilder();
-    String[] split = v0.split(String.valueOf(sep));
-    for (String part : split) {
-      if (part.equals(":"))
-        sb.append(part).append(sep);
-      else
-        sb.append(prefix).append(part).append(sep);
-    }
-    return sb.toString();
-  }
-
   /** If str begins with prefix, return a String containing the characters after the prefix. Otherwise return null. */
   public static String stringAfter(byte[] prefix, byte[] str) {
     return 0 == WritableComparator.compareBytes(str, 0, prefix.length, prefix, 0, prefix.length)
@@ -477,7 +435,7 @@ public class GraphuloUtil {
    *  "v1,:,v3,v5," => "v1,:,v3,v5|,:,v5},"
    * </pre>
    */
-  public static String makeRangesD4mString(String str) {
+  public static String singletonsAsPrefix(String str) {
     Preconditions.checkNotNull(str);
     Preconditions.checkArgument(!str.isEmpty());
 //    Preconditions.checkArgument(str.indexOf(':') != -1, "Cannot have the ':' character: "+str);
@@ -531,7 +489,7 @@ public class GraphuloUtil {
 ////          sb.append(pi.peekFirst()).append(sep).append(':').append(sep);
 //          rngset.add(new Range(pi.peekFirst(), true, null, false));
 //
-//        } else { String s = GraphuloUtil.makeRangesD4mString(vktexts, sep);// [1,3]
+//        } else { String s = GraphuloUtil.singletonsAsPrefix(vktexts, sep);// [1,3]
 //          if (pi.peekThird().equals(":"))
 //            throw new IllegalArgumentException("Bad D4M rowStr: " + str);
 ////          sb.append(pi.peekFirst()).append(sep)
@@ -560,7 +518,7 @@ public class GraphuloUtil {
    * Makes each input term into a prefix range.
    * "v1,v5," => "v1|,:,v1},v5|,:,v5},"
    */
-  public static String makeRangesD4mString(Collection<Text> vktexts, char sep) {
+  public static String singletonsAsPrefix(Collection<Text> vktexts, char sep) {
     StringBuilder sb = new StringBuilder();
     for (Text vktext : vktexts) {
       sb.append(vktext.toString()).append(sep)

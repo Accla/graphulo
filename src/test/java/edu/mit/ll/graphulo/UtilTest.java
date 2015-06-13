@@ -351,13 +351,13 @@ public class UtilTest {
     String v0 = "v1,v3,v0,";
     Collection<Text> vktexts = GraphuloUtil.d4mRowToTexts(v0);
     String expect = "out|v1,out|v3,out|v0,";
-    String actual = GraphuloUtil.prependStartPrefix(startPrefix, sep, vktexts);
+    String actual = Graphulo.prependStartPrefix(startPrefix, sep, vktexts);
     Set<String> expectSet = new HashSet<>(Arrays.asList(expect.split(","))),
         actualSet = new HashSet<>(Arrays.asList(actual.split(",")));
     Assert.assertEquals(expectSet, actualSet);
 
     expect = "out|,:,out},";
-    Assert.assertEquals(expect, GraphuloUtil.prependStartPrefix(startPrefix, sep, null));
+    Assert.assertEquals(expect, Graphulo.prependStartPrefix(startPrefix, sep, null));
   }
 
   @Test
@@ -438,11 +438,11 @@ public class UtilTest {
     c.add(new Text("v1|"));
     c.add(new Text("v5|"));
     Assert.assertEquals("v1|,:,v1|" + GraphuloUtil.LAST_ONE_BYTE_CHAR + ",v5|,:,v5|" + GraphuloUtil.LAST_ONE_BYTE_CHAR+",",
-        GraphuloUtil.makeRangesD4mString(c, ','));
+        GraphuloUtil.singletonsAsPrefix(c, ','));
     Assert.assertEquals("v1|,:,v1|" + GraphuloUtil.LAST_ONE_BYTE_CHAR + ",v5|,:,v5|" + GraphuloUtil.LAST_ONE_BYTE_CHAR+",",
-        GraphuloUtil.makeRangesD4mString("v1|,v5|,"));
+        GraphuloUtil.singletonsAsPrefix("v1|,v5|,"));
 
-    Collection<Range> rngs = GraphuloUtil.d4mRowToRanges(GraphuloUtil.makeRangesD4mString("v1|,v5|,"));
+    Collection<Range> rngs = GraphuloUtil.d4mRowToRanges(GraphuloUtil.singletonsAsPrefix("v1|,v5|,"));
     boolean ok = false;
     for (Range rng : rngs) {
       if (rng.contains(new Key("v1|zfdwefwserdfsd")))
@@ -451,11 +451,11 @@ public class UtilTest {
     Assert.assertTrue(ok);
 
     Assert.assertEquals("v1,:,v3,",
-        GraphuloUtil.makeRangesD4mString("v1,:,v3,"));
+        GraphuloUtil.singletonsAsPrefix("v1,:,v3,"));
     for (char b : Character.toChars(Byte.MAX_VALUE))
       System.out.print(b);
     System.out.println("   OK char length "+Character.toChars(Byte.MAX_VALUE).length);
-    String s = GraphuloUtil.makeRangesD4mString(":,v3,v5,v9,");
+    String s = GraphuloUtil.singletonsAsPrefix(":,v3,v5,v9,");
     byte[] b = s.getBytes();
     log.debug(Key.toPrintableString(b, 0, b.length, b.length));
 

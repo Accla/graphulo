@@ -26,7 +26,7 @@ import java.util.Map;
 /**
  * Example demonstrating
  * (1) ingest the incidence matrix representation of a graph into the D4M Schema tables ex10AEdge, ex10AEdgeT, ex10AEdgeDegT;
- * (2) create a new Accumulo table ex10AEdgeStep3 with the union sum of three BFS steps from node 1;
+ * (2) create a new Accumulo table ex10AEdgeStep3 with the union sum of three BFS steps;
  * (3) count the number of entries in ex10AEdgeStep3.
  */
 public class EdgeBFSExample extends AccumuloTestBase {
@@ -49,8 +49,8 @@ public class EdgeBFSExample extends AccumuloTestBase {
     String endPrefix = "in|";                           // Name of column qualifier prefix for the node an edge goes into.
     boolean degInColQ = false;                          // Degree is stored in the Value, not the Column Qualifier.
     int minDegree = 20;                                 // Bounding minimum degree: only include nodes with degree 20 or higher.
-    int maxDegree = Integer.MAX_VALUE;                  // Unbounded maximum degree.  This + the minimum degree make a High-pass Filter.
-    String v0 = "1,25,:,27,";                           // Starting nodes: start from node 1 (the supernode) and all the nodes from 25 to 27 inclusive.
+    int maxDegree = Integer.MAX_VALUE;                  // Unbounded maximum degree.  This and the minimum degree make a High-pass Filter.
+    String v0 = "1,25,:,27,";                           // Starting nodes: node 1 (the supernode) and all the nodes from 25 to 27 inclusive.
     boolean trace = false;                              // Disable debug printing.
 
     // In your code, you would connect to an Accumulo instance by writing something similar to:

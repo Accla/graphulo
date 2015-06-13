@@ -329,20 +329,25 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     }
   }
 
+  void seekNextHeuristic(Range newSeekRange) {
+
+  }
+
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     log.debug("RemoteWrite on table " + tableName + " / "+tableNameTranspose+" seek(): " + range);
     //System.out.println("RW passed seek " + range + "(thread " + Thread.currentThread().getName() + ")");
 
     reducer.reset();
+//    boolean initialSeek = seekRange == null;
     seekRange = range;
     seekColumnFamilies = columnFamilies;
     seekInclusive = inclusive;
     rowRangeIterator = rowRanges.iteratorWithRangeMask(seekRange);
-    writeWrapper(true);
+    writeWrapper(true/*, initialSeek*/);
   }
 
-  private boolean writeWrapper(boolean doSeekNext) throws IOException {
+  private boolean writeWrapper(boolean doSeekNext/*, boolean initialSeek*/) throws IOException {
     boolean stoppedAtSafe = false;
     entriesWritten = 0;
     try {
@@ -356,6 +361,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
             lastSafeKey.set(thisTargetRange.getStartKey());
           log.debug("RemoteWrite actual seek " + thisTargetRange);// + "(thread " + Thread.currentThread().getName() + ")");
           // We could use the 10x next() heuristic here...
+//          if (!initialSeek)
+//          seekNextHeuristic(thisTargetRange);
           source.seek(thisTargetRange, seekColumnFamilies, seekInclusive);
         }
         doSeekNext = true;

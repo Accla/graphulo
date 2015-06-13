@@ -701,7 +701,7 @@ public class Graphulo {
       throw new RuntimeException(e);
     }
 
-    String colFilterB = GraphuloUtil.prependStartPrefix(endPrefix, sep, null);
+    String colFilterB = prependStartPrefix(endPrefix, sep, null);
     log.debug("fetchColumn "+colFilterB);
 //    bs.fetchColumn(EMPTY_TEXT, new Text(GraphuloUtil.prependStartPrefix(endPrefix, v0, null)));
 
@@ -730,13 +730,13 @@ public class Graphulo {
 
           if (vktexts.isEmpty())
             break;
-          opt.put("AT.colFilter", GraphuloUtil.prependStartPrefix(startPrefix, sep, vktexts));
+          opt.put("AT.colFilter", prependStartPrefix(startPrefix, sep, vktexts));
 
         } else {  // no filtering
           if (thisk == 1)
-            opt.put("AT.colFilter", GraphuloUtil.prependStartPrefix(startPrefix, v0));
+            opt.put("AT.colFilter", GraphuloUtil.padD4mString(startPrefix, "", v0));
           else
-            opt.put("AT.colFilter", GraphuloUtil.prependStartPrefix(startPrefix, sep, vktexts));
+            opt.put("AT.colFilter", prependStartPrefix(startPrefix, sep, vktexts));
         }
         log.debug("AT.colFilter: " + opt.get("AT.colFilter"));
 
@@ -886,187 +886,216 @@ public class Graphulo {
   }
 
 
-
-
-
-    /**
-     * Single-table Breadth First Search. Sums entries into Rtable from each step of the BFS.
-     * Note that this version does not copy the in-degrees into the result table.
-     *
-     * @param Stable      Name of Accumulo table.
-     * @param edgeColumn  Column that edges are stored in.
-     * @param edgeSep     Character used to separate edges in the row key, e.g. '|'.
-     * @param v0          Starting nodes, like "a,f,b,c,". Null or empty string "" means start from all nodes.
-     *                    v0 may be a range of nodes like "c,:,e,g,k,:,".
-     * @param k           Number of steps
-     * @param Rtable      Name of table to store result. Null means don't store the result.
-     * @param SDegtable   Name of table holding out-degrees for S. This should almost always be the same as Stable.
-     *                    Can set to null only if no filtering is necessary, e.g.,
-     *                    if minDegree=0 and maxDegree=Integer.MAX_VALUE.
-     * @param degColumn   Name of column for out-degrees in SDegtable like "out". Null means the empty column "".
-     *                    If degInColQ==true, this is the prefix before the numeric portion of the column
-     *                    like "out|", and null means no prefix. Unused if ADegtable is null.
-     * @param degInColQ   True means degree is in the Column Qualifier. False means degree is in the Value.
-     *                    Unused if SDegtable is null.
-     * @param copyOutDegrees True means copy out-degrees from Stable to Rtable. This must be false if SDegtable is different from Stable. (could remove restriction in future)
-     * @param minDegree   Minimum out-degree. Checked before doing any searching, at every step, from SDegtable. Pass 0 for no filtering.
-     * @param maxDegree   Maximum out-degree. Checked before doing any searching, at every step, from SDegtable. Pass Integer.MAX_VALUE for no filtering.
-     * @param plusOp      An SKVI to apply to the result table that "sums" values. Not applied if null.
-     *                    Be careful: this affects degrees in the result table as well as normal entries.
-     * @param trace       Enable server-side performance tracing.
-     * @return          The nodes reachable in exactly k steps from v0.
-     */
-    @SuppressWarnings("unchecked")
-    public String SingleTableBFS(String Stable, String edgeColumn, char edgeSep,
-                        String v0, int k, String Rtable,
-                        String SDegtable, String degColumn, boolean degInColQ,
-                        boolean copyOutDegrees, int minDegree, int maxDegree,
-                        IteratorSetting plusOp, boolean trace) {
-      boolean needDegreeFiltering = minDegree > 0 || maxDegree < Integer.MAX_VALUE;
-      if (Stable == null || Stable.isEmpty())
-        throw new IllegalArgumentException("Please specify Single-table. Given: " + Stable);
-      if (needDegreeFiltering && (SDegtable == null || SDegtable.isEmpty()))
-        throw new IllegalArgumentException("Please specify SDegtable since filtering is required. Given: " + Stable);
-      if (Rtable != null && Rtable.isEmpty())
-        Rtable = null;
-      if (edgeColumn == null)
-        edgeColumn = "";
-      Text edgeColumnText = new Text(edgeColumn);
-      if (copyOutDegrees && !SDegtable.equals(Stable))
-        throw new IllegalArgumentException("Stable and SDegtable must be the same when copying out-degrees. Stable: " + Stable+" SDegtable: "+SDegtable);
-      if (minDegree < 1)
-        minDegree = 1;
-      if (maxDegree < minDegree)
-        throw new IllegalArgumentException("maxDegree=" + maxDegree + " should be >= minDegree=" + minDegree);
-      String edgeSepStr = String.valueOf(edgeSep);
-
-      if (degColumn == null)
-        degColumn = "";
-      Text degColumnText = new Text(degColumn);
-
-      if (plusOp != null && plusOp.getPriority() >= 20)
-        log.warn("Sum iterator setting is >=20. Are you sure you want the priority after the default Versioning iterator priority? " + plusOp);
-      if (v0 == null || v0.isEmpty())
-        v0 = ":\t";
-      Collection<Text> vktexts = new HashSet<>(); //v0 == null ? null : GraphuloUtil.d4mRowToTexts(v0);
-      char sep = v0.charAt(v0.length() - 1);
-
-      TableOperations tops = connector.tableOperations();
-      if (!tops.exists(Stable))
-        throw new IllegalArgumentException("Table A does not exist. Given: " + Stable);
-      if (Rtable != null && !tops.exists(Rtable))
-        try {
-          tops.create(Rtable);
-        } catch (AccumuloException | AccumuloSecurityException e) {
-          log.error("error trying to create R table " + Rtable, e);
-          throw new RuntimeException(e);
-        } catch (TableExistsException e) {
-          log.error("crazy", e);
-          throw new RuntimeException(e);
-        }
-
-      Map<String, String> opt = new HashMap<>();
-//    opt.put("trace", String.valueOf(trace)); // logs timing on server
-      opt.put("reducer", SingleBFSReducer.class.getName());
-      opt.put("reducer.opt."+SingleBFSReducer.EDGE_SEP, edgeSepStr);
-      if (Rtable != null) {
-        String instance = connector.getInstance().getInstanceName();
-        String zookeepers = connector.getInstance().getZooKeepers();
-        String user = connector.whoami();
-        opt.put("zookeeperHost", zookeepers);
-        opt.put("instanceName", instance);
-//        if (Rtable != null)
-          opt.put("tableName", Rtable);
-        opt.put("username", user);
-        opt.put("password", new String(password.getPassword()));
-
-        if (/*Rtable != null &&*/ plusOp != null)
-          GraphuloUtil.applyIteratorSoft(plusOp, tops, Rtable);
+  /**
+   * Todo? Replace with {@link Range#prefix} or {@link Range#followingPrefix(Text)}.
+   * May break with unicode.
+   * @param prefix e.g. "out|"
+   * @param vktexts Set of nodes like "v1,v3,v0,"
+   * @return "out|v1,out|v3,out|v0," or "out|,:,out}," if vktexts is null or empty
+   */
+  static String prependStartPrefix(String prefix, char sep, Collection<Text> vktexts) {
+    if (vktexts == null || vktexts.isEmpty()) {
+//      byte[] orig = prefix.getBytes();
+//      byte[] newb = new byte[orig.length*2+4];
+//      System.arraycopy(orig,0,newb,0,orig.length);
+//      newb[orig.length] = (byte)sep;
+//      newb[orig.length+1] = ':';
+//      newb[orig.length+2] = (byte)sep;
+//      System.arraycopy(orig,0,newb,orig.length+3,orig.length-1);
+//      newb[orig.length*2+2] = (byte) (orig[orig.length-1]+1);
+//      newb[orig.length*2+3] = (byte)sep;
+//      return new String(newb);
+      Text pt = new Text(prefix);
+      Text after = Range.followingPrefix(pt);
+      return prefix + sep + ':' + sep + after.toString() + sep;
+    } else {
+      StringBuilder ret = new StringBuilder();
+      for (Text vktext : vktexts) {
+        ret.append(prefix).append(vktext.toString()).append(sep);
       }
-      BatchScanner bs;
+      return ret.toString();
+    }
+  }
+
+
+  /**
+   * Single-table Breadth First Search. Sums entries into Rtable from each step of the BFS.
+   * Note that this version does not copy the in-degrees into the result table.
+   *
+   * @param Stable         Name of Accumulo table.
+   * @param edgeColumn     Column that edges are stored in.
+   * @param edgeSep        Character used to separate edges in the row key, e.g. '|'.
+   * @param v0             Starting nodes, like "a,f,b,c,". Null or empty string "" means start from all nodes.
+   *                       v0 may be a range of nodes like "c,:,e,g,k,:,".
+   * @param k              Number of steps
+   * @param Rtable         Name of table to store result. Null means don't store the result.
+   * @param SDegtable      Name of table holding out-degrees for S. This should almost always be the same as Stable.
+   *                       Can set to null only if no filtering is necessary, e.g.,
+   *                       if minDegree=0 and maxDegree=Integer.MAX_VALUE.
+   * @param degColumn      Name of column for out-degrees in SDegtable like "out". Null means the empty column "".
+   *                       If degInColQ==true, this is the prefix before the numeric portion of the column
+   *                       like "out|", and null means no prefix. Unused if ADegtable is null.
+   * @param degInColQ      True means degree is in the Column Qualifier. False means degree is in the Value.
+   *                       Unused if SDegtable is null.
+   * @param copyOutDegrees True means copy out-degrees from Stable to Rtable. This must be false if SDegtable is different from Stable. (could remove restriction in future)
+   * @param minDegree      Minimum out-degree. Checked before doing any searching, at every step, from SDegtable. Pass 0 for no filtering.
+   * @param maxDegree      Maximum out-degree. Checked before doing any searching, at every step, from SDegtable. Pass Integer.MAX_VALUE for no filtering.
+   * @param plusOp         An SKVI to apply to the result table that "sums" values. Not applied if null.
+   *                       Be careful: this affects degrees in the result table as well as normal entries.
+   * @param trace          Enable server-side performance tracing.
+   * @return The nodes reachable in exactly k steps from v0.
+   */
+  @SuppressWarnings("unchecked")
+  public String SingleBFS(String Stable, String edgeColumn, char edgeSep,
+                          String v0, int k, String Rtable,
+                          String SDegtable, String degColumn, boolean degInColQ,
+                          boolean copyOutDegrees, int minDegree, int maxDegree,
+                          IteratorSetting plusOp, boolean trace) {
+    boolean needDegreeFiltering = minDegree > 0 || maxDegree < Integer.MAX_VALUE;
+    if (Stable == null || Stable.isEmpty())
+      throw new IllegalArgumentException("Please specify Single-table. Given: " + Stable);
+    if (needDegreeFiltering && (SDegtable == null || SDegtable.isEmpty()))
+      throw new IllegalArgumentException("Please specify SDegtable since filtering is required. Given: " + Stable);
+    if (Rtable != null && Rtable.isEmpty())
+      Rtable = null;
+    if (edgeColumn == null)
+      edgeColumn = "";
+    Text edgeColumnText = new Text(edgeColumn);
+    if (copyOutDegrees && !SDegtable.equals(Stable))
+      throw new IllegalArgumentException("Stable and SDegtable must be the same when copying out-degrees. Stable: " + Stable + " SDegtable: " + SDegtable);
+    if (minDegree < 1)
+      minDegree = 1;
+    if (maxDegree < minDegree)
+      throw new IllegalArgumentException("maxDegree=" + maxDegree + " should be >= minDegree=" + minDegree);
+    String edgeSepStr = String.valueOf(edgeSep);
+
+    if (degColumn == null)
+      degColumn = "";
+    Text degColumnText = new Text(degColumn);
+
+    if (plusOp != null && plusOp.getPriority() >= 20)
+      log.warn("Sum iterator setting is >=20. Are you sure you want the priority after the default Versioning iterator priority? " + plusOp);
+    if (v0 == null || v0.isEmpty())
+      v0 = ":\t";
+    Collection<Text> vktexts = new HashSet<>(); //v0 == null ? null : GraphuloUtil.d4mRowToTexts(v0);
+    char sep = v0.charAt(v0.length() - 1);
+
+    TableOperations tops = connector.tableOperations();
+    if (!tops.exists(Stable))
+      throw new IllegalArgumentException("Table A does not exist. Given: " + Stable);
+    if (Rtable != null && !tops.exists(Rtable))
       try {
-        bs = connector.createBatchScanner(Stable, Authorizations.EMPTY, 50); // TODO P2: set number of batch scan threads
-      } catch (TableNotFoundException e) {
+        tops.create(Rtable);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        log.error("error trying to create R table " + Rtable, e);
+        throw new RuntimeException(e);
+      } catch (TableExistsException e) {
         log.error("crazy", e);
         throw new RuntimeException(e);
       }
-      bs.setRanges(Collections.singleton(new Range()));
 
-      bs.fetchColumn(EMPTY_TEXT, edgeColumnText);
-      if (copyOutDegrees)
-        bs.fetchColumn(EMPTY_TEXT, degColumnText);
+    Map<String, String> opt = new HashMap<>();
+//    opt.put("trace", String.valueOf(trace)); // logs timing on server
+    opt.put("reducer", SingleBFSReducer.class.getName());
+    opt.put("reducer.opt." + SingleBFSReducer.EDGE_SEP, edgeSepStr);
+    if (Rtable != null) {
+      String instance = connector.getInstance().getInstanceName();
+      String zookeepers = connector.getInstance().getZooKeepers();
+      String user = connector.whoami();
+      opt.put("zookeeperHost", zookeepers);
+      opt.put("instanceName", instance);
+//        if (Rtable != null)
+      opt.put("tableName", Rtable);
+      opt.put("username", user);
+      opt.put("password", new String(password.getPassword()));
 
-      try {
-        long degTime = 0, scanTime = 0;
-        for (int thisk = 1; thisk <= k; thisk++) {
-          if (trace)
-            if (thisk == 1)
-              System.out.println("First step: v0 is " + v0);
-            else
-              System.out.println("k=" + thisk + " before filter" +
-                  (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
+      if (/*Rtable != null &&*/ plusOp != null)
+        GraphuloUtil.applyIteratorSoft(plusOp, tops, Rtable);
+    }
+    BatchScanner bs;
+    try {
+      bs = connector.createBatchScanner(Stable, Authorizations.EMPTY, 50); // TODO P2: set number of batch scan threads
+    } catch (TableNotFoundException e) {
+      log.error("crazy", e);
+      throw new RuntimeException(e);
+    }
+    bs.setRanges(Collections.singleton(new Range()));
 
-          bs.clearScanIterators();
+    bs.fetchColumn(EMPTY_TEXT, edgeColumnText);
+    if (copyOutDegrees)
+      bs.fetchColumn(EMPTY_TEXT, degColumnText);
 
-          if (needDegreeFiltering /*&& SDegtable != null*/) { // use degree table
-            long t1 = System.currentTimeMillis(), dur;
-            vktexts = thisk == 1
-                ? filterTextsDegreeTable(SDegtable, degColumnText, degInColQ, minDegree, maxDegree, vktexts, GraphuloUtil.d4mRowToRanges(v0))
-                : filterTextsDegreeTable(SDegtable, degColumnText, degInColQ, minDegree, maxDegree, vktexts);
-            dur = System.currentTimeMillis() - t1;
-            degTime += dur;
-            if (trace) {
-              System.out.println("Degree Lookup Time: " + dur + " ms");
-              System.out.println("k=" + thisk + " after  filter" +
-                  (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
-            }
+    try {
+      long degTime = 0, scanTime = 0;
+      for (int thisk = 1; thisk <= k; thisk++) {
+        if (trace)
+          if (thisk == 1)
+            System.out.println("First step: v0 is " + v0);
+          else
+            System.out.println("k=" + thisk + " before filter" +
+                (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
 
-            if (vktexts.isEmpty())
-              break;
-            String s = GraphuloUtil.makeRangesD4mString(vktexts, sep);
-            opt.put("rowRanges", GraphuloUtil.makeRangesD4mString(vktexts, sep));
+        bs.clearScanIterators();
 
-          } else {  // no filtering
-            if (thisk == 1)
-              opt.put("rowRanges",
-                  GraphuloUtil.makeRangesD4mString(v0));
-            else
-              opt.put("rowRanges", GraphuloUtil.makeRangesD4mString(vktexts, sep));
+        if (needDegreeFiltering /*&& SDegtable != null*/) { // use degree table
+          long t1 = System.currentTimeMillis(), dur;
+          vktexts = thisk == 1
+              ? filterTextsDegreeTable(SDegtable, degColumnText, degInColQ, minDegree, maxDegree, vktexts, GraphuloUtil.d4mRowToRanges(v0))
+              : filterTextsDegreeTable(SDegtable, degColumnText, degInColQ, minDegree, maxDegree, vktexts);
+          dur = System.currentTimeMillis() - t1;
+          degTime += dur;
+          if (trace) {
+            System.out.println("Degree Lookup Time: " + dur + " ms");
+            System.out.println("k=" + thisk + " after  filter" +
+                (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
           }
 
-          IteratorSetting itset = new IteratorSetting(4, RemoteWriteIterator.class, opt);
-          bs.addScanIterator(itset);
-
-          SingleBFSReducer reducer = new SingleBFSReducer();
-          reducer.init(Collections.singletonMap(SingleBFSReducer.EDGE_SEP,edgeSepStr), null);
-          long t2 = System.currentTimeMillis();
-          for (Map.Entry<Key, Value> entry : bs) {
-//        System.out.println("A Entry: "+entry.getKey() + " -> " + entry.getValue());
-            RemoteWriteIterator.decodeValue(entry.getValue(), reducer);
-          }
-          long dur = System.currentTimeMillis() - t2;
-          scanTime += dur;
-
-          vktexts.clear();
-//      vktexts.addAll(reducer.get());
-          for (String uk : reducer.get()) {
-            vktexts.add(new Text(uk));
-          }
-          if (trace)
-            System.out.println("BatchScan/Iterator Time: " + dur + " ms");
           if (vktexts.isEmpty())
             break;
+          String s = GraphuloUtil.singletonsAsPrefix(vktexts, sep);
+          opt.put("rowRanges", GraphuloUtil.singletonsAsPrefix(vktexts, sep));
+
+        } else {  // no filtering
+          if (thisk == 1)
+            opt.put("rowRanges",
+                GraphuloUtil.singletonsAsPrefix(v0));
+          else
+            opt.put("rowRanges", GraphuloUtil.singletonsAsPrefix(vktexts, sep));
         }
 
-        if (trace) {
-          System.out.println("Total Degree Lookup Time: " + degTime + " ms");
-          System.out.println("Total BatchScan/Iterator Time: " + scanTime + " ms");
+        IteratorSetting itset = new IteratorSetting(4, RemoteWriteIterator.class, opt);
+        bs.addScanIterator(itset);
+
+        SingleBFSReducer reducer = new SingleBFSReducer();
+        reducer.init(Collections.singletonMap(SingleBFSReducer.EDGE_SEP, edgeSepStr), null);
+        long t2 = System.currentTimeMillis();
+        for (Map.Entry<Key, Value> entry : bs) {
+//        System.out.println("A Entry: "+entry.getKey() + " -> " + entry.getValue());
+          RemoteWriteIterator.decodeValue(entry.getValue(), reducer);
         }
-      } finally {
-        bs.close();
+        long dur = System.currentTimeMillis() - t2;
+        scanTime += dur;
+
+        vktexts.clear();
+//      vktexts.addAll(reducer.get());
+        for (String uk : reducer.get()) {
+          vktexts.add(new Text(uk));
+        }
+        if (trace)
+          System.out.println("BatchScan/Iterator Time: " + dur + " ms");
+        if (vktexts.isEmpty())
+          break;
       }
 
-      return GraphuloUtil.textsToD4mString(vktexts, sep);
+      if (trace) {
+        System.out.println("Total Degree Lookup Time: " + degTime + " ms");
+        System.out.println("Total BatchScan/Iterator Time: " + scanTime + " ms");
+      }
+    } finally {
+      bs.close();
     }
+
+    return GraphuloUtil.textsToD4mString(vktexts, sep);
+  }
 
 }

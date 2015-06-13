@@ -101,16 +101,24 @@ See TEST_CONFIG.java for changing connection parameters, such as testing on a re
 ### Examples
 The classes in [`src/test/java/edu/mit/ll/graphulo/examples/`](src/test/java/edu/mit/ll/graphulo/examples/)
 contain simple, well-commented examples of how to use Graphulo.
+To run an example, use the command `mvn test -Dtest=TESTNAME`, replacing `TESTNAME` with the name of the test.
+To run every example, use the command `mvn test -Dtest=*Example`.
+View example output with `./post-test.bash`, or inspect the `shippable/testreusults/` directory.
 
-* `mvn test -Dtest=TableMultExample` to insert two SCALE 10 graphs into MiniAccumulo,
-store the result of multiplying them, and count the number of resulting entries.
-* `mvn test -Dtest=AdjBFSExample` to insert a SCALE 10 graph into MiniAccumulo,
-create a new table with the union sum of three steps of Breadth First Search, 
-and count the number of resulting entries.
-* View example output with `./post-test.bash`.
-* Run `mvn test -Dtest=*Example` to run all examples in [MiniAccumulo][].
-Add the parameter `-DTEST_CONFIG=local` to run all examples in a local Accumulo instance,
-which will retain example input and result tables so that you may inspect them more closely.
+Examples run inside [MiniAccumulo][] by default. To run an example in a local Accumulo instance,
+add the option `-DTEST_CONFIG=local` to the Maven command.
+Running examples in a local instance has the advantage of retaining input and result tables 
+in the cluster, so that you may inspect them more closely after the example finishes.
+
+Here is a list of included examples:
+
+1. `TableMultExample` -- inserts two SCALE 10 adjacency tables,
+stores the result of multiplying them, and counts the number of resulting entries.
+2. `AdjBFSExample` -- inserts a SCALE 10 adjacency table,
+creates a new table with the union sum of three steps of Breadth First Search, 
+and counts the number of resulting entries.
+3. `EdgeBFSExample` -- similar to #2, using an incidence table.
+4. `SingleBFSExample` -- similar to #2, using a single-table schema.
 
 ### Deploy to Accumulo and D4M
 Execute `./deploy.sh`. This script will do the following:
@@ -243,7 +251,7 @@ Don't specify when operating on a single table.
 * `(A/B).emitNoMatchEntries` Both false for multiply (intersection of entries); both true for sum (union of entries)
 * `dot` Either "ROW_CARTESIAN_PRODUCT" or "ROW_COLF_COLQ_MATCH" or nothing.
 * `multiplyOp` Name of class that implements IMultiplyOp. 
-  * `multiplyOp.opt.OPTION_NAME` An option supplied to the multiply class's `init` function.
+* `multiplyOp.opt.OPTION_NAME` An option supplied to the multiply class's `init` function.
 
 ##### Future: PreSumCacheIterator
 * `combiner` Name of class for "pre-summing" entries.
@@ -253,6 +261,7 @@ Don't specify when operating on a single table.
 * `reducer` Used to "collect" something to send to the client. Name of class that implements `Reducer` interface. 
 The final state of the reducer is sent to the client once the scan finishes, or when at a checkpoint.
 The reduce operation must therefore be commutative and associative.
+* `reducer.opt.OPTION_NAME` An option supplied to the Reducer's `init` function.
 * `checkpointNumEntries` Emit a monitoring entry after this number of entries. Not working presently for EWiseX. 
 * `checkpointTime` (in milliseconds) More useful than NumEntries.
 * `tableName`

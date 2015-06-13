@@ -652,7 +652,7 @@ public class BFSTest extends AccumuloTestBase {
     Collection<Text> u3expect = GraphuloUtil.d4mRowToTexts("v0,vBig,");
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      String u3actual = graphulo.SingleTableBFS(tS, "edge", '|', v0, 3, tR,
+      String u3actual = graphulo.SingleBFS(tS, "edge", '|', v0, 3, tR,
           tS, "out", false, copyOutDegrees, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, true);
       Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
 
@@ -669,7 +669,7 @@ public class BFSTest extends AccumuloTestBase {
     v0 = "v0,:,v000,";
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      String u3actual = graphulo.SingleTableBFS(tS, "edge", '|', v0, 3, tR,
+      String u3actual = graphulo.SingleBFS(tS, "edge", '|', v0, 3, tR,
           tS, "out", false, copyOutDegrees, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, true);
       Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
 
@@ -688,7 +688,7 @@ public class BFSTest extends AccumuloTestBase {
     expect.putAll(degex);
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      String u3actual = graphulo.SingleTableBFS(tS, "edge", '|', v0, 3, tR,
+      String u3actual = graphulo.SingleBFS(tS, "edge", '|', v0, 3, tR,
           tS, "out", false, copyOutDegrees, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, true);
       Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
 
@@ -705,7 +705,7 @@ public class BFSTest extends AccumuloTestBase {
     v0 = "v0,:,v000,";
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      String u3actual = graphulo.SingleTableBFS(tS, "edge", '|', v0, 3, tR,
+      String u3actual = graphulo.SingleBFS(tS, "edge", '|', v0, 3, tR,
           tS, "out", false, copyOutDegrees, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, true);
       Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
 

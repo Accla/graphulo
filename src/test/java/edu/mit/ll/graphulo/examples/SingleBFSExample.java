@@ -25,12 +25,12 @@ import java.util.Map;
 
 /**
  * Example demonstrating
- * (1) ingest the adjacency matrix representation of a graph into the D4M Schema tables ex10A, ex10AT, ex10ADeg;
- * (2) create a new Accumulo table ex10Astep3 with the union sum of three BFS steps;
- * (3) count the number of entries in ex10Astep3.
+ * (1) ingest the single-table schema of a graph into the table ex10ASingle;
+ * (2) create a new Accumulo table ex10ASingleStep3 with the union sum of three BFS steps from node 1;
+ * (3) count the number of entries in ex10ASingleStep3.
  */
-public class AdjBFSExample extends AccumuloTestBase {
-  private static final Logger log = LogManager.getLogger(AdjBFSExample.class);
+public class SingleBFSExample extends AccumuloTestBase {
+  private static final Logger log = LogManager.getLogger(SingleBFSExample.class);
 
   /** Corresponds to saved files in the test/java/resources/data folder. */
   public static final int SCALE = 10;
@@ -38,13 +38,15 @@ public class AdjBFSExample extends AccumuloTestBase {
   public static final int numSteps = 3;
 
   @Test
-  public void exampleAdjBFS() throws FileNotFoundException, TableNotFoundException, AccumuloSecurityException, AccumuloException {
-    String Atable = "ex" + SCALE + "A";                 // Adjacency table A.
-    String Rtable = "ex" + SCALE + "Astep" + numSteps;   // Result of BFS is summed into Rtable.
-    String RTtable = null;                              // Don't write transpose of BFS.
-    String ADegtable = "ex" + SCALE + "ADeg";           // Adjacency table A containing out-degrees.
+  public void exampleSingleBFS() throws FileNotFoundException, TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    String Atable = "ex" + SCALE + "A";                 // Base name.
+    String Stable = Atable + "Single";                  // Single table name.
+    String edgeColumn = "edge";                         // Name of column that edges are stored in.
+    char edgeSep = '|';                                 // Separator character for edges, e.g. the '|' in "v1|v2"
+    String Rtable = "ex" + SCALE + "ASingleStep" + numSteps;   // Result of BFS is summed into Rtable.
     String degColumn = "out";                           // Name of column qualifier under which out-degrees appear in ADegtable.
     boolean degInColQ = false;                          // Degree is stored in the Value, not the Column Qualifier.
+    boolean copyOutDegrees = true;                      // Copy out-degrees to the result table. Note that in-degrees are not copied.
     int minDegree = 20;                                 // Bounding minimum degree: only include nodes with degree 20 or higher.
     int maxDegree = Integer.MAX_VALUE;                  // Unbounded maximum degree.  This and the minimum degree make a High-pass Filter.
     String v0 = "1,25,:,27,";                           // Starting nodes: node 1 (the supernode) and all the nodes from 25 to 27 inclusive.
@@ -64,7 +66,7 @@ public class AdjBFSExample extends AccumuloTestBase {
 
     // Insert data from the file test/resources/data/10Ar.txt and 10Ac.txt into Accumulo.
     // Deletes tables if they already exist.
-    ExampleUtil.ingestAdjacencySCALE(SCALE, 'A', Atable, conn);
+    ExampleUtil.ingestSingleSCALE(SCALE, 'A', Atable, conn);
 
     // Create Graphulo executor. Supply the password for your Accumulo user account.
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
@@ -79,12 +81,13 @@ public class AdjBFSExample extends AccumuloTestBase {
     Combiner.setCombineAllColumns(plusOp, true);
     // Note: this is the same as Graphulo.DEFAULT_PLUS_ITERATOR
 
-    // Adjacency Table Breadth First Search.
+    // Single-table Breadth First Search.
     // This call blocks until the BFS completes.
-    String vReached = graphulo.AdjBFS(Atable, v0, numSteps, Rtable, RTtable,
-        ADegtable, degColumn, degInColQ, minDegree, maxDegree, plusOp, trace);
+    String vReached = graphulo.SingleBFS(Stable, edgeColumn, edgeSep, v0, numSteps,
+        Rtable, Stable, degColumn, degInColQ, copyOutDegrees, minDegree, maxDegree,
+        plusOp, trace);
     System.out.println("First few nodes reachable in exactly "+numSteps+" steps: " +
-            vReached.substring(0,Math.min(20,vReached.length())));
+        vReached.substring(0,Math.min(20,vReached.length())));
 
     // Result is in output table. Do whatever you like with it.
     BatchScanner bs = conn.createBatchScanner(Rtable, Authorizations.EMPTY, 2);
@@ -106,9 +109,10 @@ public class AdjBFSExample extends AccumuloTestBase {
 
   2)  Increase the SCALE parameter to 12, 14 or 16 to run on larger graphs.
 
-  3)  Set ADegtable to null to instruct Graphulo to filter degrees on the fly using an iterator.
+  3)  Set the SDegtable parameter to something other than Stable to
+      to obtain degrees from a different table.
 
-  4)  Set Rtable and RTtable both to null to obtain the nodes reachable
+  4)  Set Rtable to null to obtain the nodes reachable
       in exactly numSteps as a return value from the BFS call,
       without writing the subgraph traversed at each step to result tables.
 

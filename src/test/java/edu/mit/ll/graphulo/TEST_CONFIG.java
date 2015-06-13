@@ -18,7 +18,8 @@ import org.junit.runners.Suite;
     TableFilterTest.class,
     BFSTest.class,
     CountTest.class,
-    ReducerTest.class
+    ReducerTest.class,
+    SCCTest.class
 })
 
 /**

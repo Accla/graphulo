@@ -12,16 +12,21 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 /**
  * Test the SCC algorithm in {@link SCCGraphulo}.
@@ -74,7 +79,7 @@ public class SCCTest extends AccumuloTestBase {
     }
 
     SCCGraphulo sccgraphulo = new SCCGraphulo(conn, tester.getPassword());
-    sccgraphulo.SCC(tA, tRf, 4, true);
+    sccgraphulo.SCC(tA, tRf, 4, false);
 
     BatchScanner scanner = conn.createBatchScanner(tRf, Authorizations.EMPTY, 2);
     scanner.setRanges(Collections.singleton(new Range()));
@@ -82,11 +87,23 @@ public class SCCTest extends AccumuloTestBase {
       actual.put(entry.getKey(), entry.getValue());
     }
     scanner.close();
-    for (String s: sccgraphulo.SCCQuery(tRf,"v0,")){System.out.println(s);}
-    for (String s: sccgraphulo.SCCQuery(tRf,"vBig,")){System.out.println(s);}
-    for (String s: sccgraphulo.SCCQuery(tRf,null)){System.out.println(s);}
-
     Assert.assertEquals(expect, actual);
+
+    // Test interpreting SCC table
+    SortedSet<String> expectSet = new TreeSet<>(new Comparator<String>() {
+      @Override
+      public int compare(String o1, String o2) {
+        Collection<Text> t1 = GraphuloUtil.d4mRowToTexts(o1),
+            t2 = GraphuloUtil.d4mRowToTexts(o2);
+        if (t1.size() != t2.size())
+          return t1.size() - t2.size();
+        return t1.equals(t2) ? 0 : Integer.MAX_VALUE;
+      }
+    });
+    expectSet.add("v0,v1,v2,");
+    Assert.assertEquals(expectSet, sccgraphulo.SCCQuery(tRf, "v0,"));
+    Assert.assertTrue(sccgraphulo.SCCQuery(tRf, "vBig,").isEmpty());
+    Assert.assertEquals(expectSet, sccgraphulo.SCCQuery(tRf,null));
   }
 
 }

@@ -2,16 +2,23 @@ package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.mult.LongEWiseX;
 import edu.mit.ll.graphulo.mult.LongMultiply;
-import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.client.Scanner;
+import org.apache.hadoop.io.Text;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  *
@@ -70,7 +77,7 @@ public class SCCGraphulo extends Graphulo {
     // FOR TESTING PORPOISES
     Map<Key,Value> printer = new HashMap<>();
 
-    AdjBFS(tA, null, 1, tR, tAT, null, "", true, 0, 214483647, null, trace);
+    AdjBFS(tA, null, 1, tR, tAT, null, "", true, 0, Integer.MAX_VALUE, null, trace);
     for (int k = 1; k < rowCount; k++) {
       if (k % 2 == 1) {
         if (k != 1)
@@ -116,7 +123,7 @@ public class SCCGraphulo extends Graphulo {
       }
     }
 
-    AdjBFS(tR, null, 1, null, tRT, null, "", true, 0, 214483647, null, trace);
+    AdjBFS(tR, null, 1, null, tRT, null, "", true, 0, Integer.MAX_VALUE, null, trace);
 
     if (trace) {
       // TESTING
@@ -163,25 +170,31 @@ public class SCCGraphulo extends Graphulo {
    *          Name of Accumulo table holding SCC matrix A.
    * @param vertex
    *          Name of vertex whose SCC you want. Null means it will return all SCCs.
+   * @return Set of strongly connected components.
    */
   public Set<String> SCCQuery(String tA, String vertex) throws TableNotFoundException {
     if (vertex == null) {
-      String midstr = "";
-      Set<String> vertset = new LinkedHashSet<>();
+      StringBuilder midstr = new StringBuilder();
+      Set<String> vertset = new HashSet<>();
       Scanner scanner = connector.createScanner(tA, Authorizations.EMPTY);
+      Text tmp = new Text();
       for (Map.Entry<Key,Value> entry : scanner) {
-        midstr += entry.getKey().getRow().toString() + " ";
+        midstr.append(entry.getKey().getRow(tmp).toString()).append(" ");
       }
       String delims = "[ ]+";
-      String[] mid = midstr.split(delims);
+      String[] mid = midstr.toString().split(delims);
       for (String s : mid) {
-        vertset.add(AdjBFS(tA, s + ",", 1, null, null, null, "", true, 0, Integer.MAX_VALUE, Graphulo.DEFAULT_PLUS_ITERATOR, true));
+        String bfs = AdjBFS(tA, s + ",", 1, null, null, null, "", true, 0, Integer.MAX_VALUE, Graphulo.DEFAULT_PLUS_ITERATOR, false);
+        if (!bfs.isEmpty())
+          vertset.add(bfs);
       }
       return vertset;
     }
 
-    Set<String> vertset = new LinkedHashSet<>();
-    vertset.add(AdjBFS(tA, vertex, 1, null, null, null, "", true, 0, Integer.MAX_VALUE, Graphulo.DEFAULT_PLUS_ITERATOR, true));
+    Set<String> vertset = new HashSet<>();
+    String bfs = AdjBFS(tA, vertex, 1, null, null, null, "", true, 0, Integer.MAX_VALUE, Graphulo.DEFAULT_PLUS_ITERATOR, false);
+    if (!bfs.isEmpty())
+      vertset.add(bfs);
     return vertset;
   }
 }

@@ -2,25 +2,31 @@ package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import edu.mit.ll.graphulo.util.TestUtil;
-import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
- * Jaroor's SCC Test
+ * Test the SCC algorithm in {@link SCCGraphulo}.
  */
 public class SCCTest extends AccumuloTestBase {
-
   private static final Logger log = LogManager.getLogger(SCCTest.class);
 
     /**
@@ -76,6 +82,10 @@ public class SCCTest extends AccumuloTestBase {
       actual.put(entry.getKey(), entry.getValue());
     }
     scanner.close();
+    for (String s: sccgraphulo.SCCQuery(tRf,"v0,")){System.out.println(s);}
+    for (String s: sccgraphulo.SCCQuery(tRf,"vBig,")){System.out.println(s);}
+    for (String s: sccgraphulo.SCCQuery(tRf,null)){System.out.println(s);}
+
     Assert.assertEquals(expect, actual);
   }
 

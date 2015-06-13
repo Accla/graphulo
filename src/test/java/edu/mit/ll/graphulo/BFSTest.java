@@ -102,7 +102,7 @@ public class BFSTest extends AccumuloTestBase {
     conn.tableOperations().delete(tRT);
   }
 
-  /**
+  /**, dur
    * Vary degree tables.
    *    ->vBig<-
    *   /   ^    \
@@ -215,6 +215,31 @@ public class BFSTest extends AccumuloTestBase {
       Assert.assertEquals(expectTranspose, actualTranspose);
     }
 
+    // now put in range expression for v0
+    v0 = "v0,:,v000,";
+    conn.tableOperations().delete(tR);
+    conn.tableOperations().delete(tRT);
+    {
+      String u3actual = graphulo.AdjBFS(tA, v0, 3, tR, tRT, tADeg, "d|", true, 1, 2, null, true);
+      Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
+
+      BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expect, actual);
+
+      scanner = conn.createBatchScanner(tRT, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actualTranspose.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expectTranspose, actualTranspose);
+    }
+
 
     conn.tableOperations().delete(tA);
     conn.tableOperations().delete(tADeg);
@@ -267,24 +292,52 @@ public class BFSTest extends AccumuloTestBase {
     Collection<Text> u3expect = GraphuloUtil.d4mRowToTexts("v0,vBig,");
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    String u3actual = graphulo.AdjBFS(tA, v0, 3, tR, tRT, null, "", true, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, true);
-    Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
+    {
+      String u3actual = graphulo.AdjBFS(tA, v0, 3, tR, tRT, null, null, true, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, true);
+      Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
 
-    BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
-    scanner.setRanges(Collections.singleton(new Range()));
-    for (Map.Entry<Key, Value> entry : scanner) {
-      actual.put(entry.getKey(), entry.getValue());
-    }
-    scanner.close();
-    Assert.assertEquals(expect, actual);
+      BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expect, actual);
 
-    scanner = conn.createBatchScanner(tRT, Authorizations.EMPTY, 2);
-    scanner.setRanges(Collections.singleton(new Range()));
-    for (Map.Entry<Key, Value> entry : scanner) {
-      actualTranspose.put(entry.getKey(), entry.getValue());
+      scanner = conn.createBatchScanner(tRT, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actualTranspose.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expectTranspose, actualTranspose);
     }
-    scanner.close();
-    Assert.assertEquals(expectTranspose, actualTranspose);
+
+    // now put in range expression for v0
+    v0 = "v0,:,v000,";
+    conn.tableOperations().delete(tR);
+    conn.tableOperations().delete(tRT);
+    {
+      String u3actual = graphulo.AdjBFS(tA, v0, 3, tR, tRT, null, null, true, 1, 2, null, true);
+      Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
+
+      BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expect, actual);
+
+      scanner = conn.createBatchScanner(tRT, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actualTranspose.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expectTranspose, actualTranspose);
+    }
+
 
     conn.tableOperations().delete(tA);
     conn.tableOperations().delete(tR);
@@ -336,7 +389,7 @@ public class BFSTest extends AccumuloTestBase {
     Collection<Text> u1expect = GraphuloUtil.d4mRowToTexts("v0,v1,v2,vBig,");
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    String u1actual = graphulo.AdjBFS(tA, v0, 1, tR, tRT, null, "", true, 1, 2, null, true);
+    String u1actual = graphulo.AdjBFS(tA, v0, 1, tR, tRT, null, null, true, 1, 2, null, true);
     Assert.assertEquals(u1expect, GraphuloUtil.d4mRowToTexts(u1actual));
 
     BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -426,25 +479,53 @@ public class BFSTest extends AccumuloTestBase {
     String v0 = "v0,";
     Collection<Text> u3expect = GraphuloUtil.d4mRowToTexts("v0,vBig,");
 
-    Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    String u3actual = graphulo.EdgeBFS(tE, v0, 3, tR, tRT, "out|", "in|", tETDeg, "", true, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, true);
-    Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
+    {
+      Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+      String u3actual = graphulo.EdgeBFS(tE, v0, 3, tR, tRT, "out|", "in|", tETDeg, "", true, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, true);
+      Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
 
-    BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
-    scanner.setRanges(Collections.singleton(new Range()));
-    for (Map.Entry<Key, Value> entry : scanner) {
-      actual.put(entry.getKey(), entry.getValue());
-    }
-    scanner.close();
-    Assert.assertEquals(expect, actual);
+      BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expect, actual);
 
-    scanner = conn.createBatchScanner(tRT, Authorizations.EMPTY, 2);
-    scanner.setRanges(Collections.singleton(new Range()));
-    for (Map.Entry<Key, Value> entry : scanner) {
-      actualTranspose.put(entry.getKey(), entry.getValue());
+      scanner = conn.createBatchScanner(tRT, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actualTranspose.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expectTranspose, actualTranspose);
     }
-    scanner.close();
-    Assert.assertEquals(expectTranspose, actualTranspose);
+
+    conn.tableOperations().delete(tR);
+    conn.tableOperations().delete(tRT);
+    v0 = "v0,:,v000,";
+    {
+      Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+      String u3actual = graphulo.EdgeBFS(tE, v0, 3, tR, tRT, "out|", "in|", tETDeg, "", true, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, true);
+      Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
+
+      BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expect, actual);
+
+      scanner = conn.createBatchScanner(tRT, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actualTranspose.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expectTranspose, actualTranspose);
+    }
+
 
     conn.tableOperations().delete(tE);
     conn.tableOperations().delete(tETDeg);

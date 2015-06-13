@@ -17,7 +17,7 @@ public class GatherColQReducer implements Reducer<HashSet<String>> {
   private Text tmpTextColQ = new Text();
 
   @Override
-  public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
+  public void init(Map<String, String> options, IteratorEnvironment env)  {
 
   }
 

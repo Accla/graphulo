@@ -41,7 +41,7 @@ public class EdgeBFSReducer implements Reducer<HashSet<String>> {
   }
 
   @Override
-  public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
+  public void init(Map<String, String> options, IteratorEnvironment env) {
       parseOptions(options);
   }
 

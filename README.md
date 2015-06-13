@@ -93,8 +93,8 @@ a portable, lightweight Accumulo instance started before and stopped after each 
 * `mvn test -DTEST_CONFIG=local` to run tests on a local instance of Accumulo.
 See TEST_CONFIG.java for changing connection parameters, such as testing on a remote Accumulo instance.
 * `post-test.bash` is a utility script to output test results to the console.
-Test results are saved in the `shippable/testresults` folder.
-Run `mvn clean` to delete output from previously run tests.
+* Test results are saved in the `shippable/testresults` folder.
+* Run `mvn clean` to delete output from previously run tests.
 
 [MiniAccumulo]: https://accumulo.apache.org/1.6/accumulo_user_manual.html#_mini_accumulo_cluster
 
@@ -108,6 +108,9 @@ store the result of multiplying them, and count the number of resulting entries.
 create a new table with the union sum of three steps of Breadth First Search, 
 and count the number of resulting entries.
 * View example output with `./post-test.bash`.
+* Run `mvn test -Dtest=*Example` to run all examples in [MiniAccumulo][].
+Add the parameter `-DTEST_CONFIG=local` to run all examples in a local Accumulo instance,
+which will retain example input and result tables so that you may inspect them more closely.
 
 ### Deploy to Accumulo and D4M
 Execute `./deploy.sh`. This script will do the following:

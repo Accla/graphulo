@@ -376,33 +376,53 @@ public class GraphuloUtil {
     }
   }
 
+
+
   /**
-   *
+   * Todo? Replace with {@link Range#prefix} or {@link Range#followingPrefix(Text)}.
    * May break with unicode.
-   * @param startPrefix e.g. "out|"
+   * @param prefix e.g. "out|"
    * @param vktexts Set of nodes like "v1,v3,v0,"
-   * @return "out|v1,out|v3,out|v0," or "out|,:,out}," if v0 vktexts is null or empty
+   * @return "out|v1,out|v3,out|v0," or "out|,:,out}," if vktexts is null or empty
    */
-  public static String prependStartPrefix(String startPrefix, String v0, Collection<Text> vktexts) {
-    char sep = v0 == null || v0.isEmpty() ? '\n' : v0.charAt(v0.length()-1);
+  public static String prependStartPrefix(String prefix, char sep, Collection<Text> vktexts) {
     if (vktexts == null || vktexts.isEmpty()) {
-      byte[] orig = startPrefix.getBytes();
-      byte[] newb = new byte[orig.length*2+4];
-      System.arraycopy(orig,0,newb,0,orig.length);
-      newb[orig.length] = (byte)sep;
-      newb[orig.length+1] = ':';
-      newb[orig.length+2] = (byte)sep;
-      System.arraycopy(orig,0,newb,orig.length+3,orig.length-1);
-      newb[orig.length*2+2] = (byte) (orig[orig.length-1]+1);
-      newb[orig.length*2+3] = (byte)sep;
-      return new String(newb);
+//      byte[] orig = prefix.getBytes();
+//      byte[] newb = new byte[orig.length*2+4];
+//      System.arraycopy(orig,0,newb,0,orig.length);
+//      newb[orig.length] = (byte)sep;
+//      newb[orig.length+1] = ':';
+//      newb[orig.length+2] = (byte)sep;
+//      System.arraycopy(orig,0,newb,orig.length+3,orig.length-1);
+//      newb[orig.length*2+2] = (byte) (orig[orig.length-1]+1);
+//      newb[orig.length*2+3] = (byte)sep;
+//      return new String(newb);
+      Text pt = new Text(prefix);
+      Text after = Range.followingPrefix(pt);
+      return prefix + sep + ':' + sep + after.toString() + sep;
     } else {
       StringBuilder ret = new StringBuilder();
       for (Text vktext : vktexts) {
-        ret.append(startPrefix).append(vktext).append(sep);
+        ret.append(prefix).append(vktext).append(sep);
       }
       return ret.toString();
     }
+  }
+
+  /** Prepend a prefix to every part of a D4M string.
+   * "a,b,:,v,:," ==> "pre|a,pre|b,:,pre|v,:,"
+   * */
+  public static String prependStartPrefix(String prefix, String v0) {
+    char sep = v0.charAt(v0.length() - 1);
+    StringBuilder sb = new StringBuilder();
+    String[] split = v0.split(String.valueOf(sep));
+    for (String part : split) {
+      if (part.equals(":"))
+        sb.append(part).append(sep);
+      else
+        sb.append(prefix).append(part).append(sep);
+    }
+    return sb.toString();
   }
 
   /** If str begins with prefix, return a String containing the characters after the prefix. Otherwise return null. */

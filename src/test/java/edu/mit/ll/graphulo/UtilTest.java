@@ -311,7 +311,7 @@ public class UtilTest {
   }
 
   /** Small bug in Accumulo. */
-  @Ignore("KnownBug: ACCUMULO-XXXX")
+  @Ignore("KnownBug: ACCUMULO-3900 Fixed in 1.7.1")
   @Test
   public void testAbstractEncoderDecode() {
     AbstractEncoder<Long> encoder = new LongCombiner.StringEncoder();
@@ -346,17 +346,18 @@ public class UtilTest {
 
   @Test
   public void testPrependStartPrefix() {
+    char sep = ',';
     String startPrefix = "out|";
     String v0 = "v1,v3,v0,";
     Collection<Text> vktexts = GraphuloUtil.d4mRowToTexts(v0);
     String expect = "out|v1,out|v3,out|v0,";
-    String actual = GraphuloUtil.prependStartPrefix(startPrefix, v0, vktexts);
+    String actual = GraphuloUtil.prependStartPrefix(startPrefix, sep, vktexts);
     Set<String> expectSet = new HashSet<>(Arrays.asList(expect.split(","))),
         actualSet = new HashSet<>(Arrays.asList(actual.split(",")));
     Assert.assertEquals(expectSet, actualSet);
 
     expect = "out|,:,out},";
-    Assert.assertEquals(expect, GraphuloUtil.prependStartPrefix(startPrefix, v0, null));
+    Assert.assertEquals(expect, GraphuloUtil.prependStartPrefix(startPrefix, sep, null));
   }
 
   @Test
@@ -403,5 +404,10 @@ public class UtilTest {
     Assert.assertEquals("abcxyz",new String(ret,UTF_8));
   }
 
+  @Test
+  public void testPrependStartPrefix_D4MRange() {
+    Assert.assertEquals("pre|a,pre|b,:,pre|v,:,",
+        GraphuloUtil.prependStartPrefix("pre|","a,b,:,v,:,"));
+  }
 
 }

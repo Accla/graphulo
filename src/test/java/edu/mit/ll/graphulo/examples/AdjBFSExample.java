@@ -47,7 +47,7 @@ public class AdjBFSExample extends AccumuloTestBase {
     boolean degInColQ = false;                          // Degree is stored in the Value, not the Column Qualifier.
     int minDegree = 20;                                 // Bounding minimum degree: only include nodes with degree 20 or higher.
     int maxDegree = Integer.MAX_VALUE;                  // Unbounded maximum degree.  This + the minimum degree make a High-pass Filter.
-    String v0 = "1,25,33,";                             // Starting nodes: start from node 1 (the supernode) and a few others.
+    String v0 = "1,25,:,27,";                           // Starting nodes: start from node 1 (the supernode) and all the nodes from 25 to 27 inclusive.
     boolean trace = false;                              // Disable debug printing.
 
     // In your code, you would connect to an Accumulo instance by writing something similar to:
@@ -103,6 +103,10 @@ public class AdjBFSExample extends AccumuloTestBase {
       instead of summing.
 
       Increase the SCALE parameter to 12, 14 or 16 to run on larger graphs.
+
+      Set ADegtable to null to instruct Graphulo to filter degrees on the fly using an iterator.
+
+
 
   */
   ////////////////////////////////////////////////////////////////////////////////////////////////

@@ -403,7 +403,7 @@ public class GraphuloUtil {
     } else {
       StringBuilder ret = new StringBuilder();
       for (Text vktext : vktexts) {
-        ret.append(prefix).append(vktext).append(sep);
+        ret.append(prefix).append(vktext.toString()).append(sep);
       }
       return ret.toString();
     }

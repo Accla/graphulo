@@ -410,4 +410,13 @@ public class UtilTest {
         GraphuloUtil.prependStartPrefix("pre|","a,b,:,v,:,"));
   }
 
+  @Test
+  public void testAddSepAndMakePrefix() {
+    Collection<Text> c = new ArrayList<>();
+    c.add(new Text("v1"));
+    c.add(new Text("v5"));
+    Assert.assertEquals("v1|,:,v1},v5|,:,v5},",
+        Graphulo.addSepAndMakePrefix(c, ',', "|"));
+  }
+
 }

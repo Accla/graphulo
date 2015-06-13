@@ -1,7 +1,7 @@
 package edu.mit.ll.graphulo.reducer;
 
-import edu.mit.ll.graphulo.GraphuloUtil;
 import edu.mit.ll.graphulo.Reducer;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -13,37 +13,41 @@ import java.util.HashSet;
 import java.util.Map;
 
 /**
- * Column "in|v3" ==> "v3".
- * Stores a set of the columns reached in one step of BFS on the incidence matrix.
+ * Row "v1|v2" ==> "v2".
+ * Stores a set of the "in-node" part of rows reached in one step of BFS on a single-table schema.
  */
-public class EdgeBFSReducer implements Reducer<HashSet<String>> {
-  private static final Logger log = LogManager.getLogger(EdgeBFSReducer.class);
+public class SingleBFSReducer implements Reducer<HashSet<String>> {
+  private static final Logger log = LogManager.getLogger(SingleBFSReducer.class);
 
-  public static final String IN_COLUMN_PREFIX = "inColumnPrefix";
-  private byte[] inColumnPrefix;
+  public static final String FIELD_SEP = "fieldSep";
+  private char fieldSep;
 
   private HashSet<String> setNodesReached = new HashSet<>();
 
   private void parseOptions(Map<String, String> options) {
+    boolean gotFieldSep = false;
     for (Map.Entry<String, String> optionEntry : options.entrySet()) {
       String optionKey = optionEntry.getKey();
       String optionValue = optionEntry.getValue();
       switch (optionKey) {
-        case IN_COLUMN_PREFIX:
-          inColumnPrefix = optionValue.getBytes();
+        case FIELD_SEP:
+          if (optionValue.length() != 1)
+            throw new IllegalArgumentException("bad "+FIELD_SEP+": "+optionValue);
+          fieldSep = optionValue.charAt(0);
+          gotFieldSep = true;
           break;
         default:
           log.warn("Unrecognized option: " + optionEntry);
           continue;
       }
     }
-    if (inColumnPrefix == null)
-      throw new IllegalArgumentException("no "+IN_COLUMN_PREFIX);
+    if (!gotFieldSep)
+      throw new IllegalArgumentException("no "+FIELD_SEP);
   }
 
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env) {
-      parseOptions(options);
+    parseOptions(options);
   }
 
   @Override
@@ -53,10 +57,17 @@ public class EdgeBFSReducer implements Reducer<HashSet<String>> {
 
   @Override
   public void update(Key k, Value v) {
-    String nodeAfter = GraphuloUtil.stringAfter(inColumnPrefix, k.getColumnQualifier().getBytes());
-    if (nodeAfter != null)
-      setNodesReached.add(nodeAfter);
-//    log.debug("received colQ "+k.getColumnQualifier().toString()+" : now "+setNodesReached.toString());
+    String rStr;
+    {
+      ByteSequence rowData = k.getRowData();
+      rStr = new String(rowData.getBackingArray(), rowData.offset(), rowData.length());
+    }
+    int pos = rStr.indexOf(fieldSep);
+    if (pos == -1)
+      return;        // this is a degree row, not an edge row.
+    String toNode = rStr.substring(pos+1);
+    setNodesReached.add(toNode);
+//    log.debug("edge row "+rStr+" : now "+setNodesReached.toString());
   }
 
   @Override

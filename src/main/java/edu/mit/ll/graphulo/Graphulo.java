@@ -889,4 +889,15 @@ public class Graphulo {
     return cnt;
   }
 
+  static String addSepAndMakePrefix(Collection<Text> vktexts, char sep, String fieldSep) {
+    StringBuilder sb = new StringBuilder();
+    for (Text vktext : vktexts) {
+      String vf = vktext.toString()+fieldSep;
+      sb.append(vf).append(sep)
+      .append(':').append(sep)
+      .append(Range.followingPrefix(new Text(vf)).toString()).append(sep);
+    }
+    return sb.toString();
+  }
+
 }

@@ -1,6 +1,10 @@
-package edu.mit.ll.graphulo;
+package edu.mit.ll.graphulo.skvi;
 
 import com.google.common.collect.Iterators;
+import edu.mit.ll.graphulo.util.GraphuloUtil;
+import edu.mit.ll.graphulo.mult.IMultiplyOp;
+import edu.mit.ll.graphulo.util.PeekingIterator1;
+import edu.mit.ll.graphulo.util.PeekingIterator2;
 import edu.mit.ll.graphulo.mult.BigDecimalMultiply;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;

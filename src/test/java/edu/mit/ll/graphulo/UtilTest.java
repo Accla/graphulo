@@ -1,6 +1,9 @@
 package edu.mit.ll.graphulo;
 
 import com.google.common.collect.Iterators;
+import edu.mit.ll.graphulo.util.GraphuloUtil;
+import edu.mit.ll.graphulo.util.PeekingIterator2;
+import edu.mit.ll.graphulo.util.RangeSet;
 import org.apache.accumulo.core.client.lexicoder.AbstractEncoder;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;

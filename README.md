@@ -190,7 +190,7 @@ Non-simple multiplication that should implement [IMultiplyOp][] directly are mul
 
 [SortedKeyValueIterator]: https://accumulo.apache.org/1.7/apidocs/org/apache/accumulo/core/iterators/SortedKeyValueIterator.html
 [IteratorSetting]: https://accumulo.apache.org/1.7/apidocs/org/apache/accumulo/core/client/IteratorSetting.html
-[IMultiplyOp]: src/main/java/edu/mit/ll/graphulo/IMultiplyOp.java
+[IMultiplyOp]: src/main/java/edu/mit/ll/graphulo/mult/IMultiplyOp.java
 [SimpleMultiply]: src/main/java/edu/mit/ll/graphulo/mult/SimpleMultiply.java
 [SimpleEWiseX]: src/main/java/edu/mit/ll/graphulo/mult/SimpleEWiseX.java
 

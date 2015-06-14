@@ -1,5 +1,6 @@
-package edu.mit.ll.graphulo;
+package edu.mit.ll.graphulo.mult;
 
+import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;

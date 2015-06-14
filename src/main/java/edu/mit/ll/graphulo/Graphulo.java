@@ -1,8 +1,16 @@
 package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.mult.EdgeBFSMultiply;
+import edu.mit.ll.graphulo.mult.IMultiplyOp;
 import edu.mit.ll.graphulo.reducer.EdgeBFSReducer;
+import edu.mit.ll.graphulo.reducer.GatherColQReducer;
 import edu.mit.ll.graphulo.reducer.SingleBFSReducer;
+import edu.mit.ll.graphulo.skvi.CountAllIterator;
+import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
+import edu.mit.ll.graphulo.skvi.SmallLargeRowFilter;
+import edu.mit.ll.graphulo.skvi.TableMultIterator;
+import edu.mit.ll.graphulo.skvi.TwoTableIterator;
+import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -316,7 +324,7 @@ public class Graphulo {
    * @param Rtable      Name of table to store result. Null means don't store the result.
    * @param RTtable     Name of table to store transpose of result. Null means don't store the transpose.
    * @param ADegtable   Name of table holding out-degrees for A. Leave null to filter on the fly with
-   *                    the {@link edu.mit.ll.graphulo.SmallLargeRowFilter}, or do no filtering if minDegree=0 and maxDegree=Integer.MAX_VALUE.
+   *                    the {@link SmallLargeRowFilter}, or do no filtering if minDegree=0 and maxDegree=Integer.MAX_VALUE.
    * @param degColumn   Name of column for out-degrees in ADegtable like "deg". Null means the empty column "".
    *                    If degInColQ==true, this is the prefix before the numeric portion of the column like "deg|", and null means no prefix. Unused if ADegtable is null.
    * @param degInColQ   True means degree is in the Column Qualifier. False means degree is in the Value.

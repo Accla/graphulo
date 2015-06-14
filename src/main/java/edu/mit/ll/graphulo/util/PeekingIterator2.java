@@ -1,21 +1,20 @@
-package edu.mit.ll.graphulo;
+package edu.mit.ll.graphulo.util;
 
 
 
 import java.util.Iterator;
 
 /**
- * Caches three entries.
+ * Caches two entries.
  */
-public class PeekingIterator3<E> implements Iterator<E> {
+public class PeekingIterator2<E> implements Iterator<E> {
 //  private final Iterator<E> source;
-  private PeekingIterator1<E> pThird, pSecond, pFirst;
+  private PeekingIterator1<E> pSecond, pFirst;
 //  private E top;
 
-  public PeekingIterator3(Iterator<E> source) {
+  public PeekingIterator2(Iterator<E> source) {
 //    this.source = source;
-    pThird = new PeekingIterator1<>(source);
-    pSecond = new PeekingIterator1<>(pThird);
+    pSecond = new PeekingIterator1<>(source);
     pFirst = new PeekingIterator1<>(pSecond);
   }
 
@@ -41,7 +40,5 @@ public class PeekingIterator3<E> implements Iterator<E> {
   public E peekSecond() {
     return pSecond.peek();
   }
-
-  public E peekThird() { return pThird.peek(); }
 
 }

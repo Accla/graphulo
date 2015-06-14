@@ -1,4 +1,4 @@
-package edu.mit.ll.graphulo;
+package edu.mit.ll.graphulo.reducer;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;

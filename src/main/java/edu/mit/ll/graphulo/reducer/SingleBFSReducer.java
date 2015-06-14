@@ -1,6 +1,5 @@
 package edu.mit.ll.graphulo.reducer;
 
-import edu.mit.ll.graphulo.Reducer;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;

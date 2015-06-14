@@ -1,6 +1,11 @@
 package edu.mit.ll.graphulo;
 
+import edu.mit.ll.graphulo.reducer.GatherColQReducer;
+import edu.mit.ll.graphulo.skvi.RemoteMergeIterator;
+import edu.mit.ll.graphulo.skvi.RemoteSourceIterator;
+import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
+import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.TestUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -184,7 +189,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     itprops.put("username", tester.getUsername());
     itprops.put("password", new String(tester.getPassword().getPassword()));
     itprops.put("doWholeRow", "true"); // *
-    IteratorSetting itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.RemoteSourceIterator", itprops);
+    IteratorSetting itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.skvi.RemoteSourceIterator", itprops);
     scanner.addScanIterator(itset);
 //    log.info("Results of scan on table " + tableName2 + " remote to " + tableName + ':');
     Iterator<SortedMap<Key, Value>> expectIter = expectList.iterator();
@@ -252,7 +257,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     itprops.put("username", tester.getUsername());
     itprops.put("password", new String(tester.getPassword().getPassword()));
     itprops.put("doWholeRow", "true"); // *
-    IteratorSetting itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.RemoteSourceIterator", itprops);
+    IteratorSetting itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.skvi.RemoteSourceIterator", itprops);
     scanner.addScanIterator(itset);
 
     Range range = new Range("ddd", "xxx");
@@ -270,8 +275,8 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     // should work the same if we set rowRanges instead of setting the Scanner range
     scanner.setRange(new Range());
     scanner.clearScanIterators();
-    itprops.put("rowRanges",GraphuloUtil.rangesToD4MString(Collections.singleton(range)));
-    itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.RemoteSourceIterator", itprops);
+    itprops.put("rowRanges", GraphuloUtil.rangesToD4MString(Collections.singleton(range)));
+    itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.skvi.RemoteSourceIterator", itprops);
     scanner.addScanIterator(itset);
     expectIter = expectList.iterator();
     for (Map.Entry<Key, Value> entry : scanner) {
@@ -326,7 +331,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     itprops.put("username", tester.getUsername());
     itprops.put("password", new String(tester.getPassword().getPassword()));
     itprops.put("colFilter", "cq,"); // *
-    IteratorSetting itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.RemoteSourceIterator", itprops);
+    IteratorSetting itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.skvi.RemoteSourceIterator", itprops);
     scanner.addScanIterator(itset);
 
     SortedMap<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
@@ -340,7 +345,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     // now repeat using a column range
     scanner.clearScanIterators();
     itprops.put("colFilter", "c,:,cq15,"); // *
-    itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.RemoteSourceIterator", itprops);
+    itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.skvi.RemoteSourceIterator", itprops);
     scanner.addScanIterator(itset);
 
     actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
@@ -353,7 +358,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     // now repeat using a multi-column range
     scanner.clearScanIterators();
     itprops.put("colFilter", "a,b,:,b2,b3,c,:,cq15,"); // *
-    itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.RemoteSourceIterator", itprops);
+    itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.skvi.RemoteSourceIterator", itprops);
     scanner.addScanIterator(itset);
 
     actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
@@ -415,7 +420,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator + "username", tester.getUsername());
     itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator + "password", new String(tester.getPassword().getPassword()));
     //itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator + "doWholeRow", "true"); // *
-    IteratorSetting itset = new IteratorSetting(5, RemoteMergeIterator.class, itprops); //"edu.mit.ll.graphulo.RemoteSourceIterator", itprops);
+    IteratorSetting itset = new IteratorSetting(5, RemoteMergeIterator.class, itprops); //"edu.mit.ll.graphulo.skvi.RemoteSourceIterator", itprops);
     scanner.addScanIterator(itset);
     SortedMap<Key, Value> actualMap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
     for (Map.Entry<Key, Value> entry : scanner) {

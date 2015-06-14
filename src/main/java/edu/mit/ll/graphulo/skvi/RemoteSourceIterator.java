@@ -1,5 +1,7 @@
-package edu.mit.ll.graphulo;
+package edu.mit.ll.graphulo.skvi;
 
+import edu.mit.ll.graphulo.util.GraphuloUtil;
+import edu.mit.ll.graphulo.util.PeekingIterator1;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;

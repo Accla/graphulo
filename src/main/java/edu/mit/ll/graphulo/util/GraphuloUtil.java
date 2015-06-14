@@ -1,6 +1,7 @@
-package edu.mit.ll.graphulo;
+package edu.mit.ll.graphulo.util;
 
 import com.google.common.base.Preconditions;
+import edu.mit.ll.graphulo.skvi.D4mColumnRangeFilter;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -44,6 +45,7 @@ public class GraphuloUtil {
   private static final Logger log = LogManager.getLogger(GraphuloUtil.class);
 
   public static final char DEFAULT_SEP_D4M_STRING = '\t';
+  private static final Text EMPTY_TEXT = new Text();
 
 
   /**
@@ -108,7 +110,7 @@ public class GraphuloUtil {
    * @param singletonsArePrefix If true, then singleton entries in the D4M string are
    *                            made into prefix ranges instead of single row ranges.
    */
-  static SortedSet<Range> d4mRowToRanges(String rowStr, boolean singletonsArePrefix) {
+  public static SortedSet<Range> d4mRowToRanges(String rowStr, boolean singletonsArePrefix) {
     if (rowStr == null || rowStr.isEmpty())
       return new TreeSet<>();
     // could write my own version that does not do regex, but probably not worth optimizing
@@ -216,7 +218,7 @@ public class GraphuloUtil {
       return endRow;
   }
 
-  static final char LAST_ONE_BYTE_CHAR = Character.toChars(Byte.MAX_VALUE)[0];
+  public static final char LAST_ONE_BYTE_CHAR = Character.toChars(Byte.MAX_VALUE)[0];
 
   private static String prevRow(String row) {
     if (row.charAt(row.length()-1) == '\0')
@@ -362,7 +364,7 @@ public class GraphuloUtil {
       int pos1 = colFilter.indexOf(':');
       if (pos1 == -1) { // no ranges - collection of singleton texts
         for (Text text : GraphuloUtil.d4mRowToTexts(colFilter)) {
-          scanner.fetchColumn(RemoteSourceIterator.EMPTY_TEXT, text);
+          scanner.fetchColumn(GraphuloUtil.EMPTY_TEXT, text);
         }
       } else {
         SortedSet<Range> ranges = GraphuloUtil.d4mRowToRanges(colFilter);

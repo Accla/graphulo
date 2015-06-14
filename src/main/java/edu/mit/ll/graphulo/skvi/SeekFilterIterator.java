@@ -1,5 +1,6 @@
-package edu.mit.ll.graphulo;
+package edu.mit.ll.graphulo.skvi;
 
+import edu.mit.ll.graphulo.util.PeekingIterator1;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;

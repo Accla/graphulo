@@ -1,7 +1,6 @@
 package edu.mit.ll.graphulo.reducer;
 
-import edu.mit.ll.graphulo.GraphuloUtil;
-import edu.mit.ll.graphulo.Reducer;
+import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;

@@ -1,4 +1,4 @@
-package edu.mit.ll.graphulo;
+package edu.mit.ll.graphulo.skvi;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;

@@ -1,5 +1,8 @@
-package edu.mit.ll.graphulo.reducer;
+package edu.mit.ll.graphulo;
 
+import edu.mit.ll.graphulo.reducer.EdgeBFSReducer;
+import edu.mit.ll.graphulo.reducer.Reducer;
+import edu.mit.ll.graphulo.reducer.SingleBFSReducer;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.junit.Assert;
@@ -9,7 +12,7 @@ import java.util.Collections;
 import java.util.HashSet;
 
 /**
- * Tests for classes implementing {@link edu.mit.ll.graphulo.Reducer}.
+ * Tests for classes implementing {@link Reducer}.
  */
 public class ReducerTest {
 

@@ -1,5 +1,6 @@
-package edu.mit.ll.graphulo;
+package edu.mit.ll.graphulo.skvi;
 
+import edu.mit.ll.graphulo.util.PeekingIterator1;
 import org.apache.accumulo.core.data.*;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -13,7 +14,7 @@ import java.util.*;
  * For testing; an iterator that emits entries from a list of hardcoded data.
  */
 public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
-    final static SortedMap<Key,Value> allEntriesToInject;
+    public final static SortedMap<Key,Value> allEntriesToInject;
     static {
         SortedMap<Key,Value> t = new TreeMap<>();
         t.put(new Key(new Text("a1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),

@@ -3,6 +3,7 @@ package edu.mit.ll.graphulo;
 import edu.mit.ll.graphulo.mult.BigDecimalMultiply;
 import edu.mit.ll.graphulo.mult.LongMultiply;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
+import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.TestUtil;
 import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.client.Scanner;

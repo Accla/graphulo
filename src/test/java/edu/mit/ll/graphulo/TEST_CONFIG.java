@@ -1,6 +1,5 @@
 package edu.mit.ll.graphulo;
 
-import edu.mit.ll.graphulo.reducer.ReducerTest;
 import edu.mit.ll.graphulo.util.KnownBugSuite;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.log4j.LogManager;

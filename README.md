@@ -260,17 +260,37 @@ TwoTableIterator configured with ROW_COLF_COLQ_MATCH and emitNoMatchEntries=fals
 TwoTableIterator configured with no multiplication and emitNoMatchEntries=true.
 PreSumCacheIterator is important for efficiency.
 * Sparse -- insert from client to table.
-* Find -- scan from table to table.
+* Find -- scan from table to client.
 * SpRef -- use RemoteWriteIterator with rowRanges and colFilter to output results to another table.
-* SpAsgn -- unimplemented.
+* SpAsgn -- unimplemented. An awkward primitive.
 * Apply -- use an iterator with the function to apply + RemoteWriteIterator.
 * Reduce -- use a RemoteWriteIterator's `reduce` function.
+
+### D4M String Representation of Ranges
+Throughout Graphulo, we make use of a string format that represents a collection of Accumulo Ranges.
+Here are several examples of this format and the ranges they represent:
+
+D4M String  | Range
+------------|-----------------
+`:,`        | (-inf,+inf)
+`:,c,`      | (-inf,c]
+`f,:,`      | [f,+inf)
+`b,:,g`     | [b,g]
+`b,:,g,x`   | [b,g] U [c,c)
+`x,`        | [x,x)
+`x,z,`      | [x,x) U [z,z)
+`x,z,:`     | [x,x) U [z,+inf)
+
+The "separator" character in D4M strings is arbitrary. The above examples use `,` but could just as easily
+have used the tab character, the newline character, or the null `\0` character.
+The key is to pick a separator character that never occurs elsewhere in the D4M String.
+It is also forbidden to reference a row that consists of the single character `:`.
 
 
 ### Iterators
 
 ##### RemoteSourceIterator
-* `rowRanges` Row ranges to fetch from remote Accumulo table, Matlab syntax. (default ":" all) 
+* `rowRanges` Row ranges to fetch from remote Accumulo table, Matlab syntax. (default ":," all) 
 * `colFilter` String representation of column qualifiers, e.g. "a,b,c,".
 Four modes of operation:
   1. Blank `colFilter`: do nothing.

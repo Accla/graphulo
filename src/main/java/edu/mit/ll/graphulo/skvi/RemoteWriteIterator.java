@@ -557,7 +557,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
    * @param v Value from Scanner or BatchScanner.
    * @param reducer Calls combine() on the element inside if present. Pass null to ignore elements if any returned.
    * @param <E> Class of the element inside to deserialize.
-   * @return Number of entries.
+   * @return Number of entries seen by the RemoteWriteIterator
    */
   @SuppressWarnings("unchecked")
   public static <E extends Serializable> int decodeValue(Value v, Reducer<E> reducer) {

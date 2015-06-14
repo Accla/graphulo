@@ -20,6 +20,7 @@ import java.nio.file.attribute.FileAttribute;
 public class MiniAccumuloTester extends ExternalResource implements IAccumuloTester
 {
     private static final Logger log = LogManager.getLogger(MiniAccumuloTester.class);
+    private final boolean doDebug;
     /* Fixture State */
     private File tempDir;
     private MiniAccumuloCluster miniaccumulo;
@@ -29,11 +30,16 @@ public class MiniAccumuloTester extends ExternalResource implements IAccumuloTes
     private int numTservers;
 
     public MiniAccumuloTester() {
-        this(1);
+        this(1, false);
     }
 
     public MiniAccumuloTester(int numTservers) {
+        this(numTservers, false);
+    }
+
+    public MiniAccumuloTester(int numTservers, boolean doDebug) {
         this.numTservers = numTservers;
+        this.doDebug = doDebug;
     }
 
     public Connector getConnector() {
@@ -66,8 +72,22 @@ public class MiniAccumuloTester extends ExternalResource implements IAccumuloTes
 
         MiniAccumuloConfig mac = new MiniAccumuloConfig(tempDir, PASSWORD)
                 .setNumTservers(numTservers);
+        mac.setJDWPEnabled(doDebug);
         miniaccumulo = new MiniAccumuloCluster(mac);
         miniaccumulo.start();
+
+        /*******************************************************************
+         * MiniAccumulo DEBUG Section. Instructions:
+         * Watch the test output with `tail -f `
+         * When you see the debug port appear on screen for TABLET_SERVER,
+         * connect to that port with your IDE.
+         * You have 10 seconds before the test continues.
+         *******************************************************************/
+        if (doDebug) {
+            System.out.println("DEBUG PORTS: " + miniaccumulo.getDebugPorts());
+            Thread.sleep(10000);
+        }
+
         instance = new ZooKeeperInstance(miniaccumulo.getInstanceName(), miniaccumulo.getZooKeepers());
         sw.stop();
         log.debug("MiniAccumulo created instance: " + instance.getInstanceName() + " - creation time: "+sw.getTime()/1000.0+"s");

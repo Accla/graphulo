@@ -47,7 +47,10 @@ public class TEST_CONFIG {
         AccumuloTester = new RealAccumuloTester("classdb51", "classdb51.cloud.llgrid.txe1.mit.edu:2181", 5000, "root", new PasswordToken("secret"));
         break;
       case "mini":
-        AccumuloTester = new MiniAccumuloTester();
+        AccumuloTester = new MiniAccumuloTester(1);
+        break;
+      case "miniDebug":   // Enables debugging on started MiniAccumulo process.
+        AccumuloTester = new MiniAccumuloTester(1, true);
         break;
       case "mini2": // 2 tablet server MiniAccumuloCluster
         AccumuloTester = new MiniAccumuloTester(2);

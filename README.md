@@ -203,6 +203,48 @@ G = DBaddJavaOps('edu.mit.ll.graphulo.MatlabGraphulo','instance','localhost:2181
 res = G.AdjBFS('Atable','v0;v7;v9;',3,'Rtable','','ADegtable','OutDeg',false,5,15);
 ```
 
+### Debugging
+Before debugging a problem, consider 
+
+1. checking the Accumulo monitor, running by default on <http://localhost:50095/>;
+2. printf or log4j debugging;
+3. debugging by deletion, i.e., if removing a piece of code solves your problem, 
+then you know where the problem is.
+
+Debuggers can be extraordinarily helpful once running but challenging to set up.
+There are two methods to use a debugger: 
+
+1. starting a "debug server" in your IDE
+and having a Java application connect to it at startup, or 
+2. having a Java application start a "debug server" 
+and listen for you to make a connection from your IDE.
+ 
+#### Debugging Standalone Accumulo
+I tend to use method (1) for standalone Accumulo, not for any particular reason.
+Run the following before launching Accumulo via its start scripts or via `accumulo tserver &`:
+
+```bash
+export ACCUMULO_TSERVER_OPTS="-agentlib:jdwp=transport=dt_socket,server=n,address=127.0.0.1:5005,suspend=y" 
+```
+
+This will instruct the JVM for the Accumulo tablet server to connect to your IDE,
+which you should configure to listen on port 5005 (of 127.0.0.1).
+
+You must debug quickly in this mode.  If you idle too long without making a debug step,
+then the Accumulo tablet server will lose its Zookeeper lock and kill itself.
+
+#### Debugging MiniAccumulo
+Set `-DTEST_CONFIG=miniDebug` for any test using MiniAccumulo.
+The code will print to `System.out` the ports that MiniAccumulo randomly chooses to listen on 
+for each Accumulo process after starting MiniAccumulo.
+You have 10 seconds to connect to one of the ports (probably the TABLET_SERVER port)
+before the test continues executing.
+I recommend using `tail -f shippable/testresults/edu.mit.ll.graphulo.TESTNAME-output.txt`
+to see the ports as they are printed.  Replace `TESTNAME` with the name of the test you are runnning.
+
+For a bit more insight, see the `before()` method of [MiniAccumuloTester][].
+
+[MiniAccumuloTester]: src/test/java/edu/mit/ll/graphulo/MiniAccumuloTester.java
 
 ## Implementation
 

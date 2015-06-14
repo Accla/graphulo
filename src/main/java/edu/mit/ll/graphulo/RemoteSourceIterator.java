@@ -36,8 +36,6 @@ import java.util.TreeSet;
 
 /**
  * Reads from a remote Accumulo table.
- *
- * Impl. note: possible to simplify class since the rowRanges option is not used.
  */
 public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>, OptionDescriber {
   private static final Logger log = LogManager.getLogger(RemoteSourceIterator.class);
@@ -254,8 +252,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>,
   /**
    * Advance to the first subset range whose end key >= the seek start key.
    */
-  public Iterator<Range> getFirstRangeStarting(Range seekRange) {
-    PeekingIterator1<Range> iter = new PeekingIterator1<>(rowRanges.iterator());
+  public static Iterator<Range> getFirstRangeStarting(PeekingIterator1<Range> iter, Range seekRange) {
     if (!seekRange.isInfiniteStartKey())
       while (iter.hasNext() && !iter.peek().isInfiniteStopKey()
           && ((iter.peek().getEndKey().equals(seekRange.getStartKey()) && !seekRange.isEndKeyInclusive())
@@ -272,7 +269,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>,
      Range comparison: infinite start first, then inclusive start, then exclusive start
      {@link org.apache.accumulo.core.data.Range#compareTo(Range)} */
     seekRange = range;
-    rowRangeIterator = getFirstRangeStarting(range); //rowRanges.tailSet(range).iterator();
+    rowRangeIterator = getFirstRangeStarting(new PeekingIterator1<>(rowRanges.iterator()), range); //rowRanges.tailSet(range).iterator();
     remoteIterator = new PeekingIterator1<>(java.util.Collections.<Map.Entry<Key, Value>>emptyIterator());
     next();
   }

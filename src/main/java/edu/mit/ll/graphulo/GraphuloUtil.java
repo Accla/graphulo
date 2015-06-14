@@ -7,16 +7,22 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.system.ColumnQualifierFilter;
 import org.apache.accumulo.core.iterators.user.ColumnSliceFilter;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -25,6 +31,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -335,6 +342,9 @@ public class GraphuloUtil {
 //    tops.checkIteratorConflicts(tableName, setting, scopes);
 //  }
 
+//  * @param permitFetchColumns True allows use of {@link ScannerBase#fetchColumn}. False forces use of {@link ColumnQualifierFilter} explicitly.
+//  *                           Set to false if filtering columns upstream would create large difficulty.
+
   /**
    * Apply an appropriate column filter based on the input string.
    * Four modes of operation:
@@ -369,10 +379,69 @@ public class GraphuloUtil {
         } else { // multiple ranges
 //          System.err.println("ok "+GraphuloUtil.d4mRowToRanges(colFilter));
           Map<String,String> map = new HashMap<>();
-          map.put("colRanges",colFilter);
+          map.put(D4mColumnRangeFilter.COLRANGES,colFilter);
           s = new IteratorSetting(priority, D4mColumnRangeFilter.class, map);
         }
         scanner.addScanIterator(s);
+      }
+    }
+  }
+
+  /**
+   * For use within an iterator stack.
+   * Apply an appropriate column filter based on the input string.
+   * Four modes of operation:
+   1. Null or blank ("") `colFilter`: do nothing.
+   2. No ranges `colFilter`: use Accumulo system ColumnQualifierFilter.
+   3. Singleton range `colFilter`: use Accumulo user ColumnSliceFilter.
+   4. Multi-range `colFilter`: use Graphulo D4mColumnRangeFilter.
+   * @param colFilter column filter string
+   * @param skvi Parent / source iterator
+   * @return SKVI with appropriate filter iterators placed in front of it.
+   */
+  public static SortedKeyValueIterator<Key,Value> applyGeneralColumnFilter(
+      String colFilter, SortedKeyValueIterator<Key,Value> skvi, IteratorEnvironment env) throws IOException {
+    if (colFilter == null || colFilter.isEmpty())
+      return skvi;
+
+    int pos1 = colFilter.indexOf(':');
+    if (pos1 == -1) { // no ranges - collection of singleton texts
+      Set<Column> colset = new HashSet<>();
+      for (Text text : GraphuloUtil.d4mRowToTexts(colFilter)) {
+        colset.add(new Column(EMPTY_BYTES, text.getBytes(), EMPTY_BYTES));
+      }
+      return new ColumnQualifierFilter(skvi, colset);
+
+    } else {
+      SortedSet<Range> ranges = GraphuloUtil.d4mRowToRanges(colFilter);
+      assert ranges.size() > 0;
+
+      if (ranges.size() == 1) { // single range - use ColumnSliceFilter
+        Range r = ranges.first();
+        Map<String,String> map = new HashMap<>();
+
+        String start = r.isInfiniteStartKey() ? null : r.getStartKey().getRow().toString(),
+            end = r.isInfiniteStopKey() ? null : r.getEndKey().getRow().toString();
+        boolean startInclusive = true, endInclusive = true;
+
+        if (start != null)
+          map.put(ColumnSliceFilter.START_BOUND, start);
+        if (end != null)
+          map.put(ColumnSliceFilter.END_BOUND, end);
+        map.put(ColumnSliceFilter.START_INCLUSIVE, String.valueOf(startInclusive));
+        map.put(ColumnSliceFilter.END_INCLUSIVE, String.valueOf(endInclusive));
+
+        SortedKeyValueIterator<Key,Value> filter = new ColumnSliceFilter();
+        filter.init(skvi, map, env);
+        return filter;
+
+      } else { // multiple ranges
+        Map<String,String> map = new HashMap<>();
+        map.put(D4mColumnRangeFilter.COLRANGES,colFilter);
+
+        SortedKeyValueIterator<Key,Value> filter = new D4mColumnRangeFilter();
+        filter.init(skvi, map, env);
+        return filter;
       }
     }
   }

@@ -667,11 +667,11 @@ public class Graphulo {
     String instance = connector.getInstance().getInstanceName();
     String zookeepers = connector.getInstance().getZooKeepers();
     String user = connector.whoami();
-    opt.put("AT.zookeeperHost", zookeepers);
-    opt.put("AT.instanceName", instance);
-    opt.put("AT.tableName", Etable); // todo: reconfigure TwoTableIterator to use a deepCopy of the local iterator instead of reading the same table through a Scanner
-    opt.put("AT.username", user);
-    opt.put("AT.password", new String(password.getPassword()));
+//    opt.put("AT.zookeeperHost", zookeepers);
+//    opt.put("AT.instanceName", instance);
+    opt.put("AT.tableName", TwoTableIterator.CLONESOURCE_TABLENAME);
+//    opt.put("AT.username", user);
+//    opt.put("AT.password", new String(password.getPassword()));
 
 
     if (Rtable != null || RTtable != null) {
@@ -743,7 +743,8 @@ public class Graphulo {
         bs.setRanges(Collections.singleton(new Range()));
         bs.clearScanIterators();
         bs.clearColumns();
-        GraphuloUtil.applyGeneralColumnFilter(colFilterB, bs, 4);
+//        GraphuloUtil.applyGeneralColumnFilter(colFilterB, bs, 4, false);
+        opt.put("B.colFilter", colFilterB);
         IteratorSetting itset = new IteratorSetting(5, TableMultIterator.class, opt);
         bs.addScanIterator(itset);
 

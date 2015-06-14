@@ -2,17 +2,28 @@ package edu.mit.ll.graphulo;
 
 import com.google.common.collect.Iterators;
 import edu.mit.ll.graphulo.mult.BigDecimalMultiply;
-import org.apache.accumulo.core.data.*;
+import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.PartialKey;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-
+import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 /**
  * Performs operations on two tables.
@@ -36,6 +47,11 @@ import java.util.*;
  * <tr><td>n</td><td>n</td><td>y</td><td>source * source</td></tr>
  * <tr><td>n</td><td>n</td><td>n</td><td>Error.</td></tr>
  * </table>
+ *
+ * If either the AT or B tableName is "{@value #CLONESOURCE_TABLENAME}",
+ * then TwoTableIterator will initalize that table as a deepCopy of the source skvi,
+ * setting up rowRanges and colFilters as in the options.
+ *
  */
 public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
   private static final Logger log = LogManager.getLogger(TwoTableIterator.class);
@@ -54,6 +70,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
    */
   private Text emittedRow = new Text();
 
+  public static final String CLONESOURCE_TABLENAME = "*CLONESOURCE*";
   public static final String PREFIX_AT = "AT";
   public static final String PREFIX_B = "B";
 
@@ -167,44 +184,113 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
     // parse options, pass correct options to RemoteSourceIterator init()
     Map<String, String> optAT = new HashMap<>(), optB = new HashMap<>();
     parseOptions(options, optAT, optB);
-    if (optAT.isEmpty())
-      optAT = null;
-    if (optB.isEmpty())
-      optB = null;
+    boolean dorAT = optAT.containsKey("tableName") && !optAT.get("tableName").isEmpty(),
+        dorB = optB.containsKey("tableName") && !optB.get("tableName").isEmpty();
+//    if (optAT.isEmpty())
+//      optAT = null;
+//    if (optB.isEmpty())
+//      optB = null;
 
-    if (optAT == null && optB == null && source == null) { // ~A ~B ~S
-      throw new IllegalArgumentException("optAT, optB, and source cannot all be null");
+    if (!dorAT && !dorB && source == null) { // ~A ~B ~S
+      throw new IllegalArgumentException("optAT, optB, and source cannot all be missing");
     }
-    if (optAT != null && optB != null && source != null) { // A B S
-      log.warn("DotMultIterator ignores/replaces parent source passed in init(): " + source);
-    }
-    if (optAT == null && optB == null) {      // ~A ~B S
-      remoteAT = source;
-      remoteB = source.deepCopy(env);
-    } else if (optAT != null) {
-      remoteAT = new RemoteSourceIterator();
-      remoteAT.init(null, optAT, env);
-      if (optB == null) {
-        if (source == null)
-          remoteB = remoteAT.deepCopy(env);   // A ~B ~S
-        else
-          remoteB = source;                   // A ~B S
+    if (source == null) {
+      if (dorAT) {
+        remoteAT = new RemoteSourceIterator();
+        remoteAT.init(null, optAT, env);
+        if (dorB) {
+          remoteB = new RemoteSourceIterator(); // A B ~S
+          remoteB.init(null, optB, env);
+        } else                                  // A ~B ~S
+          remoteB = remoteAT.deepCopy(env);
       } else {
-        remoteB = new RemoteSourceIterator(); // A B _
+        remoteB = new RemoteSourceIterator();   // ~A B ~S
         remoteB.init(null, optB, env);
+        remoteAT = remoteB.deepCopy(env);
       }
-    } else {
-      remoteB = new RemoteSourceIterator();
-      remoteB.init(null, optB, env);
-      if (source != null)                     // ~A B S
+    } else { // source != null
+      if (!dorAT && !dorB) {                    // ~A ~B S
         remoteAT = source;
-      else
-        remoteAT = remoteB.deepCopy(env);     // ~A B ~S
+        remoteB = source.deepCopy(env);
+        remoteAT = setupRemoteSourceOptionsSKVI(remoteAT, optAT, env);
+        remoteB = setupRemoteSourceOptionsSKVI(remoteB, optB, env);
+      } else if (dorAT) {
+        remoteAT = setup(optAT, source, env);
+        if (!dorB) {
+          remoteB = source;                     // A ~B S
+          remoteB = setupRemoteSourceOptionsSKVI(remoteB, optB, env);
+        } else {
+          remoteB = setup(optB, source, env);   // A B S
+        }
+      } else {
+        remoteB = setup(optB, source, env);
+        remoteAT = source;                      // ~A B S
+        remoteAT = setupRemoteSourceOptionsSKVI(remoteAT, optAT, env);
+      }
     }
 
     multiplyOp.init(multiplyOpOptions,env);
-
   }
+
+  private SortedKeyValueIterator<Key, Value> setup(
+      Map<String,String> opts, SortedKeyValueIterator<Key, Value> source, IteratorEnvironment env) throws IOException {
+    assert opts != null && source != null;
+    String tableName = opts.get("tableName");
+    SortedKeyValueIterator<Key, Value> ret;
+    if (tableName != null && tableName.equals(CLONESOURCE_TABLENAME)) {
+      ret = source.deepCopy(env);
+      ret = setupRemoteSourceOptionsSKVI(ret, opts, env);
+    } else {
+      ret = new RemoteSourceIterator();
+      ret.init(null, opts, env);
+    }
+    return ret;
+  }
+
+  private SortedKeyValueIterator<Key, Value> setupRemoteSourceOptionsSKVI(SortedKeyValueIterator<Key, Value> ret, Map<String, String> opts, IteratorEnvironment env) throws IOException {
+    boolean doWholeRow = false;
+    for (Map.Entry<String, String> entry : opts.entrySet()) {
+      if (entry.getValue().isEmpty())
+        continue;
+      String key = entry.getKey();
+      switch (key) {
+        case "zookeeperHost":
+        case "timeout":
+        case "instanceName":
+        case "username":
+        case "password":
+        case "doClientSideIterators":
+          log.warn("ignoring option "+key);
+          break;
+        case "tableName":
+          assert entry.getValue().equals(CLONESOURCE_TABLENAME);
+          break;
+        case "doWholeRow":
+          doWholeRow = Boolean.parseBoolean(entry.getValue());
+          break;
+        case "rowRanges":
+          SortedKeyValueIterator<Key, Value> filter = new SeekFilterIterator();
+          filter.init(ret, Collections.singletonMap("rowRanges", entry.getValue()), env);
+          ret = filter;
+          break;
+        case "colFilter":
+          ret = GraphuloUtil.applyGeneralColumnFilter(entry.getValue(), ret, env);
+          break;
+        default:
+          log.warn("Unrecognized option: " + entry);
+          continue;
+      }
+      log.trace("Option OK: " + entry);
+    }
+
+    if (doWholeRow) {
+      SortedKeyValueIterator<Key, Value> filter = new WholeRowIterator();
+      filter.init(ret, Collections.<String, String>emptyMap(), env);
+      ret = filter;
+    }
+    return ret;
+  }
+
 
   private static Map.Entry<Key, Value> copyTopEntry(SortedKeyValueIterator<Key, Value> skvi) {
     final Key k = GraphuloUtil.keyCopy(skvi.getTopKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL);

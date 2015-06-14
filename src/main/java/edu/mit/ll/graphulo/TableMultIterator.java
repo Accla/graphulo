@@ -82,16 +82,12 @@ public class TableMultIterator extends BranchIterator implements OptionDescriber
 
         switch (prefix) {
           case TwoTableIterator.PREFIX_AT:
-          case TwoTableIterator.PREFIX_B: {
-//            if (!optDM.isEmpty())
-//              throw new IllegalArgumentException("Please specify either AT or B but not both.");
+          case TwoTableIterator.PREFIX_B:
             optDM.putAll(GraphuloUtil.preprendPrefixToKey(prefix + '.', entryMap));
             break;
-          }
-          case PREFIX_C: {
+          case PREFIX_C:
             optC.putAll(entryMap);
             break;
-          }
           default:
             for (Map.Entry<String, String> entry : entryMap.entrySet()) {
               switch (entry.getKey()) {

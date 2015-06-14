@@ -19,6 +19,8 @@ import java.util.TreeSet;
  */
 public class D4mColumnRangeFilter extends Filter {
 
+  public static final String COLRANGES = "colRanges";
+
   private SortedSet<Range> colRanges = new TreeSet<>(Collections.singleton(new Range()));
 
   @Override
@@ -35,8 +37,8 @@ public class D4mColumnRangeFilter extends Filter {
   @Override
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
-    if (options.containsKey("colRanges"))
-      colRanges = RemoteSourceIterator.parseRanges(options.get("colRanges"));
+    if (options.containsKey(COLRANGES))
+      colRanges = RemoteSourceIterator.parseRanges(options.get(COLRANGES));
   }
 
   @Override
@@ -44,7 +46,7 @@ public class D4mColumnRangeFilter extends Filter {
     IteratorOptions io = super.describeOptions();
     io.setName("D4mColumnRangeFilter");
     io.setDescription("Filter for key/value pairs based on a ranges of column qualifier names in D4M syntax");
-    io.addNamedOption("colRanges", "Column ranges to scan for remote Accumulo table, Matlab syntax. (default ':,' all)");
+    io.addNamedOption(COLRANGES, "Column ranges to scan for remote Accumulo table, Matlab syntax. (default ':,' all)");
     return io;
   }
 

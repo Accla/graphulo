@@ -5,16 +5,16 @@ import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.TypedValueCombiner;
 
 /**
- * Decode Values as Long objects, multiply and re-encode the result.
- * Used for EWiseX instead of TableMult because it uses the row of A.
+ * Decode Values as Long objects, sum and re-encode the result.
+ * Used for EWiseSum.
  */
-public class LongEWiseX extends SimpleEWiseX {
+public class LongEWiseSum extends SimpleEWiseX {
   private static TypedValueCombiner.Encoder<Long> encoder = new LongCombiner.StringEncoder();
 
   @Override
   public Value multiply(Value Aval, Value Bval) {
     return new Value(encoder.encode(
-        encoder.decode(Aval.get()) * encoder.decode(Bval.get())
+        encoder.decode(Aval.get()) + encoder.decode(Bval.get())
     ));
   }
 }

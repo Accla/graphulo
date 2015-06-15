@@ -72,7 +72,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
   /**
    * Track the row of AT and B emitted. For monitoring.
    */
-  private Text emittedRow = new Text();
+  private Key emitted = new Key();
 
   public static final String CLONESOURCE_TABLENAME = "*CLONESOURCE*";
   public static final String PREFIX_AT = "AT";
@@ -434,6 +434,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
         while (cmp != 0) {
           if (cmp < 0) {
             if (emitNoMatchA) {
+              emitted = remoteAT.getTopKey();
               bottomIter = new PeekingIterator2<>(Iterators.singletonIterator(
                   copyTopEntry(remoteAT)));
               remoteAT.next();
@@ -446,6 +447,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
             }
           } else if (cmp > 0) {
             if (emitNoMatchB) {
+              emitted = remoteB.getTopKey();
               bottomIter = new PeekingIterator2<>(Iterators.singletonIterator(
                   copyTopEntry(remoteB)));
               remoteB.next();
@@ -460,9 +462,9 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
           cmp = remoteAT.getTopKey().compareTo(remoteB.getTopKey(), pk);
         }
         //assert cmp == 0;
-        emittedRow = remoteAT.getTopKey().getRow(emittedRow);
 
         if (dot == DOT_TYPE.ROW_CARTESIAN) {
+          emitted = GraphuloUtil.keyCopy(remoteAT.getTopKey(), PartialKey.ROW);
           SortedMap<Key, Value> ArowMap, BrowMap;
           watch.start(Watch.PerfSpan.RowDecodeBoth);
           try {
@@ -474,6 +476,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
           }
           bottomIter = new PeekingIterator2<>(new CartesianDotIter(ArowMap, BrowMap, multiplyOp));
         } else if (dot == DOT_TYPE.ROW_COLF_COLQ_MATCH) {
+          emitted = remoteAT.getTopKey();
           multiplyOp.multiply(remoteAT.getTopKey().getRowData(), remoteAT.getTopKey().getColumnFamilyData(),
               remoteAT.getTopKey().getColumnQualifierData(), remoteB.getTopKey().getColumnFamilyData(),
               remoteB.getTopKey().getColumnQualifierData(), remoteAT.getTopValue(), remoteB.getTopValue());
@@ -623,9 +626,10 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
       return null;
     } else {
       // the current top entry of bottomIter is the last in this cartesian product (bottomIter)
-      // Save state at this row.  If reseek'd to this row, go to the next row (assume exclusive).
+      // ROW_CARTESIAN: Save state at this row.  If reseek'd to this row, go to the next row (assume exclusive).
+      // ROW_COLF_COLQ_MATCH: emit the exact Key accessed.
       assert bottomIter.peekFirst() != null;
-      return new Key(emittedRow);
+      return emitted;
     }
   }
 

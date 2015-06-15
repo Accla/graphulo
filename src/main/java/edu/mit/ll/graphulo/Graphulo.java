@@ -93,7 +93,18 @@ public class Graphulo {
                        String colFilterAT, String colFilterB,
                        int numEntriesCheckpoint, boolean trace) {
     TwoTable(Atable, Btable, Ctable, CTtable, TwoTableIterator.DOT_TYPE.ROW_COLF_COLQ_MATCH,
-            multOp, plusOp, rowFilter, colFilterAT, colFilterB, numEntriesCheckpoint, trace);
+            multOp, plusOp, rowFilter, colFilterAT, colFilterB,
+        false, false, numEntriesCheckpoint, trace);
+  }
+
+  public void SpEWiseSum(String Atable, String Btable, String Ctable, String CTtable,
+                       Class<? extends IMultiplyOp> multOp, IteratorSetting plusOp,
+                       Collection<Range> rowFilter,
+                       String colFilterAT, String colFilterB,
+                       int numEntriesCheckpoint, boolean trace) {
+    TwoTable(Atable, Btable, Ctable, CTtable, TwoTableIterator.DOT_TYPE.ROW_COLF_COLQ_MATCH,
+        multOp, plusOp, rowFilter, colFilterAT, colFilterB,
+        true, true, numEntriesCheckpoint, trace);
   }
 
   /**
@@ -119,13 +130,15 @@ public class Graphulo {
                         String colFilterAT, String colFilterB,
                         int numEntriesCheckpoint, boolean trace) {
     TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOT_TYPE.ROW_CARTESIAN,
-            multOp, plusOp, rowFilter, colFilterAT, colFilterB, numEntriesCheckpoint, trace);
+            multOp, plusOp, rowFilter, colFilterAT, colFilterB,
+        false, false, numEntriesCheckpoint, trace);
   }
 
   public void TwoTable(String ATtable, String Btable, String Ctable, String CTtable, TwoTableIterator.DOT_TYPE dot,
                         Class<? extends IMultiplyOp> multOp, IteratorSetting plusOp,
                         Collection<Range> rowFilter,
                         String colFilterAT, String colFilterB,
+                        boolean emitNoMatchA, boolean emitNoMatchB,
                         int numEntriesCheckpoint, boolean trace) {
     if (ATtable == null || ATtable.isEmpty())
       throw new IllegalArgumentException("Please specify table AT. Given: " + ATtable);
@@ -210,6 +223,9 @@ public class Graphulo {
       opt.put("C.password", new String(password.getPassword()));
       opt.put("C.numEntriesCheckpoint", String.valueOf(numEntriesCheckpoint));
     }
+
+    opt.put("AT.emitNoMatch", Boolean.toString(emitNoMatchA));
+    opt.put("B.emitNoMatch", Boolean.toString(emitNoMatchB));
 
     if (Ctable != null && plusOp != null)
       GraphuloUtil.applyIteratorSoft(plusOp, tops, Ctable);

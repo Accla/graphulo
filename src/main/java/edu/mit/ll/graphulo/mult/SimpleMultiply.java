@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SortedMap;
 
 /**
  * A simple abstract class for matrix multiplication
@@ -23,7 +24,10 @@ public abstract class SimpleMultiply implements IMultiplyOp {
 
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
+  }
 
+  @Override
+  public void startRow(SortedMap<Key, Value> mapRowA, SortedMap<Key, Value> mapRowB) {
   }
 
   @Override

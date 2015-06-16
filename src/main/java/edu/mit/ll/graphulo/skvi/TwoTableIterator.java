@@ -482,7 +482,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
             emitted = GraphuloUtil.keyCopy(remoteAT.getTopKey(), PartialKey.ROW);
             SortedMap<Key, Value> ArowMap = readRow(remoteAT, watch, Watch.PerfSpan.ATnext);
             SortedMap<Key, Value> BrowMap = readRow(remoteB, watch, Watch.PerfSpan.Bnext);
-
+            multiplyOp.startRow(ArowMap, BrowMap);
             bottomIter = new PeekingIterator2<>(new CartesianDotIter(
                 ArowMap.entrySet().iterator(), BrowMap, multiplyOp, false));
             break;
@@ -492,7 +492,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
             emitted = GraphuloUtil.keyCopy(remoteAT.getTopKey(), PartialKey.ROW);
             SortedMap<Key, Value> ArowMap = readRow(remoteAT, watch, Watch.PerfSpan.ATnext);
             Iterator<Map.Entry<Key, Value>> itBonce = new SKVIRowIterator(remoteB);
-
+            multiplyOp.startRow(ArowMap, null);
             bottomIter = new PeekingIterator2<>(new CartesianDotIter(
                 itBonce, ArowMap, multiplyOp, true));
             break;
@@ -502,7 +502,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
             emitted = GraphuloUtil.keyCopy(remoteAT.getTopKey(), PartialKey.ROW);
             Iterator<Map.Entry<Key, Value>> itAonce = new SKVIRowIterator(remoteAT);
             SortedMap<Key, Value> BrowMap = readRow(remoteB, watch, Watch.PerfSpan.Bnext);
-
+            multiplyOp.startRow(null, BrowMap);
             bottomIter = new PeekingIterator2<>(new CartesianDotIter(
                 itAonce, BrowMap, multiplyOp, false));
             break;

@@ -11,6 +11,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.Map;
+import java.util.SortedMap;
 
 /**
  * Used for Incidence Table Breadth First Search.
@@ -43,7 +44,11 @@ public class EdgeBFSMultiply implements IMultiplyOp {
 
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
-    parseOptions(options);
+//    parseOptions(options);
+  }
+
+  @Override
+  public void startRow(SortedMap<Key, Value> mapRowA, SortedMap<Key, Value> mapRowB) {
   }
 
   @Override

@@ -185,8 +185,9 @@ See the classes in the `edu.mit.ll.graphulo.mult` package for examples.
 Non-simple multiplication that should implement [IMultiplyOp][] directly are multiplication logic that
 
 1. manipulates returned Keys in non-standard ways; 
-2. takes init options (passed from the client through `multiplyOp.opt.OPTION_NAME`); or 
-3. returns more than one entry per multiplication.
+2. takes init options (passed from the client through `multiplyOp.opt.OPTION_NAME`); 
+3. needs to perform some setup or other function based on viewing an entire row in memory; or 
+4. returns more than one entry per multiplication.
 
 [SortedKeyValueIterator]: https://accumulo.apache.org/1.7/apidocs/org/apache/accumulo/core/iterators/SortedKeyValueIterator.html
 [IteratorSetting]: https://accumulo.apache.org/1.7/apidocs/org/apache/accumulo/core/client/IteratorSetting.html

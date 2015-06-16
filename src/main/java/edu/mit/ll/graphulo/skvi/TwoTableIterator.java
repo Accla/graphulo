@@ -1,11 +1,12 @@
 package edu.mit.ll.graphulo.skvi;
 
 import com.google.common.collect.Iterators;
-import edu.mit.ll.graphulo.util.GraphuloUtil;
+import edu.mit.ll.graphulo.mult.BigDecimalMultiply;
 import edu.mit.ll.graphulo.mult.IMultiplyOp;
+import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.PeekingIterator1;
 import edu.mit.ll.graphulo.util.PeekingIterator2;
-import edu.mit.ll.graphulo.mult.BigDecimalMultiply;
+import edu.mit.ll.graphulo.util.SKVIRowIterator;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -31,8 +32,8 @@ import java.util.TreeMap;
 
 /**
  * Performs operations on two tables.
- * When <tt>dot == ROW_CARTESIAN</tt>, acts as multiply step of outer product, emitting partial products.
- * When <tt>dot == ROW_COLF_COLQ_MATCH</tt>, acts as element-wise multiply.
+ * When <tt>dot == TWOROW</tt>, acts as multiply step of outer product, emitting partial products.
+ * When <tt>dot == EWISE</tt>, acts as element-wise multiply.
  * When <tt>dot == NONE</tt>, no multiplication.
  * Set <tt>AT.emitNoMatch = B.emitNoMatch = true</tt> for sum of tables.
  * <p/>
@@ -79,7 +80,17 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
   public static final String PREFIX_B = "B";
 
   public enum DOT_TYPE {
-    NONE, ROW_CARTESIAN, ROW_COLF_COLQ_MATCH
+    /** Not yet implemented.  Plan is to emit nothing from collisions.
+     * Only emit entries that do not match from the two tables. Set emitNoMatch to true for the two tables. */
+    NONE,
+    /** Read both rows into memory. */
+    TWOROW,
+    /** Read a row from A into memory and stream/iterate through columns in the row from B. */
+    ONEROWA,
+    /** Read a row from B into memory and stream/iterate through columns in the row from A. */
+    ONEROWB,
+    /** Match on row and column. Nothing extra read into memory. */
+    EWISE
   }
 
   static final OptionDescriber.IteratorOptions iteratorOptions;
@@ -93,7 +104,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
       optDesc.put(PREFIX_B + '.' + entry.getKey(), "Table B:" + entry.getValue());
     }
 
-    optDesc.put("dot", "Type of dot product: NONE, ROW_CARTESIAN, ROW_COLF_COLQ_MATCH");
+    optDesc.put("dot", "Type of dot product: NONE, TWOROW, ONEROWA, ONEROWB, EWISE");
     optDesc.put(PREFIX_AT + '.' + "emitNoMatch", "Emit entries that do not match the other table");
     optDesc.put(PREFIX_B + '.' + "emitNoMatch", "Emit entries that do not match the other table");
 
@@ -416,13 +427,16 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
       }
     }*/
 
-    if (dot == DOT_TYPE.ROW_CARTESIAN || dot == DOT_TYPE.ROW_COLF_COLQ_MATCH) {
+
       PartialKey pk = null;
       switch (dot) {
-        case ROW_CARTESIAN:
+        case TWOROW:
+        case ONEROWB:
+        case ONEROWA:
           pk = PartialKey.ROW;
           break;
-        case ROW_COLF_COLQ_MATCH:
+        case EWISE:
+        case NONE:
           pk = PartialKey.ROW_COLFAM_COLQUAL;
           break;
       }
@@ -463,31 +477,54 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
         }
         //assert cmp == 0;
 
-        if (dot == DOT_TYPE.ROW_CARTESIAN) {
-          emitted = GraphuloUtil.keyCopy(remoteAT.getTopKey(), PartialKey.ROW);
-          SortedMap<Key, Value> ArowMap, BrowMap;
-          watch.start(Watch.PerfSpan.RowDecodeBoth);
-          try {
-            ArowMap = readRow(remoteAT, watch, Watch.PerfSpan.ATnext);
-            BrowMap = readRow(remoteB, watch, Watch.PerfSpan.Bnext);
-//            log.debug("ArowMap: "+ArowMap+"   BrowMap: "+BrowMap);
-          } finally {
-            watch.stop(Watch.PerfSpan.RowDecodeBoth);
+        switch (dot) {
+          case TWOROW: {
+            emitted = GraphuloUtil.keyCopy(remoteAT.getTopKey(), PartialKey.ROW);
+            SortedMap<Key, Value> ArowMap = readRow(remoteAT, watch, Watch.PerfSpan.ATnext);
+            SortedMap<Key, Value> BrowMap = readRow(remoteB, watch, Watch.PerfSpan.Bnext);
+
+            bottomIter = new PeekingIterator2<>(new CartesianDotIter(
+                ArowMap.entrySet().iterator(), BrowMap, multiplyOp, false));
+            break;
           }
-          bottomIter = new PeekingIterator2<>(new CartesianDotIter(ArowMap, BrowMap, multiplyOp));
-        } else if (dot == DOT_TYPE.ROW_COLF_COLQ_MATCH) {
-          emitted = remoteAT.getTopKey();
-          multiplyOp.multiply(remoteAT.getTopKey().getRowData(), remoteAT.getTopKey().getColumnFamilyData(),
-              remoteAT.getTopKey().getColumnQualifierData(), remoteB.getTopKey().getColumnFamilyData(),
-              remoteB.getTopKey().getColumnQualifierData(), remoteAT.getTopValue(), remoteB.getTopValue());
-          bottomIter = new PeekingIterator2<>(multiplyOp);
-          remoteAT.next();
-          remoteB.next();
+
+          case ONEROWA: {
+            emitted = GraphuloUtil.keyCopy(remoteAT.getTopKey(), PartialKey.ROW);
+            SortedMap<Key, Value> ArowMap = readRow(remoteAT, watch, Watch.PerfSpan.ATnext);
+            Iterator<Map.Entry<Key, Value>> itBonce = new SKVIRowIterator(remoteB);
+
+            bottomIter = new PeekingIterator2<>(new CartesianDotIter(
+                itBonce, ArowMap, multiplyOp, true));
+            break;
+          }
+
+          case ONEROWB: {
+            emitted = GraphuloUtil.keyCopy(remoteAT.getTopKey(), PartialKey.ROW);
+            Iterator<Map.Entry<Key, Value>> itAonce = new SKVIRowIterator(remoteAT);
+            SortedMap<Key, Value> BrowMap = readRow(remoteB, watch, Watch.PerfSpan.Bnext);
+
+            bottomIter = new PeekingIterator2<>(new CartesianDotIter(
+                itAonce, BrowMap, multiplyOp, false));
+            break;
+          }
+
+          case EWISE: {
+            emitted = remoteAT.getTopKey();
+            multiplyOp.multiply(remoteAT.getTopKey().getRowData(), remoteAT.getTopKey().getColumnFamilyData(),
+                remoteAT.getTopKey().getColumnQualifierData(), remoteB.getTopKey().getColumnFamilyData(),
+                remoteB.getTopKey().getColumnQualifierData(), remoteAT.getTopValue(), remoteB.getTopValue());
+            bottomIter = new PeekingIterator2<>(multiplyOp);
+            remoteAT.next();
+            remoteB.next();
+            break;
+          }
+
+          case NONE: // emit nothing on collision
+            bottomIter = new PeekingIterator2<>(Collections.<Map.Entry<Key, Value>>emptyIterator());
+            break;
         }
       } while (bottomIter != null && !bottomIter.hasNext());
       assert hasTop();
-
-    }
   }
 
   /**
@@ -555,20 +592,25 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
 
   /**
    * Emits Cartesian product of provided iterators, passed to multiply function.
+   * Default is to stream through A once and iterate through B many times.
+   * Pass switched as true if the two are switched.
    */
   static class CartesianDotIter implements Iterator<Map.Entry<Key, Value>> {
-    private SortedMap<Key, Value> ArowMap, BrowMap;
-    private PeekingIterator1<Map.Entry<Key, Value>> ArowMapIter;
-    private Iterator<Map.Entry<Key, Value>> BrowMapIter;
-    private IMultiplyOp multiplyOp;
+    private final SortedMap<Key, Value> BrowMap;
+    private final boolean switched;
+    private final PeekingIterator1<Map.Entry<Key, Value>> itAonce;
+    private Iterator<Map.Entry<Key, Value>> itBreset;
+    private final IMultiplyOp multiplyOp;
 
-    public CartesianDotIter(SortedMap<Key, Value> arowMap, SortedMap<Key, Value> browMap, IMultiplyOp multiplyOp) {
-      ArowMap = arowMap;
-      BrowMap = browMap;
-      ArowMapIter = new PeekingIterator1<>(ArowMap.entrySet().iterator());
-      BrowMapIter = BrowMap.entrySet().iterator();
+    public CartesianDotIter(Iterator<Map.Entry<Key, Value>> itAonce,  SortedMap<Key, Value> mapBreset,
+                            IMultiplyOp multiplyOp, boolean switched) {
+      BrowMap = mapBreset;
+      this.switched = switched;
+      this.itAonce = new PeekingIterator1<>(itAonce);
+      this.itBreset = BrowMap.entrySet().iterator();
       this.multiplyOp = multiplyOp;
-      prepNext();
+      if (itBreset.hasNext())
+        prepNext();
     }
 
     @Override
@@ -579,22 +621,25 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
     @Override
     public Map.Entry<Key, Value> next() {
       Map.Entry<Key, Value> ret = multiplyOp.next();
-      if (!multiplyOp.hasNext() && BrowMapIter.hasNext())
+      if (!multiplyOp.hasNext() && itBreset.hasNext())
         prepNext();
       return ret;
     }
 
     private void prepNext() {
       do {
-        Map.Entry<Key, Value> eA, eB = BrowMapIter.next();
-        if (!BrowMapIter.hasNext()) {
-          eA = ArowMapIter.next(); // advance ArowMapIter
-          if (ArowMapIter.hasNext())
-            BrowMapIter = BrowMap.entrySet().iterator(); // STOP if no more ArowMapIter
+        Map.Entry<Key, Value> eA, eB = itBreset.next();
+        if (!itBreset.hasNext()) {
+          eA = itAonce.next();    // advance itA
+          if (itAonce.hasNext())  // STOP if no more itA
+            itBreset = BrowMap.entrySet().iterator();
         } else
-          eA = ArowMapIter.peek();
-        multiplyEntry(eA, eB);
-      } while (!multiplyOp.hasNext() && BrowMapIter.hasNext());
+          eA = itAonce.peek();
+        if (switched)
+          multiplyEntry(eB, eA);
+        else
+          multiplyEntry(eA, eB);
+      } while (!multiplyOp.hasNext() && itBreset.hasNext());
     }
 
     private void multiplyEntry(Map.Entry<Key, Value> e1, Map.Entry<Key, Value> e2) {
@@ -626,8 +671,8 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
       return null;
     } else {
       // the current top entry of bottomIter is the last in this cartesian product (bottomIter)
-      // ROW_CARTESIAN: Save state at this row.  If reseek'd to this row, go to the next row (assume exclusive).
-      // ROW_COLF_COLQ_MATCH: emit the exact Key accessed.
+      // TWOROW/ONEROWA/ONEROWB: Save state at this row.  If reseek'd to this row, go to the next row (assume exclusive).
+      // EWISE/NONE: emit the exact Key accessed.
       assert bottomIter.peekFirst() != null;
       return emitted;
     }

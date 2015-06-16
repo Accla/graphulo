@@ -92,7 +92,7 @@ public class Graphulo {
                        Collection<Range> rowFilter,
                        String colFilterAT, String colFilterB,
                        int numEntriesCheckpoint, boolean trace) {
-    TwoTable(Atable, Btable, Ctable, CTtable, TwoTableIterator.DOT_TYPE.ROW_COLF_COLQ_MATCH,
+    TwoTable(Atable, Btable, Ctable, CTtable, TwoTableIterator.DOT_TYPE.EWISE,
             multOp, plusOp, rowFilter, colFilterAT, colFilterB,
         false, false, numEntriesCheckpoint, trace);
   }
@@ -102,7 +102,7 @@ public class Graphulo {
                        Collection<Range> rowFilter,
                        String colFilterAT, String colFilterB,
                        int numEntriesCheckpoint, boolean trace) {
-    TwoTable(Atable, Btable, Ctable, CTtable, TwoTableIterator.DOT_TYPE.ROW_COLF_COLQ_MATCH,
+    TwoTable(Atable, Btable, Ctable, CTtable, TwoTableIterator.DOT_TYPE.EWISE,
         multOp, plusOp, rowFilter, colFilterAT, colFilterB,
         true, true, numEntriesCheckpoint, trace);
   }
@@ -129,7 +129,7 @@ public class Graphulo {
                         Collection<Range> rowFilter,
                         String colFilterAT, String colFilterB,
                         int numEntriesCheckpoint, boolean trace) {
-    TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOT_TYPE.ROW_CARTESIAN,
+    TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOT_TYPE.ONEROWB,
             multOp, plusOp, rowFilter, colFilterAT, colFilterB,
         false, false, numEntriesCheckpoint, trace);
   }
@@ -686,7 +686,7 @@ public class Graphulo {
     Map<String, String> opt = new HashMap<>();
 //    opt.put("trace", String.valueOf(trace)); // logs timing on server
 //    opt.put("gatherColQs", "true");  No gathering right now.  Need to implement more general gathering function on RemoteWriteIterator.
-    opt.put("dot", TwoTableIterator.DOT_TYPE.ROW_CARTESIAN.name());
+    opt.put("dot", TwoTableIterator.DOT_TYPE.TWOROW.name());
     opt.put("multiplyOp", EdgeBFSMultiply.class.getName());
     String instance = connector.getInstance().getInstanceName();
     String zookeepers = connector.getInstance().getZooKeepers();
@@ -875,7 +875,7 @@ public class Graphulo {
 
     Map<String, String> opt = new HashMap<>();
     opt.put("trace", String.valueOf(trace)); // logs timing on server
-    opt.put("dot", "ROW_CARTESIAN");
+    opt.put("dot", "TWOROW");
 
     opt.put("AT.zookeeperHost", zookeepers);
     opt.put("AT.instanceName", instance);

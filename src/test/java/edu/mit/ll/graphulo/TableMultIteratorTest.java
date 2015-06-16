@@ -35,9 +35,15 @@ public class TableMultIteratorTest {
 
   /**
    * <pre>
-   *      C1 C2        C1 C2 C3          B1  B2
-   * A1 [ 2  2 ] * B1 [   3  3  ] = A1 [ 6   6,6 ]
-   * A2 [ 2    ]   B2 [3  3     ]   A2 [     6   ]
+   *      C1 C2         C1 C2 C3
+   * A1 [ 2  2 ] * B1 [    3  3  ] =
+   * A2 [ 2    ]   B2 [ 3  3     ]
+   *
+   *      A1 A2         B1 B2        B1  B2
+   * C1 [ 2  2 ]   C1 [    3 ]  A1 [ 6   6,6 ]
+   * C2 [ 2    ]   C2 [ 3  3 ]  A2 [     6   ]
+   *               C3 [ 3    ]
+   *
    * </pre>
    */
   @Test
@@ -47,21 +53,19 @@ public class TableMultIteratorTest {
     final String tableNameA = "test_" + TableMultIteratorTest.class.getSimpleName() + "_testDotMultIteratorScan_A";
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("A1", "", "C1"), new Value("2".getBytes()));
-      input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
-      input.put(new Key("A2", "", "C1"), new Value("2".getBytes()));
-      input = TestUtil.transposeMap(input);
+      input.put(new Key("C1", "", "A1"), new Value("2".getBytes()));
+      input.put(new Key("C2", "", "A1"), new Value("2".getBytes()));
+      input.put(new Key("C1", "", "A2"), new Value("2".getBytes()));
       TestUtil.createTestTable(conn, tableNameA, null, input);
     }
 
     final String tableNameBT = "test_" + TableMultIteratorTest.class.getSimpleName() + "_testDotMultIteratorScan_BT";
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("B1", "", "C2"), new Value("3".getBytes()));
-      input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
-      input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
-      input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
-      input = TestUtil.transposeMap(input);
+      input.put(new Key("C2", "", "B1"), new Value("3".getBytes()));
+      input.put(new Key("C3", "", "B1"), new Value("3".getBytes()));
+      input.put(new Key("C1", "", "B2"), new Value("3".getBytes()));
+      input.put(new Key("C2", "", "B2"), new Value("3".getBytes()));
       TestUtil.createTestTable(conn, tableNameBT, null, input);
     }
 
@@ -80,7 +84,7 @@ public class TableMultIteratorTest {
     itprops.put("B.zookeeperHost", conn.getInstance().getZooKeepers());
     itprops.put("B.username", tester.getUsername());
     itprops.put("B.password", new String(tester.getPassword().getPassword()));
-    itprops.put("dot", "ROW_CARTESIAN");
+    itprops.put("dot", "ONEROWA");
     IteratorSetting itset = new IteratorSetting(25, TwoTableIterator.class, itprops);
     scanner.addScanIterator(itset);
 //        scanner.addScanIterator(new IteratorSetting(26, DebugIterator.class, Collections.<String,String>emptyMap()));
@@ -100,7 +104,7 @@ public class TableMultIteratorTest {
 
     log.info("Results of scan on table " + tableNameC + " with A=" + tableNameA + " and BT=" + tableNameBT + ':');
     for (Map.Entry<Key, Value> entry : scanner) {
-      log.info(entry);
+      log.debug(entry);
       actual.put(entry.getKey(), entry.getValue());
     }
     Assert.assertEquals(expect, actual);
@@ -175,7 +179,7 @@ public class TableMultIteratorTest {
 //            itprops.put("B.zookeeperHost",conn.getInstance().getZooKeepers());
 //            itprops.put("B.username",tester.getUsername());
 //            itprops.put("B.password",new String(tester.getPassword().getPassword()));
-      itprops.put("dot", "ROW_CARTESIAN");
+      itprops.put("dot", "ONEROWA");
       IteratorSetting itset = new IteratorSetting(15, TableMultIterator.class, itprops);
       scannerB.addScanIterator(itset);
 
@@ -216,7 +220,7 @@ public class TableMultIteratorTest {
       itprops.put("C.username", tester.getUsername());
       itprops.put("C.password", new String(tester.getPassword().getPassword()));
       itprops.put("C.numEntriesCheckpoint", "1");
-      itprops.put("dot","ROW_CARTESIAN");
+      itprops.put("dot","ONEROWA");
       IteratorSetting itset = new IteratorSetting(15, TableMultIterator.class, itprops);
       scannerB.clearScanIterators();
       scannerB.addScanIterator(itset);

@@ -18,7 +18,7 @@ public class Watch<K extends Enum<K>> {
   }
 
   enum PerfSpan {
-    ATnext, Bnext, RowDecodeBoth, RowSkipNum, All, WriteAddMut, WriteFlush, WriteGetNext, Multiply
+    ATnext, Bnext, RowSkipNum, All, WriteAddMut, WriteFlush, WriteGetNext, Multiply
   }
 
   /**

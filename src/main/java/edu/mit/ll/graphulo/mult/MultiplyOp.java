@@ -7,6 +7,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -42,8 +43,6 @@ public interface MultiplyOp {
    * In the case of TableMult, the 2 entries are from table AT and B in the outer product.
    * In the case of SpEWise, the 2 entries match on row and column.
    * <p/>
-   * NOTE: This call should "reset" the class, such that it stops iterating over any previous entries.
-   * Returned Keys and Values should be newly allocated.
    *
    * @param Mrow   Pointer to data for matching row. Do not modify.
    * @param ATcolF Pointer to data for AT column family. Do not modify.
@@ -52,7 +51,8 @@ public interface MultiplyOp {
    * @param BcolQ  Pointer to data for B column qualifier. Do not modify.
    * @param ATval  Pointer to data for AT value. Do not modify.
    * @param Bval   Pointer to data for B value. Do not modify.
+   * @return Iterator over result of multiplying the two entries. Use {@link Collections#emptyIterator()} if no entries to emit.
    */
-  Iterator<Map.Entry<Key,Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ,
-                ByteSequence BcolF, ByteSequence BcolQ, Value ATval, Value Bval);
+  Iterator<? extends Map.Entry<Key, Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ,
+                                                     ByteSequence BcolF, ByteSequence BcolQ, Value ATval, Value Bval);
 }

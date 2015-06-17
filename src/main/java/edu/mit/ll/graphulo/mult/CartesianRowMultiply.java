@@ -2,7 +2,6 @@ package edu.mit.ll.graphulo.mult;
 
 import edu.mit.ll.graphulo.skvi.Watch;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
-import edu.mit.ll.graphulo.util.PeekingIterator1;
 import edu.mit.ll.graphulo.util.SKVIRowIterator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -21,9 +20,6 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import static edu.mit.ll.graphulo.skvi.TwoTableIterator.PREFIX_AT;
-import static edu.mit.ll.graphulo.skvi.TwoTableIterator.PREFIX_B;
-
 
 public class CartesianRowMultiply implements RowMultiplyOp {
   private static final Logger log = LogManager.getLogger(CartesianRowMultiply.class);
@@ -36,7 +32,8 @@ public class CartesianRowMultiply implements RowMultiplyOp {
    * @return Sorted map of the entries.
    * Todo P2: replace SortedMap with a list of entries, since sorted order is guaranteed
    */
-  static SortedMap<Key, Value> readRow(SortedKeyValueIterator<Key, Value> skvi, Watch<Watch.PerfSpan> watch, Watch.PerfSpan watchtype) throws IOException {
+  static SortedMap<Key, Value> readRow(SortedKeyValueIterator<Key, Value> skvi,
+                                       Watch<Watch.PerfSpan> watch, Watch.PerfSpan watchtype) throws IOException {
     if (!skvi.hasTop())
       throw new IllegalStateException(skvi + " should hasTop()");
     Text thisRow = skvi.getTopKey().getRow();
@@ -70,25 +67,11 @@ public class CartesianRowMultiply implements RowMultiplyOp {
   private boolean isRowStartMultiplyOp = false;
 
 
-  private void parseOptions(Map<String, String> options, final Map<String, String> optAT, final Map<String, String> optB) {
+  private void parseOptions(Map<String, String> options) {
     for (Map.Entry<String, String> optionEntry : options.entrySet()) {
       String optionKey = optionEntry.getKey();
       String optionValue = optionEntry.getValue();
-      if (optionKey.startsWith(PREFIX_AT + '.')) {
-        String keyAfterPrefix = optionKey.substring(PREFIX_AT.length() + 1);
-        switch (keyAfterPrefix) {
-          default:
-            optAT.put(keyAfterPrefix, optionValue);
-            break;
-        }
-      } else if (optionKey.startsWith(PREFIX_B + '.')) {
-        String keyAfterPrefix = optionKey.substring(PREFIX_B.length() + 1);
-        switch (keyAfterPrefix) {
-          default:
-            optB.put(keyAfterPrefix, optionValue);
-            break;
-        }
-      } else if (optionKey.startsWith("multiplyOp.opt.")) {
+      if (optionKey.startsWith("multiplyOp.opt.")) {
         String keyAfterPrefix = optionKey.substring("multiplyOp.opt.".length());
         multiplyOpOptions.put(keyAfterPrefix, optionValue);
       } else {
@@ -114,13 +97,7 @@ public class CartesianRowMultiply implements RowMultiplyOp {
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
     // parse options, pass correct options to RemoteSourceIterator init()
     Map<String, String> optAT = new HashMap<>(), optB = new HashMap<>();
-    parseOptions(options, optAT, optB);
-    for (Map.Entry<String, String> entry : optAT.entrySet()) {
-      log.warn("unrecognized AT option: "+entry);
-    }
-    for (Map.Entry<String, String> entry : optB.entrySet()) {
-      log.warn("unrecognized B  option: "+entry);
-    }
+    parseOptions(options);
 
     multiplyOp.init(multiplyOpOptions,env);
   }
@@ -135,7 +112,8 @@ public class CartesianRowMultiply implements RowMultiplyOp {
         SortedMap<Key, Value> ArowMap = readRow(skviA, watch, Watch.PerfSpan.ATnext);
         SortedMap<Key, Value> BrowMap = readRow(skviB, watch, Watch.PerfSpan.Bnext);
         if (isRowStartMultiplyOp)
-          ((RowStartMultiplyOp)multiplyOp).startRow(ArowMap, BrowMap);
+          if (!((RowStartMultiplyOp)multiplyOp).startRow(ArowMap, BrowMap))
+            return Collections.emptyIterator();
         return new CartesianIterator(
             ArowMap.entrySet().iterator(), BrowMap, multiplyOp, false);
       }
@@ -144,7 +122,13 @@ public class CartesianRowMultiply implements RowMultiplyOp {
         SortedMap<Key, Value> ArowMap = readRow(skviA, watch, Watch.PerfSpan.ATnext);
         Iterator<Map.Entry<Key, Value>> itBonce = new SKVIRowIterator(skviB);
         if (isRowStartMultiplyOp)
-          ((RowStartMultiplyOp)multiplyOp).startRow(ArowMap, null);
+          if (!((RowStartMultiplyOp)multiplyOp).startRow(ArowMap, null)) {
+            // skip rest of row at skviB
+            ArowMap = null;
+            while (itBonce.hasNext())
+              itBonce.next();
+            return Collections.emptyIterator();
+          }
         return new CartesianIterator(
             itBonce, ArowMap, multiplyOp, true);
       }
@@ -153,7 +137,13 @@ public class CartesianRowMultiply implements RowMultiplyOp {
         Iterator<Map.Entry<Key, Value>> itAonce = new SKVIRowIterator(skviA);
         SortedMap<Key, Value> BrowMap = readRow(skviB, watch, Watch.PerfSpan.Bnext);
         if (isRowStartMultiplyOp)
-          ((RowStartMultiplyOp)multiplyOp).startRow(null, BrowMap);
+          if (!((RowStartMultiplyOp)multiplyOp).startRow(null, BrowMap)) {
+            // skip rest of row at skviA
+            BrowMap = null;
+            while (itAonce.hasNext())
+              itAonce.next();
+            return Collections.emptyIterator();
+          }
         return new CartesianIterator(
             itAonce, BrowMap, multiplyOp, false);
       }
@@ -162,71 +152,6 @@ public class CartesianRowMultiply implements RowMultiplyOp {
         throw new AssertionError("unknown rowmode: "+rowmode);
     }
     
-  }
-
-  /**
-   * Emits Cartesian product of provided iterators, passed to multiply function.
-   * Default is to stream through A once and iterate through B many times.
-   * Pass switched as true if the two are switched.
-   */
-  static class CartesianIterator implements Iterator<Map.Entry<Key, Value>> {
-    private final SortedMap<Key, Value> BrowMap;
-    private final boolean switched;
-    private final PeekingIterator1<Map.Entry<Key, Value>> itAonce;
-    private Iterator<Map.Entry<Key, Value>> itBreset;
-    private final MultiplyOp multiplyOp;
-    private Iterator<Map.Entry<Key, Value>> multiplyOpIterator;
-
-    public CartesianIterator(Iterator<Map.Entry<Key, Value>> itAonce, SortedMap<Key, Value> mapBreset,
-                             MultiplyOp multiplyOp, boolean switched) {
-      BrowMap = mapBreset;
-      this.switched = switched;
-      this.itAonce = new PeekingIterator1<>(itAonce);
-      this.itBreset = BrowMap.entrySet().iterator();
-      this.multiplyOp = multiplyOp;
-      if (itBreset.hasNext())
-        prepNext();
-      else
-        multiplyOpIterator = Collections.emptyIterator();
-    }
-
-    @Override
-    public boolean hasNext() {
-      return multiplyOpIterator.hasNext();
-    }
-
-    @Override
-    public Map.Entry<Key, Value> next() {
-      Map.Entry<Key, Value> ret = multiplyOpIterator.next();
-      if (!multiplyOpIterator.hasNext() && itBreset.hasNext())
-        prepNext();
-      return ret;
-    }
-
-    private void prepNext() {
-      do {
-        Map.Entry<Key, Value> eA, eB = itBreset.next();
-        if (!itBreset.hasNext()) {
-          eA = itAonce.next();    // advance itA
-          if (itAonce.hasNext())  // STOP if no more itA
-            itBreset = BrowMap.entrySet().iterator();
-        } else
-          eA = itAonce.peek();
-        multiplyOpIterator = switched ? multiplyEntry(eB, eA) : multiplyEntry(eA, eB);
-      } while (!multiplyOpIterator.hasNext() && itBreset.hasNext());
-    }
-
-    private Iterator<Map.Entry<Key, Value>> multiplyEntry(Map.Entry<Key, Value> e1, Map.Entry<Key, Value> e2) {
-      assert e1.getKey().getRowData().compareTo(e2.getKey().getRowData()) == 0;
-      Key k1 = e1.getKey(), k2 = e2.getKey();
-      return multiplyOp.multiply(k1.getRowData(), k1.getColumnFamilyData(), k1.getColumnQualifierData(),
-          k2.getColumnFamilyData(), k2.getColumnQualifierData(), e1.getValue(), e2.getValue());
-    }
-
-    @Override
-    public void remove() {
-      throw new UnsupportedOperationException();
-    }
   }
 
 }

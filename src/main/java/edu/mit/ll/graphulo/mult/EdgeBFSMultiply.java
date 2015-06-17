@@ -49,8 +49,8 @@ public class EdgeBFSMultiply implements MultiplyOp, Iterator<Map.Entry<Key,Value
 
 
   @Override
-  public Iterator<Map.Entry<Key,Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence BcolF, ByteSequence BcolQ,
-                       Value ATval, Value Bval) {
+  public Iterator<? extends Map.Entry<Key, Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence BcolF, ByteSequence BcolQ,
+                                                            Value ATval, Value Bval) {
     // maybe todo: check whether ATcolQ is of the form "out|v0"
 //    if (ATcolQ.length() < outColumnPrefix.getLength() ||
 //        0 != WritableComparator.compareBytes(ATcolQ.getBackingArray(), 0, outColumnPrefix.getLength(), outColumnPrefix.getBytes(), 0, outColumnPrefix.getLength())) {

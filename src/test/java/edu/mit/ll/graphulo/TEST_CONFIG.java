@@ -18,7 +18,8 @@ import org.junit.runners.Suite;
     BFSTest.class,
     CountTest.class,
     ReducerTest.class,
-    SCCTest.class
+    SCCTest.class,
+    LineTest.class
 })
 
 /**

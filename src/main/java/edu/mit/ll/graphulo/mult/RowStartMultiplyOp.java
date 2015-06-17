@@ -27,6 +27,7 @@ public interface RowStartMultiplyOp extends MultiplyOp {
    * @param mapRowA Sorted map of entries held in memory for table A
    * @param mapRowB Sorted map of entries held in memory for table A
    * @throws UnsupportedOperationException If called in an unsupported mode.
+   * @return True to proceed. False to skip the entire matching rows.
    */
-  void startRow(SortedMap<Key,Value> mapRowA, SortedMap<Key,Value> mapRowB);
+  boolean startRow(SortedMap<Key,Value> mapRowA, SortedMap<Key,Value> mapRowB);
 }

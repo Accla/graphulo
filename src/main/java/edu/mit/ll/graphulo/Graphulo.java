@@ -2,6 +2,7 @@ package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.mult.CartesianRowMultiply;
 import edu.mit.ll.graphulo.mult.EdgeBFSMultiply;
+import edu.mit.ll.graphulo.mult.LineRowMultiply;
 import edu.mit.ll.graphulo.mult.MultiplyOp;
 import edu.mit.ll.graphulo.reducer.EdgeBFSReducer;
 import edu.mit.ll.graphulo.reducer.GatherColQReducer;
@@ -142,6 +143,33 @@ public class Graphulo {
                        String colFilterAT, String colFilterB,
                        boolean emitNoMatchA, boolean emitNoMatchB,
                        int numEntriesCheckpoint, boolean trace) {
+    Map<String,String> opt = new HashMap<>();
+
+    switch (dotmode) {
+      case ROW:
+        opt.put("rowMultiplyOp", CartesianRowMultiply.class.getName());
+        opt.put("rowMultiplyOp.opt.multiplyOp", multOp.getName()); // treated same as multiplyOp
+        opt.put("rowMultiplyOp.opt.rowmode", CartesianRowMultiply.ROWMODE.ONEROWA.name());
+        break;
+      case EWISE:
+        opt.put("multiplyOp", multOp.getName());
+        break;
+      case NONE:
+        break;
+    }
+
+    TwoTable(ATtable, Btable, Ctable, CTtable, dotmode, opt, plusOp,
+        rowFilter, colFilterAT, colFilterB,
+        emitNoMatchA, emitNoMatchB, numEntriesCheckpoint, trace);
+  }
+
+  public void TwoTable(String ATtable, String Btable, String Ctable, String CTtable,
+                       TwoTableIterator.DOTMODE dotmode, Map<String,String> setupOpts,
+                       IteratorSetting plusOp,
+                       Collection<Range> rowFilter,
+                       String colFilterAT, String colFilterB,
+                       boolean emitNoMatchA, boolean emitNoMatchB,
+                       int numEntriesCheckpoint, boolean trace) {
     if (ATtable == null || ATtable.isEmpty())
       throw new IllegalArgumentException("Please specify table AT. Given: " + ATtable);
     if (Btable == null || Btable.isEmpty())
@@ -207,18 +235,7 @@ public class Graphulo {
     opt.put("trace", String.valueOf(trace)); // logs timing on server
     opt.put("dotmode", dotmode.name());
 
-    switch (dotmode) {
-      case ROW:
-        opt.put("rowMultiplyOp", CartesianRowMultiply.class.getName());
-        opt.put("rowMultiplyOp.opt.multiplyOp", multOp.getName()); // treated same as multiplyOp
-        opt.put("rowMultiplyOp.opt.rowmode", CartesianRowMultiply.ROWMODE.ONEROWA.name());
-        break;
-      case EWISE:
-        opt.put("multiplyOp", multOp.getName());
-        break;
-      case NONE:
-        break;
-    }
+    opt.putAll(setupOpts);
 
     opt.put("AT.zookeeperHost", zookeepers);
     opt.put("AT.instanceName", instance);
@@ -1136,5 +1153,23 @@ public class Graphulo {
 
     return GraphuloUtil.textsToD4mString(vktexts, sep);
   }
+
+
+  public void LineGraph(String Atable, String ATtable, String Rtable, String RTtable,
+                        boolean isDirected, String separator,
+                        IteratorSetting plusOp,
+                        Collection<Range> rowFilter,
+                        String colFilterAT, String colFilterB,
+                        int numEntriesCheckpoint, boolean trace) {
+    Map<String,String> opt = new HashMap<>();
+    opt.put("rowMultiplyOp", LineRowMultiply.class.getName());
+    opt.put("rowMultiplyOp.opt.separator", separator);
+    opt.put("rowMultiplyOp.opt.isDirected", Boolean.toString(isDirected));
+
+    TwoTable(ATtable, Atable, Rtable, RTtable, TwoTableIterator.DOTMODE.ROW, opt, plusOp,
+        rowFilter, colFilterAT, colFilterB,
+        false, false, numEntriesCheckpoint, trace);
+  }
+
 
 }

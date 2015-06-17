@@ -1,6 +1,13 @@
 package edu.mit.ll.graphulo.util;
 
-import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
@@ -8,10 +15,14 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.junit.Rule;
-import org.junit.rules.TestName;
 
-import java.util.*;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
 
 /**
  * Helper methods for testing.
@@ -93,6 +104,20 @@ public class TestUtil {
         }
     }
 
+    /** Print out the expected next to the actual output from a table */
+    public static <V> void printExpectActual(Map<Key, V> expect, Map<Key, V> actual) {
+        Iterator<Map.Entry<Key, V>> acit = actual.entrySet().iterator(),
+            exit = expect.entrySet().iterator();
+        while (acit.hasNext() || exit.hasNext()) {
+            if (acit.hasNext() && exit.hasNext())
+                System.out.printf("%-51s  %s\n", exit.next(), acit.next());
+            else if (acit.hasNext())
+                System.out.printf("%-51s  %s\n", "", acit.next());
+            else
+                System.out.printf("%s\n", exit.next());
+        }
+    }
+
 //    public static Collection<Map.Entry<Key,Value>> pairsToEntries(Collection<Pair<Key,Value>> entries) {
 //        Collection<Map.Entry<Key,Value>> newset = new HashSet<>(entries.size());
 //        for (Pair<Key, Value> entry : entries) {
@@ -161,19 +186,19 @@ public class TestUtil {
 //    }
 
   /** Switches row and column qualifier. Returns HashMap. */
-  public static Map<Key,Value> transposeMap(Map<Key, Value> mapOrig) {
-      Map<Key, Value> m = new HashMap<>(mapOrig.size());
+  public static <V> Map<Key,V> transposeMap(Map<Key, V> mapOrig) {
+      Map<Key, V> m = new HashMap<>(mapOrig.size());
       return transposeMapHelp(mapOrig, m);
   }
 
   /** Switches row and column qualifier. Use same comparator as the given map. Returns TreeMap. */
-  public static SortedMap<Key,Value> transposeMap(SortedMap<Key, Value> mapOrig) {
-    SortedMap<Key, Value> m = new TreeMap<>(mapOrig.comparator());
+  public static <V> SortedMap<Key,V> transposeMap(SortedMap<Key, V> mapOrig) {
+    SortedMap<Key, V> m = new TreeMap<>(mapOrig.comparator());
     return transposeMapHelp(mapOrig, m);
   }
 
-  private static <M extends Map<Key,Value>> M transposeMapHelp(Map<Key,Value> orig, M neww) {
-    for (Map.Entry<Key, Value> entry : orig.entrySet()) {
+  private static <M extends Map<Key,V>, V> M transposeMapHelp(Map<Key,V> orig, M neww) {
+    for (Map.Entry<Key, V> entry : orig.entrySet()) {
       Key k0 = entry.getKey();
       Key k = new Key(k0.getColumnQualifier(), k0.getColumnFamily(),
           k0.getRow(), k0.getColumnVisibilityParsed(), k0.getTimestamp());

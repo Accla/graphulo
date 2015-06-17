@@ -419,22 +419,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
   }
 
   private void prepNextRowMatch(/*boolean doNext*/) throws IOException {
-    if ((!remoteAT.hasTop() && !remoteB.hasTop())
-        || (remoteAT.hasTop() && !remoteB.hasTop() && !emitNoMatchA)
-        || (!remoteAT.hasTop() && remoteB.hasTop() && !emitNoMatchB)) {
-      bottomIter = null;
-      return;
-    }
-    if (remoteAT.hasTop() && !remoteB.hasTop() && emitNoMatchA) {
-      bottomIter = new PeekingIterator2<>(Iterators.singletonIterator(copyTopEntry(remoteAT)));
-      remoteAT.next();
-      return;
-    }
-    if (!remoteAT.hasTop() && remoteB.hasTop() && emitNoMatchB) {
-      bottomIter = new PeekingIterator2<>(Iterators.singletonIterator(copyTopEntry(remoteB)));
-      remoteB.next();
-      return;
-    }
+
     /*if (doNext) {
       watch.start(Watch.PerfSpan.ATnext);
       try {
@@ -473,6 +458,24 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
 
       Watch<Watch.PerfSpan> watch = Watch.getInstance();
       do {
+
+        if ((!remoteAT.hasTop() && !remoteB.hasTop())
+            || (!emitNoMatchA && remoteAT.hasTop() && !remoteB.hasTop())
+            || (!emitNoMatchB && !remoteAT.hasTop() && remoteB.hasTop())) {
+          bottomIter = null;
+          return;
+        }
+        if (emitNoMatchA && remoteAT.hasTop() && !remoteB.hasTop()) {
+          bottomIter = new PeekingIterator2<>(Iterators.singletonIterator(copyTopEntry(remoteAT)));
+          remoteAT.next();
+          return;
+        }
+        if (emitNoMatchB && !remoteAT.hasTop() && remoteB.hasTop()) {
+          bottomIter = new PeekingIterator2<>(Iterators.singletonIterator(copyTopEntry(remoteB)));
+          remoteB.next();
+          return;
+        }
+
         int cmp = remoteAT.getTopKey().compareTo(remoteB.getTopKey(), pk);
         while (cmp != 0) {
           if (cmp < 0) {

@@ -27,7 +27,7 @@ public abstract class SimpleEWiseX implements MultiplyOp, Iterator<Entry<Key,Val
   }
 
   @Override
-  public Iterator<Map.Entry<Key,Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence BcolF, ByteSequence BcolQ, Value ATval, Value Bval) {
+  public Iterator<? extends Entry<Key, Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence BcolF, ByteSequence BcolQ, Value ATval, Value Bval) {
     Key k = new Key(Mrow.getBackingArray(), ATcolF.getBackingArray(),
         ATcolQ.getBackingArray(), EMPTY_BYTES, System.currentTimeMillis());
     Value v = multiply(ATval, Bval);

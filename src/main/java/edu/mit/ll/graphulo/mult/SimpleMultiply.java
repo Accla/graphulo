@@ -27,7 +27,7 @@ public abstract class SimpleMultiply implements MultiplyOp, Iterator<Entry<Key,V
   }
 
   @Override
-  public Iterator<Entry<Key,Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence BcolF, ByteSequence BcolQ, Value ATval, Value Bval) {
+  public Iterator<? extends Entry<Key, Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence BcolF, ByteSequence BcolQ, Value ATval, Value Bval) {
 //    System.err.println("Mrow:"+Mrow+" ATcolQ:"+ATcolQ+" BcolQ:"+BcolQ+" ATval:"+ATval+" Bval:"+Bval);
     Key k = new Key(ATcolQ.getBackingArray(), ATcolF.getBackingArray(),
         BcolQ.getBackingArray(), EMPTY_BYTES, System.currentTimeMillis());

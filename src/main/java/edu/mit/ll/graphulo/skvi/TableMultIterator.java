@@ -100,7 +100,10 @@ public class TableMultIterator extends BranchIterator implements OptionDescriber
 //                  log.warn("Unrecognized option: " + prefix + '.' + entry);
 //                  break;
 //              }
-              optDM.put(entry.getKey(), entry.getValue());
+              if (prefix.isEmpty())
+                optDM.put(entry.getKey(), entry.getValue());
+              else
+                optDM.put(prefix + '.'+entry.getKey(), entry.getValue());
             }
             break;
         }

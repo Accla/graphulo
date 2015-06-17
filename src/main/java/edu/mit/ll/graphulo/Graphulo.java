@@ -1,7 +1,8 @@
 package edu.mit.ll.graphulo;
 
+import edu.mit.ll.graphulo.mult.CartesianRowMultiply;
 import edu.mit.ll.graphulo.mult.EdgeBFSMultiply;
-import edu.mit.ll.graphulo.mult.IMultiplyOp;
+import edu.mit.ll.graphulo.mult.MultiplyOp;
 import edu.mit.ll.graphulo.reducer.EdgeBFSReducer;
 import edu.mit.ll.graphulo.reducer.GatherColQReducer;
 import edu.mit.ll.graphulo.reducer.SingleBFSReducer;
@@ -81,28 +82,28 @@ public class Graphulo {
 
 
   public void TableMult(String ATtable, String Btable, String Ctable, String CTtable,
-                        Class<? extends IMultiplyOp> multOp, IteratorSetting plusOp,
+                        Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
                         Collection<Range> rowFilter,
                         String colFilterAT, String colFilterB) {
     TableMult(ATtable, Btable, Ctable, CTtable, multOp, plusOp, rowFilter, colFilterAT, colFilterB, -1, false);
   }
 
   public void SpEWiseX(String Atable, String Btable, String Ctable, String CTtable,
-                       Class<? extends IMultiplyOp> multOp, IteratorSetting plusOp,
+                       Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
                        Collection<Range> rowFilter,
                        String colFilterAT, String colFilterB,
                        int numEntriesCheckpoint, boolean trace) {
-    TwoTable(Atable, Btable, Ctable, CTtable, TwoTableIterator.DOT_TYPE.EWISE,
+    TwoTable(Atable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.EWISE,
             multOp, plusOp, rowFilter, colFilterAT, colFilterB,
         false, false, numEntriesCheckpoint, trace);
   }
 
   public void SpEWiseSum(String Atable, String Btable, String Ctable, String CTtable,
-                       Class<? extends IMultiplyOp> multOp, IteratorSetting plusOp,
+                       Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
                        Collection<Range> rowFilter,
                        String colFilterAT, String colFilterB,
                        int numEntriesCheckpoint, boolean trace) {
-    TwoTable(Atable, Btable, Ctable, CTtable, TwoTableIterator.DOT_TYPE.EWISE,
+    TwoTable(Atable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.EWISE,
         multOp, plusOp, rowFilter, colFilterAT, colFilterB,
         true, true, numEntriesCheckpoint, trace);
   }
@@ -125,21 +126,22 @@ public class Graphulo {
    * @param trace                Enable server-side performance tracing.
    */
   public void TableMult(String ATtable, String Btable, String Ctable, String CTtable,
-                        Class<? extends IMultiplyOp> multOp, IteratorSetting plusOp,
+                        Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
                         Collection<Range> rowFilter,
                         String colFilterAT, String colFilterB,
                         int numEntriesCheckpoint, boolean trace) {
-    TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOT_TYPE.ONEROWB,
+    TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.ROW,
             multOp, plusOp, rowFilter, colFilterAT, colFilterB,
         false, false, numEntriesCheckpoint, trace);
   }
 
-  public void TwoTable(String ATtable, String Btable, String Ctable, String CTtable, TwoTableIterator.DOT_TYPE dot,
-                        Class<? extends IMultiplyOp> multOp, IteratorSetting plusOp,
-                        Collection<Range> rowFilter,
-                        String colFilterAT, String colFilterB,
-                        boolean emitNoMatchA, boolean emitNoMatchB,
-                        int numEntriesCheckpoint, boolean trace) {
+  public void TwoTable(String ATtable, String Btable, String Ctable, String CTtable,
+                       TwoTableIterator.DOTMODE dotmode, //CartesianRowMultiply.ROWMODE rowmode,
+                       Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
+                       Collection<Range> rowFilter,
+                       String colFilterAT, String colFilterB,
+                       boolean emitNoMatchA, boolean emitNoMatchB,
+                       int numEntriesCheckpoint, boolean trace) {
     if (ATtable == null || ATtable.isEmpty())
       throw new IllegalArgumentException("Please specify table AT. Given: " + ATtable);
     if (Btable == null || Btable.isEmpty())
@@ -162,8 +164,10 @@ public class Graphulo {
       log.warn("Streaming back result of multiplication to client does not guarantee correctness." +
           "In particular, if Accumulo destroys, re-inits and re-seeks an iterator stack, the stack may not recover.");
 
-    if (multOp == null)
-      throw new IllegalArgumentException("multOp is required but given null");
+    if (dotmode == null)
+      throw new IllegalArgumentException("dotmode is required but given null");
+//    if (multOp == null)
+//      throw new IllegalArgumentException("multOp is required but given null");
     if (rowFilter != null && rowFilter.isEmpty())
       rowFilter = null;
 
@@ -201,8 +205,20 @@ public class Graphulo {
 
     Map<String, String> opt = new HashMap<>();
     opt.put("trace", String.valueOf(trace)); // logs timing on server
-    opt.put("dot", dot.name());
-    opt.put("multiplyOp", multOp.getName());
+    opt.put("dotmode", dotmode.name());
+
+    switch (dotmode) {
+      case ROW:
+        opt.put("rowMultiplyOp", CartesianRowMultiply.class.getName());
+        opt.put("rowMultiplyOp.opt.multiplyOp", multOp.getName()); // treated same as multiplyOp
+        opt.put("rowMultiplyOp.opt.rowmode", CartesianRowMultiply.ROWMODE.ONEROWA.name());
+        break;
+      case EWISE:
+        opt.put("multiplyOp", multOp.getName());
+        break;
+      case NONE:
+        break;
+    }
 
     opt.put("AT.zookeeperHost", zookeepers);
     opt.put("AT.instanceName", instance);
@@ -686,7 +702,7 @@ public class Graphulo {
     Map<String, String> opt = new HashMap<>();
 //    opt.put("trace", String.valueOf(trace)); // logs timing on server
 //    opt.put("gatherColQs", "true");  No gathering right now.  Need to implement more general gathering function on RemoteWriteIterator.
-    opt.put("dot", TwoTableIterator.DOT_TYPE.TWOROW.name());
+    opt.put("dotmode", TwoTableIterator.DOTMODE.ROW.name());
     opt.put("multiplyOp", EdgeBFSMultiply.class.getName());
     String instance = connector.getInstance().getInstanceName();
     String zookeepers = connector.getInstance().getZooKeepers();
@@ -875,7 +891,7 @@ public class Graphulo {
 
     Map<String, String> opt = new HashMap<>();
     opt.put("trace", String.valueOf(trace)); // logs timing on server
-    opt.put("dot", "TWOROW");
+    opt.put("dotmode", TwoTableIterator.DOTMODE.ROW.name());
 
     opt.put("AT.zookeeperHost", zookeepers);
     opt.put("AT.instanceName", instance);
@@ -1077,13 +1093,11 @@ public class Graphulo {
 
           if (vktexts.isEmpty())
             break;
-          String s = GraphuloUtil.singletonsAsPrefix(vktexts, sep);
           opt.put("rowRanges", GraphuloUtil.singletonsAsPrefix(vktexts, sep));
 
         } else {  // no filtering
           if (thisk == 1)
-            opt.put("rowRanges",
-                GraphuloUtil.singletonsAsPrefix(v0));
+            opt.put("rowRanges", GraphuloUtil.singletonsAsPrefix(v0));
           else
             opt.put("rowRanges", GraphuloUtil.singletonsAsPrefix(vktexts, sep));
         }

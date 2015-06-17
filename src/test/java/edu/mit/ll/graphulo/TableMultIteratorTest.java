@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.util.*;
 
 /**
- * Test DotMultIterator.
+ * Test {@link TwoTableIterator}.
  */
 public class TableMultIteratorTest {
   private static final Logger log = LogManager.getLogger(TableMultIteratorTest.class);
@@ -84,7 +84,7 @@ public class TableMultIteratorTest {
     itprops.put("B.zookeeperHost", conn.getInstance().getZooKeepers());
     itprops.put("B.username", tester.getUsername());
     itprops.put("B.password", new String(tester.getPassword().getPassword()));
-    itprops.put("dot", "ONEROWA");
+    itprops.put("dotmode", TwoTableIterator.DOTMODE.ROW.name());
     IteratorSetting itset = new IteratorSetting(25, TwoTableIterator.class, itprops);
     scanner.addScanIterator(itset);
 //        scanner.addScanIterator(new IteratorSetting(26, DebugIterator.class, Collections.<String,String>emptyMap()));
@@ -179,7 +179,7 @@ public class TableMultIteratorTest {
 //            itprops.put("B.zookeeperHost",conn.getInstance().getZooKeepers());
 //            itprops.put("B.username",tester.getUsername());
 //            itprops.put("B.password",new String(tester.getPassword().getPassword()));
-      itprops.put("dot", "ONEROWA");
+      itprops.put("dotmode", TwoTableIterator.DOTMODE.ROW.name());
       IteratorSetting itset = new IteratorSetting(15, TableMultIterator.class, itprops);
       scannerB.addScanIterator(itset);
 
@@ -220,7 +220,7 @@ public class TableMultIteratorTest {
       itprops.put("C.username", tester.getUsername());
       itprops.put("C.password", new String(tester.getPassword().getPassword()));
       itprops.put("C.numEntriesCheckpoint", "1");
-      itprops.put("dot","ONEROWA");
+      itprops.put("dotmode",TwoTableIterator.DOTMODE.ROW.name());
       IteratorSetting itset = new IteratorSetting(15, TableMultIterator.class, itprops);
       scannerB.clearScanIterators();
       scannerB.addScanIterator(itset);

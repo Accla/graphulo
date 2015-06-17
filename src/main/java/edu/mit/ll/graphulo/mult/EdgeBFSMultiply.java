@@ -10,13 +10,13 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.AbstractMap;
+import java.util.Iterator;
 import java.util.Map;
-import java.util.SortedMap;
 
 /**
  * Used for Incidence Table Breadth First Search.
  */
-public class EdgeBFSMultiply implements IMultiplyOp {
+public class EdgeBFSMultiply implements MultiplyOp, Iterator<Map.Entry<Key,Value>> {
   private static final Logger log = LogManager.getLogger(EdgeBFSMultiply.class);
 
   private Text outColumnPrefix, inColumnPrefix;
@@ -47,12 +47,9 @@ public class EdgeBFSMultiply implements IMultiplyOp {
 //    parseOptions(options);
   }
 
-  @Override
-  public void startRow(SortedMap<Key, Value> mapRowA, SortedMap<Key, Value> mapRowB) {
-  }
 
   @Override
-  public void multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence BcolF, ByteSequence BcolQ,
+  public Iterator<Map.Entry<Key,Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence BcolF, ByteSequence BcolQ,
                        Value ATval, Value Bval) {
     // maybe todo: check whether ATcolQ is of the form "out|v0"
 //    if (ATcolQ.length() < outColumnPrefix.getLength() ||
@@ -66,6 +63,7 @@ public class EdgeBFSMultiply implements IMultiplyOp {
         EMPTY_BYTES, System.currentTimeMillis()); // experiment with copy=false?
     emitValueFirst = new Value(ATval);
     emitValueSecond = new Value(Bval);
+    return this;
   }
 
   @Override

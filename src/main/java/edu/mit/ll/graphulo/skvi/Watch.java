@@ -17,7 +17,7 @@ public class Watch<K extends Enum<K>> {
     log.info("Loading Watch");
   }
 
-  enum PerfSpan {
+  public enum PerfSpan {
     ATnext, Bnext, RowSkipNum, All, WriteAddMut, WriteFlush, WriteGetNext, Multiply
   }
 

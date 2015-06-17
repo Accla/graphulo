@@ -7,15 +7,15 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 
 import java.io.IOException;
 import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.SortedMap;
 
 /**
  * A simple abstract class for matrix multiplication
  * that returns zero or one entry per multiply.
  */
-public abstract class SimpleMultiply implements IMultiplyOp {
+public abstract class SimpleMultiply implements MultiplyOp, Iterator<Entry<Key,Value>> {
 
   /** Implements simple multiply logic. Returning null means no entry is emitted. */
   public abstract Value multiply(Value ATval, Value Bval);
@@ -27,16 +27,13 @@ public abstract class SimpleMultiply implements IMultiplyOp {
   }
 
   @Override
-  public void startRow(SortedMap<Key, Value> mapRowA, SortedMap<Key, Value> mapRowB) {
-  }
-
-  @Override
-  public void multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence BcolF, ByteSequence BcolQ, Value ATval, Value Bval) {
+  public Iterator<Entry<Key,Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence BcolF, ByteSequence BcolQ, Value ATval, Value Bval) {
 //    System.err.println("Mrow:"+Mrow+" ATcolQ:"+ATcolQ+" BcolQ:"+BcolQ+" ATval:"+ATval+" Bval:"+Bval);
     Key k = new Key(ATcolQ.getBackingArray(), ATcolF.getBackingArray(),
         BcolQ.getBackingArray(), EMPTY_BYTES, System.currentTimeMillis());
     Value v = multiply(ATval, Bval);
     kv = v == null ? null : new SimpleImmutableEntry<>(k,v);
+    return this;
   }
 
   @Override

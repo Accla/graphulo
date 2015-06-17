@@ -175,25 +175,33 @@ which will apply the iterator to result tables.
 Addition is *lazy*, in the sense that the addition runs when a table is scanned or compacted,
  which may be significantly after an operation finishes.
 Do not remove addition iterators from a table until every entry in the table
-is summed together, which one can guarantee by performing a full major compaction.
+is summed together, which one can guarantee by running a full major compaction.
 
 To create a custom multiplication operation, 
-create a Java class implementing [IMultiplyOp][] with the multiplication logic.
+create a Java class implementing [MultiplyOp][] with the multiplication logic.
 For simple TableMult multiplication, you can extend the [SimpleMultiply][] class instead of implementing the full interface.
 For simple element-wise multiplication, you can extend the [SimpleEWiseX][] class instead of implementing the full interface.
 See the classes in the `edu.mit.ll.graphulo.mult` package for examples.
-Non-simple multiplication that should implement [IMultiplyOp][] directly are multiplication logic that
+
+Non-simple multiplication that should implement [MultiplyOp][] directly are multiplication logic that
 
 1. manipulates returned Keys in non-standard ways; 
-2. takes init options (passed from the client through `multiplyOp.opt.OPTION_NAME`); 
-3. needs to perform some setup or other function based on viewing an entire row in memory; or 
-4. returns more than one entry per multiplication.
+2. takes init options (passed from the client through `multiplyOp.opt.OPTION_NAME` in an [IteratorSetting][]); 
+3. returns more than one entry per multiplication;
+4. performs some setup or other function based on holding one [`ONEROWA` or `ONEROWB` (default)] 
+or both [`TWOROW`] entire rows in memory
+(implement [RowStartMultiplyOp][] in this case); or 
+5. (advanced) performs a non-standard pattern of multiplying two matching rows, 
+different from the Cartesian product of the two rows' entries
+(implement [RowMultiplyOp][] in this case). 
 
 [SortedKeyValueIterator]: https://accumulo.apache.org/1.7/apidocs/org/apache/accumulo/core/iterators/SortedKeyValueIterator.html
 [IteratorSetting]: https://accumulo.apache.org/1.7/apidocs/org/apache/accumulo/core/client/IteratorSetting.html
-[IMultiplyOp]: src/main/java/edu/mit/ll/graphulo/mult/IMultiplyOp.java
+[MultiplyOp]: src/main/java/edu/mit/ll/graphulo/mult/MultiplyOp.java
+[RowStartMultiplyOp]: src/main/java/edu/mit/ll/graphulo/mult/RowStartMultiplyOp.java
 [SimpleMultiply]: src/main/java/edu/mit/ll/graphulo/mult/SimpleMultiply.java
 [SimpleEWiseX]: src/main/java/edu/mit/ll/graphulo/mult/SimpleEWiseX.java
+[RowMultiplyOp]: src/main/java/edu/mit/ll/graphulo/mult/RowMultiplyOp.java
 
 ### How to use Graphulo in Matlab client code with D4M
 The following code snippet is a good starting point for using Graphulo,
@@ -313,7 +321,7 @@ Run as many as desired, each with its own priority.
 Don't specify when operating on a single table.
 * `(A/B).emitNoMatchEntries` Both false for multiply (intersection of entries); both true for sum (union of entries)
 * `dot` Either "ROW_CARTESIAN_PRODUCT" or "ROW_COLF_COLQ_MATCH" or nothing.
-* `multiplyOp` Name of class that implements IMultiplyOp. 
+* `multiplyOp` Name of class that implements MultiplyOp. 
 * `multiplyOp.opt.OPTION_NAME` An option supplied to the multiply class's `init` function.
 
 ##### Future: PreSumCacheIterator

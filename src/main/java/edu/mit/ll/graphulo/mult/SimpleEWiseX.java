@@ -7,15 +7,15 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 
 import java.io.IOException;
 import java.util.AbstractMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.SortedMap;
 
 /**
  * A simple abstract class for element0-wise multiplication
  * that returns zero or one entry per multiply.
  */
-public abstract class SimpleEWiseX implements IMultiplyOp {
+public abstract class SimpleEWiseX implements MultiplyOp, Iterator<Entry<Key,Value>> {
 
   /** Implements simple multiply logic. Returning null means no entry is emitted. */
   public abstract Value multiply(Value Aval, Value Bval);
@@ -27,15 +27,12 @@ public abstract class SimpleEWiseX implements IMultiplyOp {
   }
 
   @Override
-  public void startRow(SortedMap<Key, Value> mapRowA, SortedMap<Key, Value> mapRowB) {
-  }
-
-  @Override
-  public void multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence BcolF, ByteSequence BcolQ, Value ATval, Value Bval) {
+  public Iterator<Map.Entry<Key,Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence BcolF, ByteSequence BcolQ, Value ATval, Value Bval) {
     Key k = new Key(Mrow.getBackingArray(), ATcolF.getBackingArray(),
         ATcolQ.getBackingArray(), EMPTY_BYTES, System.currentTimeMillis());
     Value v = multiply(ATval, Bval);
     kv = v == null ? null : new AbstractMap.SimpleImmutableEntry<>(k,v);
+    return this;
   }
 
   @Override

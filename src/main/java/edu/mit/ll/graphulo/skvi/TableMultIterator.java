@@ -91,16 +91,16 @@ public class TableMultIterator extends BranchIterator implements OptionDescriber
             break;
           default:
             for (Map.Entry<String, String> entry : entryMap.entrySet()) {
-              switch (entry.getKey()) {
-                case "dot":
-                case "multiplyOp":
-                  optDM.put(entry.getKey(), entry.getValue());
-                  break;
-                default:
-                  log.warn("Unrecognized option: " + prefix + '.' + entry);
-                  break;
-              }
-//              optDM.put(entry.getKey(), entry.getValue());
+//              switch (entry.getKey()) {
+//                case "dotmode":
+//                case "multiplyOp":
+//                  optDM.put(entry.getKey(), entry.getValue());
+//                  break;
+//                default:
+//                  log.warn("Unrecognized option: " + prefix + '.' + entry);
+//                  break;
+//              }
+              optDM.put(entry.getKey(), entry.getValue());
             }
             break;
         }

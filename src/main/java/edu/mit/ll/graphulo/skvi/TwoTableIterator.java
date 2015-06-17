@@ -2,11 +2,11 @@ package edu.mit.ll.graphulo.skvi;
 
 import com.google.common.collect.Iterators;
 import edu.mit.ll.graphulo.mult.BigDecimalMultiply;
-import edu.mit.ll.graphulo.mult.IMultiplyOp;
+import edu.mit.ll.graphulo.mult.CartesianRowMultiply;
+import edu.mit.ll.graphulo.mult.MultiplyOp;
+import edu.mit.ll.graphulo.mult.RowMultiplyOp;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
-import edu.mit.ll.graphulo.util.PeekingIterator1;
 import edu.mit.ll.graphulo.util.PeekingIterator2;
-import edu.mit.ll.graphulo.util.SKVIRowIterator;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -16,7 +16,6 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -24,17 +23,14 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
 
 /**
  * Performs operations on two tables.
- * When <tt>dot == TWOROW</tt>, acts as multiply step of outer product, emitting partial products.
- * When <tt>dot == EWISE</tt>, acts as element-wise multiply.
- * When <tt>dot == NONE</tt>, no multiplication.
+ * When <tt>dotmode == TWOROW</tt>, acts as multiply step of outer product, emitting partial products.
+ * When <tt>dotmode == EWISE</tt>, acts as element-wise multiply.
+ * When <tt>dotmode == NONE</tt>, no multiplication.
  * Set <tt>AT.emitNoMatch = B.emitNoMatch = true</tt> for sum of tables.
  * <p/>
  * Configure two remote sources for tables AT and B,
@@ -61,13 +57,17 @@ import java.util.TreeMap;
 public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
   private static final Logger log = LogManager.getLogger(TwoTableIterator.class);
 
-  private IMultiplyOp multiplyOp = new BigDecimalMultiply();
-  private Map<String, String> multiplyOpOptions = new HashMap<>();
-  private SortedKeyValueIterator<Key, Value> remoteAT, remoteB;
+  private RowMultiplyOp rowMultiplyOp = null;
+  private Map<String, String> rowMultiplyOpOptions = new HashMap<>();
+  private DOTMODE dotmode;
   private boolean emitNoMatchA = false, emitNoMatchB = false;
-  private PeekingIterator2<? extends Map.Entry<Key, Value>> bottomIter; // = new TreeMap<>(new ColFamilyQualifierComparator());
+  private MultiplyOp multiplyOp = null;
+  private Map<String, String> multiplyOpOptions = new HashMap<>();
+
+  private SortedKeyValueIterator<Key, Value> remoteAT, remoteB;
+  private PeekingIterator2<? extends Map.Entry<Key, Value>> bottomIter;
+
   private Range seekRange;
-  private DOT_TYPE dot = DOT_TYPE.NONE;
   private Collection<ByteSequence> seekColumnFamilies;
   private boolean seekInclusive;
   /**
@@ -79,16 +79,12 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
   public static final String PREFIX_AT = "AT";
   public static final String PREFIX_B = "B";
 
-  public enum DOT_TYPE {
+  public enum DOTMODE {
     /** Not yet implemented.  Plan is to emit nothing from collisions.
      * Only emit entries that do not match from the two tables. Set emitNoMatch to true for the two tables. */
     NONE,
-    /** Read both rows into memory. */
-    TWOROW,
-    /** Read a row from A into memory and stream/iterate through columns in the row from B. */
-    ONEROWA,
-    /** Read a row from B into memory and stream/iterate through columns in the row from A. */
-    ONEROWB,
+    /** Perform a function on matching rows of A and B.  Provide rowMultiplyOp option. */
+    ROW,
     /** Match on row and column. Nothing extra read into memory. */
     EWISE
   }
@@ -104,23 +100,13 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
       optDesc.put(PREFIX_B + '.' + entry.getKey(), "Table B:" + entry.getValue());
     }
 
-    optDesc.put("dot", "Type of dot product: NONE, TWOROW, ONEROWA, ONEROWB, EWISE");
+    optDesc.put("dotmode", "Type of dotmode product: NONE, TWOROW, ONEROWA, ONEROWB, EWISE");
     optDesc.put(PREFIX_AT + '.' + "emitNoMatch", "Emit entries that do not match the other table");
     optDesc.put(PREFIX_B + '.' + "emitNoMatch", "Emit entries that do not match the other table");
 
-    iteratorOptions = new OptionDescriber.IteratorOptions("DotMultIterator",
+    iteratorOptions = new OptionDescriber.IteratorOptions("TwoTableIterator",
         "Outer product on A and B, given AT and B. Does not sum.",
         optDesc, null);
-  }
-
-
-  public TwoTableIterator() {
-  }
-
-  TwoTableIterator(TwoTableIterator other) {
-    this.dot = other.dot;
-    this.multiplyOp = other.multiplyOp;
-    this.multiplyOpOptions = other.multiplyOpOptions;
   }
 
   @Override
@@ -144,19 +130,24 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
   }
 
   private void parseOptions(Map<String, String> options, final Map<String, String> optAT, final Map<String, String> optB) {
+    String dm = options.get("dotmode");
+    if (dm == null)
+      throw new IllegalArgumentException("Must specify dotmode. Given: " + options);
+    dotmode = DOTMODE.valueOf(dm);
+
     for (Map.Entry<String, String> optionEntry : options.entrySet()) {
       String optionKey = optionEntry.getKey();
       String optionValue = optionEntry.getValue();
       if (optionKey.startsWith(PREFIX_AT + '.')) {
         String keyAfterPrefix = optionKey.substring(PREFIX_AT.length() + 1);
         switch (keyAfterPrefix) {
+          case "emitNoMatch":
+            emitNoMatchA = Boolean.parseBoolean(optionValue);
+            break;
           case "doWholeRow":
             if (Boolean.parseBoolean(optionValue))
               log.warn("Forcing doWholeRow option on table A to FALSE. Given: " + optionValue);
             continue;
-          case "emitNoMatch":
-            emitNoMatchA = Boolean.parseBoolean(optionValue);
-            break;
           default:
             optAT.put(keyAfterPrefix, optionValue);
             break;
@@ -164,33 +155,74 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
       } else if (optionKey.startsWith(PREFIX_B + '.')) {
         String keyAfterPrefix = optionKey.substring(PREFIX_B.length() + 1);
         switch (keyAfterPrefix) {
+          case "emitNoMatch":
+            emitNoMatchB = Boolean.parseBoolean(optionValue);
+            break;
           case "doWholeRow":
             if (Boolean.parseBoolean(optionValue))
               log.warn("Forcing doWholeRow option on table A to FALSE. Given: " + optionValue);
             continue;
-          case "emitNoMatch":
-            emitNoMatchB = Boolean.parseBoolean(optionValue);
-            break;
           default:
             optB.put(keyAfterPrefix, optionValue);
             break;
         }
+      } else if (optionKey.startsWith("rowMultiplyOp.opt.")) {
+        String keyAfterPrefix = optionKey.substring("rowMultiplyOp.opt.".length());
+        rowMultiplyOpOptions.put(keyAfterPrefix, optionValue);
       } else if (optionKey.startsWith("multiplyOp.opt.")) {
-        String keyAfterPrefix = optionKey.substring("multiplyOp.opt.".length());
-        multiplyOpOptions.put(keyAfterPrefix, optionValue);
+        switch (dotmode) {
+          case ROW:
+            rowMultiplyOpOptions.put(optionKey, optionValue);
+            break;
+          case EWISE:
+            String keyAfterPrefix = optionKey.substring("multiplyOp.opt.".length());
+            multiplyOpOptions.put(keyAfterPrefix, optionValue);
+            break;
+          case NONE:
+            break;
+        }
       } else {
         switch (optionKey) {
-          case "dot":
-            dot = DOT_TYPE.valueOf(optionValue);
+          case "rowMultiplyOp":
+            if (dotmode == DOTMODE.ROW)
+              rowMultiplyOp = GraphuloUtil.subclassNewInstance(optionValue, RowMultiplyOp.class);
+            else
+              log.warn(dotmode+" mode: Ignoring rowMultiplyOp " + optionValue);
             break;
           case "multiplyOp":
-            multiplyOp = GraphuloUtil.subclassNewInstance(optionValue, IMultiplyOp.class);
+            switch (dotmode) {
+              case ROW:
+                rowMultiplyOpOptions.put("multiplyOp", optionValue);
+                break;
+              case EWISE:
+                multiplyOp = GraphuloUtil.subclassNewInstance(optionValue, MultiplyOp.class);
+                break;
+              case NONE:
+                log.warn("NONE mode: Ignoring multiplyOp " + optionValue);
+                break;
+            }
+            break;
+          case "dotmode":
             break;
           default:
             log.warn("Unrecognized option: " + optionEntry);
             break;
         }
       }
+    }
+    switch (dotmode) {
+      case ROW:
+        if (rowMultiplyOp == null)
+//          throw new IllegalArgumentException("ROW mode: Must specify rowMultiplyOp");
+          rowMultiplyOp = new CartesianRowMultiply(); // default
+        break;
+      case EWISE:
+        if (multiplyOp == null)
+//          throw new IllegalArgumentException("EWISE mode: Must specify rowMultiplyOp");
+          multiplyOp = new BigDecimalMultiply(); // default
+        break;
+      case NONE:
+        break;
     }
   }
 
@@ -201,10 +233,6 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
     parseOptions(options, optAT, optB);
     boolean dorAT = optAT.containsKey("tableName") && !optAT.get("tableName").isEmpty(),
         dorB = optB.containsKey("tableName") && !optB.get("tableName").isEmpty();
-//    if (optAT.isEmpty())
-//      optAT = null;
-//    if (optB.isEmpty())
-//      optB = null;
 
     if (!dorAT && !dorB && source == null) { // ~A ~B ~S
       throw new IllegalArgumentException("optAT, optB, and source cannot all be missing");
@@ -244,7 +272,10 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
       }
     }
 
-    multiplyOp.init(multiplyOpOptions,env);
+    if (rowMultiplyOp != null)
+      rowMultiplyOp.init(rowMultiplyOpOptions, env);
+    if (multiplyOp != null)
+      multiplyOp.init(multiplyOpOptions, env);
   }
 
   private SortedKeyValueIterator<Key, Value> setup(
@@ -429,10 +460,8 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
 
 
       PartialKey pk = null;
-      switch (dot) {
-        case TWOROW:
-        case ONEROWB:
-        case ONEROWA:
+      switch (dotmode) {
+        case ROW:
           pk = PartialKey.ROW;
           break;
         case EWISE:
@@ -477,43 +506,19 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
         }
         //assert cmp == 0;
 
-        switch (dot) {
-          case TWOROW: {
+        switch (dotmode) {
+          case ROW: {
             emitted = GraphuloUtil.keyCopy(remoteAT.getTopKey(), PartialKey.ROW);
-            SortedMap<Key, Value> ArowMap = readRow(remoteAT, watch, Watch.PerfSpan.ATnext);
-            SortedMap<Key, Value> BrowMap = readRow(remoteB, watch, Watch.PerfSpan.Bnext);
-            multiplyOp.startRow(ArowMap, BrowMap);
-            bottomIter = new PeekingIterator2<>(new CartesianDotIter(
-                ArowMap.entrySet().iterator(), BrowMap, multiplyOp, false));
-            break;
-          }
-
-          case ONEROWA: {
-            emitted = GraphuloUtil.keyCopy(remoteAT.getTopKey(), PartialKey.ROW);
-            SortedMap<Key, Value> ArowMap = readRow(remoteAT, watch, Watch.PerfSpan.ATnext);
-            Iterator<Map.Entry<Key, Value>> itBonce = new SKVIRowIterator(remoteB);
-            multiplyOp.startRow(ArowMap, null);
-            bottomIter = new PeekingIterator2<>(new CartesianDotIter(
-                itBonce, ArowMap, multiplyOp, true));
-            break;
-          }
-
-          case ONEROWB: {
-            emitted = GraphuloUtil.keyCopy(remoteAT.getTopKey(), PartialKey.ROW);
-            Iterator<Map.Entry<Key, Value>> itAonce = new SKVIRowIterator(remoteAT);
-            SortedMap<Key, Value> BrowMap = readRow(remoteB, watch, Watch.PerfSpan.Bnext);
-            multiplyOp.startRow(null, BrowMap);
-            bottomIter = new PeekingIterator2<>(new CartesianDotIter(
-                itAonce, BrowMap, multiplyOp, false));
+            bottomIter = new PeekingIterator2<>(rowMultiplyOp.multiplyRow(remoteAT, remoteB));
             break;
           }
 
           case EWISE: {
             emitted = remoteAT.getTopKey();
-            multiplyOp.multiply(remoteAT.getTopKey().getRowData(), remoteAT.getTopKey().getColumnFamilyData(),
+            bottomIter = new PeekingIterator2<>(
+                multiplyOp.multiply(remoteAT.getTopKey().getRowData(), remoteAT.getTopKey().getColumnFamilyData(),
                 remoteAT.getTopKey().getColumnQualifierData(), remoteB.getTopKey().getColumnFamilyData(),
-                remoteB.getTopKey().getColumnQualifierData(), remoteAT.getTopValue(), remoteB.getTopValue());
-            bottomIter = new PeekingIterator2<>(multiplyOp);
+                remoteB.getTopKey().getColumnQualifierData(), remoteAT.getTopValue(), remoteB.getTopValue()));
             remoteAT.next();
             remoteB.next();
             break;
@@ -564,97 +569,6 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
     return skvi.hasTop();
   }
 
-  /**
-   * Fill a SortedMap with all the entries in the same row as skvi.getTopKey().getRow()
-   * when first called.
-   * Postcondition: !skvi.hasTop() || skvi.getTopKey().getRow() has changed.
-   *
-   * @return Sorted map of the entries.
-   * Todo P2: replace SortedMap with a list of entries, since sorted order is guaranteed
-   */
-  static SortedMap<Key, Value> readRow(SortedKeyValueIterator<Key, Value> skvi, Watch<Watch.PerfSpan> watch, Watch.PerfSpan watchtype) throws IOException {
-    if (!skvi.hasTop())
-      throw new IllegalStateException(skvi + " should hasTop()");
-    Text thisRow = skvi.getTopKey().getRow();
-    Text curRow = new Text(thisRow);
-    SortedMap<Key, Value> map = new TreeMap<>();
-    do {
-      map.put(skvi.getTopKey(), new Value(skvi.getTopValue()));
-      watch.start(watchtype);
-      try {
-        skvi.next();
-      } finally {
-        watch.stop(watchtype);
-      }
-    } while (skvi.hasTop() && skvi.getTopKey().getRow(curRow).equals(thisRow));
-    return map;
-  }
-
-  /**
-   * Emits Cartesian product of provided iterators, passed to multiply function.
-   * Default is to stream through A once and iterate through B many times.
-   * Pass switched as true if the two are switched.
-   */
-  static class CartesianDotIter implements Iterator<Map.Entry<Key, Value>> {
-    private final SortedMap<Key, Value> BrowMap;
-    private final boolean switched;
-    private final PeekingIterator1<Map.Entry<Key, Value>> itAonce;
-    private Iterator<Map.Entry<Key, Value>> itBreset;
-    private final IMultiplyOp multiplyOp;
-
-    public CartesianDotIter(Iterator<Map.Entry<Key, Value>> itAonce,  SortedMap<Key, Value> mapBreset,
-                            IMultiplyOp multiplyOp, boolean switched) {
-      BrowMap = mapBreset;
-      this.switched = switched;
-      this.itAonce = new PeekingIterator1<>(itAonce);
-      this.itBreset = BrowMap.entrySet().iterator();
-      this.multiplyOp = multiplyOp;
-      if (itBreset.hasNext())
-        prepNext();
-    }
-
-    @Override
-    public boolean hasNext() {
-      return multiplyOp.hasNext();
-    }
-
-    @Override
-    public Map.Entry<Key, Value> next() {
-      Map.Entry<Key, Value> ret = multiplyOp.next();
-      if (!multiplyOp.hasNext() && itBreset.hasNext())
-        prepNext();
-      return ret;
-    }
-
-    private void prepNext() {
-      do {
-        Map.Entry<Key, Value> eA, eB = itBreset.next();
-        if (!itBreset.hasNext()) {
-          eA = itAonce.next();    // advance itA
-          if (itAonce.hasNext())  // STOP if no more itA
-            itBreset = BrowMap.entrySet().iterator();
-        } else
-          eA = itAonce.peek();
-        if (switched)
-          multiplyEntry(eB, eA);
-        else
-          multiplyEntry(eA, eB);
-      } while (!multiplyOp.hasNext() && itBreset.hasNext());
-    }
-
-    private void multiplyEntry(Map.Entry<Key, Value> e1, Map.Entry<Key, Value> e2) {
-      assert e1.getKey().getRowData().compareTo(e2.getKey().getRowData()) == 0;
-      Key k1 = e1.getKey(), k2 = e2.getKey();
-      multiplyOp.multiply(k1.getRowData(), k1.getColumnFamilyData(), k1.getColumnQualifierData(),
-          k2.getColumnFamilyData(), k2.getColumnQualifierData(), e1.getValue(), e2.getValue());
-    }
-
-    @Override
-    public void remove() {
-      throw new UnsupportedOperationException();
-    }
-  }
-
 
   @Override
   public void next() throws IOException {
@@ -697,9 +611,25 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
 
   @Override
   public TwoTableIterator deepCopy(IteratorEnvironment env) {
-    TwoTableIterator copy = new TwoTableIterator(this);
-    copy.remoteAT = remoteAT.deepCopy(env);
-    copy.remoteB = remoteB.deepCopy(env);
-    return copy;
+    try {
+      TwoTableIterator copy = new TwoTableIterator();
+      copy.dotmode = this.dotmode;
+      if (this.rowMultiplyOp != null) {
+        copy.rowMultiplyOp = this.rowMultiplyOp.getClass().newInstance();
+        copy.rowMultiplyOpOptions = this.rowMultiplyOpOptions;
+        copy.multiplyOp.init(copy.multiplyOpOptions, env);
+      }
+      if (this.multiplyOp != null) {
+        copy.multiplyOp = this.multiplyOp.getClass().newInstance();
+        copy.multiplyOpOptions = this.multiplyOpOptions;
+        copy.multiplyOp.init(copy.multiplyOpOptions, env);
+      }
+      copy.remoteAT = remoteAT.deepCopy(env);
+      copy.remoteB = remoteB.deepCopy(env);
+      return copy;
+    } catch (IOException | InstantiationException | IllegalAccessException e) {
+      log.error("", e);
+      throw new RuntimeException("",e);
+    }
   }
 }

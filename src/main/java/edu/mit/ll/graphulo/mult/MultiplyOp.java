@@ -9,13 +9,12 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.SortedMap;
 
 /**
- * Multiplication operation on 2 entries. Respects order for non-commutative operations.
- * Returns any number of entries as a result of the multiplication.
+ * Multiplication on 2 entries. Respects order for non-commutative operations.
+ * Iterates through any number of entries as a result of the multiplication.
  */
-public interface IMultiplyOp extends Iterator<Map.Entry<Key,Value>> {
+public interface MultiplyOp {
   /**
    * Useful for ignoring column visibility.
    */
@@ -37,26 +36,6 @@ public interface IMultiplyOp extends Iterator<Map.Entry<Key,Value>> {
    */
   void init(Map<String,String> options, IteratorEnvironment env) throws IOException;
 
-  /**
-   * A method that signals the start of matching rows in TwoTableIterator.
-   * Depending on the mode of TwoTableIterator,
-   * this will be called before processing matching rows form the two tables..
-   *
-   * <ol>
-   * <li>TWOROW mode: passes both maps.</li>
-   * <li>ONEROWA mode: passes mapRowA, passes null for mapRowB</li>
-   * <li>ONEROWB mode: passes null for mapRowA, passes mapRowB</li>
-   * <li>EWISE and NONE mode: does not call this method</li>
-   * </ol>
-   *
-   * An implementing class should perform any state setup that requires holding entire rows in memory.
-   *
-   * @param mapRowA Sorted map of entries held in memory for table A
-   * @param mapRowB Sorted map of entries held in memory for table A
-   * @throws UnsupportedOperationException If called in an unsupported mode.
-   */
-  void startRow(SortedMap<Key,Value> mapRowA, SortedMap<Key,Value> mapRowB);
-
 
   /**
    * Multiplication operation on 2 entries with matching rows.
@@ -74,6 +53,6 @@ public interface IMultiplyOp extends Iterator<Map.Entry<Key,Value>> {
    * @param ATval  Pointer to data for AT value. Do not modify.
    * @param Bval   Pointer to data for B value. Do not modify.
    */
-  void multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ,
+  Iterator<Map.Entry<Key,Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ,
                 ByteSequence BcolF, ByteSequence BcolQ, Value ATval, Value Bval);
 }

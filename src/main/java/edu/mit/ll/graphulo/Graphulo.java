@@ -7,7 +7,6 @@ import edu.mit.ll.graphulo.mult.MultiplyOp;
 import edu.mit.ll.graphulo.reducer.EdgeBFSReducer;
 import edu.mit.ll.graphulo.reducer.GatherColQReducer;
 import edu.mit.ll.graphulo.reducer.SingleBFSReducer;
-import edu.mit.ll.graphulo.skvi.CountAllIterator;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
 import edu.mit.ll.graphulo.skvi.SingleTransposeIterator;
 import edu.mit.ll.graphulo.skvi.SmallLargeRowFilter;
@@ -83,29 +82,29 @@ public class Graphulo {
   private static final Text EMPTY_TEXT = new Text();
 
 
-  public void TableMult(String ATtable, String Btable, String Ctable, String CTtable,
+  public long TableMult(String ATtable, String Btable, String Ctable, String CTtable,
                         Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
                         Collection<Range> rowFilter,
                         String colFilterAT, String colFilterB) {
-    TableMult(ATtable, Btable, Ctable, CTtable, multOp, plusOp, rowFilter, colFilterAT, colFilterB, -1, false);
+    return TableMult(ATtable, Btable, Ctable, CTtable, multOp, plusOp, rowFilter, colFilterAT, colFilterB, -1, false);
   }
 
-  public void SpEWiseX(String Atable, String Btable, String Ctable, String CTtable,
+  public long SpEWiseX(String Atable, String Btable, String Ctable, String CTtable,
                        Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
                        Collection<Range> rowFilter,
                        String colFilterAT, String colFilterB,
                        int numEntriesCheckpoint, boolean trace) {
-    TwoTable(Atable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.EWISE,
+    return TwoTable(Atable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.EWISE,
             multOp, plusOp, rowFilter, colFilterAT, colFilterB,
         false, false, numEntriesCheckpoint, trace);
   }
 
-  public void SpEWiseSum(String Atable, String Btable, String Ctable, String CTtable,
-                       Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
-                       Collection<Range> rowFilter,
-                       String colFilterAT, String colFilterB,
-                       int numEntriesCheckpoint, boolean trace) {
-    TwoTable(Atable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.EWISE,
+  public long SpEWiseSum(String Atable, String Btable, String Ctable, String CTtable,
+                         Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
+                         Collection<Range> rowFilter,
+                         String colFilterAT, String colFilterB,
+                         int numEntriesCheckpoint, boolean trace) {
+    return TwoTable(Atable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.EWISE,
         multOp, plusOp, rowFilter, colFilterAT, colFilterB,
         true, true, numEntriesCheckpoint, trace);
   }
@@ -114,8 +113,7 @@ public class Graphulo {
    * C += A * B.
    * User-defined "plus" and "multiply". Requires transpose table AT instead of A.
    * If C is not given, then the scan itself returns the results of A * B. (not thoroughly tested)
-   *
-   * @param ATtable              Name of Accumulo table holding matrix transpose(A).
+   *  @param ATtable              Name of Accumulo table holding matrix transpose(A).
    * @param Btable               Name of Accumulo table holding matrix B.
    * @param Ctable               Name of table to store result. Null means don't store the result.
    * @param CTtable              Name of table to store transpose of result. Null means don't store the transpose.
@@ -126,18 +124,19 @@ public class Graphulo {
    * @param colFilterB           Column qualifier subset of B. Null means run on all columns.
    * @param numEntriesCheckpoint # of entries before we emit a checkpoint entry from the scan. -1 means no monitoring.
    * @param trace                Enable server-side performance tracing.
+   * @return Number of partial products processed through the RemoteWriteIterator.
    */
-  public void TableMult(String ATtable, String Btable, String Ctable, String CTtable,
+  public long TableMult(String ATtable, String Btable, String Ctable, String CTtable,
                         Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
                         Collection<Range> rowFilter,
                         String colFilterAT, String colFilterB,
                         int numEntriesCheckpoint, boolean trace) {
-    TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.ROW,
+    return TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.ROW,
             multOp, plusOp, rowFilter, colFilterAT, colFilterB,
         false, false, numEntriesCheckpoint, trace);
   }
 
-  public void TwoTable(String ATtable, String Btable, String Ctable, String CTtable,
+  public long TwoTable(String ATtable, String Btable, String Ctable, String CTtable,
                        TwoTableIterator.DOTMODE dotmode, //CartesianRowMultiply.ROWMODE rowmode,
                        Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
                        Collection<Range> rowFilter,
@@ -159,13 +158,13 @@ public class Graphulo {
         break;
     }
 
-    TwoTable(ATtable, Btable, Ctable, CTtable, dotmode, opt, plusOp,
+    return TwoTable(ATtable, Btable, Ctable, CTtable, dotmode, opt, plusOp,
         rowFilter, colFilterAT, colFilterB,
         emitNoMatchA, emitNoMatchB, numEntriesCheckpoint, trace);
   }
 
-  public void TwoTable(String ATtable, String Btable, String Ctable, String CTtable,
-                       TwoTableIterator.DOTMODE dotmode, Map<String,String> setupOpts,
+  public long TwoTable(String ATtable, String Btable, String Ctable, String CTtable,
+                       TwoTableIterator.DOTMODE dotmode, Map<String, String> setupOpts,
                        IteratorSetting plusOp,
                        Collection<Range> rowFilter,
                        String colFilterAT, String colFilterB,
@@ -312,11 +311,12 @@ public class Graphulo {
       }
 
     // Do the BatchScan on B
+    long numEntries = 0;
     try {
       for (Map.Entry<Key, Value> entry : bs) {
         if (Ctable != null || CTtable != null) {
-          int numEntries = RemoteWriteIterator.decodeValue(entry.getValue(), null);
-          System.out.println(entry.getKey() + " -> " + numEntries + "entries processed");
+          numEntries += RemoteWriteIterator.decodeValue(entry.getValue(), null);
+          System.out.println(entry.getKey() + " -> " + numEntries + " entries processed");
         } else {
           System.out.println(entry.getKey() + " -> " + entry.getValue());
         }
@@ -332,6 +332,7 @@ public class Graphulo {
       }
     }
 
+    return numEntries;
 
 //    // flush
 //    if (Ctable != null) {
@@ -882,66 +883,6 @@ public class Graphulo {
           .append(sep);
     }
     return sb.toString();
-  }
-
-  public long countPartialProductsTableMult(String ATtable, String Btable,
-                                            boolean trace) {
-    if (ATtable == null || ATtable.isEmpty())
-      throw new IllegalArgumentException("Please specify table AT. Given: " + ATtable);
-    if (Btable == null || Btable.isEmpty())
-      throw new IllegalArgumentException("Please specify table B. Given: " + Btable);
-
-//    if (multOp == null || !multOp.equals(BigDecimalMultiply.class))
-//      throw new UnsupportedOperationException("only supported multOp is BigDecimalMultiply, but given: "+multOp);
-//    if (sumOp == null || !sumOp.equals(BigDecimalCombiner.BigDecimalSummingCombiner.class))
-//      throw new UnsupportedOperationException("only supported sumOp is BigDecimalSummingCombiner, but given: "+multOp);
-
-    TableOperations tops = connector.tableOperations();
-    if (!tops.exists(ATtable))
-      throw new IllegalArgumentException("Table AT does not exist. Given: " + ATtable);
-    if (!tops.exists(Btable))
-      throw new IllegalArgumentException("Table B does not exist. Given: " + Btable);
-
-
-    String instance = connector.getInstance().getInstanceName();
-    String zookeepers = connector.getInstance().getZooKeepers();
-    String user = connector.whoami();
-
-    Map<String, String> opt = new HashMap<>();
-    opt.put("trace", String.valueOf(trace)); // logs timing on server
-    opt.put("dotmode", TwoTableIterator.DOTMODE.ROW.name());
-
-    opt.put("AT.zookeeperHost", zookeepers);
-    opt.put("AT.instanceName", instance);
-    opt.put("AT.tableName", ATtable);
-    opt.put("AT.username", user);
-    opt.put("AT.password", new String(password.getPassword()));
-
-
-    // scan B with TableMultIterator
-    BatchScanner bs;
-    try {
-      bs = connector.createBatchScanner(Btable, Authorizations.EMPTY, 50); // TODO P2: set number of batch scan threads
-    } catch (TableNotFoundException e) {
-      log.error("crazy", e);
-      throw new RuntimeException(e);
-    }
-
-    bs.setRanges(Collections.singleton(new Range()));
-
-    // TODO P2: Assign priority and name dynamically, checking for conflicts.
-    IteratorSetting itset = new IteratorSetting(2, TableMultIterator.class, opt);
-    bs.addScanIterator(itset);
-    itset = new IteratorSetting(3, CountAllIterator.class);
-    bs.addScanIterator(itset);
-
-    long cnt = 0;
-    for (Map.Entry<Key, Value> entry : bs) {
-      cnt += Long.valueOf(new String(entry.getValue().get()));
-//      System.out.println("received: "+Long.valueOf(new String(entry.getValue().get())));
-    }
-    bs.close();
-    return cnt;
   }
 
 

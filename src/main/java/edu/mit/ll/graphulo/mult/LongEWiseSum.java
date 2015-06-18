@@ -9,7 +9,7 @@ import org.apache.accumulo.core.iterators.TypedValueCombiner;
  * Used for EWiseSum.
  */
 public class LongEWiseSum extends SimpleEWiseX {
-  private static TypedValueCombiner.Encoder<Long> encoder = new LongCombiner.StringEncoder();
+  private static final TypedValueCombiner.Encoder<Long> encoder = new LongCombiner.StringEncoder();
 
   @Override
   public Value multiply(Value Aval, Value Bval) {

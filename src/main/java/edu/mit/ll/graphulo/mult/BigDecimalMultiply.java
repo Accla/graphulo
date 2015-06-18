@@ -10,7 +10,7 @@ import java.math.BigDecimal;
  * Decode values as BigDecimal objects, multiply and re-encode the result.
  */
 public class BigDecimalMultiply extends SimpleMultiply {
-    private static TypedValueCombiner.Encoder<BigDecimal> encoder = new BigDecimalCombiner.BigDecimalEncoder();
+    private static final TypedValueCombiner.Encoder<BigDecimal> encoder = new BigDecimalCombiner.BigDecimalEncoder();
 
     @Override
     public Value multiply(Value ATval, Value Bval) {

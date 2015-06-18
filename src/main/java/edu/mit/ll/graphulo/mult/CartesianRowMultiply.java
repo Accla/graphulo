@@ -95,10 +95,7 @@ public class CartesianRowMultiply implements RowMultiplyOp {
 
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
-    // parse options, pass correct options to RemoteSourceIterator init()
-    Map<String, String> optAT = new HashMap<>(), optB = new HashMap<>();
     parseOptions(options);
-
     multiplyOp.init(multiplyOpOptions,env);
   }
 

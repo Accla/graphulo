@@ -8,7 +8,7 @@ import org.apache.accumulo.core.iterators.TypedValueCombiner;
  * Decode values as Long objects, multiply and re-encode the result.
  */
 public class LongMultiply extends SimpleMultiply {
-  private static TypedValueCombiner.Encoder<Long> encoder = new LongCombiner.StringEncoder();
+  private static final TypedValueCombiner.Encoder<Long> encoder = new LongCombiner.StringEncoder();
 
   @Override
   public Value multiply(Value ATval, Value Bval) {

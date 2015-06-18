@@ -78,8 +78,8 @@ public class LineTest extends AccumuloTestBase {
     Combiner.setCombineAllColumns(sumSetting, true);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    graphulo.LineGraph(tA, tAT, tR, tRT, false, "|", sumSetting,
-        null, null, null, -1, true);
+    graphulo.LineGraph(tA, tAT, tR, tRT, false, false, "|", sumSetting,
+        null, null, null, 1, true);
 
     BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
     scanner.setRanges(Collections.singleton(new Range()));
@@ -155,37 +155,54 @@ public class LineTest extends AccumuloTestBase {
     IteratorSetting sumSetting = new IteratorSetting(6, BigDecimalCombiner.BigDecimalSummingCombiner.class);
     Combiner.setCombineAllColumns(sumSetting, true);
 
-    Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    graphulo.LineGraph(tA, tAT, tR, tRT, true, "|", sumSetting,
-        null, null, null, -1, true);
+    {
+      Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+      graphulo.LineGraph(tA, tAT, tR, tRT, true, true, "|", sumSetting,
+          null, null, null, 1, true);
 
-    BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
-    scanner.setRanges(Collections.singleton(new Range()));
-    for (Map.Entry<Key, Value> entry : scanner) {
-      actual.put(entry.getKey(), entry.getValue());
+      BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expect, actual);
+
+      scanner = conn.createBatchScanner(tRT, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actualTranspose.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expectTranspose, actualTranspose);
     }
-    scanner.close();
 
-    Iterator<Map.Entry<Key, Value>> acit = actual.entrySet().iterator(),
-        exit = expect.entrySet().iterator();
-    while (acit.hasNext() || exit.hasNext()) {
-      if (acit.hasNext() && exit.hasNext())
-        System.out.printf("%-51s  %s\n", exit.next(), acit.next());
-      else if (acit.hasNext())
-        System.out.printf("%-51s  %s\n", "", acit.next());
-      else
-        System.out.printf("%s\n", exit.next());
+    // should work the same with includeExtraCycles as false
+    conn.tableOperations().delete(tR);
+    conn.tableOperations().delete(tRT);
+    actual.clear();
+    actualTranspose.clear();
+    {
+      Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+      graphulo.LineGraph(tA, tAT, tR, tRT, true, false, "|", sumSetting,
+          null, null, null, 1, true);
+
+      BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expect, actual);
+
+      scanner = conn.createBatchScanner(tRT, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actualTranspose.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expectTranspose, actualTranspose);
     }
-
-    Assert.assertEquals(expect, actual);
-
-    scanner = conn.createBatchScanner(tRT, Authorizations.EMPTY, 2);
-    scanner.setRanges(Collections.singleton(new Range()));
-    for (Map.Entry<Key, Value> entry : scanner) {
-      actualTranspose.put(entry.getKey(), entry.getValue());
-    }
-    scanner.close();
-    Assert.assertEquals(expectTranspose, actualTranspose);
 
     conn.tableOperations().delete(tA);
     conn.tableOperations().delete(tAT);
@@ -193,8 +210,148 @@ public class LineTest extends AccumuloTestBase {
     conn.tableOperations().delete(tRT);
   }
 
+
   /**
-   *
+   * <pre>
+   *    a\   ->d
+   *      v /
+   *       c-->e
+   *      ^ \
+   *    b/   ->f
+   * </pre>
+   */
+  @Test
+  public void testLineDirected() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
+    Connector conn = tester.getConnector();
+    final String tA, tAT, tR, tRT;
+    {
+      String[] names = getUniqueNames(4);
+      tA = names[0];
+      tAT = names[1];
+      tR = names[2];
+      tRT = names[3];
+    }
+    Map<Key,Double> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+        expectTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actualTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+
+    {
+      Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("a", "", "c"), new Value("2".getBytes()));
+      input.put(new Key("b", "", "c"), new Value("4".getBytes()));
+      input.put(new Key("c", "", "d"), new Value("6".getBytes()));
+      input.put(new Key("c", "", "e"), new Value("8".getBytes()));
+      input.put(new Key("c", "", "f"), new Value("10".getBytes()));
+
+      SortedSet<Text> splits = new TreeSet<>();
+//      splits.add(new Text("b"));
+      TestUtil.createTestTable(conn, tA, splits, input);
+
+      input = TestUtil.transposeMap(input);
+      TestUtil.createTestTable(conn, tAT, null, input);
+    }
+
+    {
+      expect.put(new Key("a|c", "", "c|d"), 0.75);
+      expect.put(new Key("a|c", "", "c|e"), 0.75);
+      expect.put(new Key("a|c", "", "c|f"), 0.75);
+      expect.put(new Key("b|c", "", "c|d"), 0.75);
+      expect.put(new Key("b|c", "", "c|e"), 0.75);
+      expect.put(new Key("b|c", "", "c|f"), 0.75);
+
+      expect.put(new Key("a|c", "", "b|c"), 0.75);
+      expect.put(new Key("b|c", "", "a|c"), 0.75);
+
+      expectTranspose.putAll(TestUtil.transposeMap(expect));
+    }
+
+    IteratorSetting sumSetting = new IteratorSetting(6, BigDecimalCombiner.BigDecimalSummingCombiner.class);
+    Combiner.setCombineAllColumns(sumSetting, true);
+
+    {
+      Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+      graphulo.LineGraph(tA, tAT, tR, tRT, true, true, "|", sumSetting,
+          null, null, null, 1, true);
+
+      BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), Double.valueOf(entry.getValue().toString()));
+      }
+      scanner.close();
+      Assert.assertEquals(expect, actual);
+
+      scanner = conn.createBatchScanner(tRT, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actualTranspose.put(entry.getKey(), Double.valueOf(entry.getValue().toString()));
+      }
+      scanner.close();
+      Assert.assertEquals(expectTranspose, actualTranspose);
+    }
+
+    // different result with includeExtraCycles as false
+    conn.tableOperations().delete(tR);
+    conn.tableOperations().delete(tRT);
+    actual.clear();
+    actualTranspose.clear();
+    expect.clear();
+    expectTranspose.clear();
+    {
+      expect.put(new Key("a|c", "", "c|d"), 1.0);
+      expect.put(new Key("a|c", "", "c|e"), 1.0);
+      expect.put(new Key("a|c", "", "c|f"), 1.0);
+      expect.put(new Key("b|c", "", "c|d"), 1.0);
+      expect.put(new Key("b|c", "", "c|e"), 1.0);
+      expect.put(new Key("b|c", "", "c|f"), 1.0);
+
+      expectTranspose.putAll(TestUtil.transposeMap(expect));
+    }
+    {
+      Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+      graphulo.LineGraph(tA, tAT, tR, tRT, true, false, "|", sumSetting,
+          null, null, null, 1, true);
+
+      BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), Double.valueOf(entry.getValue().toString()));
+      }
+      scanner.close();
+      Assert.assertEquals(expect, actual);
+
+      scanner = conn.createBatchScanner(tRT, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actualTranspose.put(entry.getKey(), Double.valueOf(entry.getValue().toString()));
+      }
+      scanner.close();
+      Assert.assertEquals(expectTranspose, actualTranspose);
+    }
+
+    conn.tableOperations().delete(tA);
+    conn.tableOperations().delete(tAT);
+    conn.tableOperations().delete(tR);
+    conn.tableOperations().delete(tRT);
+  }
+
+
+
+  /**
+   * <pre>
+   *      4     5
+   *   a --- b --- c
+   * 10|    6\     / 3
+   *   e      \-d-/
+   * </pre>
+   * <pre>
+   *       2.5
+   *   ab --- bc -
+   *  7| \_2.5/2.5\4
+   *   ae  \-bd -- cd
+   *            4.5
+   * </pre>
    */
   @Test
   public void testLineUndirected() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
@@ -245,8 +402,8 @@ public class LineTest extends AccumuloTestBase {
     Combiner.setCombineAllColumns(sumSetting, true);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    graphulo.LineGraph(tA, tAT, tR, tRT, false, "|", sumSetting,
-        null, null, null, -1, true);
+    graphulo.LineGraph(tA, tAT, tR, tRT, false, false, "|", sumSetting,
+        null, null, null, 1, true);
 
     BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
     scanner.setRanges(Collections.singleton(new Range()));

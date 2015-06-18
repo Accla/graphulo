@@ -1164,16 +1164,37 @@ public class Graphulo {
   }
 
 
+  /**
+   *
+   * @param Atable   Accumulo adjacency table input
+   * @param ATtable  Transpose of input adjacency table
+   * @param Rtable   Result table, can be null. Created if nonexisting.
+   * @param RTtable  Transpose of result table, can be null. Created if nonexisting.
+   * @param isDirected True for directed input, false for undirected input
+   * @param includeExtraCycles (only applies to directed graphs)
+   *                           True to include cycles between edges that come into the same node
+   *                           (the AAT term); false to exclude them
+   * @param separator The string to insert between the labels of two nodes.
+   *                  This string should not appear in any node label. Used to find the original nodes.
+   * @param plusOp    An SKVI to apply to the result table that "sums" values. Not applied if null.
+   *                  This has no effect if the result table is empty before the operation.
+   * @param rowFilter Experimental. Pass null for no filtering.
+   * @param colFilterAT Experimental. Pass null for no filtering.
+   * @param colFilterB Experimental. Pass null for no filtering.
+   * @param numEntriesCheckpoint # of entries before we emit a checkpoint entry from the scan. -1 means no monitoring.
+   * @param trace  Enable server-side performance tracing.
+   */
   public void LineGraph(String Atable, String ATtable, String Rtable, String RTtable,
-                        boolean isDirected, String separator,
+                        boolean isDirected, boolean includeExtraCycles, String separator,
                         IteratorSetting plusOp,
                         Collection<Range> rowFilter,
                         String colFilterAT, String colFilterB,
                         int numEntriesCheckpoint, boolean trace) {
     Map<String,String> opt = new HashMap<>();
     opt.put("rowMultiplyOp", LineRowMultiply.class.getName());
-    opt.put("rowMultiplyOp.opt.separator", separator);
-    opt.put("rowMultiplyOp.opt.isDirected", Boolean.toString(isDirected));
+    opt.put("rowMultiplyOp.opt."+LineRowMultiply.SEPARATOR, separator);
+    opt.put("rowMultiplyOp.opt."+LineRowMultiply.ISDIRECTED, Boolean.toString(isDirected));
+    opt.put("rowMultiplyOp.opt."+LineRowMultiply.INCLUDE_EXTRA_CYCLES, Boolean.toString(includeExtraCycles));
 
     TwoTable(ATtable, Atable, Rtable, RTtable, TwoTableIterator.DOTMODE.ROW, opt, plusOp,
         rowFilter, colFilterAT, colFilterB,

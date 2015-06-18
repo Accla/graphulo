@@ -29,8 +29,13 @@ import java.util.SortedMap;
 public class LineRowMultiply implements RowMultiplyOp {
   private static final Logger log = LogManager.getLogger(LineRowMultiply.class);
 
+  public static final String SEPARATOR = "separator",
+      ISDIRECTED = "isDirected",
+      INCLUDE_EXTRA_CYCLES = "includeExtraCycles";
 
   private boolean isDirected = true;
+  /** Whether to include the AAT term. */
+  private boolean includeExtraCycles = false;
 //  private char separator = '|';
   private MultiplyOp multiplyOpAA, multiplyOpAAT;
 
@@ -39,13 +44,16 @@ public class LineRowMultiply implements RowMultiplyOp {
       String optionKey = optionEntry.getKey();
       String optionValue = optionEntry.getValue();
         switch (optionKey) {
-          case "isDirected":
+          case ISDIRECTED:
             isDirected = Boolean.parseBoolean(optionValue);
             break;
-          case "separator":
+          case SEPARATOR:
 //            if (optionValue.length() != 1)
 //              throw new IllegalArgumentException("bad "+ "separator" +": "+optionValue);
             separator = optionValue.getBytes();
+            break;
+          case INCLUDE_EXTRA_CYCLES:
+            includeExtraCycles = Boolean.parseBoolean(optionValue);
             break;
           default:
             log.warn("Unrecognized option: " + optionEntry);
@@ -61,7 +69,8 @@ public class LineRowMultiply implements RowMultiplyOp {
       multiplyOpAA = this.new LineMultiply(LINEMODE.UNDIR);
     else {
       multiplyOpAA = this.new LineMultiply(LINEMODE.DIRAA);
-      multiplyOpAAT = this.new LineMultiply(LINEMODE.DIRAAT);
+      if (includeExtraCycles)
+        multiplyOpAAT = this.new LineMultiply(LINEMODE.DIRAAT);
     }
   }
 
@@ -75,9 +84,13 @@ public class LineRowMultiply implements RowMultiplyOp {
       if (!startRow(mapAT, mapA)) {
         return Collections.emptyIterator();
       }
-      Iterator<Map.Entry<Key, Value>> it1 = new CartesianIterator(mapAT.entrySet().iterator(), mapA, multiplyOpAA, false),
-        it2 = new CartesianIterator(mapAT.entrySet().iterator(), mapAT, multiplyOpAAT, false);
-      return Iterators.concat(it1, it2);
+      Iterator<Map.Entry<Key, Value>> it1 = new CartesianIterator(mapAT.entrySet().iterator(), mapA, multiplyOpAA, false);
+      if (!includeExtraCycles)
+        return it1;
+      else {
+        Iterator<Map.Entry<Key, Value>> it2 = new CartesianIterator(mapAT.entrySet().iterator(), mapAT, multiplyOpAAT, false);
+        return Iterators.concat(it1, it2);
+      }
     } else {
       SortedMap<Key, Value> mapAT = CartesianRowMultiply.readRow(skviAT, watch, Watch.PerfSpan.ATnext);
       Iterator<Map.Entry<Key, Value>> itA = new SKVIRowIterator(skviA);
@@ -110,8 +123,10 @@ public class LineRowMultiply implements RowMultiplyOp {
     win = sumValues(mapAT);
     if (win == 0)
       return false; // case where weights sum to zero; very rare.
-    // directed: din*dout + 2*(din choose 2); undirected: (din choose 2)
-    nume = !isDirected ? din * (din-1) / 2 : din * dout + din * (din-1);
+
+    nume = !isDirected ? din * (din-1) / 2 : // undirected: (din choose 2)
+        (!includeExtraCycles ? din * dout :  // directed without AAT term: din*dout
+            din * dout + din * (din-1));     // directed with AAT term: din*dout + 2*(din choose 2)
     if (nume == 0)
       return false; // no edges emit
     winPerEdge = !isDirected ? win / nume / 2 : win / nume;

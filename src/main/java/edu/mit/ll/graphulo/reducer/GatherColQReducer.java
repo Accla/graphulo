@@ -43,7 +43,7 @@ public class GatherColQReducer implements Reducer<HashSet<String>> {
 
 
   @Override
-  public HashSet<String> get() {
+  public HashSet<String> getForClient() {
     return setColQ;
   }
 

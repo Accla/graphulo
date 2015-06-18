@@ -18,7 +18,7 @@ import java.util.Map;
  * Initialized at the beginning of running. Updated from Key/Value pairs.
  * Must be capable of being sent in partial form to the client, if monitoring is enabled.
  * <p>
- * Lifecycle: init() will be called before any update(k,v) or combine(e) or get().
+ * Lifecycle: init() will be called before any update(k,v) or combine(e) or getForClient().
  * <p>
  * A BatchScan will run a reducer on every tablet that sends results to the client.
  * combine() is called at the client to combine results from each one.
@@ -53,6 +53,16 @@ public interface Reducer<E extends Serializable> {
    * Returns null if no value should be emitted (indicates the "zero" state).
    * This MUST return null after reset() is called and before any update() or combine() methods are called.
    */
-  E get();
+  E getForClient();
+
+//  /**
+//   * Entries sent to result tables in {@link RemoteWriteIterator} instead of the client.
+//   * Use this when one needs to emit a small number of entries to result tables
+//   * determined by all the entries seen in a scan.
+//   * @return An iterator over entries to send to the result tables.
+//   * Use {@link java.util.Collections#emptyIterator()} if none.
+//   */
+//  Iterator<Map.Entry<Key,Value>> getForWrite();
+
 
 }

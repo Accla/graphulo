@@ -19,9 +19,15 @@ public class SingleBFSReducer implements Reducer<HashSet<String>> {
   private static final Logger log = LogManager.getLogger(SingleBFSReducer.class);
 
   public static final String EDGE_SEP = "edgeSep";
+//      COPYDEG = "copyDeg",
+//      DEGCOL = "degCol";
+
   private char edgeSep;
+//  private boolean copyDeg = true;
+//  private String degCol = "";
 
   private HashSet<String> setNodesReached = new HashSet<>();
+//  private HashMap<String,Integer> setNodesReachedCount = new HashMap<>();
 
   private void parseOptions(Map<String, String> options) {
     boolean gotFieldSep = false;
@@ -35,9 +41,14 @@ public class SingleBFSReducer implements Reducer<HashSet<String>> {
           edgeSep = optionValue.charAt(0);
           gotFieldSep = true;
           break;
+//        case COPYDEG:
+//          copyDeg = Boolean.parseBoolean(optionValue);
+//          break;
+//        case DEGCOL:
+//          degCol = optionValue;
+//          break;
         default:
           log.warn("Unrecognized option: " + optionEntry);
-          continue;
       }
     }
     if (!gotFieldSep)
@@ -52,10 +63,15 @@ public class SingleBFSReducer implements Reducer<HashSet<String>> {
   @Override
   public void reset() throws IOException {
     setNodesReached.clear();
+//    setNodesReachedCount.clear();
   }
 
   @Override
   public void update(Key k, Value v) {
+    // SIGNAL from SingleTransposeIterator
+    if (k.getTimestamp() % 2 != 0)
+      return;
+
     String rStr;
     {
       ByteSequence rowData = k.getRowData();
@@ -64,9 +80,20 @@ public class SingleBFSReducer implements Reducer<HashSet<String>> {
     int pos = rStr.indexOf(edgeSep);
     if (pos == -1)
       return;        // this is a degree row, not an edge row.
+
+//    log.debug("edge row "+rStr+" : now "+setNodesReached.toString());
+
+
     String toNode = rStr.substring(pos+1);
     setNodesReached.add(toNode);
-//    log.debug("edge row "+rStr+" : now "+setNodesReached.toString());
+
+//    if (copyDeg) {
+//      Integer cnt = setNodesReachedCount.get(toNode);
+//      cnt = cnt == null ? new Integer(1) : new Integer(cnt+1);
+//      setNodesReachedCount.put(toNode, cnt);
+//    }
+
+
   }
 
   @Override
@@ -80,7 +107,18 @@ public class SingleBFSReducer implements Reducer<HashSet<String>> {
   }
 
   @Override
-  public HashSet<String> get() {
+  public HashSet<String> getForClient() {
     return setNodesReached;
   }
+
+//  @Override
+//  public Iterator<Map.Entry<Key,Value>> getForWrite() {
+//    Map<Key,Value> map = new LinkedHashMap<>(setNodesReachedCount.size());
+//    for (Map.Entry<String, Integer> entry : setNodesReachedCount.entrySet()) {
+//      Key k = new Key(entry.getKey(), "", degCol);
+//      Value v = new Value(entry.getValue().toString().getBytes());
+//      map.put(k,v);
+//    }
+//    return map.entrySet().iterator();
+//  }
 }

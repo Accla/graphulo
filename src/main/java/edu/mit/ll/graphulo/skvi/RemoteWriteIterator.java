@@ -79,7 +79,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     @Override
     public boolean hasTop() { return false; }
     @Override
-    public Serializable get() {
+    public Serializable getForClient() {
       return null;
     }
   }
@@ -376,6 +376,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
         rowRangeIterator.next();
       }
     } finally {
+      // send reducer entries, if any present
       // flush anything written
       if (entriesWritten > 0) {
         Watch<Watch.PerfSpan> watch = Watch.getInstance();
@@ -521,7 +522,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
       return new Value(bb);
     } else {
       byte[] orig = //((SaveStateIterator) source).safeState().getValue().get();
-          reducer.hasTop() ? SerializationUtils.serialize(reducer.get()) : new byte[0];
+          reducer.hasTop() ? SerializationUtils.serialize(reducer.getForClient()) : new byte[0];
       ByteBuffer bb = ByteBuffer.allocate(orig.length + 4 + 2);
       bb.putInt(entriesWritten)
           .putChar(',')

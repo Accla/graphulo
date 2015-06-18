@@ -3,10 +3,19 @@ package edu.mit.ll.graphulo;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.TestUtil;
-import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Combiner;
+import org.apache.accumulo.core.iterators.LongCombiner;
+import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
@@ -15,7 +24,13 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 /**
  *
@@ -604,12 +619,14 @@ public class BFSTest extends AccumuloTestBase {
   }
 
   /**
+   * Undirected.
    * <pre>
-   *    ->vBig<-
-   *   /   ^    \
-   *  v    v     v
-   * v0--->v1--->v2--v
-   *  ^--<------<----/
+   *       v9
+   *       |
+   *    - vBig -
+   *   /   |    \
+   *  /    |     \
+   * v0----v1----v2
    * </pre>
    */
   @Test
@@ -627,35 +644,62 @@ public class BFSTest extends AccumuloTestBase {
     {
       Map<Key, Value> input = new HashMap<>();
       input.put(new Key("v0|v1",   "", "edge"), new Value("5".getBytes()));
+      input.put(new Key("v1|v0",   "", "edge"), new Value("5".getBytes()));
       input.put(new Key("v1|v2",   "", "edge"), new Value("2".getBytes()));
-      input.put(new Key("v2|v0",   "", "edge"), new Value("4".getBytes()));
-      input.put(new Key("v0|vBig", "", "edge"), new Value("7".getBytes()));
+      input.put(new Key("v2|v1",   "", "edge"), new Value("2".getBytes()));
+      input.put(new Key("v0|vBig", "", "edge"), new Value("6".getBytes()));
       input.put(new Key("v1|vBig", "", "edge"), new Value("7".getBytes()));
-      input.put(new Key("v2|vBig", "", "edge"), new Value("7".getBytes()));
-      expect.putAll(input);
-      input.put(new Key("vBig|v0", "", "edge"), new Value("9".getBytes()));
-      input.put(new Key("vBig|v1", "", "edge"), new Value("9".getBytes()));
-      input.put(new Key("vBig|v2", "", "edge"), new Value("9".getBytes()));
-
-      degex.put(new Key("v0", "", "out"), new Value("2".getBytes()));
-      degex.put(new Key("v1", "", "out"), new Value("2".getBytes()));
-      degex.put(new Key("v2", "", "out"), new Value("2".getBytes()));
-      input.put(new Key("vBig", "", "out"), new Value("3".getBytes()));
-      input.putAll(degex);
+      input.put(new Key("v2|vBig", "", "edge"), new Value("8".getBytes()));
+      input.put(new Key("v9|vBig", "", "edge"), new Value("9".getBytes()));
+      input.put(new Key("vBig|v0", "", "edge"), new Value("6".getBytes()));
+      input.put(new Key("vBig|v1", "", "edge"), new Value("7".getBytes()));
+      input.put(new Key("vBig|v2", "", "edge"), new Value("8".getBytes()));
+      input.put(new Key("vBig|v9", "", "edge"), new Value("9".getBytes()));
+      input.put(new Key("v0", "",   "deg"), new Value("2".getBytes()));
+      input.put(new Key("v1", "",   "deg"), new Value("3".getBytes()));
+      input.put(new Key("v2", "",   "deg"), new Value("2".getBytes()));
+      input.put(new Key("v9", "",   "deg"), new Value("1".getBytes()));
+      input.put(new Key("vBig", "", "deg"), new Value("4".getBytes()));
 
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tS, splits, input);
+
+      expect.put(new Key("v0|v1", "", "edge"), new Value("15".getBytes())); //x3
+      expect.put(new Key("v1|v0", "", "edge"), new Value("15".getBytes()));
+      expect.put(new Key("v1|v2", "", "edge"), new Value("4".getBytes())); //x2
+      expect.put(new Key("v2|v1", "", "edge"), new Value("4".getBytes()));
+      expect.put(new Key("v0|vBig", "", "edge"), new Value("12".getBytes())); //x2
+      expect.put(new Key("v1|vBig", "", "edge"), new Value("7".getBytes()));
+      expect.put(new Key("v2|vBig", "", "edge"), new Value("8".getBytes()));
+//      expect.put(new Key("v9|vBig", "", "edge"), new Value("9".getBytes()));
+      expect.put(new Key("vBig|v0", "", "edge"), new Value("12".getBytes()));
+      expect.put(new Key("vBig|v1", "", "edge"), new Value("7".getBytes()));
+      expect.put(new Key("vBig|v2", "", "edge"), new Value("8".getBytes()));
+//      expect.put(new Key("vBig|v9", "", "edge"), new Value("9".getBytes()));
+      degex.put(new Key("v0", "",   "deg"), new Value("2".getBytes()));
+      degex.put(new Key("v1", "",   "deg"), new Value("3".getBytes()));
+      degex.put(new Key("v2", "",   "deg"), new Value("2".getBytes()));
+//      degex.put(new Key("v9", "",   "deg"), new Value("1".getBytes()));
+//      degex.put(new Key("vBig", "", "deg"), new Value("4".getBytes()));
+
     }
+
+    IteratorSetting sumSetting = new IteratorSetting(6, SummingCombiner.class);
+    LongCombiner.setEncodingType(sumSetting, LongCombiner.Type.STRING);
+    Combiner.setColumns(sumSetting, Collections.singletonList(new IteratorSetting.Column("", "edge")));
+    // ^^^^^^^^ Important: Combiner only applies to edge column, not to the degree column
+    // Want to treat degree as the number of columns, not the sum of weights
+
 
     boolean copyOutDegrees = false;
     String v0 = "v0,";
-    Collection<Text> u3expect = GraphuloUtil.d4mRowToTexts("v0,vBig,");
+    Collection<Text> u3expect = GraphuloUtil.d4mRowToTexts("v1,vBig,");
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
       String u3actual = graphulo.SingleBFS(tS, "edge", '|', v0, 3, tR,
-          tS, "out", false, copyOutDegrees, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, true);
-      Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
+          tS, "deg", false, copyOutDegrees, 1, 3, sumSetting, true);
+
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
       scanner.setRanges(Collections.singleton(new Range()));
@@ -663,7 +707,11 @@ public class BFSTest extends AccumuloTestBase {
         actual.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
+
+      TestUtil.printExpectActual(expect, actual);
+
       Assert.assertEquals(expect, actual);
+      Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
     }
 
     conn.tableOperations().delete(tR);
@@ -671,7 +719,7 @@ public class BFSTest extends AccumuloTestBase {
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
       String u3actual = graphulo.SingleBFS(tS, "edge", '|', v0, 3, tR,
-          tS, "out", false, copyOutDegrees, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, true);
+          tS, "deg", false, copyOutDegrees, 1, 3, sumSetting, true);
       Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -690,7 +738,7 @@ public class BFSTest extends AccumuloTestBase {
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
       String u3actual = graphulo.SingleBFS(tS, "edge", '|', v0, 3, tR,
-          tS, "out", false, copyOutDegrees, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, true);
+          tS, "deg", false, copyOutDegrees, 1, 3, sumSetting, true);
       Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -699,6 +747,9 @@ public class BFSTest extends AccumuloTestBase {
         actual.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
+
+      TestUtil.printExpectActual(expect, actual);
+
       Assert.assertEquals(expect, actual);
     }
 
@@ -707,7 +758,7 @@ public class BFSTest extends AccumuloTestBase {
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
       String u3actual = graphulo.SingleBFS(tS, "edge", '|', v0, 3, tR,
-          tS, "out", false, copyOutDegrees, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, true);
+          tS, "deg", false, copyOutDegrees, 1, 3, sumSetting, true);
       Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);

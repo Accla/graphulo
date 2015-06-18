@@ -103,7 +103,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
       RemoteWriteIterator.decodeValue(entry.getValue(), reducer);
 //      setUniqueColQsActual.addAll((HashSet<String>) SerializationUtils.deserialize(entry.getValue().get()));
     }
-    setUniqueColQsActual = reducer.get();
+    setUniqueColQsActual = reducer.getForClient();
     Assert.assertEquals(setUniqueColQsExpect, setUniqueColQsActual);
     bs.close();
 

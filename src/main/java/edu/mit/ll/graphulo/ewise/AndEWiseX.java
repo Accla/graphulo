@@ -1,4 +1,4 @@
-package edu.mit.ll.graphulo.mult;
+package edu.mit.ll.graphulo.ewise;
 
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.LongCombiner;

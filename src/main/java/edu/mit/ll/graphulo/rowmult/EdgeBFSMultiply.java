@@ -1,5 +1,6 @@
-package edu.mit.ll.graphulo.mult;
+package edu.mit.ll.graphulo.rowmult;
 
+import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -58,9 +59,9 @@ public class EdgeBFSMultiply implements MultiplyOp, Iterator<Map.Entry<Key,Value
 //      return;
 //    }
     emitKeyFirst = new Key(Mrow.getBackingArray(), ATcolF.getBackingArray(), ATcolQ.getBackingArray(),
-        EMPTY_BYTES, System.currentTimeMillis()); // experiment with copy=false?
+        GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis()); // experiment with copy=false?
     emitKeySecond = new Key(Mrow.getBackingArray(), BcolF.getBackingArray(), BcolQ.getBackingArray(),
-        EMPTY_BYTES, System.currentTimeMillis()); // experiment with copy=false?
+        GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis()); // experiment with copy=false?
     emitValueFirst = new Value(ATval);
     emitValueSecond = new Value(Bval);
     return this;

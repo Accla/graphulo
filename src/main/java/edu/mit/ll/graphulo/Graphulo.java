@@ -1,9 +1,10 @@
 package edu.mit.ll.graphulo;
 
-import edu.mit.ll.graphulo.mult.CartesianRowMultiply;
-import edu.mit.ll.graphulo.mult.EdgeBFSMultiply;
-import edu.mit.ll.graphulo.mult.LineRowMultiply;
-import edu.mit.ll.graphulo.mult.MultiplyOp;
+import edu.mit.ll.graphulo.ewise.EWiseOp;
+import edu.mit.ll.graphulo.rowmult.CartesianRowMultiply;
+import edu.mit.ll.graphulo.rowmult.EdgeBFSMultiply;
+import edu.mit.ll.graphulo.rowmult.LineRowMultiply;
+import edu.mit.ll.graphulo.rowmult.MultiplyOp;
 import edu.mit.ll.graphulo.reducer.EdgeBFSReducer;
 import edu.mit.ll.graphulo.reducer.GatherColQReducer;
 import edu.mit.ll.graphulo.reducer.SingleBFSReducer;
@@ -96,21 +97,21 @@ public class Graphulo {
   }
 
   public long SpEWiseX(String Atable, String Btable, String Ctable, String CTtable,
-                       Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
+                       Class<? extends EWiseOp> multOp, IteratorSetting plusOp,
                        Collection<Range> rowFilter,
                        String colFilterAT, String colFilterB,
                        int numEntriesCheckpoint, boolean trace) {
-    return TwoTable(Atable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.EWISE,
-            multOp, plusOp, rowFilter, colFilterAT, colFilterB,
+    return TwoTableEWISE(Atable, Btable, Ctable, CTtable,
+        multOp, plusOp, rowFilter, colFilterAT, colFilterB,
         false, false, numEntriesCheckpoint, trace);
   }
 
   public long SpEWiseSum(String Atable, String Btable, String Ctable, String CTtable,
-                         Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
+                         Class<? extends EWiseOp> multOp, IteratorSetting plusOp,
                          Collection<Range> rowFilter,
                          String colFilterAT, String colFilterB,
                          int numEntriesCheckpoint, boolean trace) {
-    return TwoTable(Atable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.EWISE,
+    return TwoTableEWISE(Atable, Btable, Ctable, CTtable,
         multOp, plusOp, rowFilter, colFilterAT, colFilterB,
         true, true, numEntriesCheckpoint, trace);
   }
@@ -137,39 +138,58 @@ public class Graphulo {
                         Collection<Range> rowFilter,
                         String colFilterAT, String colFilterB,
                         int numEntriesCheckpoint, boolean trace) {
-    return TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.ROW,
-            multOp, plusOp, rowFilter, colFilterAT, colFilterB,
+    return TwoTableROW(ATtable, Btable, Ctable, CTtable,
+        multOp, plusOp, rowFilter, colFilterAT, colFilterB,
         false, false, numEntriesCheckpoint, trace);
   }
 
-  public long TwoTable(String ATtable, String Btable, String Ctable, String CTtable,
-                       TwoTableIterator.DOTMODE dotmode, //CartesianRowMultiply.ROWMODE rowmode,
-                       Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
-                       Collection<Range> rowFilter,
-                       String colFilterAT, String colFilterB,
-                       boolean emitNoMatchA, boolean emitNoMatchB,
-                       int numEntriesCheckpoint, boolean trace) {
+  public long TwoTableROW(String ATtable, String Btable, String Ctable, String CTtable,
+                          //TwoTableIterator.DOTMODE dotmode, //CartesianRowMultiply.ROWMODE rowmode,
+                          Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
+                          Collection<Range> rowFilter,
+                          String colFilterAT, String colFilterB,
+                          boolean emitNoMatchA, boolean emitNoMatchB,
+                          int numEntriesCheckpoint, boolean trace) {
     Map<String,String> opt = new HashMap<>();
+    opt.put("rowMultiplyOp", CartesianRowMultiply.class.getName());
+    opt.put("rowMultiplyOp.opt.multiplyOp", multOp.getName()); // treated same as multiplyOp
+    opt.put("rowMultiplyOp.opt.rowmode", CartesianRowMultiply.ROWMODE.ONEROWA.name());
 
-    switch (dotmode) {
-      case ROW:
-        opt.put("rowMultiplyOp", CartesianRowMultiply.class.getName());
-        opt.put("rowMultiplyOp.opt.multiplyOp", multOp.getName()); // treated same as multiplyOp
-        opt.put("rowMultiplyOp.opt.rowmode", CartesianRowMultiply.ROWMODE.ONEROWA.name());
-        break;
-      case EWISE:
-        opt.put("multiplyOp", multOp.getName());
-        break;
-      case NONE:
-        break;
-    }
-
-    return TwoTable(ATtable, Btable, Ctable, CTtable, dotmode, opt, plusOp,
+    return TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.ROW, opt, plusOp,
         rowFilter, colFilterAT, colFilterB,
         emitNoMatchA, emitNoMatchB, numEntriesCheckpoint, trace);
   }
 
-  public long TwoTable(String ATtable, String Btable, String Ctable, String CTtable,
+  public long TwoTableEWISE(String ATtable, String Btable, String Ctable, String CTtable,
+                          //TwoTableIterator.DOTMODE dotmode, //CartesianRowMultiply.ROWMODE rowmode,
+                          Class<? extends EWiseOp> multOp, IteratorSetting plusOp,
+                          Collection<Range> rowFilter,
+                          String colFilterAT, String colFilterB,
+                          boolean emitNoMatchA, boolean emitNoMatchB,
+                          int numEntriesCheckpoint, boolean trace) {
+    Map<String,String> opt = new HashMap<>();
+    opt.put("multiplyOp", multOp.getName());
+
+    return TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.EWISE, opt, plusOp,
+        rowFilter, colFilterAT, colFilterB,
+        emitNoMatchA, emitNoMatchB, numEntriesCheckpoint, trace);
+  }
+
+  public long TwoTableNONE(String ATtable, String Btable, String Ctable, String CTtable,
+                            //TwoTableIterator.DOTMODE dotmode, //CartesianRowMultiply.ROWMODE rowmode,
+                            Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
+                            Collection<Range> rowFilter,
+                            String colFilterAT, String colFilterB,
+                            boolean emitNoMatchA, boolean emitNoMatchB,
+                            int numEntriesCheckpoint, boolean trace) {
+    Map<String,String> opt = new HashMap<>();
+
+    return TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.NONE, opt, plusOp,
+        rowFilter, colFilterAT, colFilterB,
+        emitNoMatchA, emitNoMatchB, numEntriesCheckpoint, trace);
+  }
+
+  private long TwoTable(String ATtable, String Btable, String Ctable, String CTtable,
                        TwoTableIterator.DOTMODE dotmode, Map<String, String> setupOpts,
                        IteratorSetting plusOp,
                        Collection<Range> rowFilter,
@@ -1183,7 +1203,7 @@ public class Graphulo {
         }
         // row contains "v1|v2" -- want v1. pos is the byte position of the '|'. cnt is the degree.
         Mutation m = new Mutation(row.getBytes(), 0, pos);
-        m.put(MultiplyOp.EMPTY_BYTES, degColumn, String.valueOf(cnt).getBytes());
+        m.put(GraphuloUtil.EMPTY_BYTES, degColumn, String.valueOf(cnt).getBytes());
         bw.addMutation(m);
       }
 

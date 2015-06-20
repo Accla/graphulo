@@ -1,24 +1,25 @@
-package edu.mit.ll.graphulo.mult;
+package edu.mit.ll.graphulo.rowmult;
 
+import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 
 import java.io.IOException;
-import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
 /**
- * A simple abstract class for element0-wise multiplication
+ * A simple abstract class for matrix multiplication
  * that returns zero or one entry per multiply.
  */
-public abstract class SimpleEWiseX implements MultiplyOp, Iterator<Entry<Key,Value>> {
+public abstract class SimpleMultiply implements MultiplyOp, Iterator<Entry<Key,Value>> {
 
   /** Implements simple multiply logic. Returning null means no entry is emitted. */
-  public abstract Value multiply(Value Aval, Value Bval);
+  public abstract Value multiply(Value ATval, Value Bval);
 
   private Entry<Key,Value> kv;
 
@@ -28,10 +29,11 @@ public abstract class SimpleEWiseX implements MultiplyOp, Iterator<Entry<Key,Val
 
   @Override
   public Iterator<? extends Entry<Key, Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence BcolF, ByteSequence BcolQ, Value ATval, Value Bval) {
-    Key k = new Key(Mrow.getBackingArray(), ATcolF.getBackingArray(),
-        ATcolQ.getBackingArray(), EMPTY_BYTES, System.currentTimeMillis());
+//    System.err.println("Mrow:"+Mrow+" ATcolQ:"+ATcolQ+" BcolQ:"+BcolQ+" ATval:"+ATval+" Bval:"+Bval);
+    Key k = new Key(ATcolQ.getBackingArray(), ATcolF.getBackingArray(),
+        BcolQ.getBackingArray(), GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis());
     Value v = multiply(ATval, Bval);
-    kv = v == null ? null : new AbstractMap.SimpleImmutableEntry<>(k,v);
+    kv = v == null ? null : new SimpleImmutableEntry<>(k,v);
     return this;
   }
 

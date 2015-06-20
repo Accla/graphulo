@@ -181,7 +181,8 @@ To create a custom multiplication operation,
 create a Java class implementing [MultiplyOp][] with the multiplication logic.
 For simple TableMult multiplication, you can extend the [SimpleMultiply][] class instead of implementing the full interface.
 For simple element-wise multiplication, you can extend the [SimpleEWiseX][] class instead of implementing the full interface.
-See the classes in the `edu.mit.ll.graphulo.mult` package for examples.
+See the classes in the `edu.mit.ll.graphulo.rowmult` 
+and `edu.mit.ll.graphulo.ewise` packages for examples.
 
 Non-simple multiplication that should implement [MultiplyOp][] directly are multiplication logic that
 
@@ -200,7 +201,7 @@ different from the Cartesian product of the two rows' entries
 [MultiplyOp]: src/main/java/edu/mit/ll/graphulo/mult/MultiplyOp.java
 [RowStartMultiplyOp]: src/main/java/edu/mit/ll/graphulo/mult/RowStartMultiplyOp.java
 [SimpleMultiply]: src/main/java/edu/mit/ll/graphulo/mult/SimpleMultiply.java
-[SimpleEWiseX]: src/main/java/edu/mit/ll/graphulo/mult/SimpleEWiseX.java
+[SimpleEWiseX]: src/main/java/edu/mit/ll/graphulo/ewise/SimpleEWiseX.java
 [RowMultiplyOp]: src/main/java/edu/mit/ll/graphulo/mult/RowMultiplyOp.java
 
 ### How to use Graphulo in Matlab client code with D4M
@@ -320,9 +321,11 @@ Run as many as desired, each with its own priority.
 * `B. ... ` All the options of RemoteSourceIterator, to read table A from a remote Accumulo table. 
 Don't specify when operating on a single table.
 * `(A/B).emitNoMatchEntries` Both false for multiply (intersection of entries); both true for sum (union of entries)
-* `dot` Either "ROW_CARTESIAN_PRODUCT" or "ROW_COLF_COLQ_MATCH" or nothing.
-* `multiplyOp` Name of class that implements MultiplyOp. 
+* `dot` Either "ROW" or "EWISE" or "NONE".
+* `multiplyOp` Name of class that implements EWiseOp, for "EWISE". 
 * `multiplyOp.opt.OPTION_NAME` An option supplied to the multiply class's `init` function.
+* `rowMultiplyOp` Name of class that implements RowMultiplyOp, for "ROW".
+* `rowMultiplyOp.opt.OPTION_NAME` An option supplied to the multiply class's `init` function.
 
 ##### Future: PreSumCacheIterator
 * `combiner` Name of class for "pre-summing" entries.

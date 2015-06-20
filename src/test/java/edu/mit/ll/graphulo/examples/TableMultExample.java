@@ -1,8 +1,8 @@
 package edu.mit.ll.graphulo.examples;
 
 import edu.mit.ll.graphulo.Graphulo;
-import edu.mit.ll.graphulo.mult.MultiplyOp;
-import edu.mit.ll.graphulo.mult.LongMultiply;
+import edu.mit.ll.graphulo.rowmult.MultiplyOp;
+import edu.mit.ll.graphulo.rowmult.LongMultiply;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.data.Key;

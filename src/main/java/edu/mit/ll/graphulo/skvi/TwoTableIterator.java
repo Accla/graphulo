@@ -1,10 +1,10 @@
 package edu.mit.ll.graphulo.skvi;
 
 import com.google.common.collect.Iterators;
-import edu.mit.ll.graphulo.mult.BigDecimalMultiply;
-import edu.mit.ll.graphulo.mult.CartesianRowMultiply;
-import edu.mit.ll.graphulo.mult.MultiplyOp;
-import edu.mit.ll.graphulo.mult.RowMultiplyOp;
+import edu.mit.ll.graphulo.ewise.EWiseOp;
+import edu.mit.ll.graphulo.ewise.AndEWiseX;
+import edu.mit.ll.graphulo.rowmult.CartesianRowMultiply;
+import edu.mit.ll.graphulo.rowmult.RowMultiplyOp;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.PeekingIterator2;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -28,7 +28,7 @@ import java.util.Map;
 
 /**
  * Performs operations on two tables.
- * When <tt>dotmode == TWOROW</tt>, acts as multiply step of outer product, emitting partial products.
+ * When <tt>dotmode == ROW</tt>, acts as multiply step of outer product, emitting partial products.
  * When <tt>dotmode == EWISE</tt>, acts as element-wise multiply.
  * When <tt>dotmode == NONE</tt>, no multiplication.
  * Set <tt>AT.emitNoMatch = B.emitNoMatch = true</tt> for sum of tables.
@@ -61,7 +61,8 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
   private Map<String, String> rowMultiplyOpOptions = new HashMap<>();
   private DOTMODE dotmode;
   private boolean emitNoMatchA = false, emitNoMatchB = false;
-  private MultiplyOp multiplyOp = null;
+//  private MultiplyOp multiplyOp = null;
+  private EWiseOp eWiseOp = null;
   private Map<String, String> multiplyOpOptions = new HashMap<>();
 
   private SortedKeyValueIterator<Key, Value> remoteAT, remoteB;
@@ -195,7 +196,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
                 rowMultiplyOpOptions.put("multiplyOp", optionValue);
                 break;
               case EWISE:
-                multiplyOp = GraphuloUtil.subclassNewInstance(optionValue, MultiplyOp.class);
+                eWiseOp = GraphuloUtil.subclassNewInstance(optionValue, EWiseOp.class);
                 break;
               case NONE:
                 log.warn("NONE mode: Ignoring multiplyOp " + optionValue);
@@ -217,9 +218,9 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
           rowMultiplyOp = new CartesianRowMultiply(); // default
         break;
       case EWISE:
-        if (multiplyOp == null)
+        if (eWiseOp == null)
 //          throw new IllegalArgumentException("EWISE mode: Must specify rowMultiplyOp");
-          multiplyOp = new BigDecimalMultiply(); // default
+          eWiseOp = new AndEWiseX(); // default
         break;
       case NONE:
         break;
@@ -272,10 +273,11 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
       }
     }
 
+    assert !(rowMultiplyOp != null && eWiseOp != null);
     if (rowMultiplyOp != null)
       rowMultiplyOp.init(rowMultiplyOpOptions, env);
-    if (multiplyOp != null)
-      multiplyOp.init(multiplyOpOptions, env);
+    if (eWiseOp != null)
+      eWiseOp.init(multiplyOpOptions, env);
   }
 
   private SortedKeyValueIterator<Key, Value> setup(
@@ -519,9 +521,8 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
           case EWISE: {
             emitted = remoteAT.getTopKey();
             bottomIter = new PeekingIterator2<>(
-                multiplyOp.multiply(remoteAT.getTopKey().getRowData(), remoteAT.getTopKey().getColumnFamilyData(),
-                remoteAT.getTopKey().getColumnQualifierData(), remoteB.getTopKey().getColumnFamilyData(),
-                remoteB.getTopKey().getColumnQualifierData(), remoteAT.getTopValue(), remoteB.getTopValue()));
+                eWiseOp.multiply(remoteAT.getTopKey().getRowData(), remoteAT.getTopKey().getColumnFamilyData(),
+                remoteAT.getTopKey().getColumnQualifierData(), remoteAT.getTopValue(), remoteB.getTopValue()));
             remoteAT.next();
             remoteB.next();
             break;
@@ -620,12 +621,11 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
       if (this.rowMultiplyOp != null) {
         copy.rowMultiplyOp = this.rowMultiplyOp.getClass().newInstance();
         copy.rowMultiplyOpOptions = this.rowMultiplyOpOptions;
-        copy.multiplyOp.init(copy.multiplyOpOptions, env);
       }
-      if (this.multiplyOp != null) {
-        copy.multiplyOp = this.multiplyOp.getClass().newInstance();
+      if (this.eWiseOp != null) {
+        copy.eWiseOp = this.eWiseOp.getClass().newInstance();
         copy.multiplyOpOptions = this.multiplyOpOptions;
-        copy.multiplyOp.init(copy.multiplyOpOptions, env);
+        copy.eWiseOp.init(copy.multiplyOpOptions, env);
       }
       copy.remoteAT = remoteAT.deepCopy(env);
       copy.remoteB = remoteB.deepCopy(env);

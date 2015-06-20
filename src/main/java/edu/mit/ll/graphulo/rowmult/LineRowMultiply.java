@@ -1,7 +1,8 @@
-package edu.mit.ll.graphulo.mult;
+package edu.mit.ll.graphulo.rowmult;
 
 import com.google.common.collect.Iterators;
 import edu.mit.ll.graphulo.skvi.Watch;
+import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.SKVIRowIterator;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -208,7 +209,7 @@ public class LineRowMultiply implements RowMultiplyOp {
       k = new Key(doCat(Mrow, ATcolQ, newrow),
           ATcolF.getBackingArray(),
           doCat(Mrow, BcolQ, newcol),
-          EMPTY_BYTES, System.currentTimeMillis());
+          GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis());
       // reuse object instead of new one each time?
       return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(k, winPerEdgeValue));
     }

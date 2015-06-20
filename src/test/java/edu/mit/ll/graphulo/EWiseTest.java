@@ -1,7 +1,7 @@
 package edu.mit.ll.graphulo;
 
-import edu.mit.ll.graphulo.mult.LongEWiseSum;
-import edu.mit.ll.graphulo.mult.LongEWiseX;
+import edu.mit.ll.graphulo.ewise.LongEWiseSum;
+import edu.mit.ll.graphulo.ewise.LongEWiseX;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import edu.mit.ll.graphulo.util.TestUtil;
 import org.apache.accumulo.core.client.AccumuloException;

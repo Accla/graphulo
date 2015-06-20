@@ -302,7 +302,7 @@ public class GraphuloUtil {
   }
 
 
-  private static final byte[] EMPTY_BYTES = new byte[0];
+  public static final byte[] EMPTY_BYTES = new byte[0];
 
   /**
    * Create a copy of key with all fields except the ones specified cleared.

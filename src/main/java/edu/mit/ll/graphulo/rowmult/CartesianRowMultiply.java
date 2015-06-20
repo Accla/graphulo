@@ -1,4 +1,4 @@
-package edu.mit.ll.graphulo.mult;
+package edu.mit.ll.graphulo.rowmult;
 
 import edu.mit.ll.graphulo.skvi.Watch;
 import edu.mit.ll.graphulo.util.GraphuloUtil;

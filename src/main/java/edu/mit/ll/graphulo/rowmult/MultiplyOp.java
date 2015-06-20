@@ -1,4 +1,4 @@
-package edu.mit.ll.graphulo.mult;
+package edu.mit.ll.graphulo.rowmult;
 
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -16,11 +16,6 @@ import java.util.Map;
  * Iterates through any number of entries as a result of the multiplication.
  */
 public interface MultiplyOp {
-  /**
-   * Useful for ignoring column visibility.
-   */
-  byte EMPTY_BYTES[] = new byte[0];
-
 
   /**
    * Initializes the multiply object.
@@ -41,8 +36,6 @@ public interface MultiplyOp {
   /**
    * Multiplication operation on 2 entries with matching rows.
    * In the case of TableMult, the 2 entries are from table AT and B in the outer product.
-   * In the case of SpEWise, the 2 entries match on row and column.
-   * <p/>
    *
    * @param Mrow   Pointer to data for matching row. Do not modify.
    * @param ATcolF Pointer to data for AT column family. Do not modify.

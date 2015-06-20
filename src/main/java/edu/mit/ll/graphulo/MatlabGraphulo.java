@@ -1,6 +1,6 @@
 package edu.mit.ll.graphulo;
 
-import edu.mit.ll.graphulo.mult.LongMultiply;
+import edu.mit.ll.graphulo.rowmult.LongMultiply;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;

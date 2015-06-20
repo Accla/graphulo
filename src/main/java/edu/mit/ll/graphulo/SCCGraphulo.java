@@ -1,7 +1,7 @@
 package edu.mit.ll.graphulo;
 
-import edu.mit.ll.graphulo.mult.LongEWiseX;
-import edu.mit.ll.graphulo.mult.LongMultiply;
+import edu.mit.ll.graphulo.ewise.LongEWiseX;
+import edu.mit.ll.graphulo.rowmult.LongMultiply;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;

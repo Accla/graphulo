@@ -1,4 +1,4 @@
-package edu.mit.ll.graphulo.mult;
+package edu.mit.ll.graphulo.rowmult;
 
 import edu.mit.ll.graphulo.util.PeekingIterator1;
 import org.apache.accumulo.core.data.Key;

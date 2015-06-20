@@ -19,7 +19,7 @@ public class SingleBFSReducer implements Reducer<HashSet<String>> {
   private static final Logger log = LogManager.getLogger(SingleBFSReducer.class);
 
   public static final String EDGE_SEP = "edgeSep";
-//      COPYDEG = "copyDeg",
+//      NEG_ONE_IN_DEG = "copyDeg",
 //      DEGCOL = "degCol";
 
   private char edgeSep;
@@ -41,7 +41,7 @@ public class SingleBFSReducer implements Reducer<HashSet<String>> {
           edgeSep = optionValue.charAt(0);
           gotFieldSep = true;
           break;
-//        case COPYDEG:
+//        case NEG_ONE_IN_DEG:
 //          copyDeg = Boolean.parseBoolean(optionValue);
 //          break;
 //        case DEGCOL:

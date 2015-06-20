@@ -57,7 +57,7 @@ public class ReducerTest {
     Map<String,String> map = new HashMap<>();
     map.put(SingleBFSReducer.EDGE_SEP, "|");
 //    map.put(SingleTransposeIterator.EDGESEP, "");
-//    map.put(SingleTransposeIterator.COPYDEG, Boolean.toString(false /*copyOutDegrees*/));
+//    map.put(SingleTransposeIterator.NEG_ONE_IN_DEG, Boolean.toString(false /*copyOutDegrees*/));
 //    map.put(SingleTransposeIterator.DEGCOL, "");
     r2.init(map, null);
     r2.update(new Key("v1|v3", "", "", 2), new Value());

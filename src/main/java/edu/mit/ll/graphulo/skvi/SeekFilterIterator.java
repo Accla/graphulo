@@ -22,9 +22,10 @@ import java.util.TreeSet;
 
 /**
  * Limits the Ranges seeked to to a certain subset.
+ * This functionality is built into the RemoteWriteIterator.
  */
 public class SeekFilterIterator implements SortedKeyValueIterator<Key, Value>, OptionDescriber {
-  private static final Logger log = LogManager.getLogger(RemoteSourceIterator.class);
+  private static final Logger log = LogManager.getLogger(SeekFilterIterator.class);
 
   SortedKeyValueIterator<Key, Value> source;
   private SortedSet<Range> rowRanges = new TreeSet<>(Collections.singleton(new Range()));

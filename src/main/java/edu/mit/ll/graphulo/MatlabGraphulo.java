@@ -32,26 +32,26 @@ public class MatlabGraphulo extends Graphulo {
     super(new ZooKeeperInstance(instanceName, zookeepers).getConnector(username, new PasswordToken(password)), new PasswordToken(password));
   }
 
-  public void TableMult(String ATtable, String Btable, String Ctable) {
-    TableMult(ATtable, Btable, Ctable, -1, true);
+  public long TableMult(String ATtable, String Btable, String Ctable) {
+    return TableMult(ATtable, Btable, Ctable, -1, true);
   }
 
-  public void TableMult(String ATtable, String Btable, String Ctable, String rowFilter, String colFilterAT, String colFilterB) {
-    TableMult(ATtable, Btable, Ctable, rowFilter, colFilterAT, colFilterB, -1, true);
+  public long TableMult(String ATtable, String Btable, String Ctable, String rowFilter, String colFilterAT, String colFilterB) {
+    return TableMult(ATtable, Btable, Ctable, rowFilter, colFilterAT, colFilterB, -1, true);
   }
 
-  public void TableMult(String ATtable, String Btable, String Ctable, int numEntriesCheckpoint, boolean trace) {
-    TableMult(ATtable, Btable, Ctable, null, null, null, numEntriesCheckpoint, true);
+  public long TableMult(String ATtable, String Btable, String Ctable, int numEntriesCheckpoint, boolean trace) {
+    return TableMult(ATtable, Btable, Ctable, null, null, null, numEntriesCheckpoint, true);
   }
 
-  public void TableMult(String ATtable, String Btable, String Ctable,
+  public long TableMult(String ATtable, String Btable, String Ctable,
                         String rowFilter, String colFilterAT, String colFilterB,
                         int numEntriesCheckpoint, boolean trace) {
     Collection<Range> rowFilterRanges =
       rowFilter != null && !rowFilter.isEmpty() ? GraphuloUtil.d4mRowToRanges(rowFilter) : null;
 
 
-    TableMult(ATtable, Btable, Ctable, null,
+    return TableMult(ATtable, Btable, Ctable, null,
         LongMultiply.class, Graphulo.DEFAULT_PLUS_ITERATOR,
         rowFilterRanges, colFilterAT, colFilterB, numEntriesCheckpoint, trace);
   }

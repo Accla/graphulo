@@ -27,12 +27,12 @@ public class SingleTransposeIterator implements SortedKeyValueIterator<Key,Value
   private static final Logger log = LogManager.getLogger(SingleTransposeIterator.class);
 
   public static final String EDGESEP = "edgeSep", STARTNODES = "startNodes",
-      COPYDEG = "copyDeg",
+      NEG_ONE_IN_DEG = "negOneInDeg",
       DEGCOL = "degCol";
 
   private char edgeSep = '|';
   private SortedSet<Range> startNodes = new TreeSet<>();
-  private boolean copyDeg = true;
+  private boolean negOneInDeg = true;
   private Text degCol = new Text("");
 
   private SortedKeyValueIterator<Key, Value> source;
@@ -51,8 +51,8 @@ public class SingleTransposeIterator implements SortedKeyValueIterator<Key,Value
         case STARTNODES:
           startNodes = GraphuloUtil.d4mRowToRanges(entryValue);
           break;
-        case COPYDEG:
-          copyDeg = Boolean.parseBoolean(entryValue);
+        case NEG_ONE_IN_DEG:
+          negOneInDeg = Boolean.parseBoolean(entryValue);
           break;
         case DEGCOL:
           degCol = new Text(entryValue);
@@ -132,7 +132,7 @@ public class SingleTransposeIterator implements SortedKeyValueIterator<Key,Value
           topKey1.getColumnVisibility(), tsOdd);
       topValue2 = topValue1;
       // degree entry
-      if (copyDeg) {
+      if (negOneInDeg) {
         topKey3 = new Key(new Text(toNode), topKey1.getColumnFamily(), degCol,
             topKey1.getColumnVisibility(), tsOdd);
         topValue3 = new Value("-1".getBytes());
@@ -177,7 +177,7 @@ public class SingleTransposeIterator implements SortedKeyValueIterator<Key,Value
     copy.startNodes = startNodes;
     copy.source = source.deepCopy(env);
     copy.degCol = degCol;
-    copy.copyDeg = copyDeg;
+    copy.negOneInDeg = negOneInDeg;
     return copy;
   }
 }

@@ -996,7 +996,7 @@ public class Graphulo {
 
     Map<String, String> opt = new HashMap<>(), optSTI = new HashMap<>();
     optSTI.put(SingleTransposeIterator.EDGESEP, edgeSepStr);
-    optSTI.put(SingleTransposeIterator.COPYDEG, Boolean.toString(false /*copyOutDegrees*/));
+    optSTI.put(SingleTransposeIterator.NEG_ONE_IN_DEG, Boolean.toString(false)); // todo !
     optSTI.put(SingleTransposeIterator.DEGCOL, degColumn);
 //    opt.put("trace", String.valueOf(trace)); // logs timing on server
     opt.put("reducer", SingleBFSReducer.class.getName());

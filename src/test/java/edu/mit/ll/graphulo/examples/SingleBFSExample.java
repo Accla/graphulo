@@ -47,9 +47,11 @@ public class SingleBFSExample extends AccumuloTestBase {
     String degColumn = "out";                           // Name of column qualifier under which out-degrees appear in ADegtable.
     boolean degInColQ = false;                          // Degree is stored in the Value, not the Column Qualifier.
     boolean copyOutDegrees = true;                      // Copy out-degrees to the result table. Note that in-degrees are not copied.
+    boolean computeInDegrees = true;                    // Use extra client scans/writes after the BFS to compute result table in-degrees.
     int minDegree = 20;                                 // Bounding minimum degree: only include nodes with degree 20 or higher.
     int maxDegree = Integer.MAX_VALUE;                  // Unbounded maximum degree.  This and the minimum degree make a High-pass Filter.
     String v0 = "1,25,:,27,";                           // Starting nodes: node 1 (the supernode) and all the nodes from 25 to 27 inclusive.
+    boolean outputUnion = false;                        // Output nodes reached in EXACTLY numSteps distance from the v0 nodes.
     boolean trace = false;                              // Disable debug printing.
 
     // In your code, you would connect to an Accumulo instance by writing something similar to:
@@ -84,8 +86,8 @@ public class SingleBFSExample extends AccumuloTestBase {
     // Single-table Breadth First Search.
     // This call blocks until the BFS completes.
     String vReached = graphulo.SingleBFS(Stable, edgeColumn, edgeSep, v0, numSteps,
-        Rtable, Stable, degColumn, degInColQ, copyOutDegrees, minDegree, maxDegree,
-        plusOp, trace);
+        Rtable, Stable, degColumn, degInColQ, copyOutDegrees, computeInDegrees, minDegree, maxDegree,
+        plusOp, outputUnion, trace);
     System.out.println("First few nodes reachable in exactly "+numSteps+" steps: " +
         vReached.substring(0,Math.min(20,vReached.length())));
 
@@ -115,6 +117,9 @@ public class SingleBFSExample extends AccumuloTestBase {
   4)  Set Rtable to null to obtain the nodes reachable
       in exactly numSteps as a return value from the BFS call,
       without writing the subgraph traversed at each step to result tables.
+
+  5)  Set outputUnion = true to obtain all the nodes reached
+      in UP TO numSteps distance from the v0 nodes.
 
   */
   ////////////////////////////////////////////////////////////////////////////////////////////////

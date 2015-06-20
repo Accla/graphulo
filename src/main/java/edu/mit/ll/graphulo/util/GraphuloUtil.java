@@ -587,7 +587,7 @@ public class GraphuloUtil {
 
   /**
    * Makes each input term into a prefix range.
-   * "v1,v5," => "v1|,:,v1},v5|,:,v5},"
+   * "v1,v5," => "v1,:,v1\255,v5,:,v5\255,"
    */
   public static String singletonsAsPrefix(Collection<Text> vktexts, char sep) {
     StringBuilder sb = new StringBuilder();

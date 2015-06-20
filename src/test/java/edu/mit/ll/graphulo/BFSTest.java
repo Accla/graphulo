@@ -640,7 +640,8 @@ public class BFSTest extends AccumuloTestBase {
     }
     Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
         actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        degex = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+        degex = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+        degin = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
     {
       Map<Key, Value> input = new HashMap<>();
       input.put(new Key("v0|v1",   "", "edge"), new Value("5".getBytes()));
@@ -681,7 +682,7 @@ public class BFSTest extends AccumuloTestBase {
       degex.put(new Key("v1", "",   "deg"), new Value("3".getBytes()));
       degex.put(new Key("v2", "",   "deg"), new Value("2".getBytes()));
 //      degex.put(new Key("v9", "",   "deg"), new Value("1".getBytes()));
-//      degex.put(new Key("vBig", "", "deg"), new Value("4".getBytes()));
+      degin.put(new Key("vBig", "", "deg"), new Value("3".getBytes())); // 3, not 4!!
 
     }
 
@@ -692,13 +693,13 @@ public class BFSTest extends AccumuloTestBase {
     // Want to treat degree as the number of columns, not the sum of weights
 
 
-    boolean copyOutDegrees = false;
+    boolean copyOutDegrees = false, computeInDegrees = false, outputUnion = false;
     String v0 = "v0,";
     Collection<Text> u3expect = GraphuloUtil.d4mRowToTexts("v1,vBig,");
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
       String u3actual = graphulo.SingleBFS(tS, "edge", '|', v0, 3, tR,
-          tS, "deg", false, copyOutDegrees, 1, 3, sumSetting, true);
+          tS, "deg", false, copyOutDegrees, computeInDegrees, 1, 3, sumSetting, outputUnion, true);
 
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -707,19 +708,19 @@ public class BFSTest extends AccumuloTestBase {
         actual.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
-
-      TestUtil.printExpectActual(expect, actual);
-
+//      TestUtil.printExpectActual(expect, actual);
       Assert.assertEquals(expect, actual);
       Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
     }
 
     conn.tableOperations().delete(tR);
+    copyOutDegrees = false; computeInDegrees = false; outputUnion = true;
+    u3expect = GraphuloUtil.d4mRowToTexts("v0,v1,v2,vBig,");
     v0 = "v0,:,v000,";
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
       String u3actual = graphulo.SingleBFS(tS, "edge", '|', v0, 3, tR,
-          tS, "deg", false, copyOutDegrees, 1, 3, sumSetting, true);
+          tS, "deg", false, copyOutDegrees, computeInDegrees, 1, 3, sumSetting, outputUnion, true);
       Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -732,13 +733,13 @@ public class BFSTest extends AccumuloTestBase {
     }
 
     conn.tableOperations().delete(tR);
-    copyOutDegrees = true;
+    copyOutDegrees = true; computeInDegrees = false; outputUnion = true;
     v0 = "v0,";
     expect.putAll(degex);
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
       String u3actual = graphulo.SingleBFS(tS, "edge", '|', v0, 3, tR,
-          tS, "deg", false, copyOutDegrees, 1, 3, sumSetting, true);
+          tS, "deg", false, copyOutDegrees, computeInDegrees, 1, 3, sumSetting, outputUnion, true);
       Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -747,18 +748,18 @@ public class BFSTest extends AccumuloTestBase {
         actual.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
-
-      TestUtil.printExpectActual(expect, actual);
-
+      //TestUtil.printExpectActual(expect, actual);
       Assert.assertEquals(expect, actual);
     }
 
     conn.tableOperations().delete(tR);
+    copyOutDegrees = true; computeInDegrees = false; outputUnion = false;
+    u3expect = GraphuloUtil.d4mRowToTexts("v1,vBig,");
     v0 = "v0,:,v000,";
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
       String u3actual = graphulo.SingleBFS(tS, "edge", '|', v0, 3, tR,
-          tS, "deg", false, copyOutDegrees, 1, 3, sumSetting, true);
+          tS, "deg", false, copyOutDegrees, computeInDegrees, 1, 3, sumSetting, outputUnion, true);
       Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -767,6 +768,27 @@ public class BFSTest extends AccumuloTestBase {
         actual.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
+      Assert.assertEquals(expect, actual);
+    }
+
+    conn.tableOperations().delete(tR);
+    copyOutDegrees = true; computeInDegrees = true; outputUnion = false;
+    u3expect = GraphuloUtil.d4mRowToTexts("v1,vBig,");
+    v0 = "v0,";
+    expect.putAll(degin);
+    {
+      Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+      String u3actual = graphulo.SingleBFS(tS, "edge", '|', v0, 3, tR,
+          tS, "deg", false, copyOutDegrees, computeInDegrees, 1, 3, sumSetting, outputUnion, true);
+      Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
+
+      BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      TestUtil.printExpectActual(expect, actual);
       Assert.assertEquals(expect, actual);
     }
 

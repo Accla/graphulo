@@ -32,7 +32,7 @@ public class SingleTransposeIterator implements SortedKeyValueIterator<Key,Value
 
   private char edgeSep = '|';
   private SortedSet<Range> startNodes = new TreeSet<>();
-  private boolean negOneInDeg = true;
+  private boolean negOneInDeg = false; // dangerous option
   private Text degCol = new Text("");
 
   private SortedKeyValueIterator<Key, Value> source;

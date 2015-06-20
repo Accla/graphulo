@@ -16,14 +16,18 @@ import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
@@ -41,7 +45,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 
 /**
  * Holds a {@link org.apache.accumulo.core.client.Connector} to an Accumulo instance for calling core client Graphulo operations.
@@ -938,19 +944,23 @@ public class Graphulo {
    * @param degInColQ      True means degree is in the Column Qualifier. False means degree is in the Value.
    *                       Unused if SDegtable is null.
    * @param copyOutDegrees True means copy out-degrees from Stable to Rtable. This must be false if SDegtable is different from Stable. (could remove restriction in future)
+   * @param computeInDegrees True means compute the in-degrees of nodes reached in Rtable that are not starting nodes for any BFS step.
+   *                         Makes little sense to set this to true if copyOutDegrees is false. Invovles an extra scan at the client.
    * @param minDegree      Minimum out-degree. Checked before doing any searching, at every step, from SDegtable. Pass 0 for no filtering.
    * @param maxDegree      Maximum out-degree. Checked before doing any searching, at every step, from SDegtable. Pass Integer.MAX_VALUE for no filtering.
    * @param plusOp         An SKVI to apply to the result table that "sums" values. Not applied if null.
    *                       Be careful: this affects degrees in the result table as well as normal entries.
+   * @param outputUnion    Whether to output nodes reachable in EXACTLY or UP TO k BFS steps.
    * @param trace          Enable server-side performance tracing.
-   * @return The nodes reachable in exactly k steps from v0.
+   * @return  The nodes reachable in EXACTLY k steps from v0.
+   *          If outputUnion is true, then returns the nodes reachable in UP TO k steps from v0.
    */
   @SuppressWarnings("unchecked")
   public String SingleBFS(String Stable, String edgeColumn, char edgeSep,
                           String v0, int k, String Rtable,
                           String SDegtable, String degColumn, boolean degInColQ,
-                          boolean copyOutDegrees, int minDegree, int maxDegree,
-                          IteratorSetting plusOp, boolean trace) {
+                          boolean copyOutDegrees, boolean computeInDegrees, int minDegree, int maxDegree,
+                          IteratorSetting plusOp, boolean outputUnion, boolean trace) {
     boolean needDegreeFiltering = minDegree > 0 || maxDegree < Integer.MAX_VALUE;
     if (Stable == null || Stable.isEmpty())
       throw new IllegalArgumentException("Please specify Single-table. Given: " + Stable);
@@ -978,6 +988,13 @@ public class Graphulo {
     if (v0 == null || v0.isEmpty())
       v0 = ":\t";
     Collection<Text> vktexts = new HashSet<>(); //v0 == null ? null : GraphuloUtil.d4mRowToTexts(v0);
+    /** If no degree filtering and v0 is a range, then does not include v0 nodes. */
+    Collection<Text> mostAllOutNodes = null;
+    Collection<Text> allInNodes = null;
+    if (computeInDegrees || outputUnion)
+      allInNodes = new HashSet<>();
+    if (computeInDegrees)
+      mostAllOutNodes = new HashSet<>();
     char sep = v0.charAt(v0.length() - 1);
 
     TableOperations tops = connector.tableOperations();
@@ -996,7 +1013,7 @@ public class Graphulo {
 
     Map<String, String> opt = new HashMap<>(), optSTI = new HashMap<>();
     optSTI.put(SingleTransposeIterator.EDGESEP, edgeSepStr);
-    optSTI.put(SingleTransposeIterator.NEG_ONE_IN_DEG, Boolean.toString(false)); // todo !
+    optSTI.put(SingleTransposeIterator.NEG_ONE_IN_DEG, Boolean.toString(false)); // not a good option
     optSTI.put(SingleTransposeIterator.DEGCOL, degColumn);
 //    opt.put("trace", String.valueOf(trace)); // logs timing on server
     opt.put("reducer", SingleBFSReducer.class.getName());
@@ -1053,6 +1070,8 @@ public class Graphulo {
 
           if (vktexts.isEmpty())
             break;
+          if (mostAllOutNodes != null)
+            mostAllOutNodes.addAll(vktexts);
           opt.put("rowRanges", GraphuloUtil.singletonsAsPrefix(vktexts, sep));
           optSTI.put(SingleTransposeIterator.STARTNODES, GraphuloUtil.textsToD4mString(vktexts, sep));
 
@@ -1060,8 +1079,9 @@ public class Graphulo {
           if (thisk == 1) {
             opt.put("rowRanges", GraphuloUtil.singletonsAsPrefix(v0));
             optSTI.put(SingleTransposeIterator.STARTNODES, v0);
-          }
-          else {
+          } else {
+            if (mostAllOutNodes != null)
+              mostAllOutNodes.addAll(vktexts);
             opt.put("rowRanges", GraphuloUtil.singletonsAsPrefix(vktexts, sep));
             optSTI.put(SingleTransposeIterator.STARTNODES, GraphuloUtil.textsToD4mString(vktexts, sep));
           }
@@ -1091,17 +1111,95 @@ public class Graphulo {
           System.out.println("BatchScan/Iterator Time: " + dur + " ms");
         if (vktexts.isEmpty())
           break;
+        if (allInNodes != null)
+          allInNodes.addAll(vktexts);
       }
 
       if (trace) {
         System.out.println("Total Degree Lookup Time: " + degTime + " ms");
         System.out.println("Total BatchScan/Iterator Time: " + scanTime + " ms");
       }
+
     } finally {
       bs.close();
     }
 
-    return GraphuloUtil.textsToD4mString(vktexts, sep);
+    // take union if necessary
+    String ret = GraphuloUtil.textsToD4mString(outputUnion ? allInNodes : vktexts, sep);
+
+    // compute in degrees if necessary
+    if (computeInDegrees) {
+      allInNodes.removeAll(mostAllOutNodes);
+//      log.debug("allInNodes: "+allInNodes);
+      singleCheckWriteDegrees(allInNodes, Stable, Rtable, degColumn.getBytes(), edgeSepStr, sep);
+    }
+
+    return ret;
+  }
+
+  private void singleCheckWriteDegrees(Collection<Text> questionNodes, String Stable, String Rtable,
+                                       byte[] degColumn, String edgeSepStr, char sep) {
+    Scanner scan;
+    BatchWriter bw;
+    try {
+      scan = connector.createScanner(Rtable, Authorizations.EMPTY);
+      bw = connector.createBatchWriter(Rtable, new BatchWriterConfig());
+    } catch (TableNotFoundException e) {
+      log.error("crazy", e);
+      throw new RuntimeException(e);
+    }
+
+    //GraphuloUtil.singletonsAsPrefix(questionNodes, sep);
+    // There is a more efficient way to do this:
+    //  scan all the ranges at once with a BatchScanner, somehow preserving the order
+    //  such that all the v1, v1|v4, v1|v6, ... appear in order.
+    // This is likely not a bottleneck.
+    List<Range> rangeList;
+    {
+      Collection<Range> rs = new TreeSet<>();
+      for (Text node : questionNodes) {
+        rs.add(Range.prefix(node));
+      }
+      rangeList = Range.mergeOverlapping(rs);
+    }
+
+    try {
+      Text row = new Text();
+      RANGELOOP: for (Range range : rangeList) {
+//        log.debug("range: "+range);
+        boolean first = true;
+        int cnt = 0, pos = -1;
+        scan.setRange(range);
+        for (Map.Entry<Key, Value> entry : scan) {
+//          log.debug(entry.getKey()+" -> "+entry.getValue());
+          if (first) {
+            pos = entry.getKey().getRow(row).find(edgeSepStr);
+            if (pos == -1)
+              continue RANGELOOP;  // this is a degree node; no need to re-write degree
+            first = false;
+          }
+          // assume all other rows in this range are degree rows.
+          cnt++;
+        }
+        // row contains "v1|v2" -- want v1. pos is the byte position of the '|'. cnt is the degree.
+        Mutation m = new Mutation(row.getBytes(), 0, pos);
+        m.put(MultiplyOp.EMPTY_BYTES, degColumn, String.valueOf(cnt).getBytes());
+        bw.addMutation(m);
+      }
+
+
+    } catch (MutationsRejectedException e) {
+      log.error("canceling in-degree ingest because in-degree mutations rejected, sending to Rtable "+Rtable, e);
+      throw new RuntimeException(e);
+    } finally {
+      scan.close();
+      try {
+        bw.close();
+      } catch (MutationsRejectedException e) {
+        log.error("in-degree mutations rejected, sending to Rtable "+Rtable, e);
+      }
+    }
+
   }
 
 

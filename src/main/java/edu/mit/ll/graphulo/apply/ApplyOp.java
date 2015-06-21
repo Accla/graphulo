@@ -15,7 +15,7 @@ import java.util.Map;
  */
 public interface ApplyOp {
   /**
-   * Initializes the multiply object.
+   * Initializes the apply object.
    * Options are passed from <tt>multiplyOp.opt.OPTION_NAME</tt> in the options for {@link TwoTableIterator}.
    *
    * @param options
@@ -34,5 +34,5 @@ public interface ApplyOp {
    * The function to apply.
    * @return Iterator over result of multiplying the two entries. Use {@link Collections#emptyIterator()} if no entries to emit.
    */
-  Iterator<? extends Map.Entry<Key, Value>> multiply(Key k, Value v);
+  Iterator<? extends Map.Entry<Key, Value>> apply(Key k, Value v);
 }

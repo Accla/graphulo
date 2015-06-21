@@ -1,5 +1,6 @@
 package edu.mit.ll.graphulo.rowmult;
 
+import com.google.common.collect.Iterators;
 import edu.mit.ll.graphulo.skvi.Watch;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.SKVIRowIterator;
@@ -61,10 +62,13 @@ public class CartesianRowMultiply implements RowMultiplyOp {
     ONEROWB
   }
 
+  public static final String ALSODOAA="alsoDoAA", ALSODOBB="alsoDoBB";
+
   private MultiplyOp multiplyOp;
   private Map<String, String> multiplyOpOptions = new HashMap<>();
   private ROWMODE rowmode = ROWMODE.ONEROWB;
   private boolean isRowStartMultiplyOp = false;
+  private boolean alsoDoAA = false, alsoDoBB = false;
 
 
   private void parseOptions(Map<String, String> options) {
@@ -83,6 +87,12 @@ public class CartesianRowMultiply implements RowMultiplyOp {
             multiplyOp = GraphuloUtil.subclassNewInstance(optionValue, MultiplyOp.class);
             isRowStartMultiplyOp = multiplyOp instanceof RowStartMultiplyOp;
             break;
+          case ALSODOBB:
+            alsoDoBB = Boolean.parseBoolean(optionValue);
+            break;
+          case ALSODOAA:
+            alsoDoAA = Boolean.parseBoolean(optionValue);
+            break;
           default:
             log.warn("Unrecognized option: " + optionEntry);
             break;
@@ -91,6 +101,16 @@ public class CartesianRowMultiply implements RowMultiplyOp {
     }
     if (multiplyOp == null)
       multiplyOp = new BigDecimalMultiply(); // default
+    if (alsoDoAA && alsoDoBB && rowmode != ROWMODE.TWOROW) {
+      log.warn("Because alsoDoAA and alsoDoBB are true, forcing rowmode to " + ROWMODE.TWOROW);
+      rowmode = ROWMODE.TWOROW;
+    } else if (alsoDoAA && (rowmode == ROWMODE.ONEROWB)) {
+      log.warn("Because alsoDoAA is true, forcing rowmode from "+ROWMODE.ONEROWB +" to " + ROWMODE.TWOROW);
+      rowmode = ROWMODE.TWOROW;
+    } else if (alsoDoBB && (rowmode == ROWMODE.ONEROWA)) {
+      log.warn("Because alsoDoBB is true, forcing rowmode from "+ROWMODE.ONEROWA+" to " + ROWMODE.TWOROW);
+      rowmode = ROWMODE.TWOROW;
+    }
   }
 
   @Override
@@ -101,48 +121,100 @@ public class CartesianRowMultiply implements RowMultiplyOp {
 
   @Override
   public Iterator<Map.Entry<Key,Value>> multiplyRow(SortedKeyValueIterator<Key, Value> skviA, SortedKeyValueIterator<Key, Value> skviB) throws IOException {
-    assert skviA.hasTop() && skviB.hasTop() && skviA.getTopKey().equals(skviB.getTopKey(), PartialKey.ROW);
+    assert skviA != null || skviB != null;
     Watch<Watch.PerfSpan> watch = Watch.getInstance();
+
+    if (skviB == null) {
+      if (alsoDoAA) {
+        SortedMap<Key, Value> ArowMap = readRow(skviA, watch, Watch.PerfSpan.ATnext);
+        if (isRowStartMultiplyOp)
+          if (!((RowStartMultiplyOp)multiplyOp).startRow(ArowMap, null, false)) {
+            return Collections.emptyIterator();
+          }
+        return new CartesianIterator(ArowMap.entrySet().iterator(), ArowMap, multiplyOp, false);
+      } else {
+        return Iterators.singletonIterator(GraphuloUtil.copyTopEntry(skviA));
+      }
+    }
+    if (skviA == null) {
+      if (alsoDoBB) {
+        SortedMap<Key, Value> BrowMap = readRow(skviB, watch, Watch.PerfSpan.ATnext);
+        if (isRowStartMultiplyOp)
+          if (!((RowStartMultiplyOp)multiplyOp).startRow(null, BrowMap, false)) {
+            return Collections.emptyIterator();
+          }
+        return new CartesianIterator(BrowMap.entrySet().iterator(), BrowMap, multiplyOp, false);
+      } else {
+        return Iterators.singletonIterator(GraphuloUtil.copyTopEntry(skviB));
+      }
+    }
+
+
+    assert skviA.hasTop() && skviB.hasTop() && skviA.getTopKey().equals(skviB.getTopKey(), PartialKey.ROW);
     
     switch (rowmode) {
       case TWOROW: {
         SortedMap<Key, Value> ArowMap = readRow(skviA, watch, Watch.PerfSpan.ATnext);
         SortedMap<Key, Value> BrowMap = readRow(skviB, watch, Watch.PerfSpan.Bnext);
         if (isRowStartMultiplyOp)
-          if (!((RowStartMultiplyOp)multiplyOp).startRow(ArowMap, BrowMap))
+          if (!((RowStartMultiplyOp)multiplyOp).startRow(ArowMap, BrowMap, true))
             return Collections.emptyIterator();
-        return new CartesianIterator(
-            ArowMap.entrySet().iterator(), BrowMap, multiplyOp, false);
+
+        Iterator<Map.Entry<Key,Value>> itAB = new CartesianIterator(ArowMap.entrySet().iterator(), BrowMap, multiplyOp, false);
+        if (alsoDoAA && alsoDoBB) {
+          Iterator<Map.Entry<Key,Value>> itAA = new CartesianIterator(ArowMap.entrySet().iterator(), ArowMap, multiplyOp, false),
+            itBB = new CartesianIterator(BrowMap.entrySet().iterator(), BrowMap, multiplyOp, false);;
+          return Iterators.concat(itAB, itAA, itBB);
+        } else if (alsoDoAA) {
+          Iterator<Map.Entry<Key,Value>> itAA = new CartesianIterator(ArowMap.entrySet().iterator(), ArowMap, multiplyOp, false);
+          return Iterators.concat(itAB, itAA);
+        } else if (alsoDoBB) {
+          Iterator<Map.Entry<Key,Value>> itBB = new CartesianIterator(BrowMap.entrySet().iterator(), BrowMap, multiplyOp, false);
+          return Iterators.concat(itAB, itBB);
+        } else
+          return itAB;
       }
 
       case ONEROWA: {
+        assert !alsoDoBB;
         SortedMap<Key, Value> ArowMap = readRow(skviA, watch, Watch.PerfSpan.ATnext);
         Iterator<Map.Entry<Key, Value>> itBonce = new SKVIRowIterator(skviB);
         if (isRowStartMultiplyOp)
-          if (!((RowStartMultiplyOp)multiplyOp).startRow(ArowMap, null)) {
+          if (!((RowStartMultiplyOp)multiplyOp).startRow(ArowMap, null, true)) {
             // skip rest of row at skviB
             ArowMap = null;
             while (itBonce.hasNext())
               itBonce.next();
             return Collections.emptyIterator();
           }
-        return new CartesianIterator(
-            itBonce, ArowMap, multiplyOp, true);
+
+        Iterator<Map.Entry<Key,Value>> itAB = new CartesianIterator(itBonce, ArowMap, multiplyOp, true);
+        if (alsoDoAA) {
+          Iterator<Map.Entry<Key,Value>> itAA = new CartesianIterator(ArowMap.entrySet().iterator(), ArowMap, multiplyOp, false);
+          return Iterators.concat(itAB, itAA);
+        } else
+          return itAB;
       }
 
       case ONEROWB: {
+        assert !alsoDoAA;
         Iterator<Map.Entry<Key, Value>> itAonce = new SKVIRowIterator(skviA);
         SortedMap<Key, Value> BrowMap = readRow(skviB, watch, Watch.PerfSpan.Bnext);
         if (isRowStartMultiplyOp)
-          if (!((RowStartMultiplyOp)multiplyOp).startRow(null, BrowMap)) {
+          if (!((RowStartMultiplyOp)multiplyOp).startRow(null, BrowMap, true)) {
             // skip rest of row at skviA
             BrowMap = null;
             while (itAonce.hasNext())
               itAonce.next();
             return Collections.emptyIterator();
           }
-        return new CartesianIterator(
-            itAonce, BrowMap, multiplyOp, false);
+
+        Iterator<Map.Entry<Key, Value>> itAB = new CartesianIterator(itAonce, BrowMap, multiplyOp, false);
+        if (alsoDoBB) {
+          Iterator<Map.Entry<Key,Value>> itBB = new CartesianIterator(BrowMap.entrySet().iterator(), BrowMap, multiplyOp, false);
+          return Iterators.concat(itAB, itBB);
+        } else
+          return itAB;
       }
 
       default:

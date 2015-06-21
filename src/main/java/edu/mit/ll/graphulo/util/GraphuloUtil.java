@@ -601,4 +601,24 @@ public class GraphuloUtil {
   }
 
 
+  public static Map.Entry<Key, Value> copyTopEntry(SortedKeyValueIterator<Key, Value> skvi) {
+    final Key k = keyCopy(skvi.getTopKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL);
+    final Value v = new Value(skvi.getTopValue());
+    return new Map.Entry<Key, Value>() {
+      @Override
+      public Key getKey() {
+        return k;
+      }
+
+      @Override
+      public Value getValue() {
+        return v;
+      }
+
+      @Override
+      public Value setValue(Value value) {
+        throw new UnsupportedOperationException();
+      }
+    };
+  }
 }

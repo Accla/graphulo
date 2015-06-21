@@ -1,5 +1,6 @@
 package edu.mit.ll.graphulo.rowmult;
 
+import com.google.common.collect.Iterators;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -8,6 +9,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 
 import java.io.IOException;
 import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -16,12 +18,10 @@ import java.util.Map.Entry;
  * A simple abstract class for matrix multiplication
  * that returns zero or one entry per multiply.
  */
-public abstract class SimpleMultiply implements MultiplyOp, Iterator<Entry<Key,Value>> {
+public abstract class SimpleMultiply implements MultiplyOp {
 
   /** Implements simple multiply logic. Returning null means no entry is emitted. */
   public abstract Value multiply(Value ATval, Value Bval);
-
-  private Entry<Key,Value> kv;
 
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
@@ -33,24 +33,7 @@ public abstract class SimpleMultiply implements MultiplyOp, Iterator<Entry<Key,V
     Key k = new Key(ATcolQ.getBackingArray(), ATcolF.getBackingArray(),
         BcolQ.getBackingArray(), GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis());
     Value v = multiply(ATval, Bval);
-    kv = v == null ? null : new SimpleImmutableEntry<>(k,v);
-    return this;
+    return v == null ? Collections.<Map.Entry<Key,Value>>emptyIterator() : Iterators.singletonIterator((Map.Entry<Key, Value>) new SimpleImmutableEntry<>(k, v));
   }
 
-  @Override
-  public boolean hasNext() {
-    return kv != null;
-  }
-
-  @Override
-  public Entry<Key,Value> next() {
-    Entry<Key,Value> ret = kv;
-    kv = null;
-    return ret;
-  }
-
-  @Override
-  public void remove() {
-    throw new UnsupportedOperationException();
-  }
 }

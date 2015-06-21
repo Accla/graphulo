@@ -1,13 +1,13 @@
 package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.ewise.EWiseOp;
+import edu.mit.ll.graphulo.reducer.EdgeBFSReducer;
+import edu.mit.ll.graphulo.reducer.GatherColQReducer;
+import edu.mit.ll.graphulo.reducer.SingleBFSReducer;
 import edu.mit.ll.graphulo.rowmult.CartesianRowMultiply;
 import edu.mit.ll.graphulo.rowmult.EdgeBFSMultiply;
 import edu.mit.ll.graphulo.rowmult.LineRowMultiply;
 import edu.mit.ll.graphulo.rowmult.MultiplyOp;
-import edu.mit.ll.graphulo.reducer.EdgeBFSReducer;
-import edu.mit.ll.graphulo.reducer.GatherColQReducer;
-import edu.mit.ll.graphulo.reducer.SingleBFSReducer;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
 import edu.mit.ll.graphulo.skvi.SingleTransposeIterator;
 import edu.mit.ll.graphulo.skvi.SmallLargeRowFilter;
@@ -93,7 +93,8 @@ public class Graphulo {
                         Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
                         Collection<Range> rowFilter,
                         String colFilterAT, String colFilterB) {
-    return TableMult(ATtable, Btable, Ctable, CTtable, multOp, plusOp, rowFilter, colFilterAT, colFilterB, -1, false);
+    return TableMult(ATtable, Btable, Ctable, CTtable, multOp, plusOp, rowFilter, colFilterAT, colFilterB,
+        false, false, -1, false);
   }
 
   public long SpEWiseX(String Atable, String Btable, String Ctable, String CTtable,
@@ -137,10 +138,11 @@ public class Graphulo {
                         Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
                         Collection<Range> rowFilter,
                         String colFilterAT, String colFilterB,
+                        boolean alsoDoAA, boolean alsoDoBB,
                         int numEntriesCheckpoint, boolean trace) {
     return TwoTableROW(ATtable, Btable, Ctable, CTtable,
         multOp, plusOp, rowFilter, colFilterAT, colFilterB,
-        false, false, numEntriesCheckpoint, trace);
+        alsoDoAA, alsoDoBB, alsoDoAA, alsoDoBB, numEntriesCheckpoint, trace);
   }
 
   public long TwoTableROW(String ATtable, String Btable, String Ctable, String CTtable,
@@ -149,11 +151,14 @@ public class Graphulo {
                           Collection<Range> rowFilter,
                           String colFilterAT, String colFilterB,
                           boolean emitNoMatchA, boolean emitNoMatchB,
+                          boolean alsoDoAA, boolean alsoDoBB,
                           int numEntriesCheckpoint, boolean trace) {
     Map<String,String> opt = new HashMap<>();
     opt.put("rowMultiplyOp", CartesianRowMultiply.class.getName());
     opt.put("rowMultiplyOp.opt.multiplyOp", multOp.getName()); // treated same as multiplyOp
     opt.put("rowMultiplyOp.opt.rowmode", CartesianRowMultiply.ROWMODE.ONEROWA.name());
+    opt.put("rowMultiplyOp.opt."+CartesianRowMultiply.ALSODOAA, Boolean.toString(alsoDoAA));
+    opt.put("rowMultiplyOp.opt."+CartesianRowMultiply.ALSODOBB, Boolean.toString(alsoDoBB));
 
     return TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.ROW, opt, plusOp,
         rowFilter, colFilterAT, colFilterB,

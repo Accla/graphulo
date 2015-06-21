@@ -26,8 +26,10 @@ public interface RowStartMultiplyOp extends MultiplyOp {
    *
    * @param mapRowA Sorted map of entries held in memory for table A
    * @param mapRowB Sorted map of entries held in memory for table A
+   * @param isCollision True if about to be called with elements for both A and B. False for the AA or BB case.
    * @throws UnsupportedOperationException If called in an unsupported mode.
-   * @return True to proceed. False to skip the entire matching rows.
+   * @return  True to proceed. False to skip the entire matching rows.
+   *          False also skips the "alsoDoAA" and alsoDoBB" on the row if applicable.
    */
-  boolean startRow(SortedMap<Key,Value> mapRowA, SortedMap<Key,Value> mapRowB);
+  boolean startRow(SortedMap<Key,Value> mapRowA, SortedMap<Key,Value> mapRowB, boolean isCollision);
 }

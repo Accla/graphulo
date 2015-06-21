@@ -340,28 +340,6 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
   }
 
 
-  private static Map.Entry<Key, Value> copyTopEntry(SortedKeyValueIterator<Key, Value> skvi) {
-    final Key k = GraphuloUtil.keyCopy(skvi.getTopKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL);
-    final Value v = new Value(skvi.getTopValue());
-    return new Map.Entry<Key, Value>() {
-      @Override
-      public Key getKey() {
-        return k;
-      }
-
-      @Override
-      public Value getValue() {
-        return v;
-      }
-
-      @Override
-      public Value setValue(Value value) {
-        throw new UnsupportedOperationException();
-      }
-    };
-  }
-
-
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
 //    System.out.println("DM ori range: "+range);
@@ -459,7 +437,7 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
 
 
       Watch<Watch.PerfSpan> watch = Watch.getInstance();
-      do {
+      DOLOOP: do {
 
         if ((!remoteAT.hasTop() && !remoteB.hasTop())
             || (!emitNoMatchA && remoteAT.hasTop() && !remoteB.hasTop())
@@ -468,12 +446,12 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
           return;
         }
         if (emitNoMatchA && remoteAT.hasTop() && !remoteB.hasTop()) {
-          bottomIter = new PeekingIterator2<>(Iterators.singletonIterator(copyTopEntry(remoteAT)));
+          bottomIter = new PeekingIterator2<>(Iterators.singletonIterator(GraphuloUtil.copyTopEntry(remoteAT)));
           remoteAT.next();
           return;
         }
         if (emitNoMatchB && !remoteAT.hasTop() && remoteB.hasTop()) {
-          bottomIter = new PeekingIterator2<>(Iterators.singletonIterator(copyTopEntry(remoteB)));
+          bottomIter = new PeekingIterator2<>(Iterators.singletonIterator(GraphuloUtil.copyTopEntry(remoteB)));
           remoteB.next();
           return;
         }
@@ -482,11 +460,24 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
         while (cmp != 0) {
           if (cmp < 0) {
             if (emitNoMatchA) {
-              emitted = remoteAT.getTopKey();
-              bottomIter = new PeekingIterator2<>(Iterators.singletonIterator(
-                  copyTopEntry(remoteAT)));
-              remoteAT.next();
-              return;
+              switch (dotmode) {
+                case ROW:
+                  emitted = GraphuloUtil.keyCopy(remoteAT.getTopKey(), PartialKey.ROW);
+                  bottomIter = new PeekingIterator2<>(rowMultiplyOp.multiplyRow(remoteAT, null));
+                  continue DOLOOP;
+                case EWISE:
+                  emitted = remoteAT.getTopKey();
+                  bottomIter = new PeekingIterator2<>(
+                      eWiseOp.multiply(remoteAT.getTopKey().getRowData(), remoteAT.getTopKey().getColumnFamilyData(),
+                          remoteAT.getTopKey().getColumnQualifierData(), remoteAT.getTopValue(), null));
+                  remoteAT.next();
+                  continue DOLOOP;
+                case NONE:
+                  bottomIter = new PeekingIterator2<>(Iterators.singletonIterator(
+                      GraphuloUtil.copyTopEntry(remoteAT)));
+                  remoteAT.next();
+                  return;
+              }
             }
             boolean success = skipUntil(remoteAT, remoteB.getTopKey(), pk, seekRange, seekColumnFamilies, seekInclusive, watch, Watch.PerfSpan.ATnext);
             if (!success) {
@@ -495,11 +486,24 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
             }
           } else if (cmp > 0) {
             if (emitNoMatchB) {
-              emitted = remoteB.getTopKey();
-              bottomIter = new PeekingIterator2<>(Iterators.singletonIterator(
-                  copyTopEntry(remoteB)));
-              remoteB.next();
-              return;
+              switch (dotmode) {
+                case ROW:
+                  emitted = GraphuloUtil.keyCopy(remoteB.getTopKey(), PartialKey.ROW);
+                  bottomIter = new PeekingIterator2<>(rowMultiplyOp.multiplyRow(null, remoteB));
+                  continue DOLOOP;
+                case EWISE:
+                  emitted = remoteB.getTopKey();
+                  bottomIter = new PeekingIterator2<>(
+                      eWiseOp.multiply(remoteB.getTopKey().getRowData(), remoteB.getTopKey().getColumnFamilyData(),
+                          remoteB.getTopKey().getColumnQualifierData(), null, remoteB.getTopValue()));
+                  remoteB.next();
+                  continue DOLOOP;
+                case NONE:
+                  bottomIter = new PeekingIterator2<>(Iterators.singletonIterator(
+                      GraphuloUtil.copyTopEntry(remoteB)));
+                  remoteB.next();
+                  return;
+              }
             }
             boolean success = skipUntil(remoteB, remoteAT.getTopKey(), pk, seekRange, seekColumnFamilies, seekInclusive, watch, Watch.PerfSpan.Bnext);
             if (!success) {

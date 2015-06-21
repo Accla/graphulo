@@ -71,7 +71,7 @@ public class TableMultTest extends AccumuloTestBase {
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     long numpp = graphulo.TableMult(tAT, tB, tC, tCT,
         LongMultiply.class, Graphulo.DEFAULT_PLUS_ITERATOR,
-        null, null, null, 1, true);
+        null, null, null, false, false, 1, true);
 
     Assert.assertEquals(4, numpp);
 
@@ -149,7 +149,7 @@ public class TableMultTest extends AccumuloTestBase {
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     long numpp = graphulo.TableMult(tAT, tB, tC, null,
         BigDecimalMultiply.class, Graphulo.DEFAULT_PLUS_ITERATOR,
-        GraphuloUtil.d4mRowToRanges("C2,:,"), null, null, 1, false);
+        GraphuloUtil.d4mRowToRanges("C2,:,"), null, null, false, false, 1, false);
 
     Assert.assertEquals(2, numpp);
 
@@ -212,7 +212,7 @@ public class TableMultTest extends AccumuloTestBase {
     long numpp = graphulo.TableMult(tAT, tB, tC, null,
         BigDecimalMultiply.class, Graphulo.DEFAULT_PLUS_ITERATOR,
         GraphuloUtil.d4mRowToRanges("C2,:,"),
-        "A1,", "B1,", 1, false);
+        "A1,", "B1,", false, false, 1, false);
 
     Assert.assertEquals(1, numpp);
 
@@ -229,7 +229,89 @@ public class TableMultTest extends AccumuloTestBase {
     graphulo.TableMult(tAT, tB, null, tCT,
         BigDecimalMultiply.class, Graphulo.DEFAULT_PLUS_ITERATOR,
         GraphuloUtil.d4mRowToRanges("C2,:,"),
-        "A1,:,A15,", "B1,:,B15,F,", 1, false);
+        "A1,:,A15,", "B1,:,B15,F,", false, false, 1, false);
+    scanner = conn.createScanner(tCT, Authorizations.EMPTY);
+    actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+    for (Map.Entry<Key, Value> entry : scanner) {
+      actual.put(entry.getKey(), entry.getValue());
+    }
+    Assert.assertEquals(expect, actual);
+    scanner.close();
+
+    conn.tableOperations().delete(tAT);
+    conn.tableOperations().delete(tB);
+    conn.tableOperations().delete(tC);
+    conn.tableOperations().delete(tCT);
+  }
+
+
+  /**
+   * Adds in A*A at the same time as A*B.
+   * <pre>
+   *      C1 C2        C1 C2 C3          B1  B2
+   * A1 [ x  2 ] * B1 [   3  3  ] = A1 [ 6     ]
+   * A2 [ x    ]   B2 [x  xx    ]   A2 [       ]
+   * </pre>
+   */
+  @Test
+  public void testAlsoDoAA() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
+    Connector conn = tester.getConnector();
+
+    final String tAT, tB, tC, tCT;
+    {
+      String[] names = getUniqueNames(4);
+      tAT = names[0];
+      tB = names[1];
+      tC = names[2];
+      tCT = names[3];
+    }
+    {
+      Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
+      input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
+      input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
+      input = TestUtil.transposeMap(input);
+      TestUtil.createTestTable(conn, tAT, null, input);
+    }
+    {
+      Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("B1", "", "C2"), new Value("3".getBytes()));
+      input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
+      input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
+      input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
+      input = TestUtil.transposeMap(input);
+      SortedSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("C15"));
+      TestUtil.createTestTable(conn, tB, splits, input);
+    }
+    TestUtil.createTestTable(conn, tC);
+
+    Map<Key, Value> expect = new HashMap<>();
+    expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
+    expect.put(new Key("A1", "", "A1"), new Value("4".getBytes()));
+
+    Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+    long numpp = graphulo.TableMult(tAT, tB, tC, null,
+        BigDecimalMultiply.class, Graphulo.DEFAULT_PLUS_ITERATOR,
+        GraphuloUtil.d4mRowToRanges("C2,:,"),
+        "A1,", "B1,", true, false, 1, false);
+
+    Assert.assertEquals(2, numpp);
+
+    Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
+    Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+    for (Map.Entry<Key, Value> entry : scanner) {
+      actual.put(entry.getKey(), entry.getValue());
+    }
+    Assert.assertEquals(expect, actual);
+    scanner.close();
+
+    // now check more advanced column filter, write to transpose
+    expect = TestUtil.transposeMap(expect);
+    graphulo.TableMult(tAT, tB, null, tCT,
+        BigDecimalMultiply.class, Graphulo.DEFAULT_PLUS_ITERATOR,
+        GraphuloUtil.d4mRowToRanges("C2,:,"),
+        "A1,:,A15,", "B1,:,B15,F,", true, false, 1, false);
     scanner = conn.createScanner(tCT, Authorizations.EMPTY);
     actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
     for (Map.Entry<Key, Value> entry : scanner) {

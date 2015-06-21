@@ -53,7 +53,7 @@ public class MatlabGraphulo extends Graphulo {
 
     return TableMult(ATtable, Btable, Ctable, null,
         LongMultiply.class, Graphulo.DEFAULT_PLUS_ITERATOR,
-        rowFilterRanges, colFilterAT, colFilterB, numEntriesCheckpoint, trace);
+        rowFilterRanges, colFilterAT, colFilterB, false, false, numEntriesCheckpoint, trace);
   }
 
 

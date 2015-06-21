@@ -11,10 +11,10 @@ public class PeekingIterator1<E> implements Iterator<E> {
 
   public PeekingIterator1(Iterator<E> source) {
     this.source = source;
-    if (source.hasNext())
-      top = source.next();
-    else
+    if (source == null || !source.hasNext())
       top = null;
+    else
+      top = source.next();
   }
 
   /** Create a PeekingIterator1 with given starting element. */

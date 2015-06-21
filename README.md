@@ -318,14 +318,19 @@ Run as many as desired, each with its own priority.
 * `iter.7.OPTION_NAME` An option supplied to a remote iterator.
 
 ##### TwoTableIterator
-* `B. ... ` All the options of RemoteSourceIterator, to read table A from a remote Accumulo table. 
-Don't specify when operating on a single table.
-* `(A/B).emitNoMatchEntries` Both false for multiply (intersection of entries); both true for sum (union of entries)
+* `A. ... ` All the options of RemoteSourceIterator, to read table A from a remote Accumulo table. 
+Don't specify when operating on a single table.  Same for B.
 * `dot` Either "ROW" or "EWISE" or "NONE".
 * `multiplyOp` Name of class that implements EWiseOp, for "EWISE". 
 * `multiplyOp.opt.OPTION_NAME` An option supplied to the multiply class's `init` function.
 * `rowMultiplyOp` Name of class that implements RowMultiplyOp, for "ROW".
 * `rowMultiplyOp.opt.OPTION_NAME` An option supplied to the multiply class's `init` function.
+* `AT.emitNoMatch` controls whether entries in A that do not match entries in B are emitted anyway.
+Use false for ordinary table multiply (intersection of entries); true for sum (union of entries).
+* `rowMultiplyOp.opt.alsoDoAA` controls whether the cartesian row multiplier also multiplies `A*A`.
+Set `AT.emitNoMatch` to true when `alsoDoAA` is true, so that rows of A that do not match rows of B
+are considered.  Conversely, if `AT.emitNoMatch` is true but `alsoDoAA` is false, then
+individual entries from A are emitted (`A*A` is not computed).
 
 ##### Future: PreSumCacheIterator
 * `combiner` Name of class for "pre-summing" entries.

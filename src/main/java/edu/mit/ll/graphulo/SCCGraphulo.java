@@ -82,7 +82,7 @@ public class SCCGraphulo extends Graphulo {
       if (k % 2 == 1) {
         if (k != 1)
           tops.delete(tAC);
-        TableMult(tAT, tA, tR, tAC, LongMultiply.class, null, null, null, null, -1, trace);
+        TableMult(tAT, tA, tR, tAC, LongMultiply.class, null, null, null, null, false, false, -1, trace);
 
         if (trace) {
           // TESTING
@@ -102,7 +102,7 @@ public class SCCGraphulo extends Graphulo {
 
       } else {
         tops.delete(tAT);
-        TableMult(tAC, tA, tR, tAT, LongMultiply.class, null, null, null, null, -1, trace);
+        TableMult(tAC, tA, tR, tAT, LongMultiply.class, null, null, null, null, false, false, -1, trace);
 
         if (trace) {
           // TESTING

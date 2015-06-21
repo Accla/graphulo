@@ -79,6 +79,8 @@ public class TableMultExample extends AccumuloTestBase {
     Collection<Range> rowFilter = null;   // No row subsetting; run on whole tables.
     String colFilterAT = null;            // No column subsetting for ATtable; run on the whole table.
     String colFilterB = null;             // No column subsetting for  Btable; run on the whole table.
+    boolean alsoDoAA = false;             // Don't also add in the product of A*A at the same time as A*B.
+    boolean alsoDoBB = false;             // Don't also add in the product of B*B at the same time as A*B.
     int numEntriesCheckpoint = -1;        // Don't monitor TableMult progress.
     boolean trace = false;                // Don't record performance times at the server.
 
@@ -86,7 +88,7 @@ public class TableMultExample extends AccumuloTestBase {
     // This call blocks until the multiply completes,
     // i.e., until all partial products are sent to Ctable.
     graphulo.TableMult(ATtable, Btable, Ctable, CTtable, multOp, plusOp,
-        rowFilter, colFilterAT, colFilterB, numEntriesCheckpoint, trace);
+        rowFilter, colFilterAT, colFilterB, alsoDoAA, alsoDoBB, numEntriesCheckpoint, trace);
 
     // Result is in Ctable. Do whatever you like with it.
     BatchScanner bs = conn.createBatchScanner(Ctable, Authorizations.EMPTY, 2);
@@ -131,6 +133,11 @@ public class TableMultExample extends AccumuloTestBase {
       one monitoring entry after numEntriesCheckpoint entries are processed.
       NOTE: Monitoring will make concurrent scans on table B unstable
             since it adjusts a table-level memory size property.
+
+  5)  Set alsoDoAA and/or alsoDoBB to aid in loop fusion-- an optimization where we perform
+      steps at the same time that would normally be performed one after another serially.
+      This would comute A*A or B*B at the same time as A*B, eliminating the need
+      to compute those products separately before/after A*B when they are needed.
 
   */
   ////////////////////////////////////////////////////////////////////////////////////////////////

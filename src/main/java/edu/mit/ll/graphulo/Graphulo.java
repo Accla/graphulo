@@ -1330,70 +1330,58 @@ public class Graphulo {
   }
 
 
-  public long kTrussAdj(String Aorig, String ATorig, String Rfinal, String RTfinal, int k,
+  /**
+   * From input <b>unweighted, undirected</b> adjacency table Aorig, put the k-Truss
+   * of Aorig in Rfinal.
+   * @param Aorig Unweighted, undirected adjacency table.
+   * @param Rfinal Does not have to previously exist. Writes the kTruss into Rfinal if it already exists.
+   *               Use a combiner if you want to sum it in.
+   * @param k Trivial if k <= 2.
+   * @param forceDelete False means throws exception if the temporary tables used inside the algorithm already exist.
+   *                    True means delete them if they exist.
+   * @param trace Server-side tracing.
+   * @return nnz of the kTruss subgraph, which is 2* the number of edges in the kTruss subgraph.
+   */
+  public long kTrussAdj(String Aorig, String Rfinal, int k,
                         boolean forceDelete, boolean trace) {
     Aorig = emptyToNull(Aorig);
-    ATorig = emptyToNull(ATorig);
     Rfinal = emptyToNull(Rfinal);
-    RTfinal = emptyToNull(RTfinal);
-    Preconditions.checkArgument(Aorig != null && ATorig != null, "Both input tables must be given: Aorig=%s, ATorig=%s", Aorig, ATorig);
-    Preconditions.checkArgument(Rfinal != null || RTfinal != null, "One output table must be given or operation is useless: Rfinal=%s, RTfinal=%s", Rfinal, RTfinal);
+    Preconditions.checkArgument(Aorig != null, "Input table must be given: Aorig=%s", Aorig);
+    Preconditions.checkArgument(Rfinal != null, "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
     TableOperations tops = connector.tableOperations();
-    Preconditions.checkArgument(tops.exists(Aorig) && tops.exists(ATorig), "Both input tables must exist: Aorig=%s, ATorig=%s", Aorig, ATorig);
-    boolean RfinalExists = Rfinal != null && tops.exists(Rfinal),
-        RTfinalExists = RTfinal != null && tops.exists(RTfinal);
-
-    // Careful: nnz figure will be inaccurate if there are multiple versions of an entry in Aorig.
-    // The truly accurate count is to count them first!
-
+    Preconditions.checkArgument(tops.exists(Aorig), "Input tables must exist: Aorig=%s", Aorig);
+    boolean RfinalExists = tops.exists(Rfinal);
 
     try {
       if (k <= 2) {               // trivial case: every graph is a 2-truss
-        if (RfinalExists && RTfinalExists) { // sum whole graph into existing graph
-          AdjBFS(Aorig, null, 1, Rfinal, RTfinal, null, null, false, 0, Integer.MAX_VALUE, null, trace);
-        } else if (RfinalExists) {
+        if (RfinalExists)
           AdjBFS(Aorig, null, 1, Rfinal, null, null, null, false, 0, Integer.MAX_VALUE, null, trace);
-          if (RTfinal != null)
-            tops.clone(ATorig, RTfinal, true, null, null);
-        } else if (RTfinalExists) {
-          AdjBFS(Aorig, null, 1, null, RTfinal, null, null, false, 0, Integer.MAX_VALUE, null, trace);
-          if (Rfinal != null)
-            tops.clone(Aorig, Rfinal, true, null, null);
-        } else {                                          // both graphs are new;
-          if (Rfinal != null)
-            tops.clone(Aorig, Rfinal, true, null, null);  // flushes Aorig before cloning
-          if (RTfinal != null)
-            tops.clone(ATorig, RTfinal, true, null, null);
-        }
+        else
+          tops.clone(Aorig, Rfinal, true, null, null);    // flushes Aorig before cloning
       }
 
       // non-trivial case: k is 3 or more.
-      String Atmp, ATtmp, A2tmp, Atmp3, ATtmp3;
+      String Atmp, A2tmp, Atmp3;
       long nnzBefore, nnzAfter;
       String tmpBaseName = Aorig+"_kTrussAdj_";
       Atmp = tmpBaseName+"tmpA";
-      ATtmp = tmpBaseName+"tmpAT";
       A2tmp = tmpBaseName+"tmpA2";
       Atmp3 = tmpBaseName+"tmpAsecond";
-      ATtmp3 = tmpBaseName+"tmpATsecond";
       // verify temporary tables do not exist
       if (!forceDelete) {
         Preconditions.checkState(!tops.exists(Atmp), "Temporary table already exists: %s. Set forceDelete=true to delete.", Atmp);
-        Preconditions.checkState(!tops.exists(ATtmp), "Temporary table already exists: %s. Set forceDelete=true to delete.", ATtmp);
         Preconditions.checkState(!tops.exists(A2tmp), "Temporary table already exists: %s. Set forceDelete=true to delete.", A2tmp);
         Preconditions.checkState(!tops.exists(Atmp3), "Temporary table already exists: %s. Set forceDelete=true to delete.", Atmp3);
-        Preconditions.checkState(!tops.exists(ATtmp3), "Temporary table already exists: %s. Set forceDelete=true to delete.", ATtmp3);
       } else {
         if (tops.exists(Atmp)) tops.delete( Atmp);
-        if (tops.exists(ATtmp)) tops.delete(ATtmp);
         if (tops.exists(A2tmp)) tops.delete(A2tmp);
         if (tops.exists(Atmp3)) tops.delete(Atmp3);
-        if (tops.exists(ATtmp3)) tops.delete(ATtmp3);
       }
       tops.clone(Aorig, Atmp, true, null, null);
-      tops.clone(ATorig, ATtmp, true, null, null);
 
       // Inital nnz
+      // Careful: nnz figure will be inaccurate if there are multiple versions of an entry in Aorig.
+      // The truly accurate count is to count them first!
 //      D4mDbTableOperations d4mtops = new D4mDbTableOperations(connector.getInstance().getInstanceName(),
 //          connector.getInstance().getZooKeepers(), connector.whoami(), new String(password.getPassword()));
 //      nnzAfter = d4mtops.getNumberOfEntries(Collections.singletonList(Aorig))
@@ -1407,41 +1395,25 @@ public class Graphulo {
       do {
         nnzBefore = nnzAfter;
 
-        TableMult(ATtmp, Atmp, A2tmp, null, AndMultiply.class, DEFAULT_PLUS_ITERATOR,
+        TableMult(Atmp, Atmp, A2tmp, null, AndMultiply.class, DEFAULT_PLUS_ITERATOR,
             null, null, null, false, false, Collections.singletonList(kTrussFilter), -1, trace);
         // A2tmp has a SummingCombiner
 
-        nnzAfter = SpEWiseX(A2tmp, Atmp, Atmp3, ATtmp3, AndEWiseX.class, null,
+        nnzAfter = SpEWiseX(A2tmp, Atmp, Atmp3, null, AndEWiseX.class, null,
             null, null, null, -1, trace);
 
         tops.delete(Atmp);
         tops.delete(A2tmp);
-        tops.delete(ATtmp);
-        String t;
-        t = Atmp; Atmp = Atmp3; Atmp3 = t;
-        t = ATtmp; ATtmp = ATtmp3;
-        ATtmp3 = t;
+        { String t = Atmp; Atmp = Atmp3; Atmp3 = t; }
 
         log.debug("nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter);
       } while (nnzBefore != nnzAfter);
       // Atmp, ATtmp have the result table. Could be empty.
 
-      if (RfinalExists && RTfinalExists) { // sum whole graph into existing graph
-        AdjBFS(Atmp, null, 1, Rfinal, RTfinal, null, null, false, 0, Integer.MAX_VALUE, null, trace);
-      } else if (RfinalExists) {
+      if (RfinalExists)  // sum whole graph into existing graph
         AdjBFS(Atmp, null, 1, Rfinal, null, null, null, false, 0, Integer.MAX_VALUE, null, trace);
-        if (RTfinal != null)
-          tops.clone(ATtmp, RTfinal, true, null, null);
-      } else if (RTfinalExists) {
-        AdjBFS(Atmp, null, 1, null, RTfinal, null, null, false, 0, Integer.MAX_VALUE, null, trace);
-        if (Rfinal != null)
-          tops.clone(Atmp, Rfinal, true, null, null);
-      } else {                                          // both graphs are new;
-        if (Rfinal != null)
-          tops.clone(Atmp, Rfinal, true, null, null);  // flushes Aorig before cloning
-        if (RTfinal != null)
-          tops.clone(ATtmp, RTfinal, true, null, null);
-      }
+      else                                           // result is new;
+        tops.clone(Atmp, Rfinal, true, null, null);  // flushes Atmp before cloning
 
       return nnzAfter;
 

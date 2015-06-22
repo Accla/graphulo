@@ -58,7 +58,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    long nnzkTruss = graphulo.kTrussAdj(tA, tA, tR, null, 3, true, true);
+    long nnzkTruss = graphulo.kTrussAdj(tA, tR, 3, true, true);
     log.info("kTruss has "+nnzkTruss+" nnz");
 
     BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);

@@ -1,9 +1,11 @@
 package edu.mit.ll.graphulo;
 
 import com.google.common.collect.Iterators;
+import edu.mit.ll.graphulo.skvi.MinMaxValueFilter;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.PeekingIterator2;
 import edu.mit.ll.graphulo.util.RangeSet;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.lexicoder.AbstractEncoder;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -469,6 +471,18 @@ public class UtilTest {
     log.debug(Key.toPrintableString(b, 0, b.length, b.length));
     // establish fixpoint
     Assert.assertEquals(s, s2);
+  }
+
+  @Test
+  public void testDynamicIteratorSetting() {
+    DynamicIteratorSetting dis = new DynamicIteratorSetting();
+    dis.append(new IteratorSetting(1, MinMaxValueFilter.class, Collections.singletonMap(MinMaxValueFilter.MINVALUE, Long.toString(5))));
+    dis.append(new IteratorSetting(15, "negFilter", MinMaxValueFilter.class, Collections.singletonMap("negate", Boolean.toString(true))));
+
+    IteratorSetting setting1 = dis.toIteratorSetting(5);
+    Map<String,String> mapCopy = new HashMap<>(setting1.getOptions());
+    Assert.assertEquals(setting1,
+        DynamicIteratorSetting.fromMap(mapCopy).toIteratorSetting(5));
   }
 
 }

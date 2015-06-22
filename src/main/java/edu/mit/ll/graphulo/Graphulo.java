@@ -12,6 +12,7 @@ import edu.mit.ll.graphulo.rowmult.EdgeBFSMultiply;
 import edu.mit.ll.graphulo.rowmult.LineRowMultiply;
 import edu.mit.ll.graphulo.rowmult.MultiplyOp;
 import edu.mit.ll.graphulo.skvi.CountAllIterator;
+import edu.mit.ll.graphulo.skvi.DebugInfoIterator;
 import edu.mit.ll.graphulo.skvi.MinMaxValueFilter;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
 import edu.mit.ll.graphulo.skvi.SingleTransposeIterator;
@@ -344,16 +345,21 @@ public class Graphulo {
     } else
       bs.setRanges(Collections.singleton(new Range()));
 
-    // TODO P2: Assign priority and name dynamically, checking for conflicts.
-    int prio = 5;
-    bs.addScanIterator(new IteratorSetting(prio++, TwoTableIterator.class, optTT));
-    for (IteratorSetting setting : iteratorsAfterTwoTable) {
-      setting.setPriority(prio++);
-      bs.addScanIterator(setting);
-    }
-    bs.addScanIterator(new IteratorSetting(prio, RemoteWriteIterator.class, optRWI));
+    // TODO P2: Let priority be an argument.
 
-    GraphuloUtil.applyGeneralColumnFilter(colFilterB, bs, 4);
+
+
+    DynamicIteratorSetting dis = new DynamicIteratorSetting();
+    GraphuloUtil.applyGeneralColumnFilter(colFilterB, bs, dis);
+    dis.append(new IteratorSetting(1, TwoTableIterator.class, optTT));
+    for (IteratorSetting setting : iteratorsAfterTwoTable)
+      dis.append(setting);
+    dis.append(new IteratorSetting(1, RemoteWriteIterator.class, optRWI));
+    dis.append(new IteratorSetting(1, DebugInfoIterator.class)); // DEBUG
+    int prio = 5;
+    bs.addScanIterator(dis.toIteratorSetting(prio));
+
+
 
     // for monitoring: reduce table-level parameter controlling when Accumulo sends back an entry to the client
     String prevPropTableScanMaxMem = null;
@@ -377,14 +383,16 @@ public class Graphulo {
       }
 
     // Do the BatchScan on B
-    long numEntries = 0;
+    int numEntries = 0, thisEntries;
     try {
       for (Map.Entry<Key, Value> entry : bs) {
         if (Ctable != null || CTtable != null) {
-          numEntries += RemoteWriteIterator.decodeValue(entry.getValue(), null);
-          System.out.println(entry.getKey() + " -> " + numEntries + " entries processed");
+//          log.debug(entry.getKey() + " -> " + entry.getValue() + " AS " + Key.toPrintableString(entry.getValue().get(), 0, entry.getValue().get().length, 40) + " RAW "+ Arrays.toString(entry.getValue().get()));
+          thisEntries = RemoteWriteIterator.decodeValue(entry.getValue(), null);
+          log.debug(entry.getKey() + " -> " + thisEntries + " entries processed");
+          numEntries += thisEntries;
         } else {
-          System.out.println(entry.getKey() + " -> " + entry.getValue());
+          log.debug(entry.getKey() + " -> " + entry.getValue());
         }
       }
     } finally {
@@ -534,6 +542,7 @@ public class Graphulo {
       throw new RuntimeException(e);
     }
 
+    DynamicIteratorSetting dis = new DynamicIteratorSetting();
     IteratorSetting itsetDegreeFilter = null;
     if (needDegreeFiltering && ADegtable == null) {
       itsetDegreeFilter = new IteratorSetting(3, SmallLargeRowFilter.class);
@@ -553,6 +562,7 @@ public class Graphulo {
                 (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
 
         bs.clearScanIterators();
+        dis.clear();
 
         if (needDegreeFiltering && ADegtable != null) { // use degree table
           long t1 = System.currentTimeMillis(), dur;
@@ -577,11 +587,11 @@ public class Graphulo {
           else
             opt.put("rowRanges", GraphuloUtil.textsToD4mString(vktexts, sep));
           if (needDegreeFiltering) // filtering but no degree table
-            bs.addScanIterator(itsetDegreeFilter);
+            dis.append(itsetDegreeFilter);
         }
 
-        IteratorSetting itset = new IteratorSetting(4, RemoteWriteIterator.class, opt);
-        bs.addScanIterator(itset);
+        dis.append(new IteratorSetting(4, RemoteWriteIterator.class, opt));
+        bs.addScanIterator(dis.toIteratorSetting(4));
 
         GatherColQReducer reducer = new GatherColQReducer();
         reducer.init(Collections.<String, String>emptyMap(), null);
@@ -1147,8 +1157,10 @@ public class Graphulo {
         }
 
         bs.clearScanIterators();
-        bs.addScanIterator(new IteratorSetting(3, SingleTransposeIterator.class, optSTI));
-        bs.addScanIterator(new IteratorSetting(4, RemoteWriteIterator.class, opt));
+        DynamicIteratorSetting dis = new DynamicIteratorSetting();
+        dis.append(new IteratorSetting(3, SingleTransposeIterator.class, optSTI));
+        dis.append(new IteratorSetting(4, RemoteWriteIterator.class, opt));
+        bs.addScanIterator(dis.toIteratorSetting(3));
 
 
         SingleBFSReducer reducer = new SingleBFSReducer();

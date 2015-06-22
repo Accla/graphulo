@@ -296,14 +296,13 @@ public class TableMultTest extends AccumuloTestBase {
         GraphuloUtil.d4mRowToRanges("C2,:,"),
         "A1,", "B1,", true, false, 1, false);
 
-    Assert.assertEquals(2, numpp);
-
     Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
     Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
     for (Map.Entry<Key, Value> entry : scanner) {
       actual.put(entry.getKey(), entry.getValue());
     }
     Assert.assertEquals(expect, actual);
+    Assert.assertEquals(2, numpp);
     scanner.close();
 
     // now check more advanced column filter, write to transpose

@@ -23,7 +23,6 @@ import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -211,8 +210,6 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>,
     log.debug("RemoteSourceIterator on table " + tableName + ": init() succeeded");
   }
 
-  static final Text EMPTY_TEXT = new Text();
-
   private void setupConnectorScanner() {
     ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeeperHost);
     if (timeout != -1)
@@ -236,13 +233,14 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>,
     if (doClientSideIterators)
       scanner = new ClientSideIteratorScanner(scanner);
 
+//    DynamicIteratorSetting dis = new DynamicIteratorSetting();
     GraphuloUtil.applyGeneralColumnFilter(colFilter,scanner,4);
 
     if (doWholeRow) {
       // TODO: make priority dynamic in case 25 is taken; make name dynamic in case iterator name already exists. Or buffer here.
-      IteratorSetting iset = new IteratorSetting(25, WholeRowIterator.class);
-      scanner.addScanIterator(iset);
+      scanner.addScanIterator(new IteratorSetting(25, WholeRowIterator.class));
     }
+
   }
 
   @Override

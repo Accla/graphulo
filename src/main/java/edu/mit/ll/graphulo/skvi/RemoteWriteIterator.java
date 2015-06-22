@@ -277,7 +277,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
     setupConnectorWriter();
 
-    log.debug("RemoteWriteIterator on table " + tableName + ": init() succeeded");
+//    log.debug("RemoteWriteIterator on table " + tableName + ": init() succeeded");
   }
 
   private void setupConnectorWriter() {
@@ -362,7 +362,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
           Range thisTargetRange = rowRangeIterator.peek();
           assert thisTargetRange.clip(seekRange, true) != null : "problem with RangeSet iterator intersecting seekRange";
           if (thisTargetRange.getStartKey() != null && thisTargetRange.getStartKey().compareTo(lastSafeKey) > 0)
-            lastSafeKey.set(thisTargetRange.getStartKey());
+            lastSafeKey = new Key(thisTargetRange.getStartKey());
           log.debug("RemoteWrite actual seek " + thisTargetRange);// + "(thread " + Thread.currentThread().getName() + ")");
           // We could use the 10x next() heuristic here...
 //          if (!initialSeek)
@@ -455,7 +455,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
       if (numEntriesCheckpoint > 0 && entriesWritten >= numEntriesCheckpoint) {
         Key safeKey = ((SaveStateIterator) source).safeState();
         if (safeKey != null) {
-          lastSafeKey.set(safeKey);
+          lastSafeKey = new Key(safeKey);
           return true;
         }
       }
@@ -506,9 +506,9 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   @Override
   public Key getTopKey() {
     if (source.hasTop())
-      return new Key(lastSafeKey);
+      return lastSafeKey;
     else
-      return new Key(lastSafeKey).followingKey(PartialKey.ROW_COLFAM_COLQUAL);
+      return lastSafeKey.followingKey(PartialKey.ROW_COLFAM_COLQUAL);
   }
 
   @Override
@@ -529,7 +529,9 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
           .putChar(',')
           .put(orig)
           .rewind();
-      return new Value(bb);
+      Value v = new Value(bb);
+//      log.debug("topValue entriesWritten: "+entriesWritten);
+      return v;
     }
   }
 

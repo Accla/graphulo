@@ -27,10 +27,10 @@ public class MinMaxValueFilter extends Filter {
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     if (options.containsKey(MINVALUE)) {
-      minValue = Integer.parseInt(options.get(MINVALUE));
+      minValue = Long.parseLong(options.get(MINVALUE));
     }
-    if (options.containsKey(MINVALUE)) {
-      maxValue = Integer.parseInt(options.get(MAXVALUE));
+    if (options.containsKey(MAXVALUE)) {
+      maxValue = Long.parseLong(options.get(MAXVALUE));
     }
     if (maxValue < minValue)
       throw new IllegalArgumentException("maxValue < minValue: "+maxValue+" < "+minValue);
@@ -56,7 +56,7 @@ public class MinMaxValueFilter extends Filter {
     io.setName(MinMaxValueFilter.class.getCanonicalName());
     io.setDescription("Filter based on Value interpreted as a Long, encoded as String");
     io.addNamedOption(MINVALUE, "Minimum Value, default "+minValue);
-    io.addNamedOption(MINVALUE, "Maximum Value, default "+maxValue);
+    io.addNamedOption(MAXVALUE, "Maximum Value, default "+maxValue);
     return io;
   }
 

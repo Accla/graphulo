@@ -2,9 +2,11 @@
  * 
  */
 package edu.mit.ll.d4m.db.cloud.accumulo;
+
 import edu.mit.ll.cloud.connection.ConnectionProperties;
 import edu.mit.ll.d4m.db.cloud.D4mException;
 import edu.mit.ll.d4m.db.cloud.accumulo.AccumuloCombiner.CombiningType;
+import edu.mit.ll.d4m.db.cloud.util.ArgumentChecker;
 import edu.mit.ll.d4m.db.cloud.util.D4mQueryUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -24,7 +26,6 @@ import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import edu.mit.ll.d4m.db.cloud.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
@@ -32,8 +33,17 @@ import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 ${accumulo.VERSION.1.6}import org.apache.accumulo.core.util.ThriftUtil; // 1.6
 ${accumulo.VERSION.1.7}import org.apache.accumulo.core.rpc.ThriftUtil; // 1.7
@@ -79,14 +89,14 @@ public class AccumuloTableOperations {
 	}
 
 	
-	public long getNumberOfEntries(ArrayList<String> tableNames) {
+	public long getNumberOfEntries(List<String> tableNames) {
 		long retval=0l;
 
 		//Get TServers
 		try {
 			ArrayList<TabletServerStatus> tserverStatusList = getTabletServers();
 			List<TabletStats> tabletStatsList = getTabletStatsList(tserverStatusList,  tableNames);
-			retval = getNumberOfEntries(tabletStatsList);
+			retval = getNumberOfEntries_help(tabletStatsList);
 		} catch (D4mException | TException e) {
 			log.warn(e);
 		}
@@ -96,7 +106,7 @@ public class AccumuloTableOperations {
 
 		return retval;
 	}
-	private long getNumberOfEntries(List<TabletStats> list) {
+	private long getNumberOfEntries_help(List<TabletStats> list) {
 		long retval = 0;
 		for(TabletStats ts: list) {
 			log.debug("num entries = "+ts.numEntries);

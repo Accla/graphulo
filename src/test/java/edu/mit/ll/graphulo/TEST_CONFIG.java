@@ -19,7 +19,8 @@ import org.junit.runners.Suite;
     CountTest.class,
     ReducerTest.class,
     SCCTest.class,
-    LineTest.class
+    LineTest.class,
+    AlgorithmTest.class
 })
 
 /**

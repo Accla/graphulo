@@ -15,7 +15,7 @@ import java.util.Map;
  * A abstract class for simple element0-wise function application
  * that returns zero or one entry per apply.
  */
-public abstract class SimpleApply implements ApplyOp, Iterator<Map.Entry<Key,Value>> {
+public abstract class SimpleApply implements ApplyOp {
   /** Implements simple apply logic. Returning null means no entry is emitted. */
   public abstract Value simpleApply(Key k, Value v);
 

@@ -1,13 +1,18 @@
 package edu.mit.ll.graphulo;
 
+import com.google.common.base.Preconditions;
+import edu.mit.ll.graphulo.ewise.AndEWiseX;
 import edu.mit.ll.graphulo.ewise.EWiseOp;
 import edu.mit.ll.graphulo.reducer.EdgeBFSReducer;
 import edu.mit.ll.graphulo.reducer.GatherColQReducer;
 import edu.mit.ll.graphulo.reducer.SingleBFSReducer;
+import edu.mit.ll.graphulo.rowmult.AndMultiply;
 import edu.mit.ll.graphulo.rowmult.CartesianRowMultiply;
 import edu.mit.ll.graphulo.rowmult.EdgeBFSMultiply;
 import edu.mit.ll.graphulo.rowmult.LineRowMultiply;
 import edu.mit.ll.graphulo.rowmult.MultiplyOp;
+import edu.mit.ll.graphulo.skvi.CountAllIterator;
+import edu.mit.ll.graphulo.skvi.MinMaxValueFilter;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
 import edu.mit.ll.graphulo.skvi.SingleTransposeIterator;
 import edu.mit.ll.graphulo.skvi.SmallLargeRowFilter;
@@ -104,7 +109,8 @@ public class Graphulo {
                        int numEntriesCheckpoint, boolean trace) {
     return TwoTableEWISE(Atable, Btable, Ctable, CTtable,
         multOp, plusOp, rowFilter, colFilterAT, colFilterB,
-        false, false, numEntriesCheckpoint, trace);
+        false, false, Collections.<IteratorSetting>emptyList(),
+        numEntriesCheckpoint, trace);
   }
 
   public long SpEWiseSum(String Atable, String Btable, String Ctable, String CTtable,
@@ -114,7 +120,8 @@ public class Graphulo {
                          int numEntriesCheckpoint, boolean trace) {
     return TwoTableEWISE(Atable, Btable, Ctable, CTtable,
         multOp, plusOp, rowFilter, colFilterAT, colFilterB,
-        true, true, numEntriesCheckpoint, trace);
+        true, true, Collections.<IteratorSetting>emptyList(),
+        numEntriesCheckpoint, trace);
   }
 
   /**
@@ -142,7 +149,21 @@ public class Graphulo {
                         int numEntriesCheckpoint, boolean trace) {
     return TwoTableROW(ATtable, Btable, Ctable, CTtable,
         multOp, plusOp, rowFilter, colFilterAT, colFilterB,
-        alsoDoAA, alsoDoBB, alsoDoAA, alsoDoBB, numEntriesCheckpoint, trace);
+        alsoDoAA, alsoDoBB, alsoDoAA, alsoDoBB, Collections.<IteratorSetting>emptyList(),
+        numEntriesCheckpoint, trace);
+  }
+
+  public long TableMult(String ATtable, String Btable, String Ctable, String CTtable,
+                        Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
+                        Collection<Range> rowFilter,
+                        String colFilterAT, String colFilterB,
+                        boolean alsoDoAA, boolean alsoDoBB,
+                        List<IteratorSetting> iteratorsAfterTwoTable,
+                        int numEntriesCheckpoint, boolean trace) {
+    return TwoTableROW(ATtable, Btable, Ctable, CTtable,
+        multOp, plusOp, rowFilter, colFilterAT, colFilterB,
+        alsoDoAA, alsoDoBB, alsoDoAA, alsoDoBB, iteratorsAfterTwoTable,
+        numEntriesCheckpoint, trace);
   }
 
   public long TwoTableROW(String ATtable, String Btable, String Ctable, String CTtable,
@@ -152,6 +173,7 @@ public class Graphulo {
                           String colFilterAT, String colFilterB,
                           boolean emitNoMatchA, boolean emitNoMatchB,
                           boolean alsoDoAA, boolean alsoDoBB,
+                          List<IteratorSetting> iteratorsAfterTwoTable,
                           int numEntriesCheckpoint, boolean trace) {
     Map<String,String> opt = new HashMap<>();
     opt.put("rowMultiplyOp", CartesianRowMultiply.class.getName());
@@ -162,7 +184,8 @@ public class Graphulo {
 
     return TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.ROW, opt, plusOp,
         rowFilter, colFilterAT, colFilterB,
-        emitNoMatchA, emitNoMatchB, numEntriesCheckpoint, trace);
+        emitNoMatchA, emitNoMatchB, iteratorsAfterTwoTable,
+        numEntriesCheckpoint, trace);
   }
 
   public long TwoTableEWISE(String ATtable, String Btable, String Ctable, String CTtable,
@@ -171,13 +194,15 @@ public class Graphulo {
                           Collection<Range> rowFilter,
                           String colFilterAT, String colFilterB,
                           boolean emitNoMatchA, boolean emitNoMatchB,
+                            List<IteratorSetting> iteratorsAfterTwoTable,
                           int numEntriesCheckpoint, boolean trace) {
     Map<String,String> opt = new HashMap<>();
     opt.put("multiplyOp", multOp.getName());
 
     return TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.EWISE, opt, plusOp,
         rowFilter, colFilterAT, colFilterB,
-        emitNoMatchA, emitNoMatchB, numEntriesCheckpoint, trace);
+        emitNoMatchA, emitNoMatchB, iteratorsAfterTwoTable,
+        numEntriesCheckpoint, trace);
   }
 
   public long TwoTableNONE(String ATtable, String Btable, String Ctable, String CTtable,
@@ -186,12 +211,14 @@ public class Graphulo {
                             Collection<Range> rowFilter,
                             String colFilterAT, String colFilterB,
                             boolean emitNoMatchA, boolean emitNoMatchB,
+                           List<IteratorSetting> iteratorsAfterTwoTable,
                             int numEntriesCheckpoint, boolean trace) {
     Map<String,String> opt = new HashMap<>();
 
     return TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.NONE, opt, plusOp,
         rowFilter, colFilterAT, colFilterB,
-        emitNoMatchA, emitNoMatchB, numEntriesCheckpoint, trace);
+        emitNoMatchA, emitNoMatchB, iteratorsAfterTwoTable,
+        numEntriesCheckpoint, trace);
   }
 
   private long TwoTable(String ATtable, String Btable, String Ctable, String CTtable,
@@ -200,6 +227,7 @@ public class Graphulo {
                        Collection<Range> rowFilter,
                        String colFilterAT, String colFilterB,
                        boolean emitNoMatchA, boolean emitNoMatchB,
+                        List<IteratorSetting> iteratorsAfterTwoTable,
                        int numEntriesCheckpoint, boolean trace) {
     if (ATtable == null || ATtable.isEmpty())
       throw new IllegalArgumentException("Please specify table AT. Given: " + ATtable);
@@ -214,6 +242,8 @@ public class Graphulo {
       throw new UnsupportedOperationException("Could lead to unpredictable results: ATtable=CTtable=" + ATtable);
     if (Btable.equals(CTtable))
       throw new UnsupportedOperationException("Could lead to unpredictable results: Btable=CTtable=" + Btable);
+    if (iteratorsAfterTwoTable == null)
+      iteratorsAfterTwoTable = Collections.emptyList();
 
     if (Ctable != null && Ctable.isEmpty())
       Ctable = null;
@@ -262,34 +292,34 @@ public class Graphulo {
     String zookeepers = connector.getInstance().getZooKeepers();
     String user = connector.whoami();
 
-    Map<String, String> opt = new HashMap<>();
-    opt.put("trace", String.valueOf(trace)); // logs timing on server
-    opt.put("dotmode", dotmode.name());
+    Map<String, String> optTT = new HashMap<>(), optRWI = new HashMap<>();
+//    optTT.put("trace", String.valueOf(trace)); // logs timing on server // todo Temp removed -- setting of Watch enable
+    optTT.put("dotmode", dotmode.name());
 
-    opt.putAll(setupOpts);
+    optTT.putAll(setupOpts);
 
-    opt.put("AT.zookeeperHost", zookeepers);
-    opt.put("AT.instanceName", instance);
-    opt.put("AT.tableName", ATtable);
-    opt.put("AT.username", user);
-    opt.put("AT.password", new String(password.getPassword()));
+    optTT.put("AT.zookeeperHost", zookeepers);
+    optTT.put("AT.instanceName", instance);
+    optTT.put("AT.tableName", ATtable);
+    optTT.put("AT.username", user);
+    optTT.put("AT.password", new String(password.getPassword()));
     if (colFilterAT != null)
-      opt.put("AT.colFilter", colFilterAT);
+      optTT.put("AT.colFilter", colFilterAT);
 
     if (Ctable != null || CTtable != null) {
-      opt.put("C.zookeeperHost", zookeepers);
-      opt.put("C.instanceName", instance);
+      optRWI.put("zookeeperHost", zookeepers); // todo: abstract this into a method
+      optRWI.put("instanceName", instance);
       if (Ctable != null)
-        opt.put("C.tableName", Ctable);
+        optRWI.put("tableName", Ctable);
       if (CTtable != null)
-        opt.put("C.tableNameTranspose", CTtable);
-      opt.put("C.username", user);
-      opt.put("C.password", new String(password.getPassword()));
-      opt.put("C.numEntriesCheckpoint", String.valueOf(numEntriesCheckpoint));
+        optRWI.put("tableNameTranspose", CTtable);
+      optRWI.put("username", user);
+      optRWI.put("password", new String(password.getPassword()));
+      optRWI.put("numEntriesCheckpoint", String.valueOf(numEntriesCheckpoint));
     }
 
-    opt.put("AT.emitNoMatch", Boolean.toString(emitNoMatchA));
-    opt.put("B.emitNoMatch", Boolean.toString(emitNoMatchB));
+    optTT.put("AT.emitNoMatch", Boolean.toString(emitNoMatchA));
+    optTT.put("B.emitNoMatch", Boolean.toString(emitNoMatchB));
 
     if (Ctable != null && plusOp != null)
       GraphuloUtil.applyIteratorSoft(plusOp, tops, Ctable);
@@ -307,7 +337,7 @@ public class Graphulo {
 
     if (rowFilter != null) {
       if (Ctable != null || CTtable != null) {
-        opt.put("C.rowRanges", GraphuloUtil.rangesToD4MString(rowFilter)); // translate row filter to D4M notation
+        optRWI.put("rowRanges", GraphuloUtil.rangesToD4MString(rowFilter)); // translate row filter to D4M notation
         bs.setRanges(Collections.singleton(new Range()));
       } else
         bs.setRanges(rowFilter);
@@ -315,8 +345,13 @@ public class Graphulo {
       bs.setRanges(Collections.singleton(new Range()));
 
     // TODO P2: Assign priority and name dynamically, checking for conflicts.
-    IteratorSetting itset = new IteratorSetting(5, TableMultIterator.class, opt);
-    bs.addScanIterator(itset);
+    int prio = 5;
+    bs.addScanIterator(new IteratorSetting(prio++, TwoTableIterator.class, optTT));
+    for (IteratorSetting setting : iteratorsAfterTwoTable) {
+      setting.setPriority(prio++);
+      bs.addScanIterator(setting);
+    }
+    bs.addScanIterator(new IteratorSetting(prio, RemoteWriteIterator.class, optRWI));
 
     GraphuloUtil.applyGeneralColumnFilter(colFilterB, bs, 4);
 
@@ -387,7 +422,6 @@ public class Graphulo {
   /**
    * Use LongCombiner to sum.
    */
-
   public String AdjBFS(String Atable, String v0, int k, String Rtable, String RtableTranspose,
                        String ADegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree) {
 
@@ -1262,7 +1296,162 @@ public class Graphulo {
 
     TwoTable(ATtable, Atable, Rtable, RTtable, TwoTableIterator.DOTMODE.ROW, opt, plusOp,
         rowFilter, colFilterAT, colFilterB,
-        false, false, numEntriesCheckpoint, trace);
+        false, false, null, numEntriesCheckpoint, trace);
+  }
+
+  String emptyToNull(String s) { return s != null && s.isEmpty() ? null : s; }
+
+  /**
+   * Count number of entries in a table using a BatchScanner with {@link CountAllIterator}.
+   */
+  public long countEntries(String table) {
+    Preconditions.checkArgument(table != null && !table.isEmpty());
+
+    BatchScanner bs;
+    try {
+      bs = connector.createBatchScanner(table, Authorizations.EMPTY, 2); // todo: 2 threads is arbitrary
+    } catch (TableNotFoundException e) {
+      log.error("table "+table+" does not exist", e);
+      throw new RuntimeException(e);
+    }
+
+    bs.setRanges(Collections.singleton(new Range()));
+    bs.addScanIterator(new IteratorSetting(30, CountAllIterator.class));
+
+    long cnt = 0l;
+    try {
+      for (Map.Entry<Key, Value> entry : bs) {
+        cnt += new Long(new String(entry.getValue().get()));
+      }
+    } finally {
+      bs.close();
+    }
+    return cnt;
+  }
+
+
+  public long kTrussAdj(String Aorig, String ATorig, String Rfinal, String RTfinal, int k,
+                        boolean forceDelete, boolean trace) {
+    Aorig = emptyToNull(Aorig);
+    ATorig = emptyToNull(ATorig);
+    Rfinal = emptyToNull(Rfinal);
+    RTfinal = emptyToNull(RTfinal);
+    Preconditions.checkArgument(Aorig != null && ATorig != null, "Both input tables must be given: Aorig=%s, ATorig=%s", Aorig, ATorig);
+    Preconditions.checkArgument(Rfinal != null || RTfinal != null, "One output table must be given or operation is useless: Rfinal=%s, RTfinal=%s", Rfinal, RTfinal);
+    TableOperations tops = connector.tableOperations();
+    Preconditions.checkArgument(tops.exists(Aorig) && tops.exists(ATorig), "Both input tables must exist: Aorig=%s, ATorig=%s", Aorig, ATorig);
+    boolean RfinalExists = Rfinal != null && tops.exists(Rfinal),
+        RTfinalExists = RTfinal != null && tops.exists(RTfinal);
+
+    // Careful: nnz figure will be inaccurate if there are multiple versions of an entry in Aorig.
+    // The truly accurate count is to count them first!
+
+
+    try {
+      if (k <= 2) {               // trivial case: every graph is a 2-truss
+        if (RfinalExists && RTfinalExists) { // sum whole graph into existing graph
+          AdjBFS(Aorig, null, 1, Rfinal, RTfinal, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+        } else if (RfinalExists) {
+          AdjBFS(Aorig, null, 1, Rfinal, null, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+          if (RTfinal != null)
+            tops.clone(ATorig, RTfinal, true, null, null);
+        } else if (RTfinalExists) {
+          AdjBFS(Aorig, null, 1, null, RTfinal, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+          if (Rfinal != null)
+            tops.clone(Aorig, Rfinal, true, null, null);
+        } else {                                          // both graphs are new;
+          if (Rfinal != null)
+            tops.clone(Aorig, Rfinal, true, null, null);  // flushes Aorig before cloning
+          if (RTfinal != null)
+            tops.clone(ATorig, RTfinal, true, null, null);
+        }
+      }
+
+      // non-trivial case: k is 3 or more.
+      String Atmp, ATtmp, A2tmp, Atmp3, ATtmp3;
+      long nnzBefore, nnzAfter;
+      String tmpBaseName = Aorig+"_kTrussAdj_";
+      Atmp = tmpBaseName+"tmpA";
+      ATtmp = tmpBaseName+"tmpAT";
+      A2tmp = tmpBaseName+"tmpA2";
+      Atmp3 = tmpBaseName+"tmpAsecond";
+      ATtmp3 = tmpBaseName+"tmpATsecond";
+      // verify temporary tables do not exist
+      if (!forceDelete) {
+        Preconditions.checkState(!tops.exists(Atmp), "Temporary table already exists: %s. Set forceDelete=true to delete.", Atmp);
+        Preconditions.checkState(!tops.exists(ATtmp), "Temporary table already exists: %s. Set forceDelete=true to delete.", ATtmp);
+        Preconditions.checkState(!tops.exists(A2tmp), "Temporary table already exists: %s. Set forceDelete=true to delete.", A2tmp);
+        Preconditions.checkState(!tops.exists(Atmp3), "Temporary table already exists: %s. Set forceDelete=true to delete.", Atmp3);
+        Preconditions.checkState(!tops.exists(ATtmp3), "Temporary table already exists: %s. Set forceDelete=true to delete.", ATtmp3);
+      } else {
+        if (tops.exists(Atmp)) tops.delete( Atmp);
+        if (tops.exists(ATtmp)) tops.delete(ATtmp);
+        if (tops.exists(A2tmp)) tops.delete(A2tmp);
+        if (tops.exists(Atmp3)) tops.delete(Atmp3);
+        if (tops.exists(ATtmp3)) tops.delete(ATtmp3);
+      }
+      tops.clone(Aorig, Atmp, true, null, null);
+      tops.clone(ATorig, ATtmp, true, null, null);
+
+      // Inital nnz
+//      D4mDbTableOperations d4mtops = new D4mDbTableOperations(connector.getInstance().getInstanceName(),
+//          connector.getInstance().getZooKeepers(), connector.whoami(), new String(password.getPassword()));
+//      nnzAfter = d4mtops.getNumberOfEntries(Collections.singletonList(Aorig))
+      // Above method dangerous. Instead:
+      nnzAfter = countEntries(Aorig);
+
+      // Filter out entries with < k-2
+      IteratorSetting kTrussFilter = new IteratorSetting(10, MinMaxValueFilter.class);
+      kTrussFilter.addOption(MinMaxValueFilter.MINVALUE, Long.toString(k-2l));
+
+      do {
+        nnzBefore = nnzAfter;
+
+        TableMult(ATtmp, Atmp, A2tmp, null, AndMultiply.class, DEFAULT_PLUS_ITERATOR,
+            null, null, null, false, false, Collections.singletonList(kTrussFilter), -1, trace);
+        // A2tmp has a SummingCombiner
+
+        nnzAfter = SpEWiseX(A2tmp, Atmp, Atmp3, ATtmp3, AndEWiseX.class, null,
+            null, null, null, -1, trace);
+
+        tops.delete(Atmp);
+        tops.delete(A2tmp);
+        tops.delete(ATtmp);
+        String t;
+        t = Atmp; Atmp = Atmp3; Atmp3 = t;
+        t = ATtmp; ATtmp = ATtmp3;
+        ATtmp3 = t;
+
+        log.debug("nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter);
+      } while (nnzBefore != nnzAfter);
+      // Atmp, ATtmp have the result table. Could be empty.
+
+      if (RfinalExists && RTfinalExists) { // sum whole graph into existing graph
+        AdjBFS(Atmp, null, 1, Rfinal, RTfinal, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+      } else if (RfinalExists) {
+        AdjBFS(Atmp, null, 1, Rfinal, null, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+        if (RTfinal != null)
+          tops.clone(ATtmp, RTfinal, true, null, null);
+      } else if (RTfinalExists) {
+        AdjBFS(Atmp, null, 1, null, RTfinal, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+        if (Rfinal != null)
+          tops.clone(Atmp, Rfinal, true, null, null);
+      } else {                                          // both graphs are new;
+        if (Rfinal != null)
+          tops.clone(Atmp, Rfinal, true, null, null);  // flushes Aorig before cloning
+        if (RTfinal != null)
+          tops.clone(ATtmp, RTfinal, true, null, null);
+      }
+
+      return nnzAfter;
+
+    } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
+      log.error("Exception in kTrussAdj", e);
+      throw new RuntimeException(e);
+    } catch (Exception e) {
+      log.error("Exception in kTrussAdj ", e);
+      throw new RuntimeException(e);
+    }
   }
 
 

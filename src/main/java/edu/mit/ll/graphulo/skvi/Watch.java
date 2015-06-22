@@ -11,7 +11,7 @@ import java.util.EnumMap;
  */
 public class Watch<K extends Enum<K>> {
   private static final Logger log = LogManager.getLogger(Watch.class);
-  public static volatile boolean enableTrace = true;
+  public static volatile boolean enableTrace = false;
 
   static {
     log.info("Loading Watch");

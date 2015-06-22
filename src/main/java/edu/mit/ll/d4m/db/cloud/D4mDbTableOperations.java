@@ -78,7 +78,7 @@ public class D4mDbTableOperations extends D4mParent {
 	 *  Get the total number of entries for the specified table names
 	 *  tableNames   list of table names of interest	
 	 */
-	public long getNumberOfEntries(ArrayList<String>  tableNames)  throws Exception{
+	public long getNumberOfEntries(List<String>  tableNames)  throws Exception{
 		doInit();
 		long retVal= this.d4mTableOp.getNumberOfEntries(tableNames);
 

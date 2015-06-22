@@ -476,6 +476,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     return numRejects != -1 &&
         (numRejects >= REJECT_FAILURE_THRESHOLD ||
         rowRangeIterator.hasNext() ||
+            entriesWritten > 0 ||
         //source.hasTop() ||
         reducer.hasTop());
   }
@@ -485,7 +486,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     if (numRejects >= REJECT_FAILURE_THRESHOLD)
       numRejects = -1;
     reducer.reset();
-    if (rowRangeIterator.hasNext()) {
+    if (entriesWritten > 0 || rowRangeIterator.hasNext()) {
       if (source.hasTop()) {
         Watch<Watch.PerfSpan> watch = Watch.getInstance();
         watch.start(Watch.PerfSpan.WriteGetNext);

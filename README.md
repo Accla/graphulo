@@ -27,8 +27,6 @@ Graphulo is tested on Accumulo 1.6 and 1.7
 
 ### Directory Structure
 
-An asterisk indicates files/folders recommended to change, or not made yet.
-
 <pre>
 src/                                 
   assembly/...        Files for building graphulo.

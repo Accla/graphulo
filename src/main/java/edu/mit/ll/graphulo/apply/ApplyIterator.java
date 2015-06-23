@@ -48,13 +48,15 @@ public class ApplyIterator implements SortedKeyValueIterator<Key, Value> {
         }
       }
     }
-
+    if (applyOp == null)
+      throw new IllegalArgumentException("Must specify ApplyOp in options. Given: "+options);
   }
 
   @Override
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
     this.source = source;
     parseOptions(options);
+    applyOp.init(applyOpOptions, env);
   }
 
   @Override
@@ -106,6 +108,12 @@ public class ApplyIterator implements SortedKeyValueIterator<Key, Value> {
     try {
       copy.applyOp = applyOp.getClass().newInstance();
     } catch (InstantiationException | IllegalAccessException e) {
+      log.error("", e);
+      throw new RuntimeException("",e);
+    }
+    try {
+      applyOp.init(applyOpOptions, env);
+    } catch (IOException e) {
       log.error("", e);
       throw new RuntimeException("",e);
     }

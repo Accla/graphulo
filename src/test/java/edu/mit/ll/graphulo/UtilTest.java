@@ -21,6 +21,7 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -406,7 +407,7 @@ public class UtilTest {
       pos += b.length;
     }
 
-    Assert.assertEquals("abcxyz",new String(ret,UTF_8));
+    Assert.assertEquals("abcxyz",new String(ret, StandardCharsets.UTF_8));
   }
 
   /** temporary */

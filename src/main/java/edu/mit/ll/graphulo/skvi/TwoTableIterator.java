@@ -255,6 +255,8 @@ public class TwoTableIterator implements SaveStateIterator {
     return ret;
   }
 
+  /** This corresponds with the setup for RemoteSourceIterator, except this is applied to a local SKVI instead
+   * of a Scanner. */
   private SortedKeyValueIterator<Key, Value> setupRemoteSourceOptionsSKVI(
       SortedKeyValueIterator<Key, Value> ret, Map<String, String> opts, IteratorEnvironment env) throws IOException {
     boolean doWholeRow = false;

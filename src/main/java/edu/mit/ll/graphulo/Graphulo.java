@@ -3,6 +3,8 @@ package edu.mit.ll.graphulo;
 import com.google.common.base.Preconditions;
 import edu.mit.ll.graphulo.apply.Abs0Apply;
 import edu.mit.ll.graphulo.apply.ApplyIterator;
+import edu.mit.ll.graphulo.apply.ColQSpecialByteApply;
+import edu.mit.ll.graphulo.apply.JaccardDegreeApply;
 import edu.mit.ll.graphulo.apply.OnlyRowApply;
 import edu.mit.ll.graphulo.ewise.AndEWiseX;
 import edu.mit.ll.graphulo.ewise.EWiseOp;
@@ -13,6 +15,7 @@ import edu.mit.ll.graphulo.rowmult.AndMultiply;
 import edu.mit.ll.graphulo.rowmult.CartesianRowMultiply;
 import edu.mit.ll.graphulo.rowmult.EdgeBFSMultiply;
 import edu.mit.ll.graphulo.rowmult.LineRowMultiply;
+import edu.mit.ll.graphulo.rowmult.LongMultiply;
 import edu.mit.ll.graphulo.rowmult.MultiplyOp;
 import edu.mit.ll.graphulo.rowmult.SelectorRowMultiply;
 import edu.mit.ll.graphulo.skvi.CountAllIterator;
@@ -57,6 +60,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
@@ -255,12 +259,14 @@ public class Graphulo {
 
   private long TwoTable(String ATtable, String Btable, String Ctable, String CTtable,
                        TwoTableIterator.DOTMODE dotmode, Map<String, String> setupOpts,
-                       IteratorSetting plusOp,
+                       IteratorSetting plusOp, // priority matters
                        Collection<Range> rowFilter,
                        String colFilterAT, String colFilterB,
                        boolean emitNoMatchA, boolean emitNoMatchB,
+                        // RemoteSourceIterator has its own priority for scan-time iterators.
+                        // Could override by "diterPriority" option
                         List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
-                        List<IteratorSetting> iteratorsAfterTwoTable,
+                        List<IteratorSetting> iteratorsAfterTwoTable, // priority doesn't matter for these three
                        int numEntriesCheckpoint, boolean trace) {
     if (ATtable == null || ATtable.isEmpty())
       throw new IllegalArgumentException("Please specify table AT. Given: " + ATtable);
@@ -1484,9 +1490,23 @@ public class Graphulo {
   }
 
 
-
-
-
+  /**
+   * From input <b>unweighted, undirected</b> incidence table Eorig, put the k-Truss
+   * of Eorig in Rfinal.  Needs transpose ETorig, and can output transpose of k-Truss subgraph too.
+   * @param Eorig Unweighted, undirected incidence table.
+   * @param ETorig Transpose of input incidence table.
+   *               Please use <tt>AdjBFS(Eorig, null, 1, null, ETorig, null, null, false, 0, Integer.MAX_VALUE, null, trace)</tt>
+   *               if you need to create it.
+   * @param Rfinal Does not have to previously exist. Writes the kTruss into Rfinal if it already exists.
+   *               Use a combiner if you want to sum it in.
+   * @param RTfinal Does not have to previously exist. Writes in the transpose of the kTruss subgraph.
+   * @param k Trivial if k <= 2.
+   * @param forceDelete False means throws exception if the temporary tables used inside the algorithm already exist.
+   *                    True means delete them if they exist.
+   * @param trace Server-side tracing.
+   * @return  nnz of the kTruss subgraph, which is 2* the number of edges in the kTruss subgraph.
+   *          Returns -1 if k < 2 since there is no point in counting the number of edges.
+   */
   public long kTrussEdge(String Eorig, String ETorig, String Rfinal, String RTfinal, int k,
                          boolean forceDelete, boolean trace) {
     // small optimization possible: pass in Aorig = ET*E if present. Saves first iteration matrix multiply. Not really worth it.
@@ -1504,7 +1524,6 @@ public class Graphulo {
 
     try {
       if (k <= 2) {               // trivial case: every graph is a 2-truss
-
         if (RfinalExists && RTfinalExists) { // sum whole graph into existing graph
           // AdjBFS works just as well as EdgeBFS because we're not doing any filtering.
           AdjBFS(Eorig, null, 1, Rfinal, RTfinal, null, null, false, 0, Integer.MAX_VALUE, null, trace);
@@ -1522,6 +1541,7 @@ public class Graphulo {
           if (RTfinal != null)
             tops.clone(ETorig, RTfinal, true, null, null);
         }
+        return -1;
       }
 
       // non-trivial case: k is 3 or more.
@@ -1640,5 +1660,73 @@ public class Graphulo {
   }
 
 
+
+  /**
+   * From input <b>unweighted, undirected</b> adjacency table Aorig,
+   * put the Jaccard coefficients in the upper triangle of Rfinal.
+   * @param Aorig Unweighted, undirected adjacency table.
+   * @param Rfinal Should not previously exist. Writes the Jaccard table into Rfinal,
+   *               using a couple combiner-like iterators.
+   * @param trace Server-side tracing.
+   * @return nnz of the result Jaccard table
+   */
+  public long Jaccard(String Aorig, String ADeg, String Rfinal,
+                      boolean trace) {
+    Aorig = emptyToNull(Aorig);
+    ADeg = emptyToNull(ADeg);
+    Rfinal = emptyToNull(Rfinal);
+    Preconditions.checkArgument(Aorig != null, "Input table must be given: Aorig=%s", Aorig);
+    Preconditions.checkArgument(ADeg != null, "Input degree table must be given: ADeg=%s", ADeg);
+    Preconditions.checkArgument(Rfinal != null, "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
+    TableOperations tops = connector.tableOperations();
+    Preconditions.checkArgument(tops.exists(Aorig), "Input table must exist: Aorig=%s", Aorig);
+    Preconditions.checkArgument(tops.exists(ADeg), "Input degree table must exist: ADeg=%s", ADeg);
+    Preconditions.checkArgument(!tops.exists(Rfinal), "Output Jaccard table must not exist: Rfinal=%s", Rfinal);
+
+    // "Plus" iterator to set on Rfinal
+    IteratorSetting RPlusIteratorSetting;
+    {
+      DynamicIteratorSetting dis = new DynamicIteratorSetting();
+      dis.append(DEFAULT_PLUS_ITERATOR);
+
+      Map<String,String> opt = new HashMap<>();
+      opt.put(ApplyIterator.APPLYOP, JaccardDegreeApply.class.getName());
+      String instance = connector.getInstance().getInstanceName();
+      String zookeepers = connector.getInstance().getZooKeepers();
+      String user = connector.whoami();
+      opt.put(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+"zookeeperHost", zookeepers); // todo: abstract this into a method
+      opt.put(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+"instanceName", instance);
+      opt.put(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+"tableName", ADeg);
+      opt.put(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+"username", user);
+      opt.put(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+"password", new String(password.getPassword()));
+      IteratorSetting JDegApply = new IteratorSetting(1, ApplyIterator.class, opt);
+      dis.append(JDegApply);
+      RPlusIteratorSetting = dis.toIteratorSetting(DEFAULT_PLUS_ITERATOR.getPriority());
+    }
+
+    List<IteratorSetting> afterTTIterators = new LinkedList<>();
+    {
+//        DynamicIteratorSetting dis = new DynamicIteratorSetting();
+      afterTTIterators.add(new IteratorSetting(1, TriangularFilter.class,
+          Collections.singletonMap(TriangularFilter.TRIANGULAR_TYPE,
+              TriangularFilter.TriangularType.Upper.name())));
+      afterTTIterators.add(new IteratorSetting(1, ApplyIterator.class,
+          Collections.singletonMap(ApplyIterator.APPLYOP, ColQSpecialByteApply.class.getName())));
+//        afterTTIterators = dis.toIteratorSetting(1);
+    }
+
+    long Jnnz = TableMult(Aorig, Aorig, Rfinal, null, LongMultiply.class, RPlusIteratorSetting,
+        null, null, null, true, true,
+        Collections.singletonList(new IteratorSetting(1, TriangularFilter.class,
+                Collections.singletonMap(TriangularFilter.TRIANGULAR_TYPE,
+                    TriangularFilter.TriangularType.Lower.name()))),
+        Collections.singletonList(new IteratorSetting(1, TriangularFilter.class,
+            Collections.singletonMap(TriangularFilter.TRIANGULAR_TYPE,
+                TriangularFilter.TriangularType.Upper.name()))),
+            afterTTIterators, -1, trace);
+
+    log.debug("Jaccard nnz "+Jnnz);
+    return Jnnz;
+  }
 
 }

@@ -135,4 +135,71 @@ public class AlgorithmTest extends AccumuloTestBase {
     Assert.assertEquals(10, nnzkTruss);
   }
 
+  @Test
+  public void testJaccard() throws TableNotFoundException {
+    Connector conn = tester.getConnector();
+    final String tA, tADeg, tR;
+    {
+      String[] names = getUniqueNames(3);
+      tA = names[0];
+      tADeg = names[1];
+      tR = names[2];
+    }
+
+    Map<Key,Double> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    {
+      Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("v1", "", "v2"), new Value("1".getBytes()));
+      input.put(new Key("v1", "", "v3"), new Value("1".getBytes()));
+      input.put(new Key("v1", "", "v4"), new Value("1".getBytes()));
+      input.put(new Key("v2", "", "v3"), new Value("1".getBytes()));
+      input.put(new Key("v3", "", "v4"), new Value("1".getBytes()));
+      input.putAll(TestUtil.transposeMap(input));
+      input.put(new Key("v2", "", "v5"), new Value("1".getBytes()));
+      input.put(new Key("v5", "", "v2"), new Value("1".getBytes()));
+      SortedSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("v15"));
+      TestUtil.createTestTable(conn, tA, splits, input);
+
+      input.clear();
+      input.put(new Key("v1", "", "deg"), new Value("3".getBytes()));
+      input.put(new Key("v2", "", "deg"), new Value("3".getBytes()));
+      input.put(new Key("v3", "", "deg"), new Value("3".getBytes()));
+      input.put(new Key("v4", "", "deg"), new Value("2".getBytes()));
+      input.put(new Key("v5", "", "deg"), new Value("1".getBytes()));
+      TestUtil.createTestTable(conn, tADeg, splits, input);
+
+      expect.put(new Key("v1", "", "v2"), 0.2);
+      expect.put(new Key("v1", "", "v3"), 0.5);
+      expect.put(new Key("v1", "", "v4"), 0.25);
+      expect.put(new Key("v1", "", "v5"), 1.0/3.0);
+      expect.put(new Key("v2", "", "v3"), 0.2);
+      expect.put(new Key("v2", "", "v4"), 2.0/3.0);
+      expect.put(new Key("v3", "", "v4"), 0.25);
+      expect.put(new Key("v3", "", "v5"), 1.0/3.0);
+    }
+
+    Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+    long nnzJaccard = graphulo.Jaccard(tA, tADeg, tR, true);
+    log.info("Jaccard table has "+nnzJaccard+" nnz");
+
+    BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
+    scanner.setRanges(Collections.singleton(new Range()));
+    for (Map.Entry<Key, Value> entry : scanner) {
+      actual.put(entry.getKey(), Double.valueOf(entry.getValue().toString()));
+    }
+    scanner.close();
+    System.out.println("Jaccard test:");
+    TestUtil.printExpectActual(expect, actual);
+    Assert.assertEquals(10, nnzJaccard);
+    // need to be careful about comparing doubles
+    for (Map.Entry<Key, Double> actualEntry : actual.entrySet()) {
+      double actualValue = actualEntry.getValue();
+      Assert.assertTrue(expect.containsKey(actualEntry.getKey()));
+      double expectValue = expect.get(actualEntry.getKey());
+      Assert.assertEquals(expectValue, actualValue, 0.001);
+    }
+  }
+
 }

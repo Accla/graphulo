@@ -7,6 +7,8 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.TypedValueCombiner;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Map;
@@ -16,6 +18,7 @@ import java.util.Map;
  * Could generalize to use different encoders. Uses the String encoder presently.
  */
 public class MinMaxValueFilter extends Filter {
+  private static final Logger log = LogManager.getLogger(MinMaxValueFilter.class);
 
   public static final String MINVALUE = "minValue", MAXVALUE = "maxValue";
 
@@ -39,6 +42,11 @@ public class MinMaxValueFilter extends Filter {
   @Override
   public boolean accept(Key k, Value v) {
     long l = encoder.decode(v.get());
+//    if (l >= minValue && l <= maxValue) // DEBUG
+//      log.info("accept: "+k+" -> "+v);
+//    else {
+//      log.info("REJECT: "+k+" -> "+v);
+//    }
     return l >= minValue && l <= maxValue;
   }
 

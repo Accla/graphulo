@@ -74,7 +74,7 @@ public class ApplyIterator implements SortedKeyValueIterator<Key, Value> {
 
     while (!topIterator.hasNext() /*&& source.hasTop()*/) {
       source.next();
-      if (source.hasTop())
+      if (!source.hasTop())
         return;
       topIterator = new PeekingIterator1<>(applyOp.apply(source.getTopKey(), source.getTopValue()));
     }

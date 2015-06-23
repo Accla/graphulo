@@ -22,7 +22,7 @@ import java.util.Map;
 public class TriangularFilter extends Filter {
 
   public enum TriangularType { Upper, UpperDiagonal, Lower, LowerDiagonal, Diagonal, NoDiagonal }
-  public static final String TRIANGULAR_TYPE = TriangularType.class.getCanonicalName();
+  public static final String TRIANGULAR_TYPE = "triangularType";
 
   private TriangularType triangularType = TriangularType.Upper;
 

@@ -71,4 +71,68 @@ public class AlgorithmTest extends AccumuloTestBase {
     Assert.assertEquals(expect, actual);
   }
 
+
+  @Test
+  public void testkTrussEdge() throws TableNotFoundException {
+    Connector conn = tester.getConnector();
+    final String tE, tET, tR, tRT;
+    {
+      String[] names = getUniqueNames(4);
+      tE = names[0];
+      tET = names[1];
+      tR = names[2];
+      tRT = names[3];
+    }
+
+    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+        expectTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actualTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    {
+      Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("e1", "", "v1"), new Value("1".getBytes()));
+      input.put(new Key("e1", "", "v2"), new Value("1".getBytes()));
+      input.put(new Key("e2", "", "v2"), new Value("1".getBytes()));
+      input.put(new Key("e2", "", "v3"), new Value("1".getBytes()));
+      input.put(new Key("e3", "", "v1"), new Value("1".getBytes()));
+      input.put(new Key("e3", "", "v4"), new Value("1".getBytes()));
+      input.put(new Key("e4", "", "v3"), new Value("1".getBytes()));
+      input.put(new Key("e4", "", "v4"), new Value("1".getBytes()));
+      input.put(new Key("e5", "", "v1"), new Value("1".getBytes()));
+      input.put(new Key("e5", "", "v3"), new Value("1".getBytes()));
+      expect.putAll(input);
+      expectTranspose.putAll(TestUtil.transposeMap(expect));
+      input.put(new Key("e6", "", "v2"), new Value("1".getBytes()));
+      input.put(new Key("e6", "", "v5"), new Value("1".getBytes()));
+      SortedSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("e22"));
+      TestUtil.createTestTable(conn, tE, splits, input);
+      splits.clear();
+      splits.add(new Text("v22"));
+      TestUtil.createTestTable(conn, tET, splits, TestUtil.transposeMap(input));
+    }
+
+    Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+    long nnzkTruss = graphulo.kTrussEdge(tE, tET, tR, tRT, 3, true, true);
+    log.info("kTruss has "+nnzkTruss+" nnz");
+
+    BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
+    scanner.setRanges(Collections.singleton(new Range()));
+    for (Map.Entry<Key, Value> entry : scanner) {
+      actual.put(entry.getKey(), entry.getValue());
+    }
+    scanner.close();
+    Assert.assertEquals(expect, actual);
+    Assert.assertEquals(10, nnzkTruss);
+
+    scanner = conn.createBatchScanner(tRT, Authorizations.EMPTY, 2);
+    scanner.setRanges(Collections.singleton(new Range()));
+    for (Map.Entry<Key, Value> entry : scanner) {
+      actualTranspose.put(entry.getKey(), entry.getValue());
+    }
+    scanner.close();
+    Assert.assertEquals(expectTranspose, actualTranspose);
+    Assert.assertEquals(10, nnzkTruss);
+  }
+
 }

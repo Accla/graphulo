@@ -1,6 +1,9 @@
 package edu.mit.ll.graphulo;
 
 import com.google.common.base.Preconditions;
+import edu.mit.ll.graphulo.apply.Abs0Apply;
+import edu.mit.ll.graphulo.apply.ApplyIterator;
+import edu.mit.ll.graphulo.apply.OnlyRowApply;
 import edu.mit.ll.graphulo.ewise.AndEWiseX;
 import edu.mit.ll.graphulo.ewise.EWiseOp;
 import edu.mit.ll.graphulo.reducer.EdgeBFSReducer;
@@ -11,13 +14,14 @@ import edu.mit.ll.graphulo.rowmult.CartesianRowMultiply;
 import edu.mit.ll.graphulo.rowmult.EdgeBFSMultiply;
 import edu.mit.ll.graphulo.rowmult.LineRowMultiply;
 import edu.mit.ll.graphulo.rowmult.MultiplyOp;
+import edu.mit.ll.graphulo.rowmult.SelectorRowMultiply;
 import edu.mit.ll.graphulo.skvi.CountAllIterator;
-import edu.mit.ll.graphulo.skvi.DebugInfoIterator;
 import edu.mit.ll.graphulo.skvi.MinMaxValueFilter;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
 import edu.mit.ll.graphulo.skvi.SingleTransposeIterator;
 import edu.mit.ll.graphulo.skvi.SmallLargeRowFilter;
 import edu.mit.ll.graphulo.skvi.TableMultIterator;
+import edu.mit.ll.graphulo.skvi.TriangularFilter;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -47,6 +51,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -150,7 +155,7 @@ public class Graphulo {
                         String colFilterAT, String colFilterB,
                         boolean alsoDoAA, boolean alsoDoBB,
                         int numEntriesCheckpoint, boolean trace) {
-    return TwoTableROW(ATtable, Btable, Ctable, CTtable,
+    return TwoTableROWCartesian(ATtable, Btable, Ctable, CTtable,
         multOp, plusOp, rowFilter, colFilterAT, colFilterB,
         alsoDoAA, alsoDoBB, alsoDoAA, alsoDoBB, Collections.<IteratorSetting>emptyList(),
         Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
@@ -165,22 +170,22 @@ public class Graphulo {
                         List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
                         List<IteratorSetting> iteratorsAfterTwoTable,
                         int numEntriesCheckpoint, boolean trace) {
-    return TwoTableROW(ATtable, Btable, Ctable, CTtable,
+    return TwoTableROWCartesian(ATtable, Btable, Ctable, CTtable,
         multOp, plusOp, rowFilter, colFilterAT, colFilterB,
         alsoDoAA, alsoDoBB, alsoDoAA, alsoDoBB, iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
         numEntriesCheckpoint, trace);
   }
 
-  public long TwoTableROW(String ATtable, String Btable, String Ctable, String CTtable,
-                          //TwoTableIterator.DOTMODE dotmode, //CartesianRowMultiply.ROWMODE rowmode,
-                          Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
-                          Collection<Range> rowFilter,
-                          String colFilterAT, String colFilterB,
-                          boolean emitNoMatchA, boolean emitNoMatchB,
-                          boolean alsoDoAA, boolean alsoDoBB,
-                          List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
-                          List<IteratorSetting> iteratorsAfterTwoTable,
-                          int numEntriesCheckpoint, boolean trace) {
+  public long TwoTableROWCartesian(String ATtable, String Btable, String Ctable, String CTtable,
+                                   //TwoTableIterator.DOTMODE dotmode, //CartesianRowMultiply.ROWMODE rowmode,
+                                   Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
+                                   Collection<Range> rowFilter,
+                                   String colFilterAT, String colFilterB,
+                                   boolean emitNoMatchA, boolean emitNoMatchB,
+                                   boolean alsoDoAA, boolean alsoDoBB,
+                                   List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
+                                   List<IteratorSetting> iteratorsAfterTwoTable,
+                                   int numEntriesCheckpoint, boolean trace) {
     Map<String,String> opt = new HashMap<>();
     opt.put("rowMultiplyOp", CartesianRowMultiply.class.getName());
     opt.put("rowMultiplyOp.opt.multiplyOp", multOp.getName()); // treated same as multiplyOp
@@ -191,6 +196,25 @@ public class Graphulo {
     return TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.ROW, opt, plusOp,
         rowFilter, colFilterAT, colFilterB,
         emitNoMatchA, emitNoMatchB, iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
+        numEntriesCheckpoint, trace);
+  }
+
+  public long TwoTableROWSelector(
+      String ATtable, String Btable, String Ctable, String CTtable,
+      Collection<Range> rowFilter,
+      String colFilterAT, String colFilterB,
+      boolean ASelectsBRow,
+      List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
+      List<IteratorSetting> iteratorsAfterTwoTable,
+      int numEntriesCheckpoint, boolean trace
+  ) {
+    Map<String,String> opt = new HashMap<>();
+    opt.put("rowMultiplyOp", SelectorRowMultiply.class.getName());
+    opt.put("rowMultiplyOp.opt."+SelectorRowMultiply.ASELECTSBROW, Boolean.toString(ASelectsBRow));
+
+    return TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.ROW, opt, null,
+        rowFilter, colFilterAT, colFilterB,
+        false, false, iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
         numEntriesCheckpoint, trace);
   }
 
@@ -372,9 +396,9 @@ public class Graphulo {
     dis.append(new IteratorSetting(1, TwoTableIterator.class, optTT));
     for (IteratorSetting setting : iteratorsAfterTwoTable)
       dis.append(setting);
+//    dis.append(new IteratorSetting(1, DebugInfoIterator.class)); // DEBUG
     dis.append(new IteratorSetting(1, RemoteWriteIterator.class, optRWI));
-    dis.append(new IteratorSetting(1, DebugInfoIterator.class)); // DEBUG
-    int prio = 5;
+    int prio = 7;
     bs.addScanIterator(dis.toIteratorSetting(prio));
 
 
@@ -1400,7 +1424,7 @@ public class Graphulo {
       String tmpBaseName = Aorig+"_kTrussAdj_";
       Atmp = tmpBaseName+"tmpA";
       A2tmp = tmpBaseName+"tmpA2";
-      AtmpAlt = tmpBaseName+"tmpAsecond";
+      AtmpAlt = tmpBaseName+"tmpAalt";
       // verify temporary tables do not exist
       if (!forceDelete) {
         Preconditions.checkState(!tops.exists(Atmp), "Temporary table already exists: %s. Set forceDelete=true to delete.", Atmp);
@@ -1456,12 +1480,164 @@ public class Graphulo {
     } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
       log.error("Exception in kTrussAdj", e);
       throw new RuntimeException(e);
-    } catch (Exception e) {
-      log.error("Exception in kTrussAdj ", e);
-      throw new RuntimeException(e);
     }
   }
 
+
+
+
+
+  public long kTrussEdge(String Eorig, String ETorig, String Rfinal, String RTfinal, int k,
+                         boolean forceDelete, boolean trace) {
+    // small optimization possible: pass in Aorig = ET*E if present. Saves first iteration matrix multiply. Not really worth it.
+    Eorig = emptyToNull(Eorig);
+    ETorig = emptyToNull(ETorig);
+    Rfinal = emptyToNull(Rfinal);
+    Preconditions.checkArgument(Eorig != null, "Input table must be given: Eorig=%s", Eorig);
+    Preconditions.checkArgument(ETorig != null, "Input table must be given: ETorig=%s", ETorig);
+    Preconditions.checkArgument(Rfinal != null || RTfinal != null, "One Output table must be given or operation is useless: Rfinal=%s; RTfinal=%s", Rfinal, RTfinal);
+    TableOperations tops = connector.tableOperations();
+    Preconditions.checkArgument(tops.exists(Eorig), "Input table must exist: Eorig=%s", Eorig);
+    Preconditions.checkArgument(tops.exists(ETorig), "Input table must exist: ETorig=%s", ETorig);
+    boolean RfinalExists = Rfinal != null && tops.exists(Rfinal),
+        RTfinalExists = RTfinal != null && tops.exists(RTfinal);
+
+    try {
+      if (k <= 2) {               // trivial case: every graph is a 2-truss
+
+        if (RfinalExists && RTfinalExists) { // sum whole graph into existing graph
+          // AdjBFS works just as well as EdgeBFS because we're not doing any filtering.
+          AdjBFS(Eorig, null, 1, Rfinal, RTfinal, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+        } else if (RfinalExists) {
+          AdjBFS(Eorig, null, 1, Rfinal, null, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+          if (RTfinal != null)
+            tops.clone(ETorig, RTfinal, true, null, null);
+        } else if (RTfinalExists) {
+          AdjBFS(Eorig, null, 1, null, RTfinal, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+          if (Rfinal != null)
+            tops.clone(Eorig, Rfinal, true, null, null);
+        } else {                                          // both graphs are new;
+          if (Rfinal != null)
+            tops.clone(Eorig, Rfinal, true, null, null);  // flushes Eorig before cloning
+          if (RTfinal != null)
+            tops.clone(ETorig, RTfinal, true, null, null);
+        }
+      }
+
+      // non-trivial case: k is 3 or more.
+      String Etmp, ETtmp, Rtmp, Atmp, EtmpAlt, ETtmpAlt;
+      long nnzBefore, nnzAfter;
+      String tmpBaseName = Eorig+"_kTrussEdge_";
+      Etmp = tmpBaseName+"tmpE";
+      ETtmp = tmpBaseName+"tmpET";
+      Atmp = tmpBaseName+"tmpA";
+      Rtmp = tmpBaseName+"tmpR";
+      EtmpAlt = tmpBaseName+"tmpEalt";
+      ETtmpAlt = tmpBaseName+"tmpETalt";
+      // verify temporary tables do not exist
+      if (!forceDelete) {
+        Preconditions.checkState(!tops.exists(Etmp), "Temporary table already exists: %s. Set forceDelete=true to delete.", Etmp);
+        Preconditions.checkState(!tops.exists(ETtmp), "Temporary table already exists: %s. Set forceDelete=true to delete.", ETtmp);
+        Preconditions.checkState(!tops.exists(Atmp), "Temporary table already exists: %s. Set forceDelete=true to delete.", Atmp);
+        Preconditions.checkState(!tops.exists(Rtmp), "Temporary table already exists: %s. Set forceDelete=true to delete.", Rtmp);
+        Preconditions.checkState(!tops.exists(EtmpAlt), "Temporary table already exists: %s. Set forceDelete=true to delete.", EtmpAlt);
+        Preconditions.checkState(!tops.exists(ETtmpAlt), "Temporary table already exists: %s. Set forceDelete=true to delete.", ETtmpAlt);
+      } else {
+        if (tops.exists(Etmp)) tops.delete( Etmp);
+        if (tops.exists(ETtmp)) tops.delete( ETtmp);
+        if (tops.exists(Atmp)) tops.delete(Atmp);
+        if (tops.exists(Rtmp)) tops.delete(Rtmp);
+        if (tops.exists(EtmpAlt)) tops.delete(EtmpAlt);
+        if (tops.exists(ETtmpAlt)) tops.delete(ETtmpAlt);
+      }
+      tops.clone(Eorig, Etmp, true, null, null);
+      tops.clone(ETorig, ETtmp, true, null, null);
+
+      // Inital nnz
+      // Careful: nnz figure will be inaccurate if there are multiple versions of an entry in Aorig.
+      // The truly accurate count is to count them first!
+//      D4mDbTableOperations d4mtops = new D4mDbTableOperations(connector.getInstance().getInstanceName(),
+//          connector.getInstance().getZooKeepers(), connector.whoami(), new String(password.getPassword()));
+//      nnzAfter = d4mtops.getNumberOfEntries(Collections.singletonList(Eorig))
+      // Above method dangerous. Instead:
+      nnzAfter = countEntries(Eorig);
+
+      // Filter out entries with < k-2
+      IteratorSetting kTrussFilter = new IteratorSetting(10, MinMaxValueFilter.class);
+      kTrussFilter.addOption(MinMaxValueFilter.MINVALUE, Long.toString(k-2l));
+
+      // No Diagonal Filter
+      IteratorSetting noDiagFilter = new IteratorSetting(10, TriangularFilter.class);
+      noDiagFilter.addOption(TriangularFilter.TRIANGULAR_TYPE, TriangularFilter.TriangularType.NoDiagonal.name());
+
+      // R -> sum -> kTrussFilter -> TT_RowSelector
+      List<IteratorSetting> iteratorsBeforeA = new ArrayList<>();
+      {
+        IteratorSetting minMaxSetting = new IteratorSetting(1, MinMaxValueFilter.class);
+        minMaxSetting.addOption(MinMaxValueFilter.MAXVALUE, "2");
+        minMaxSetting.addOption(MinMaxValueFilter.MINVALUE, "2");
+        iteratorsBeforeA.add(minMaxSetting);
+      }
+      iteratorsBeforeA.add(new IteratorSetting(1, ApplyIterator.class,
+          Collections.singletonMap(ApplyIterator.APPLYOP, Abs0Apply.class.getName())));
+      iteratorsBeforeA.add(new IteratorSetting(1, ApplyIterator.class,
+          Collections.singletonMap(ApplyIterator.APPLYOP, OnlyRowApply.class.getName())));
+      iteratorsBeforeA.add(DEFAULT_PLUS_ITERATOR);
+      iteratorsBeforeA.add(kTrussFilter);
+
+      do {
+        nnzBefore = nnzAfter;
+
+        TableMult(Etmp, Etmp, Atmp, null, AndMultiply.class, DEFAULT_PLUS_ITERATOR,
+            null, null, null, false, false, null, null,
+            Collections.singletonList(noDiagFilter), -1, trace);
+        // Atmp has a SummingCombiner
+
+        TableMult(ETtmp, Atmp, Rtmp, null, AndMultiply.class, DEFAULT_PLUS_ITERATOR,
+            null, null, null, false, false, null, null,
+            null, -1, trace);
+        // Rtmp has a SummingCombiner
+        tops.delete(ETtmp);
+        tops.delete(Atmp);
+
+        // R -> sum -> kTrussFilter -> TT_RowSelector <- E
+        //                              \-> Writing to EtmpAlt, ETtmpAlt
+        nnzAfter = TwoTableROWSelector(Rtmp, Etmp, EtmpAlt, ETtmpAlt, null, null, null, true,
+            iteratorsBeforeA, null, null, -1, trace);
+        tops.delete(Etmp);
+
+        { String t = Etmp; Etmp = EtmpAlt; EtmpAlt = t; }
+        { String t = ETtmp; ETtmp = ETtmpAlt; ETtmpAlt = t; }
+
+        log.debug("nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter);
+      } while (nnzBefore != nnzAfter);
+      // Etmp, ETtmp have the result table. Could be empty.
+
+      if (RfinalExists && RTfinalExists) { // sum whole graph into existing graph
+        // AdjBFS works just as well as EdgeBFS because we're not doing any filtering.
+        AdjBFS(Etmp, null, 1, Rfinal, RTfinal, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+      } else if (RfinalExists) {
+        AdjBFS(Etmp, null, 1, Rfinal, null, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+        if (RTfinal != null)
+          tops.clone(ETtmp, RTfinal, true, null, null);
+      } else if (RTfinalExists) {
+        AdjBFS(Etmp, null, 1, null, RTfinal, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+        if (Rfinal != null)
+          tops.clone(Etmp, Rfinal, true, null, null);
+      } else {                                          // both graphs are new;
+        if (Rfinal != null)
+          tops.clone(Etmp, Rfinal, true, null, null);  // flushes Etmp before cloning
+        if (RTfinal != null)
+          tops.clone(ETtmp, RTfinal, true, null, null);
+      }
+
+      return nnzAfter;
+
+    } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
+      log.error("Exception in kTrussAdj", e);
+      throw new RuntimeException(e);
+    }
+  }
 
 
 

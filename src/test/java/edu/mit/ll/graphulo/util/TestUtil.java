@@ -92,6 +92,7 @@ public class TestUtil {
                                 k.getColumnVisibilityParsed(), v.get()); // no ts? System.currentTimeMillis()
                     writer.addMutation(m);
                 }
+                writer.flush();
             } catch (MutationsRejectedException e) {
                 throw new RuntimeException("rejected mutations; last one added is " + m, e);
             } finally {

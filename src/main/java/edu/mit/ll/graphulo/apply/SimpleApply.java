@@ -28,6 +28,6 @@ public abstract class SimpleApply implements ApplyOp {
 //    Key k = new Key(Mrow.getBackingArray(), ATcolF.getBackingArray(),
 //        ATcolQ.getBackingArray(), GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis());
     Value v2 = simpleApply(k, v1);
-    return v2 == null ? Collections.<Map.Entry<Key,Value>>emptyIterator() : Iterators.singletonIterator((Map.Entry<Key, Value>) new AbstractMap.SimpleImmutableEntry<>(k, v2));
+    return v2 == null ? Collections.<Map.Entry<Key,Value>>emptyIterator() : Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(k, v2));
   }
 }

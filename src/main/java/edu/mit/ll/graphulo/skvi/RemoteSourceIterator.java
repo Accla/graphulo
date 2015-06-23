@@ -189,10 +189,10 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
       scanner = new ClientSideIteratorScanner(scanner);
 
     if (dynamicIteratorSetting == null)
-      GraphuloUtil.applyGeneralColumnFilter(colFilter,scanner,4);
+      GraphuloUtil.applyGeneralColumnFilter(colFilter,scanner,10);
     else {
       GraphuloUtil.applyGeneralColumnFilter(colFilter, scanner, dynamicIteratorSetting, false); // prepend
-      scanner.addScanIterator(dynamicIteratorSetting.toIteratorSetting(4));
+      scanner.addScanIterator(dynamicIteratorSetting.toIteratorSetting(10));
     }
 
     if (doWholeRow) { // This is a legacy setting.

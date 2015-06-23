@@ -1,8 +1,8 @@
 package edu.mit.ll.graphulo.skvi;
 
 import com.google.common.collect.Iterators;
-import edu.mit.ll.graphulo.ewise.EWiseOp;
 import edu.mit.ll.graphulo.ewise.AndEWiseX;
+import edu.mit.ll.graphulo.ewise.EWiseOp;
 import edu.mit.ll.graphulo.rowmult.CartesianRowMultiply;
 import edu.mit.ll.graphulo.rowmult.RowMultiplyOp;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
@@ -13,7 +13,6 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.log4j.LogManager;
@@ -23,7 +22,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -54,7 +52,7 @@ import java.util.Map;
  * setting up rowRanges and colFilters as in the options.
  *
  */
-public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
+public class TwoTableIterator implements SaveStateIterator {
   private static final Logger log = LogManager.getLogger(TwoTableIterator.class);
 
   private RowMultiplyOp rowMultiplyOp = null;
@@ -88,46 +86,6 @@ public class TwoTableIterator implements SaveStateIterator, OptionDescriber {
     ROW,
     /** Match on row and column. Nothing extra read into memory. */
     EWISE
-  }
-
-  static final OptionDescriber.IteratorOptions iteratorOptions;
-
-  static {
-    final Map<String, String> optDesc = new LinkedHashMap<>();
-    for (Map.Entry<String, String> entry : RemoteSourceIterator.iteratorOptions.getNamedOptions().entrySet()) {
-      optDesc.put(PREFIX_AT + '.' + entry.getKey(), "Table AT:" + entry.getValue());
-    }
-    for (Map.Entry<String, String> entry : RemoteSourceIterator.iteratorOptions.getNamedOptions().entrySet()) {
-      optDesc.put(PREFIX_B + '.' + entry.getKey(), "Table B:" + entry.getValue());
-    }
-
-    optDesc.put("dotmode", "Type of dotmode product: NONE, TWOROW, ONEROWA, ONEROWB, EWISE");
-    optDesc.put(PREFIX_AT + '.' + "emitNoMatch", "Emit entries that do not match the other table");
-    optDesc.put(PREFIX_B + '.' + "emitNoMatch", "Emit entries that do not match the other table");
-
-    iteratorOptions = new OptionDescriber.IteratorOptions("TwoTableIterator",
-        "Outer product on A and B, given AT and B. Does not sum.",
-        optDesc, null);
-  }
-
-  @Override
-  public IteratorOptions describeOptions() {
-    return iteratorOptions;
-  }
-
-  @Override
-  public boolean validateOptions(Map<String, String> options) {
-    return validateOptionsStatic(options);
-  }
-
-  public boolean validateOptionsStatic(Map<String, String> options) {
-    Map<String, String> optAT = new HashMap<>(), optB = new HashMap<>();
-    new TwoTableIterator().parseOptions(options, optAT, optB);
-    if (!optAT.isEmpty())
-      RemoteSourceIterator.validateOptionsStatic(optAT);
-    if (!optB.isEmpty())
-      RemoteSourceIterator.validateOptionsStatic(optB);
-    return true;
   }
 
   private void parseOptions(Map<String, String> options, final Map<String, String> optAT, final Map<String, String> optB) {

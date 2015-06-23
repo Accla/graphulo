@@ -350,7 +350,7 @@ public class Graphulo {
 
 
     DynamicIteratorSetting dis = new DynamicIteratorSetting();
-    GraphuloUtil.applyGeneralColumnFilter(colFilterB, bs, dis);
+    GraphuloUtil.applyGeneralColumnFilter(colFilterB, bs, dis, true);
     dis.append(new IteratorSetting(1, TwoTableIterator.class, optTT));
     for (IteratorSetting setting : iteratorsAfterTwoTable)
       dis.append(setting);

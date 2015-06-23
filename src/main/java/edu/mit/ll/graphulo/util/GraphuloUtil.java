@@ -396,14 +396,15 @@ public class GraphuloUtil {
    * Apply an appropriate column filter based on the input string.
    * Four modes of operation:
    1. Null or blank ("") `colFilter`: do nothing.
-   2. No ranges `colFilter`: use scanner.fetchColumn() which invokes an Accumulo system ColumnQualifierFilter.
-   3. Singleton range `colFilter`: use Accumulo user ColumnSliceFilter.
-   4. Multi-range `colFilter`: use Graphulo D4mColumnRangeFilter.
+   2. No ranges `colFilter`: use scanner.fetchColumn() which invokes an Accumulo system {@link ColumnQualifierFilter}.
+   3. Singleton range `colFilter`: use Accumulo user {@link ColumnSliceFilter}.
+   4. Multi-range `colFilter`: use Graphulo {@link D4mColumnRangeFilter}.
    * @param colFilter column filter string
    * @param scanner to call fetchColumn() on, for case #2
-   * @param dis to call append() on, for cases #3 and #4
+   * @param dis to call append()/prepend() on, for cases #3 and #4
+   * @param append True means call {@link DynamicIteratorSetting#append}. False means call {@link DynamicIteratorSetting#prepend}
    */
-  public static void applyGeneralColumnFilter(String colFilter, ScannerBase scanner, DynamicIteratorSetting dis) {
+  public static void applyGeneralColumnFilter(String colFilter, ScannerBase scanner, DynamicIteratorSetting dis, boolean append) {
 //    System.err.println("colFilter: "+colFilter);
     if (colFilter != null && !colFilter.isEmpty()) {
       int pos1 = colFilter.indexOf(':');

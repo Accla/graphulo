@@ -10,11 +10,11 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.LinkedList;
 import java.util.Map;
 
 /**
@@ -23,21 +23,31 @@ import java.util.Map;
  * @see edu.mit.ll.graphulo.skvi.DynamicIterator
  */
 public class DynamicIteratorSetting {
-  private List<IteratorSetting> iteratorSettingList = new ArrayList<>();
+  private Deque<IteratorSetting> iteratorSettingList = new LinkedList<>();
+
+  public void prepend(IteratorSetting setting) {
+    iteratorSettingList.addFirst(setting);
+  }
 
   public void append(IteratorSetting setting) {
-    iteratorSettingList.add(setting);
+    iteratorSettingList.addLast(setting);
   }
 
   public void clear() {
     iteratorSettingList.clear();
   }
 
-  private Map<String,String> buildSettingMap() {
+  public Map<String,String> buildSettingMap() {
+    return buildSettingMap("");
+  }
+
+  /** Add the prefix to every setting option. */
+  public Map<String,String> buildSettingMap(String pre) {
+    if (pre == null) pre = "";
     Map<String,String> map = new HashMap<>();
     int prio = 1;
     for (IteratorSetting setting : iteratorSettingList) {
-      String prefix = prio+"."+setting.getName()+".";
+      String prefix = pre+prio+"."+setting.getName()+".";
       map.put(prefix+"class", setting.getIteratorClass());
       for (Map.Entry<String, String> entry : setting.getOptions().entrySet()) {
         map.put(prefix+"opt."+entry.getKey(), entry.getValue());
@@ -55,13 +65,22 @@ public class DynamicIteratorSetting {
     return new IteratorSetting(priority, name, DynamicIterator.class, buildSettingMap());
   }
 
+  /** Prefix is "".
+   * @see #fromMap(String, Map)
+   */
+  public static DynamicIteratorSetting fromMap(Map<String,String> mapOrig) {
+    return fromMap("", mapOrig);
+  }
+
   /**
    * Load a DynamicIteratorSetting from a Map&lt;String,String&gt;.
    * Used inside the Accumulo iterator stack {@link SortedKeyValueIterator#init}.
+   * @param pre A prefix that must be in front of every option, like "diter."
    * @param mapOrig A copy is made so that the original options are not consumed.
    * @return New DynamicIteratorSetting
    */
-  public static DynamicIteratorSetting fromMap(Map<String,String> mapOrig) {
+  public static DynamicIteratorSetting fromMap(String pre, Map<String,String> mapOrig) {
+    if (pre == null) pre = "";
     Map<String,String> mapCopy = new LinkedHashMap<>(mapOrig);
     DynamicIteratorSetting dis = new DynamicIteratorSetting();
     for (int prio = 1; true; prio++) {
@@ -72,6 +91,9 @@ public class DynamicIteratorSetting {
       for (Iterator<Map.Entry<String, String>> iterator = mapCopy.entrySet().iterator(); iterator.hasNext(); ) {
         Map.Entry<String, String> entry = iterator.next();
         String key = entry.getKey();
+        if (!key.startsWith(pre))
+          continue;
+        key = key.substring(pre.length());
 
         if (name == null && key.startsWith(prioPrefix)) {
           int idxSecondDot = key.indexOf('.', prioPrefix.length());

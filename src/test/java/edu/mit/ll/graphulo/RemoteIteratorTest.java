@@ -18,6 +18,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.user.ColumnSliceFilter;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
@@ -358,6 +359,26 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     // now repeat using a multi-column range
     scanner.clearScanIterators();
     itprops.put("colFilter", "a,b,:,b2,b3,c,:,cq15,"); // *
+    itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.skvi.RemoteSourceIterator", itprops);
+    scanner.addScanIterator(itset);
+
+    actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    scanner.setRange(range);
+    for (Map.Entry<Key, Value> entry : scanner) {
+      actual.put(entry.getKey(), entry.getValue());
+    }
+    Assert.assertEquals(expect, actual);
+
+
+    // what if we put the filter on manually using DynamicIterator?
+    scanner.clearScanIterators();
+    itprops.remove("colFilter"); //, "a,b,:,b2,b3,c,:,cq15,"); // *
+    IteratorSetting itsetFilter = new IteratorSetting(1, ColumnSliceFilter.class);
+    ColumnSliceFilter.setSlice(itsetFilter, "c", "cq15");
+    DynamicIteratorSetting dis = new DynamicIteratorSetting();
+    dis.append(itsetFilter);
+    itprops.putAll(dis.buildSettingMap("diter."));
+
     itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.skvi.RemoteSourceIterator", itprops);
     scanner.addScanIterator(itset);
 

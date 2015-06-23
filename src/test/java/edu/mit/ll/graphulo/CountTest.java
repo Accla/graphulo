@@ -143,7 +143,7 @@ public class CountTest extends AccumuloTestBase {
 
     for (Map.Entry<Key, Value> entry : scanner) {
       log.debug(entry.getKey() + " -> " + entry.getValue() + " AS " + Key.toPrintableString(entry.getValue().get(), 0, entry.getValue().get().length, 40) + " RAW " + Arrays.toString(entry.getValue().get()));
-      int thisEntries = RemoteWriteIterator.decodeValue(entry.getValue(), null);
+      long thisEntries = RemoteWriteIterator.decodeValue(entry.getValue(), null);
       log.debug(entry.getKey() + " -> " + thisEntries + " entries processed");
     }
     scanner.close();

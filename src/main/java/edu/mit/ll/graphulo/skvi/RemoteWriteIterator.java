@@ -515,8 +515,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   public Value getTopValue() {
     if (numRejects >= REJECT_FAILURE_THRESHOLD) {
       byte[] orig = REJECT_MESSAGE;
-      ByteBuffer bb = ByteBuffer.allocate(orig.length + 4 + 2);
-      bb.putInt(entriesWritten)
+      ByteBuffer bb = ByteBuffer.allocate(orig.length + 8 + 2);
+      bb.putLong(entriesWritten)
           .putChar(',')
           .put(orig)
           .rewind();
@@ -524,8 +524,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     } else {
       byte[] orig = //((SaveStateIterator) source).safeState().getValue().get();
           reducer.hasTop() ? SerializationUtils.serialize(reducer.getForClient()) : new byte[0];
-      ByteBuffer bb = ByteBuffer.allocate(orig.length + 4 + 2);
-      bb.putInt(entriesWritten)
+      ByteBuffer bb = ByteBuffer.allocate(orig.length + 8 + 2);
+      bb.putLong(entriesWritten)
           .putChar(',')
           .put(orig)
           .rewind();
@@ -564,9 +564,9 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
    * @return Number of entries seen by the RemoteWriteIterator
    */
   @SuppressWarnings("unchecked")
-  public static <E extends Serializable> int decodeValue(Value v, Reducer<E> reducer) {
+  public static <E extends Serializable> long decodeValue(Value v, Reducer<E> reducer) {
     ByteBuffer bb = ByteBuffer.wrap(v.get());
-    int numEntries = bb.getInt();
+    long numEntries = bb.getLong();
     bb.getChar(); // ','
     if (reducer != null && bb.hasRemaining())  {
       byte[] rest = new byte[bb.remaining()];

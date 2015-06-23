@@ -383,7 +383,7 @@ public class Graphulo {
       }
 
     // Do the BatchScan on B
-    int numEntries = 0, thisEntries;
+    long numEntries = 0, thisEntries;
     try {
       for (Map.Entry<Key, Value> entry : bs) {
         if (Ctable != null || CTtable != null) {
@@ -1353,6 +1353,7 @@ public class Graphulo {
    *                    True means delete them if they exist.
    * @param trace Server-side tracing.
    * @return nnz of the kTruss subgraph, which is 2* the number of edges in the kTruss subgraph.
+   *          Returns -1 if k < 2 since there is no point in counting the number of edges.
    */
   public long kTrussAdj(String Aorig, String Rfinal, int k,
                         boolean forceDelete, boolean trace) {
@@ -1361,7 +1362,7 @@ public class Graphulo {
     Preconditions.checkArgument(Aorig != null, "Input table must be given: Aorig=%s", Aorig);
     Preconditions.checkArgument(Rfinal != null, "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
     TableOperations tops = connector.tableOperations();
-    Preconditions.checkArgument(tops.exists(Aorig), "Input tables must exist: Aorig=%s", Aorig);
+    Preconditions.checkArgument(tops.exists(Aorig), "Input table must exist: Aorig=%s", Aorig);
     boolean RfinalExists = tops.exists(Rfinal);
 
     try {
@@ -1370,24 +1371,25 @@ public class Graphulo {
           AdjBFS(Aorig, null, 1, Rfinal, null, null, null, false, 0, Integer.MAX_VALUE, null, trace);
         else
           tops.clone(Aorig, Rfinal, true, null, null);    // flushes Aorig before cloning
+        return -1;
       }
 
       // non-trivial case: k is 3 or more.
-      String Atmp, A2tmp, Atmp3;
+      String Atmp, A2tmp, AtmpAlt;
       long nnzBefore, nnzAfter;
       String tmpBaseName = Aorig+"_kTrussAdj_";
       Atmp = tmpBaseName+"tmpA";
       A2tmp = tmpBaseName+"tmpA2";
-      Atmp3 = tmpBaseName+"tmpAsecond";
+      AtmpAlt = tmpBaseName+"tmpAsecond";
       // verify temporary tables do not exist
       if (!forceDelete) {
         Preconditions.checkState(!tops.exists(Atmp), "Temporary table already exists: %s. Set forceDelete=true to delete.", Atmp);
         Preconditions.checkState(!tops.exists(A2tmp), "Temporary table already exists: %s. Set forceDelete=true to delete.", A2tmp);
-        Preconditions.checkState(!tops.exists(Atmp3), "Temporary table already exists: %s. Set forceDelete=true to delete.", Atmp3);
+        Preconditions.checkState(!tops.exists(AtmpAlt), "Temporary table already exists: %s. Set forceDelete=true to delete.", AtmpAlt);
       } else {
         if (tops.exists(Atmp)) tops.delete( Atmp);
         if (tops.exists(A2tmp)) tops.delete(A2tmp);
-        if (tops.exists(Atmp3)) tops.delete(Atmp3);
+        if (tops.exists(AtmpAlt)) tops.delete(AtmpAlt);
       }
       tops.clone(Aorig, Atmp, true, null, null);
 
@@ -1411,12 +1413,12 @@ public class Graphulo {
             null, null, null, false, false, Collections.singletonList(kTrussFilter), -1, trace);
         // A2tmp has a SummingCombiner
 
-        nnzAfter = SpEWiseX(A2tmp, Atmp, Atmp3, null, AndEWiseX.class, null,
+        nnzAfter = SpEWiseX(A2tmp, Atmp, AtmpAlt, null, AndEWiseX.class, null,
             null, null, null, -1, trace);
 
         tops.delete(Atmp);
         tops.delete(A2tmp);
-        { String t = Atmp; Atmp = Atmp3; Atmp3 = t; }
+        { String t = Atmp; Atmp = AtmpAlt; AtmpAlt = t; }
 
         log.debug("nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter);
       } while (nnzBefore != nnzAfter);
@@ -1437,6 +1439,8 @@ public class Graphulo {
       throw new RuntimeException(e);
     }
   }
+
+
 
 
 }

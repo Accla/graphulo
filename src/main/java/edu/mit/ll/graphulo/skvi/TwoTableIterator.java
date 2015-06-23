@@ -1,6 +1,7 @@
 package edu.mit.ll.graphulo.skvi;
 
 import com.google.common.collect.Iterators;
+import edu.mit.ll.graphulo.DynamicIteratorSetting;
 import edu.mit.ll.graphulo.ewise.AndEWiseX;
 import edu.mit.ll.graphulo.ewise.EWiseOp;
 import edu.mit.ll.graphulo.rowmult.CartesianRowMultiply;
@@ -190,12 +191,13 @@ public class TwoTableIterator implements SaveStateIterator {
     // parse options, pass correct options to RemoteSourceIterator init()
     Map<String, String> optAT = new HashMap<>(), optB = new HashMap<>();
     parseOptions(options, optAT, optB);
+    // The tableName option is the key signal for use of RemoteSourceIterator.
     boolean dorAT = optAT.containsKey("tableName") && !optAT.get("tableName").isEmpty(),
         dorB = optB.containsKey("tableName") && !optB.get("tableName").isEmpty();
 
-    if (!dorAT && !dorB && source == null) { // ~A ~B ~S
+
+    if (!dorAT && !dorB && source == null)      // ~A ~B ~S
       throw new IllegalArgumentException("optAT, optB, and source cannot all be missing");
-    }
     if (source == null) {
       if (dorAT) {
         remoteAT = new RemoteSourceIterator();
@@ -253,40 +255,52 @@ public class TwoTableIterator implements SaveStateIterator {
     return ret;
   }
 
-  private SortedKeyValueIterator<Key, Value> setupRemoteSourceOptionsSKVI(SortedKeyValueIterator<Key, Value> ret, Map<String, String> opts, IteratorEnvironment env) throws IOException {
+  private SortedKeyValueIterator<Key, Value> setupRemoteSourceOptionsSKVI(
+      SortedKeyValueIterator<Key, Value> ret, Map<String, String> opts, IteratorEnvironment env) throws IOException {
     boolean doWholeRow = false;
-    for (Map.Entry<String, String> entry : opts.entrySet()) {
-      if (entry.getValue().isEmpty())
+    Map<String,String> diterMap = new HashMap<>();
+    for (Map.Entry<String, String> optionEntry : opts.entrySet()) {
+      String optionKey = optionEntry.getKey();
+      String optionValue = optionEntry.getValue();
+      if (optionEntry.getValue().isEmpty())
         continue;
-      String key = entry.getKey();
-      switch (key) {
-        case "zookeeperHost":
-        case "timeout":
-        case "instanceName":
-        case "username":
-        case "password":
-        case "doClientSideIterators":
-          log.warn("ignoring option "+key);
-          break;
-        case "tableName":
-          assert entry.getValue().equals(CLONESOURCE_TABLENAME);
-          break;
-        case "doWholeRow":
-          doWholeRow = Boolean.parseBoolean(entry.getValue());
-          break;
-        case "rowRanges":
-          SortedKeyValueIterator<Key, Value> filter = new SeekFilterIterator();
-          filter.init(ret, Collections.singletonMap("rowRanges", entry.getValue()), env);
-          ret = filter;
-          break;
-        case "colFilter":
-          ret = GraphuloUtil.applyGeneralColumnFilter(entry.getValue(), ret, env);
-          break;
-        default:
-          log.warn("Unrecognized option: " + entry);
-          continue;
+      if (optionKey.startsWith("diter.")) {
+        diterMap.put(optionKey.substring("diter.".length()), optionValue);
+      } else {
+        switch (optionKey) {
+          case "zookeeperHost":
+          case "timeout":
+          case "instanceName":
+          case "username":
+          case "password":
+          case "doClientSideIterators":
+            log.warn("ignoring option " + optionEntry);
+            break;
+          case "tableName":
+            assert optionEntry.getValue().equals(CLONESOURCE_TABLENAME);
+            break;
+          case "doWholeRow":
+            doWholeRow = Boolean.parseBoolean(optionEntry.getValue());
+            break;
+          case "rowRanges":
+            SortedKeyValueIterator<Key, Value> filter = new SeekFilterIterator();
+            filter.init(ret, Collections.singletonMap("rowRanges", optionEntry.getValue()), env);
+            ret = filter;
+            break;
+          case "colFilter":
+            ret = GraphuloUtil.applyGeneralColumnFilter(optionEntry.getValue(), ret, env);
+            break;
+          default:
+            log.warn("Unrecognized option: " + optionEntry);
+            continue;
+        }
       }
-      log.trace("Option OK: " + entry);
+      log.trace("Option OK: " + optionEntry);
+    }
+
+    if (!diterMap.isEmpty()) {
+      DynamicIteratorSetting dynamicIteratorSetting = DynamicIteratorSetting.fromMap(diterMap);
+      ret = dynamicIteratorSetting.loadIteratorStack(ret, env);
     }
 
     if (doWholeRow) {

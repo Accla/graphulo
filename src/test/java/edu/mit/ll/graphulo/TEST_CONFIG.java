@@ -17,6 +17,7 @@ import org.junit.runners.Suite;
     TableFilterTest.class,
     BFSTest.class,
     CountTest.class,
+    RowMultiplyTest.class,
     ReducerTest.class,
     SCCTest.class,
     LineTest.class,

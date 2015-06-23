@@ -2,36 +2,41 @@ package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.skvi.TableMultIterator;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
+import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import edu.mit.ll.graphulo.util.TestUtil;
-import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.BigDecimalCombiner;
+import org.apache.accumulo.core.iterators.user.ColumnSliceFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
-import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 /**
  * Test {@link TwoTableIterator}.
  */
-public class TableMultIteratorTest {
+public class TableMultIteratorTest extends AccumuloTestBase {
   private static final Logger log = LogManager.getLogger(TableMultIteratorTest.class);
-
-  /**
-   * This is setup once for the entire class.
-   */
-  @ClassRule
-  public static IAccumuloTester tester = TEST_CONFIG.AccumuloTester;
-
 
   /**
    * <pre>
@@ -49,8 +54,9 @@ public class TableMultIteratorTest {
   @Test
   public void testDotMultIteratorScan() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
     Connector conn = tester.getConnector();
+    String[] names = getUniqueNames(3);
 
-    final String tableNameA = "test_" + TableMultIteratorTest.class.getSimpleName() + "_testDotMultIteratorScan_A";
+    final String tableNameA = names[0];
     {
       Map<Key, Value> input = new HashMap<>();
       input.put(new Key("C1", "", "A1"), new Value("2".getBytes()));
@@ -59,7 +65,7 @@ public class TableMultIteratorTest {
       TestUtil.createTestTable(conn, tableNameA, null, input);
     }
 
-    final String tableNameBT = "test_" + TableMultIteratorTest.class.getSimpleName() + "_testDotMultIteratorScan_BT";
+    final String tableNameBT = names[1];
     {
       Map<Key, Value> input = new HashMap<>();
       input.put(new Key("C2", "", "B1"), new Value("3".getBytes()));
@@ -69,7 +75,7 @@ public class TableMultIteratorTest {
       TestUtil.createTestTable(conn, tableNameBT, null, input);
     }
 
-    final String tableNameC = "test_" + TableMultIteratorTest.class.getSimpleName() + "_testDotMultIteratorScan_C";
+    final String tableNameC = names[2];
     TestUtil.createTestTable(conn, tableNameC, null);
 
     Scanner scanner = conn.createScanner(tableNameC, Authorizations.EMPTY);
@@ -102,12 +108,40 @@ public class TableMultIteratorTest {
     expect.put(new Key("A2", "", "B2"), new Value("6".getBytes()));
     Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
 
-    log.info("Results of scan on table " + tableNameC + " with A=" + tableNameA + " and BT=" + tableNameBT + ':');
+    log.debug("Results of scan on table " + tableNameC + " with A=" + tableNameA + " and BT=" + tableNameBT + ':');
     for (Map.Entry<Key, Value> entry : scanner) {
       log.debug(entry);
       actual.put(entry.getKey(), entry.getValue());
     }
     Assert.assertEquals(expect, actual);
+    scanner.close();
+
+
+    // Test use of a filter on B.
+//    conn.tableOperations().delete(tableNameC);
+//    TestUtil.createTestTable(conn, tableNameC, null);
+    scanner = conn.createScanner(tableNameC, Authorizations.EMPTY);
+    expect = new HashMap<>();
+    expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
+    actual.clear();
+
+    IteratorSetting itsetFilter = new IteratorSetting(1, ColumnSliceFilter.class);
+    ColumnSliceFilter.setSlice(itsetFilter, "B", "B15");
+    DynamicIteratorSetting dis = new DynamicIteratorSetting();
+    dis.append(itsetFilter);
+    itprops.putAll(dis.buildSettingMap("B.diter."));
+    itset = new IteratorSetting(25, TwoTableIterator.class, itprops);
+    scanner.clearScanIterators();
+    scanner.addScanIterator(itset);
+
+    log.debug("Results of scan on table " + tableNameC + " with AT=" + tableNameA + " and B=" + tableNameBT + ':');
+    for (Map.Entry<Key, Value> entry : scanner) {
+      log.debug(entry);
+      actual.put(entry.getKey(), entry.getValue());
+    }
+    Assert.assertEquals(expect, actual);
+    scanner.close();
+
 
     conn.tableOperations().delete(tableNameA);
     conn.tableOperations().delete(tableNameBT);
@@ -188,6 +222,54 @@ public class TableMultIteratorTest {
       expect.put(new Key("A1", "", "B2"), 12);
       expect.put(new Key("A2", "", "B2"), 6);
       //scannerB.addScanIterator(new IteratorSetting(16, DebugInfoIterator.class, Collections.<String,String>emptyMap()));
+      {
+        Map<Key, Integer> actual = new HashMap<>();
+        log.info("Scanning tableB " + tableNameB + ":");
+        for (Map.Entry<Key, Value> entry : scannerB) {
+          log.info(entry);
+          Key k = entry.getKey(); // don't copy vis or timestamp; we don't care about comparing those
+          Key k2 = new Key(k.getRow(), k.getColumnFamily(), k.getColumnQualifier());
+          Integer vold = actual.get(k2);
+          if (vold == null)
+            vold = 0;
+          int vnew = vold + Integer.parseInt(entry.getValue().toString());
+          actual.put(k2, vnew);
+        }
+        Assert.assertEquals(expect, actual);
+      }
+    }
+
+    // Test use of a filter on B.
+    {
+      Map<String, String> itprops = new HashMap<>();
+      itprops.put("AT.instanceName", conn.getInstance().getInstanceName());
+      itprops.put("AT.tableName", tableNameAT);
+      itprops.put("AT.zookeeperHost", conn.getInstance().getZooKeepers());
+      itprops.put("AT.username", tester.getUsername());
+      itprops.put("AT.password", new String(tester.getPassword().getPassword()));
+//            itprops.put("B.instanceName",conn.getInstance().getInstanceName());
+//            itprops.put("B.tableName",tableNameB);
+//            itprops.put("B.zookeeperHost",conn.getInstance().getZooKeepers());
+//            itprops.put("B.username",tester.getUsername());
+//            itprops.put("B.password",new String(tester.getPassword().getPassword()));
+      itprops.put("dotmode", TwoTableIterator.DOTMODE.ROW.name());
+
+      IteratorSetting itsetFilter = new IteratorSetting(1, ColumnSliceFilter.class);
+      ColumnSliceFilter.setSlice(itsetFilter, "B", "B15");
+      DynamicIteratorSetting dis = new DynamicIteratorSetting();
+      dis.append(itsetFilter);
+      itprops.putAll(dis.buildSettingMap("B.diter."));
+
+      scannerB.clearScanIterators();
+      IteratorSetting itset = new IteratorSetting(15, TableMultIterator.class, itprops);
+      scannerB.addScanIterator(itset);
+
+      Map<Key, Integer> expect = new HashMap<>();
+      expect.put(new Key("A1", "", "B1"), 6);
+//      expect.put(new Key("A1", "", "B2"), 12);
+//      expect.put(new Key("A2", "", "B2"), 6);
+      //scannerB.addScanIterator(new IteratorSetting(16, DebugInfoIterator.class, Collections.<String,String>emptyMap()));
+
       {
         Map<Key, Integer> actual = new HashMap<>();
         log.info("Scanning tableB " + tableNameB + ":");

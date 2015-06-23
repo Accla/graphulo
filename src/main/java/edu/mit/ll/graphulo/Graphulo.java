@@ -111,6 +111,7 @@ public class Graphulo {
     return TwoTableEWISE(Atable, Btable, Ctable, CTtable,
         multOp, plusOp, rowFilter, colFilterAT, colFilterB,
         false, false, Collections.<IteratorSetting>emptyList(),
+        Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
         numEntriesCheckpoint, trace);
   }
 
@@ -122,6 +123,7 @@ public class Graphulo {
     return TwoTableEWISE(Atable, Btable, Ctable, CTtable,
         multOp, plusOp, rowFilter, colFilterAT, colFilterB,
         true, true, Collections.<IteratorSetting>emptyList(),
+        Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
         numEntriesCheckpoint, trace);
   }
 
@@ -151,6 +153,7 @@ public class Graphulo {
     return TwoTableROW(ATtable, Btable, Ctable, CTtable,
         multOp, plusOp, rowFilter, colFilterAT, colFilterB,
         alsoDoAA, alsoDoBB, alsoDoAA, alsoDoBB, Collections.<IteratorSetting>emptyList(),
+        Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
         numEntriesCheckpoint, trace);
   }
 
@@ -159,11 +162,12 @@ public class Graphulo {
                         Collection<Range> rowFilter,
                         String colFilterAT, String colFilterB,
                         boolean alsoDoAA, boolean alsoDoBB,
+                        List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
                         List<IteratorSetting> iteratorsAfterTwoTable,
                         int numEntriesCheckpoint, boolean trace) {
     return TwoTableROW(ATtable, Btable, Ctable, CTtable,
         multOp, plusOp, rowFilter, colFilterAT, colFilterB,
-        alsoDoAA, alsoDoBB, alsoDoAA, alsoDoBB, iteratorsAfterTwoTable,
+        alsoDoAA, alsoDoBB, alsoDoAA, alsoDoBB, iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
         numEntriesCheckpoint, trace);
   }
 
@@ -174,6 +178,7 @@ public class Graphulo {
                           String colFilterAT, String colFilterB,
                           boolean emitNoMatchA, boolean emitNoMatchB,
                           boolean alsoDoAA, boolean alsoDoBB,
+                          List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
                           List<IteratorSetting> iteratorsAfterTwoTable,
                           int numEntriesCheckpoint, boolean trace) {
     Map<String,String> opt = new HashMap<>();
@@ -185,7 +190,7 @@ public class Graphulo {
 
     return TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.ROW, opt, plusOp,
         rowFilter, colFilterAT, colFilterB,
-        emitNoMatchA, emitNoMatchB, iteratorsAfterTwoTable,
+        emitNoMatchA, emitNoMatchB, iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
         numEntriesCheckpoint, trace);
   }
 
@@ -195,6 +200,7 @@ public class Graphulo {
                           Collection<Range> rowFilter,
                           String colFilterAT, String colFilterB,
                           boolean emitNoMatchA, boolean emitNoMatchB,
+                            List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
                             List<IteratorSetting> iteratorsAfterTwoTable,
                           int numEntriesCheckpoint, boolean trace) {
     Map<String,String> opt = new HashMap<>();
@@ -202,7 +208,7 @@ public class Graphulo {
 
     return TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.EWISE, opt, plusOp,
         rowFilter, colFilterAT, colFilterB,
-        emitNoMatchA, emitNoMatchB, iteratorsAfterTwoTable,
+        emitNoMatchA, emitNoMatchB, iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
         numEntriesCheckpoint, trace);
   }
 
@@ -212,13 +218,14 @@ public class Graphulo {
                             Collection<Range> rowFilter,
                             String colFilterAT, String colFilterB,
                             boolean emitNoMatchA, boolean emitNoMatchB,
+                           List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
                            List<IteratorSetting> iteratorsAfterTwoTable,
                             int numEntriesCheckpoint, boolean trace) {
     Map<String,String> opt = new HashMap<>();
 
     return TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.NONE, opt, plusOp,
         rowFilter, colFilterAT, colFilterB,
-        emitNoMatchA, emitNoMatchB, iteratorsAfterTwoTable,
+        emitNoMatchA, emitNoMatchB, iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
         numEntriesCheckpoint, trace);
   }
 
@@ -228,6 +235,7 @@ public class Graphulo {
                        Collection<Range> rowFilter,
                        String colFilterAT, String colFilterB,
                        boolean emitNoMatchA, boolean emitNoMatchB,
+                        List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
                         List<IteratorSetting> iteratorsAfterTwoTable,
                        int numEntriesCheckpoint, boolean trace) {
     if (ATtable == null || ATtable.isEmpty())
@@ -243,8 +251,10 @@ public class Graphulo {
       throw new UnsupportedOperationException("Could lead to unpredictable results: ATtable=CTtable=" + ATtable);
     if (Btable.equals(CTtable))
       throw new UnsupportedOperationException("Could lead to unpredictable results: Btable=CTtable=" + Btable);
-    if (iteratorsAfterTwoTable == null)
-      iteratorsAfterTwoTable = Collections.emptyList();
+    if (iteratorsAfterTwoTable == null) iteratorsAfterTwoTable = Collections.emptyList();
+    if (iteratorsBeforeA == null) iteratorsBeforeA = Collections.emptyList();
+    if (iteratorsBeforeB == null) iteratorsBeforeB = Collections.emptyList();
+
 
     if (Ctable != null && Ctable.isEmpty())
       Ctable = null;
@@ -347,9 +357,17 @@ public class Graphulo {
 
     // TODO P2: Let priority be an argument.
 
-
-
     DynamicIteratorSetting dis = new DynamicIteratorSetting();
+    for (IteratorSetting setting : iteratorsBeforeA)
+      dis.append(setting);
+    optTT.putAll(dis.buildSettingMap("AT.diter."));
+
+    dis = new DynamicIteratorSetting();
+    for (IteratorSetting setting : iteratorsBeforeB)
+      dis.append(setting);
+    optTT.putAll(dis.buildSettingMap("B.diter."));
+
+    dis = new DynamicIteratorSetting();
     GraphuloUtil.applyGeneralColumnFilter(colFilterB, bs, dis, true);
     dis.append(new IteratorSetting(1, TwoTableIterator.class, optTT));
     for (IteratorSetting setting : iteratorsAfterTwoTable)
@@ -1308,7 +1326,9 @@ public class Graphulo {
 
     TwoTable(ATtable, Atable, Rtable, RTtable, TwoTableIterator.DOTMODE.ROW, opt, plusOp,
         rowFilter, colFilterAT, colFilterB,
-        false, false, null, numEntriesCheckpoint, trace);
+        false, false, Collections.<IteratorSetting>emptyList(),
+        Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
+        numEntriesCheckpoint, trace);
   }
 
   String emptyToNull(String s) { return s != null && s.isEmpty() ? null : s; }
@@ -1410,7 +1430,9 @@ public class Graphulo {
         nnzBefore = nnzAfter;
 
         TableMult(Atmp, Atmp, A2tmp, null, AndMultiply.class, DEFAULT_PLUS_ITERATOR,
-            null, null, null, false, false, Collections.singletonList(kTrussFilter), -1, trace);
+            null, null, null, false, false,
+            Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
+            Collections.singletonList(kTrussFilter), -1, trace);
         // A2tmp has a SummingCombiner
 
         nnzAfter = SpEWiseX(A2tmp, Atmp, AtmpAlt, null, AndEWiseX.class, null,

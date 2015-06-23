@@ -29,6 +29,8 @@ public abstract class SimpleEWiseX implements EWiseOp {
 
   @Override
   public Iterator<? extends Entry<Key, Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ, Value ATval, Value Bval) {
+    if (ATval == null || Bval == null)
+      return Collections.<Map.Entry<Key,Value>>emptyIterator();
     Key k = new Key(Mrow.getBackingArray(), ATcolF.getBackingArray(),
         ATcolQ.getBackingArray(), GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis());
     Value v = multiply(ATval, Bval);

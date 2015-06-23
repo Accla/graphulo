@@ -1,5 +1,6 @@
 package edu.mit.ll.graphulo.util;
 
+import java.util.Collections;
 import java.util.Iterator;
 
 /**
@@ -45,5 +46,13 @@ public class PeekingIterator1<E> implements Iterator<E> {
   @Override
   public boolean hasNext() {
     return top != null;
+  }
+
+  private static final PeekingIterator1<?> EMPTY_ITERATOR
+      = new PeekingIterator1<>(Collections.emptyIterator());
+
+  @SuppressWarnings("unchecked")
+  public static <T> PeekingIterator1<T> emptyIterator() {
+    return (PeekingIterator1<T>) EMPTY_ITERATOR;
   }
 }

@@ -13,7 +13,6 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -65,7 +64,7 @@ public class ApplyIterator implements SortedKeyValueIterator<Key, Value> {
       topIterator = new PeekingIterator1<>(applyOp.apply(source.getTopKey(), source.getTopValue()));
       prepNext(false);
     } else {
-      topIterator = new PeekingIterator1<>(Collections.<Map.Entry<Key,Value>>emptyIterator());
+      topIterator = PeekingIterator1.emptyIterator();
     }
   }
 

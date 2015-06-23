@@ -35,6 +35,12 @@ public interface EWiseOp {
 
   /**
    * Multiplication operation on 2 entries with matching row, column family and column qualifier.
+   * <p>
+   * When <tt>emitNoMatchA</tt> is true on {@link TwoTableIterator}, this method will be called with Bval null
+   * for entries that occur in A but do not occur in B.
+   * Similarly when <tt>emitNoMatchB</tt> is true, this method will be called with Aval null
+   * for entries that occur in A but do not occur in A.
+   * Ordinary usage will never see this. Both <tt>emitNoMatchA</tt> and <tt>emitNoMatchB</tt> default to false.
    *
    * @param Mrow  Pointer to data for matching row. Do not modify.
    * @param McolF Pointer to data for matching column family. Do not modify.

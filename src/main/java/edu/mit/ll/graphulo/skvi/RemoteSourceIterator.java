@@ -270,7 +270,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>,
      {@link org.apache.accumulo.core.data.Range#compareTo(Range)} */
     seekRange = range;
     rowRangeIterator = getFirstRangeStarting(new PeekingIterator1<>(rowRanges.iterator()), range); //rowRanges.tailSet(range).iterator();
-    remoteIterator = new PeekingIterator1<>(java.util.Collections.<Map.Entry<Key, Value>>emptyIterator());
+    remoteIterator = PeekingIterator1.emptyIterator();
     next();
   }
 

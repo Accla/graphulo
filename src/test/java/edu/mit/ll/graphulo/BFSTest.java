@@ -93,7 +93,7 @@ public class BFSTest extends AccumuloTestBase {
     Collection<Text> u3expect = GraphuloUtil.d4mRowToTexts("v0,vBig,");
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    String u3actual = graphulo.AdjBFS(tA, v0, 3, tR, tRT, tADeg, "", true, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, true);
+    String u3actual = graphulo.AdjBFS(tA, v0, 3, tR, tRT, -1, tADeg, "", true, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, true);
     Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
 
     BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -175,7 +175,7 @@ public class BFSTest extends AccumuloTestBase {
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     {
-      String u3actual = graphulo.AdjBFS(tA, v0, 3, tR, tRT, tADeg, "deg", false, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, true);
+      String u3actual = graphulo.AdjBFS(tA, v0, 3, tR, tRT, -1, tADeg, "deg", false, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, true);
       Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -211,7 +211,7 @@ public class BFSTest extends AccumuloTestBase {
       TestUtil.createTestTable(conn, tADeg, splits, input);
     }
     {
-      String u3actual = graphulo.AdjBFS(tA, v0, 3, tR, tRT, tADeg, "d|", true, 1, 2, null, true);
+      String u3actual = graphulo.AdjBFS(tA, v0, 3, tR, tRT, -1, tADeg, "d|", true, 1, 2, null, true);
       Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -236,7 +236,7 @@ public class BFSTest extends AccumuloTestBase {
     conn.tableOperations().delete(tR);
     conn.tableOperations().delete(tRT);
     {
-      String u3actual = graphulo.AdjBFS(tA, v0, 3, tR, tRT, tADeg, "d|", true, 1, 2, null, true);
+      String u3actual = graphulo.AdjBFS(tA, v0, 3, tR, tRT, -1, tADeg, "d|", true, 1, 2, null, true);
       Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -309,7 +309,7 @@ public class BFSTest extends AccumuloTestBase {
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     {
-      String u3actual = graphulo.AdjBFS(tA, v0, 3, tR, tRT, null, null, true, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, true);
+      String u3actual = graphulo.AdjBFS(tA, v0, 3, tR, tRT, -1, null, null, true, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, true);
       Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -334,7 +334,7 @@ public class BFSTest extends AccumuloTestBase {
     conn.tableOperations().delete(tR);
     conn.tableOperations().delete(tRT);
     {
-      String u3actual = graphulo.AdjBFS(tA, v0, 3, tR, tRT, null, null, true, 1, 2, null, true);
+      String u3actual = graphulo.AdjBFS(tA, v0, 3, tR, tRT, -1, null, null, true, 1, 2, null, true);
       Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -405,7 +405,7 @@ public class BFSTest extends AccumuloTestBase {
     Collection<Text> u1expect = GraphuloUtil.d4mRowToTexts("v0,v1,v2,vBig,");
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    String u1actual = graphulo.AdjBFS(tA, v0, 1, tR, tRT, null, null, true, 1, 2, null, true);
+    String u1actual = graphulo.AdjBFS(tA, v0, 1, tR, tRT, -1, null, null, true, 1, 2, null, true);
     Assert.assertEquals(u1expect, GraphuloUtil.d4mRowToTexts(u1actual));
 
     BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -474,7 +474,7 @@ public class BFSTest extends AccumuloTestBase {
     Collection<Text> u1expect = GraphuloUtil.d4mRowToTexts("v0,v1,v2,vBig,");
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    String u1actual = graphulo.AdjBFS(tA, v0, 1, tR, tRT, null, null, true, 1, Integer.MAX_VALUE, null, true);
+    String u1actual = graphulo.AdjBFS(tA, v0, 1, tR, tRT, -1, null, null, true, 1, Integer.MAX_VALUE, null, true);
     Assert.assertEquals(u1expect, GraphuloUtil.d4mRowToTexts(u1actual));
 
     BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -566,7 +566,7 @@ public class BFSTest extends AccumuloTestBase {
 
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      String u3actual = graphulo.EdgeBFS(tE, v0, 3, tR, tRT, "out|", "in|", tETDeg, "", true, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, true);
+      String u3actual = graphulo.EdgeBFS(tE, v0, 3, tR, tRT, "out|", "in|", tETDeg, "", true, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, -1, true);
       Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -591,7 +591,7 @@ public class BFSTest extends AccumuloTestBase {
     v0 = "v0,:,v000,";
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      String u3actual = graphulo.EdgeBFS(tE, v0, 3, tR, tRT, "out|", "in|", tETDeg, "", true, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, true);
+      String u3actual = graphulo.EdgeBFS(tE, v0, 3, tR, tRT, "out|", "in|", tETDeg, "", true, 1, 2, Graphulo.DEFAULT_PLUS_ITERATOR, -1, true);
       Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);

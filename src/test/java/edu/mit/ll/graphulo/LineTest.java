@@ -78,8 +78,8 @@ public class LineTest extends AccumuloTestBase {
     Combiner.setCombineAllColumns(sumSetting, true);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    graphulo.LineGraph(tA, tAT, tR, tRT, false, false, "|", sumSetting,
-        null, null, null, 1, true);
+    graphulo.LineGraph(tA, tAT, tR, tRT, -1, false, false, sumSetting, null, null, null, 1, true, "|"
+    );
 
     BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
     scanner.setRanges(Collections.singleton(new Range()));
@@ -157,8 +157,8 @@ public class LineTest extends AccumuloTestBase {
 
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      graphulo.LineGraph(tA, tAT, tR, tRT, true, true, "|", sumSetting,
-          null, null, null, 1, true);
+      graphulo.LineGraph(tA, tAT, tR, tRT, -1, true, true, sumSetting, null, null, null, 1, true, "|"
+      );
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
       scanner.setRanges(Collections.singleton(new Range()));
@@ -184,8 +184,8 @@ public class LineTest extends AccumuloTestBase {
     actualTranspose.clear();
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      graphulo.LineGraph(tA, tAT, tR, tRT, true, false, "|", sumSetting,
-          null, null, null, 1, true);
+      graphulo.LineGraph(tA, tAT, tR, tRT, -1, true, false, sumSetting, null, null, null, 1, true, "|"
+      );
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
       scanner.setRanges(Collections.singleton(new Range()));
@@ -271,8 +271,8 @@ public class LineTest extends AccumuloTestBase {
 
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      graphulo.LineGraph(tA, tAT, tR, tRT, true, true, "|", sumSetting,
-          null, null, null, 1, true);
+      graphulo.LineGraph(tA, tAT, tR, tRT, -1, true, true, sumSetting, null, null, null, 1, true, "|"
+      );
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
       scanner.setRanges(Collections.singleton(new Range()));
@@ -310,8 +310,8 @@ public class LineTest extends AccumuloTestBase {
     }
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      graphulo.LineGraph(tA, tAT, tR, tRT, true, false, "|", sumSetting,
-          null, null, null, 1, true);
+      graphulo.LineGraph(tA, tAT, tR, tRT, -1, true, false, sumSetting, null, null, null, 1, true, "|"
+      );
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
       scanner.setRanges(Collections.singleton(new Range()));
@@ -402,8 +402,8 @@ public class LineTest extends AccumuloTestBase {
     Combiner.setCombineAllColumns(sumSetting, true);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    graphulo.LineGraph(tA, tAT, tR, tRT, false, false, "|", sumSetting,
-        null, null, null, 1, true);
+    graphulo.LineGraph(tA, tAT, tR, tRT, -1, false, false, sumSetting, null, null, null, 1, true, "|"
+    );
 
     BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
     scanner.setRanges(Collections.singleton(new Range()));

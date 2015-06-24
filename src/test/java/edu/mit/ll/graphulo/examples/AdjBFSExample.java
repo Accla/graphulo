@@ -40,13 +40,14 @@ public class AdjBFSExample extends AccumuloTestBase {
   @Test
   public void exampleAdjBFS() throws FileNotFoundException, TableNotFoundException, AccumuloSecurityException, AccumuloException {
     String Atable = "ex" + SCALE + "A";                 // Adjacency table A.
-    String Rtable = "ex" + SCALE + "Astep" + numSteps;   // Result of BFS is summed into Rtable.
+    String Rtable = "ex" + SCALE + "Astep" + numSteps;  // Result of BFS is summed into Rtable.
     String RTtable = null;                              // Don't write transpose of BFS.
     String ADegtable = "ex" + SCALE + "ADeg";           // Adjacency table A containing out-degrees.
     String degColumn = "out";                           // Name of column qualifier under which out-degrees appear in ADegtable.
     boolean degInColQ = false;                          // Degree is stored in the Value, not the Column Qualifier.
     int minDegree = 20;                                 // Bounding minimum degree: only include nodes with degree 20 or higher.
     int maxDegree = Integer.MAX_VALUE;                  // Unbounded maximum degree.  This and the minimum degree make a High-pass Filter.
+    int AScanIteratorPriority = -1;                     // Use default priority for scan-time iterator on table A
     String v0 = "1,25,:,27,";                           // Starting nodes: node 1 (the supernode) and all the nodes from 25 to 27 inclusive.
     boolean trace = false;                              // Disable debug printing.
 
@@ -81,7 +82,7 @@ public class AdjBFSExample extends AccumuloTestBase {
 
     // Adjacency Table Breadth First Search.
     // This call blocks until the BFS completes.
-    String vReached = graphulo.AdjBFS(Atable, v0, numSteps, Rtable, RTtable,
+    String vReached = graphulo.AdjBFS(Atable, v0, numSteps, Rtable, RTtable, AScanIteratorPriority,
         ADegtable, degColumn, degInColQ, minDegree, maxDegree, plusOp, trace);
     System.out.println("First few nodes reachable in exactly "+numSteps+" steps: " +
             vReached.substring(0,Math.min(20,vReached.length())));

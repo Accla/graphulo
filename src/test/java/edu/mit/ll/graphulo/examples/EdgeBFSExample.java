@@ -86,7 +86,7 @@ public class EdgeBFSExample extends AccumuloTestBase {
     // This call blocks until the BFS completes.
     String vReached = graphulo.EdgeBFS(Etable, v0, numSteps, Rtable, RTtable,
         startPrefix, endPrefix, EDegTtable, degColumn, degInColQ, minDegree, maxDegree,
-        plusOp, trace);
+        plusOp, -1, trace);
     System.out.println("First few nodes reachable in exactly "+numSteps+" steps: " +
         vReached.substring(0,Math.min(20,vReached.length())));
 

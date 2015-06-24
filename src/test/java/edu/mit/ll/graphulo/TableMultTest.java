@@ -69,7 +69,7 @@ public class TableMultTest extends AccumuloTestBase {
     SortedMap<Key, Value> expectT = TestUtil.transposeMap(expect);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    long numpp = graphulo.TableMult(tAT, tB, tC, tCT,
+    long numpp = graphulo.TableMult(tAT, tB, tC, tCT, -1,
         LongMultiply.class, Graphulo.DEFAULT_PLUS_ITERATOR,
         null, null, null, false, false, 1, true);
 
@@ -147,7 +147,7 @@ public class TableMultTest extends AccumuloTestBase {
     expect = Collections.unmodifiableMap(expect);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    long numpp = graphulo.TableMult(tAT, tB, tC, null,
+    long numpp = graphulo.TableMult(tAT, tB, tC, null, -1,
         BigDecimalMultiply.class, Graphulo.DEFAULT_PLUS_ITERATOR,
         GraphuloUtil.d4mRowToRanges("C2,:,"), null, null, false, false, 1, false);
 
@@ -209,7 +209,7 @@ public class TableMultTest extends AccumuloTestBase {
     expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    long numpp = graphulo.TableMult(tAT, tB, tC, null,
+    long numpp = graphulo.TableMult(tAT, tB, tC, null, -1,
         BigDecimalMultiply.class, Graphulo.DEFAULT_PLUS_ITERATOR,
         GraphuloUtil.d4mRowToRanges("C2,:,"),
         "A1,", "B1,", false, false, 1, false);
@@ -226,7 +226,7 @@ public class TableMultTest extends AccumuloTestBase {
 
     // now check more advanced column filter, write to transpose
     expect = TestUtil.transposeMap(expect);
-    graphulo.TableMult(tAT, tB, null, tCT,
+    graphulo.TableMult(tAT, tB, null, tCT, -1,
         BigDecimalMultiply.class, Graphulo.DEFAULT_PLUS_ITERATOR,
         GraphuloUtil.d4mRowToRanges("C2,:,"),
         "A1,:,A15,", "B1,:,B15,F,", false, false, 1, false);
@@ -291,7 +291,7 @@ public class TableMultTest extends AccumuloTestBase {
     expect.put(new Key("A1", "", "A1"), new Value("4".getBytes()));
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    long numpp = graphulo.TableMult(tAT, tB, tC, null,
+    long numpp = graphulo.TableMult(tAT, tB, tC, null, -1,
         BigDecimalMultiply.class, Graphulo.DEFAULT_PLUS_ITERATOR,
         GraphuloUtil.d4mRowToRanges("C2,:,"),
         "A1,", "B1,", true, false, 1, false);
@@ -307,7 +307,7 @@ public class TableMultTest extends AccumuloTestBase {
 
     // now check more advanced column filter, write to transpose
     expect = TestUtil.transposeMap(expect);
-    graphulo.TableMult(tAT, tB, null, tCT,
+    graphulo.TableMult(tAT, tB, null, tCT, -1,
         BigDecimalMultiply.class, Graphulo.DEFAULT_PLUS_ITERATOR,
         GraphuloUtil.d4mRowToRanges("C2,:,"),
         "A1,:,A15,", "B1,:,B15,F,", true, false, 1, false);

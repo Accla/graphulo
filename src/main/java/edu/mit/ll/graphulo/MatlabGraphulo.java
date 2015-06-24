@@ -51,7 +51,7 @@ public class MatlabGraphulo extends Graphulo {
       rowFilter != null && !rowFilter.isEmpty() ? GraphuloUtil.d4mRowToRanges(rowFilter) : null;
 
 
-    return TableMult(ATtable, Btable, Ctable, null,
+    return TableMult(ATtable, Btable, Ctable, null, -1,
         LongMultiply.class, Graphulo.DEFAULT_PLUS_ITERATOR,
         rowFilterRanges, colFilterAT, colFilterB, false, false, numEntriesCheckpoint, trace);
   }

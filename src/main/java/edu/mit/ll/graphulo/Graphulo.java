@@ -108,16 +108,17 @@ public class Graphulo {
                         Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
                         Collection<Range> rowFilter,
                         String colFilterAT, String colFilterB) {
-    return TableMult(ATtable, Btable, Ctable, CTtable, multOp, plusOp, rowFilter, colFilterAT, colFilterB,
+    return TableMult(ATtable, Btable, Ctable, CTtable, -1, multOp, plusOp, rowFilter, colFilterAT, colFilterB,
         false, false, -1, false);
   }
 
   public long SpEWiseX(String Atable, String Btable, String Ctable, String CTtable,
+                       int BScanIteratorPriority,
                        Class<? extends EWiseOp> multOp, IteratorSetting plusOp,
                        Collection<Range> rowFilter,
                        String colFilterAT, String colFilterB,
                        int numEntriesCheckpoint, boolean trace) {
-    return TwoTableEWISE(Atable, Btable, Ctable, CTtable,
+    return TwoTableEWISE(Atable, Btable, Ctable, CTtable, BScanIteratorPriority,
         multOp, plusOp, rowFilter, colFilterAT, colFilterB,
         false, false, Collections.<IteratorSetting>emptyList(),
         Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
@@ -125,11 +126,12 @@ public class Graphulo {
   }
 
   public long SpEWiseSum(String Atable, String Btable, String Ctable, String CTtable,
+                         int BScanIteratorPriority,
                          Class<? extends EWiseOp> multOp, IteratorSetting plusOp,
                          Collection<Range> rowFilter,
                          String colFilterAT, String colFilterB,
                          int numEntriesCheckpoint, boolean trace) {
-    return TwoTableEWISE(Atable, Btable, Ctable, CTtable,
+    return TwoTableEWISE(Atable, Btable, Ctable, CTtable, BScanIteratorPriority,
         multOp, plusOp, rowFilter, colFilterAT, colFilterB,
         true, true, Collections.<IteratorSetting>emptyList(),
         Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
@@ -144,43 +146,70 @@ public class Graphulo {
    * @param Btable               Name of Accumulo table holding matrix B.
    * @param Ctable               Name of table to store result. Null means don't store the result.
    * @param CTtable              Name of table to store transpose of result. Null means don't store the transpose.
+   * @param BScanIteratorPriority Priority to use for Table Multiplication scan-time iterator on table B
    * @param multOp               An operation that "multiplies" two values.
    * @param plusOp               An SKVI to apply to the result table that "sums" values. Not applied if null.
    * @param rowFilter            Row subset of ATtable and Btable, like "a,:,b,g,c,:,". Null means run on all rows.
    * @param colFilterAT          Column qualifier subset of AT. Null means run on all columns.
    * @param colFilterB           Column qualifier subset of B. Null means run on all columns.
+   * @param alsoDoAA             Whether to also compute A*A at the same time as A*B. Default false.
+   * @param alsoDoBB             Whether to also compute B*B at the same time as A*B. Default false.
    * @param numEntriesCheckpoint # of entries before we emit a checkpoint entry from the scan. -1 means no monitoring.
    * @param trace                Enable server-side performance tracing.
    * @return Number of partial products processed through the RemoteWriteIterator.
    */
   public long TableMult(String ATtable, String Btable, String Ctable, String CTtable,
+                        int BScanIteratorPriority,
                         Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
                         Collection<Range> rowFilter,
                         String colFilterAT, String colFilterB,
                         boolean alsoDoAA, boolean alsoDoBB,
                         int numEntriesCheckpoint, boolean trace) {
-    return TwoTableROWCartesian(ATtable, Btable, Ctable, CTtable,
+    return TwoTableROWCartesian(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority,
         multOp, plusOp, rowFilter, colFilterAT, colFilterB,
         alsoDoAA, alsoDoBB, alsoDoAA, alsoDoBB, Collections.<IteratorSetting>emptyList(),
         Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
         numEntriesCheckpoint, trace);
   }
 
+  /**
+   * C += A * B.
+   * User-defined "plus" and "multiply". Requires transpose table AT instead of A.
+   * If C is not given, then the scan itself returns the results of A * B. (not thoroughly tested)
+   *  @param ATtable              Name of Accumulo table holding matrix transpose(A).
+   * @param Btable               Name of Accumulo table holding matrix B.
+   * @param Ctable               Name of table to store result. Null means don't store the result.
+   * @param CTtable              Name of table to store transpose of result. Null means don't store the transpose.
+   * @param BScanIteratorPriority Priority to use for Table Multiplication scan-time iterator on table B
+   * @param multOp               An operation that "multiplies" two values.
+   * @param plusOp               An SKVI to apply to the result table that "sums" values. Not applied if null.
+   * @param rowFilter            Row subset of ATtable and Btable, like "a,:,b,g,c,:,". Null means run on all rows.
+   * @param colFilterAT          Column qualifier subset of AT. Null means run on all columns.
+   * @param colFilterB           Column qualifier subset of B. Null means run on all columns.
+   * @param alsoDoAA             Whether to also compute A*A at the same time as A*B. Default false.
+   * @param alsoDoBB             Whether to also compute B*B at the same time as A*B. Default false.
+   * @param iteratorsBeforeA     Extra iterators used on ATtable before TableMult.
+   * @param iteratorsBeforeB     Extra iterators used on  Btable before TableMult.
+   * @param iteratorsAfterTwoTable  Extra iterators used after TableMult but before writing entries to Ctable and CTtable.
+   * @param numEntriesCheckpoint # of entries before we emit a checkpoint entry from the scan. -1 means no monitoring.
+   * @param trace                Enable server-side performance tracing.
+   * @return Number of partial products processed through the RemoteWriteIterator.
+   */
   public long TableMult(String ATtable, String Btable, String Ctable, String CTtable,
-                        Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
-                        Collection<Range> rowFilter,
-                        String colFilterAT, String colFilterB,
+                        int BScanIteratorPriority, Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
+                        Collection<Range> rowFilter, String colFilterAT, String colFilterB,
                         boolean alsoDoAA, boolean alsoDoBB,
                         List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
                         List<IteratorSetting> iteratorsAfterTwoTable,
                         int numEntriesCheckpoint, boolean trace) {
-    return TwoTableROWCartesian(ATtable, Btable, Ctable, CTtable,
+    return TwoTableROWCartesian(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority,
         multOp, plusOp, rowFilter, colFilterAT, colFilterB,
         alsoDoAA, alsoDoBB, alsoDoAA, alsoDoBB, iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
         numEntriesCheckpoint, trace);
   }
 
   public long TwoTableROWCartesian(String ATtable, String Btable, String Ctable, String CTtable,
+                                   int BScanIteratorPriority,
                                    //TwoTableIterator.DOTMODE dotmode, //CartesianRowMultiply.ROWMODE rowmode,
                                    Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
                                    Collection<Range> rowFilter,
@@ -197,7 +226,8 @@ public class Graphulo {
     opt.put("rowMultiplyOp.opt."+CartesianRowMultiply.ALSODOAA, Boolean.toString(alsoDoAA));
     opt.put("rowMultiplyOp.opt."+CartesianRowMultiply.ALSODOBB, Boolean.toString(alsoDoBB));
 
-    return TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.ROW, opt, plusOp,
+    return TwoTable(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority,
+        TwoTableIterator.DOTMODE.ROW, opt, plusOp,
         rowFilter, colFilterAT, colFilterB,
         emitNoMatchA, emitNoMatchB, iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
         numEntriesCheckpoint, trace);
@@ -205,6 +235,7 @@ public class Graphulo {
 
   public long TwoTableROWSelector(
       String ATtable, String Btable, String Ctable, String CTtable,
+      int BScanIteratorPriority,
       Collection<Range> rowFilter,
       String colFilterAT, String colFilterB,
       boolean ASelectsBRow,
@@ -216,14 +247,16 @@ public class Graphulo {
     opt.put("rowMultiplyOp", SelectorRowMultiply.class.getName());
     opt.put("rowMultiplyOp.opt."+SelectorRowMultiply.ASELECTSBROW, Boolean.toString(ASelectsBRow));
 
-    return TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.ROW, opt, null,
+    return TwoTable(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority,
+        TwoTableIterator.DOTMODE.ROW, opt, null,
         rowFilter, colFilterAT, colFilterB,
         false, false, iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
         numEntriesCheckpoint, trace);
   }
 
   public long TwoTableEWISE(String ATtable, String Btable, String Ctable, String CTtable,
-                          //TwoTableIterator.DOTMODE dotmode, //CartesianRowMultiply.ROWMODE rowmode,
+                            int BScanIteratorPriority,
+                            //TwoTableIterator.DOTMODE dotmode, //CartesianRowMultiply.ROWMODE rowmode,
                           Class<? extends EWiseOp> multOp, IteratorSetting plusOp,
                           Collection<Range> rowFilter,
                           String colFilterAT, String colFilterB,
@@ -234,14 +267,16 @@ public class Graphulo {
     Map<String,String> opt = new HashMap<>();
     opt.put("multiplyOp", multOp.getName());
 
-    return TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.EWISE, opt, plusOp,
+    return TwoTable(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority,
+        TwoTableIterator.DOTMODE.EWISE, opt, plusOp,
         rowFilter, colFilterAT, colFilterB,
         emitNoMatchA, emitNoMatchB, iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
         numEntriesCheckpoint, trace);
   }
 
   public long TwoTableNONE(String ATtable, String Btable, String Ctable, String CTtable,
-                            //TwoTableIterator.DOTMODE dotmode, //CartesianRowMultiply.ROWMODE rowmode,
+                           int BScanIteratorPriority,
+                           //TwoTableIterator.DOTMODE dotmode, //CartesianRowMultiply.ROWMODE rowmode,
                             Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
                             Collection<Range> rowFilter,
                             String colFilterAT, String colFilterB,
@@ -251,13 +286,15 @@ public class Graphulo {
                             int numEntriesCheckpoint, boolean trace) {
     Map<String,String> opt = new HashMap<>();
 
-    return TwoTable(ATtable, Btable, Ctable, CTtable, TwoTableIterator.DOTMODE.NONE, opt, plusOp,
+    return TwoTable(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority,
+        TwoTableIterator.DOTMODE.NONE, opt, plusOp,
         rowFilter, colFilterAT, colFilterB,
         emitNoMatchA, emitNoMatchB, iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
         numEntriesCheckpoint, trace);
   }
 
   private long TwoTable(String ATtable, String Btable, String Ctable, String CTtable,
+                        int BScanIteratorPriority,
                        TwoTableIterator.DOTMODE dotmode, Map<String, String> setupOpts,
                        IteratorSetting plusOp, // priority matters
                        Collection<Range> rowFilter,
@@ -284,7 +321,8 @@ public class Graphulo {
     if (iteratorsAfterTwoTable == null) iteratorsAfterTwoTable = Collections.emptyList();
     if (iteratorsBeforeA == null) iteratorsBeforeA = Collections.emptyList();
     if (iteratorsBeforeB == null) iteratorsBeforeB = Collections.emptyList();
-
+    if (BScanIteratorPriority <= 0)
+      BScanIteratorPriority = 7; // default priority
 
     if (Ctable != null && Ctable.isEmpty())
       Ctable = null;
@@ -385,8 +423,6 @@ public class Graphulo {
     } else
       bs.setRanges(Collections.singleton(new Range()));
 
-    // TODO P2: Let priority be an argument.
-
     DynamicIteratorSetting dis = new DynamicIteratorSetting();
     for (IteratorSetting setting : iteratorsBeforeA)
       dis.append(setting);
@@ -404,8 +440,7 @@ public class Graphulo {
       dis.append(setting);
 //    dis.append(new IteratorSetting(1, DebugInfoIterator.class)); // DEBUG
     dis.append(new IteratorSetting(1, RemoteWriteIterator.class, optRWI));
-    int prio = 7;
-    bs.addScanIterator(dis.toIteratorSetting(prio));
+    bs.addScanIterator(dis.toIteratorSetting(BScanIteratorPriority));
 
 
 
@@ -481,7 +516,7 @@ public class Graphulo {
   public String AdjBFS(String Atable, String v0, int k, String Rtable, String RtableTranspose,
                        String ADegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree) {
 
-    return AdjBFS(Atable, v0, k, Rtable, RtableTranspose,
+    return AdjBFS(Atable, v0, k, Rtable, RtableTranspose, -1,
         ADegtable, degColumn, degInColQ, minDegree, maxDegree,
         DEFAULT_PLUS_ITERATOR, false);
   }
@@ -495,6 +530,7 @@ public class Graphulo {
    * @param k           Number of steps
    * @param Rtable      Name of table to store result. Null means don't store the result.
    * @param RTtable     Name of table to store transpose of result. Null means don't store the transpose.
+   * @param AScanIteratorPriority Priority to use for scan-time iterator on table A
    * @param ADegtable   Name of table holding out-degrees for A. Leave null to filter on the fly with
    *                    the {@link SmallLargeRowFilter}, or do no filtering if minDegree=0 and maxDegree=Integer.MAX_VALUE.
    * @param degColumn   Name of column for out-degrees in ADegtable like "deg". Null means the empty column "".
@@ -509,6 +545,7 @@ public class Graphulo {
    */
   @SuppressWarnings("unchecked")
   public String AdjBFS(String Atable, String v0, int k, String Rtable, String RTtable,
+                       int AScanIteratorPriority,
                        String ADegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree,
                        IteratorSetting plusOp,
                        boolean trace) {
@@ -525,6 +562,8 @@ public class Graphulo {
       minDegree = 1;
     if (maxDegree < minDegree)
       throw new IllegalArgumentException("maxDegree=" + maxDegree + " should be >= minDegree=" + minDegree);
+    if (AScanIteratorPriority <= 0)
+      AScanIteratorPriority = 4; // default priority
 
     if (degColumn == null)
       degColumn = "";
@@ -639,7 +678,7 @@ public class Graphulo {
         }
 
         dis.append(new IteratorSetting(4, RemoteWriteIterator.class, opt));
-        bs.addScanIterator(dis.toIteratorSetting(4));
+        bs.addScanIterator(dis.toIteratorSetting(AScanIteratorPriority));
 
         GatherColQReducer reducer = new GatherColQReducer();
         reducer.init(Collections.<String, String>emptyMap(), null);
@@ -786,13 +825,14 @@ public class Graphulo {
    * @param minDegree     Minimum out-degree. Checked before doing any searching, at every step, from ADegtable. Pass 0 for no filtering.
    * @param maxDegree     Maximum out-degree. Checked before doing any searching, at every step, from ADegtable. Pass Integer.MAX_VALUE for no filtering.
    * @param plusOp      An SKVI to apply to the result table that "sums" values. Not applied if null.
+   * @param EScanIteratorPriority Priority to use for Table Multiplication scan-time iterator on table E
    * @param trace       Enable server-side performance tracing.
    * @return              The nodes reachable in exactly k steps from v0.
    */
   public String  EdgeBFS(String Etable, String v0, int k, String Rtable, String RTtable,
-               String startPrefix, String endPrefix,
-               String ETDegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree,
-               IteratorSetting plusOp, boolean trace) {
+                         String startPrefix, String endPrefix,
+                         String ETDegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree,
+                         IteratorSetting plusOp, int EScanIteratorPriority, boolean trace) {
     boolean needDegreeFiltering = minDegree > 0 || maxDegree < Integer.MAX_VALUE;
     if (Etable == null || Etable.isEmpty())
       throw new IllegalArgumentException("Please specify Incidence table. Given: " + Etable);
@@ -806,6 +846,8 @@ public class Graphulo {
       minDegree = 1;
     if (maxDegree < minDegree)
       throw new IllegalArgumentException("maxDegree=" + maxDegree + " should be >= minDegree=" + minDegree);
+    if (EScanIteratorPriority <= 0)
+      EScanIteratorPriority = 5; // default priority
 
     if (degColumn == null)
       degColumn = "";
@@ -927,7 +969,7 @@ public class Graphulo {
         bs.clearColumns();
 //        GraphuloUtil.applyGeneralColumnFilter(colFilterB, bs, 4, false);
         opt.put("B.colFilter", colFilterB);
-        IteratorSetting itset = new IteratorSetting(5, TableMultIterator.class, opt);
+        IteratorSetting itset = new IteratorSetting(EScanIteratorPriority, TableMultIterator.class, opt);
         bs.addScanIterator(itset);
 
         EdgeBFSReducer reducer = new EdgeBFSReducer();
@@ -1323,38 +1365,36 @@ public class Graphulo {
 
 
   /**
-   *
    * @param Atable   Accumulo adjacency table input
    * @param ATtable  Transpose of input adjacency table
    * @param Rtable   Result table, can be null. Created if nonexisting.
    * @param RTtable  Transpose of result table, can be null. Created if nonexisting.
+   * @param BScanIteratorPriority Priority to use for Table Multiplication scan-time iterator on table B
    * @param isDirected True for directed input, false for undirected input
    * @param includeExtraCycles (only applies to directed graphs)
-   *                           True to include cycles between edges that come into the same node
-   *                           (the AAT term); false to exclude them
-   * @param separator The string to insert between the labels of two nodes.
-   *                  This string should not appear in any node label. Used to find the original nodes.
+*                           True to include cycles between edges that come into the same node
    * @param plusOp    An SKVI to apply to the result table that "sums" values. Not applied if null.
-   *                  This has no effect if the result table is empty before the operation.
+*                  This has no effect if the result table is empty before the operation.
    * @param rowFilter Experimental. Pass null for no filtering.
    * @param colFilterAT Experimental. Pass null for no filtering.
    * @param colFilterB Experimental. Pass null for no filtering.
    * @param numEntriesCheckpoint # of entries before we emit a checkpoint entry from the scan. -1 means no monitoring.
    * @param trace  Enable server-side performance tracing.
+   * @param separator The string to insert between the labels of two nodes.
+*                  This string should not appear in any node label. Used to find the original nodes.
    */
   public void LineGraph(String Atable, String ATtable, String Rtable, String RTtable,
-                        boolean isDirected, boolean includeExtraCycles, String separator,
-                        IteratorSetting plusOp,
-                        Collection<Range> rowFilter,
-                        String colFilterAT, String colFilterB,
-                        int numEntriesCheckpoint, boolean trace) {
+                        int BScanIteratorPriority, boolean isDirected, boolean includeExtraCycles, IteratorSetting plusOp,
+                        Collection<Range> rowFilter, String colFilterAT, String colFilterB,
+                        int numEntriesCheckpoint, boolean trace, String separator) {
     Map<String,String> opt = new HashMap<>();
     opt.put("rowMultiplyOp", LineRowMultiply.class.getName());
     opt.put("rowMultiplyOp.opt."+LineRowMultiply.SEPARATOR, separator);
     opt.put("rowMultiplyOp.opt."+LineRowMultiply.ISDIRECTED, Boolean.toString(isDirected));
     opt.put("rowMultiplyOp.opt."+LineRowMultiply.INCLUDE_EXTRA_CYCLES, Boolean.toString(includeExtraCycles));
 
-    TwoTable(ATtable, Atable, Rtable, RTtable, TwoTableIterator.DOTMODE.ROW, opt, plusOp,
+    TwoTable(ATtable, Atable, Rtable, RTtable, BScanIteratorPriority,
+        TwoTableIterator.DOTMODE.ROW, opt, plusOp,
         rowFilter, colFilterAT, colFilterB,
         false, false, Collections.<IteratorSetting>emptyList(),
         Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
@@ -1418,7 +1458,7 @@ public class Graphulo {
     try {
       if (k <= 2) {               // trivial case: every graph is a 2-truss
         if (RfinalExists)
-          AdjBFS(Aorig, null, 1, Rfinal, null, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+          AdjBFS(Aorig, null, 1, Rfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
         else
           tops.clone(Aorig, Rfinal, true, null, null);    // flushes Aorig before cloning
         return -1;
@@ -1459,13 +1499,14 @@ public class Graphulo {
       do {
         nnzBefore = nnzAfter;
 
-        TableMult(Atmp, Atmp, A2tmp, null, AndMultiply.class, DEFAULT_PLUS_ITERATOR,
+        TableMult(Atmp, Atmp, A2tmp, null, -1, AndMultiply.class, DEFAULT_PLUS_ITERATOR,
             null, null, null, false, false,
             Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
-            Collections.singletonList(kTrussFilter), -1, trace);
+            Collections.singletonList(kTrussFilter), -1, trace
+        );
         // A2tmp has a SummingCombiner
 
-        nnzAfter = SpEWiseX(A2tmp, Atmp, AtmpAlt, null, AndEWiseX.class, null,
+        nnzAfter = SpEWiseX(A2tmp, Atmp, AtmpAlt, null, -1, AndEWiseX.class, null,
             null, null, null, -1, trace);
 
         tops.delete(Atmp);
@@ -1477,7 +1518,7 @@ public class Graphulo {
       // Atmp, ATtmp have the result table. Could be empty.
 
       if (RfinalExists)  // sum whole graph into existing graph
-        AdjBFS(Atmp, null, 1, Rfinal, null, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+        AdjBFS(Atmp, null, 1, Rfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
       else                                           // result is new;
         tops.clone(Atmp, Rfinal, true, null, null);  // flushes Atmp before cloning
 
@@ -1508,6 +1549,7 @@ public class Graphulo {
    *          Returns -1 if k < 2 since there is no point in counting the number of edges.
    */
   public long kTrussEdge(String Eorig, String ETorig, String Rfinal, String RTfinal, int k,
+                         // iterator priority?
                          boolean forceDelete, boolean trace) {
     // small optimization possible: pass in Aorig = ET*E if present. Saves first iteration matrix multiply. Not really worth it.
     Eorig = emptyToNull(Eorig);
@@ -1526,13 +1568,13 @@ public class Graphulo {
       if (k <= 2) {               // trivial case: every graph is a 2-truss
         if (RfinalExists && RTfinalExists) { // sum whole graph into existing graph
           // AdjBFS works just as well as EdgeBFS because we're not doing any filtering.
-          AdjBFS(Eorig, null, 1, Rfinal, RTfinal, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+          AdjBFS(Eorig, null, 1, Rfinal, RTfinal, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
         } else if (RfinalExists) {
-          AdjBFS(Eorig, null, 1, Rfinal, null, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+          AdjBFS(Eorig, null, 1, Rfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
           if (RTfinal != null)
             tops.clone(ETorig, RTfinal, true, null, null);
         } else if (RTfinalExists) {
-          AdjBFS(Eorig, null, 1, null, RTfinal, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+          AdjBFS(Eorig, null, 1, null, RTfinal, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
           if (Rfinal != null)
             tops.clone(Eorig, Rfinal, true, null, null);
         } else {                                          // both graphs are new;
@@ -1608,21 +1650,19 @@ public class Graphulo {
       do {
         nnzBefore = nnzAfter;
 
-        TableMult(Etmp, Etmp, Atmp, null, AndMultiply.class, DEFAULT_PLUS_ITERATOR,
-            null, null, null, false, false, null, null,
-            Collections.singletonList(noDiagFilter), -1, trace);
+        TableMult(Etmp, Etmp, Atmp, null, -1, AndMultiply.class, DEFAULT_PLUS_ITERATOR, null, null, null, false, false, null, null, Collections.singletonList(noDiagFilter), -1, trace
+        );
         // Atmp has a SummingCombiner
 
-        TableMult(ETtmp, Atmp, Rtmp, null, AndMultiply.class, DEFAULT_PLUS_ITERATOR,
-            null, null, null, false, false, null, null,
-            null, -1, trace);
+        TableMult(ETtmp, Atmp, Rtmp, null, -1, AndMultiply.class, DEFAULT_PLUS_ITERATOR, null, null, null, false, false, null, null, null, -1, trace
+        );
         // Rtmp has a SummingCombiner
         tops.delete(ETtmp);
         tops.delete(Atmp);
 
         // R -> sum -> kTrussFilter -> TT_RowSelector <- E
         //                              \-> Writing to EtmpAlt, ETtmpAlt
-        nnzAfter = TwoTableROWSelector(Rtmp, Etmp, EtmpAlt, ETtmpAlt, null, null, null, true,
+        nnzAfter = TwoTableROWSelector(Rtmp, Etmp, EtmpAlt, ETtmpAlt, -1, null, null, null, true,
             iteratorsBeforeA, null, null, -1, trace);
         tops.delete(Etmp);
 
@@ -1635,13 +1675,13 @@ public class Graphulo {
 
       if (RfinalExists && RTfinalExists) { // sum whole graph into existing graph
         // AdjBFS works just as well as EdgeBFS because we're not doing any filtering.
-        AdjBFS(Etmp, null, 1, Rfinal, RTfinal, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+        AdjBFS(Etmp, null, 1, Rfinal, RTfinal, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
       } else if (RfinalExists) {
-        AdjBFS(Etmp, null, 1, Rfinal, null, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+        AdjBFS(Etmp, null, 1, Rfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
         if (RTfinal != null)
           tops.clone(ETtmp, RTfinal, true, null, null);
       } else if (RTfinalExists) {
-        AdjBFS(Etmp, null, 1, null, RTfinal, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+        AdjBFS(Etmp, null, 1, null, RTfinal, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
         if (Rfinal != null)
           tops.clone(Etmp, Rfinal, true, null, null);
       } else {                                          // both graphs are new;
@@ -1715,15 +1755,12 @@ public class Graphulo {
 //        afterTTIterators = dis.toIteratorSetting(1);
     }
 
-    long Jnnz = TableMult(Aorig, Aorig, Rfinal, null, LongMultiply.class, RPlusIteratorSetting,
-        null, null, null, true, true,
-        Collections.singletonList(new IteratorSetting(1, TriangularFilter.class,
-                Collections.singletonMap(TriangularFilter.TRIANGULAR_TYPE,
-                    TriangularFilter.TriangularType.Lower.name()))),
-        Collections.singletonList(new IteratorSetting(1, TriangularFilter.class,
+    long Jnnz = TableMult(Aorig, Aorig, Rfinal, null, -1, LongMultiply.class, RPlusIteratorSetting, null, null, null, true, true, Collections.singletonList(new IteratorSetting(1, TriangularFilter.class,
             Collections.singletonMap(TriangularFilter.TRIANGULAR_TYPE,
-                TriangularFilter.TriangularType.Upper.name()))),
-            afterTTIterators, -1, trace);
+                TriangularFilter.TriangularType.Lower.name()))), Collections.singletonList(new IteratorSetting(1, TriangularFilter.class,
+                    Collections.singletonMap(TriangularFilter.TRIANGULAR_TYPE,
+                        TriangularFilter.TriangularType.Upper.name()))), afterTTIterators, -1, trace
+    );
 
     log.debug("Jaccard nnz "+Jnnz);
     return Jnnz;

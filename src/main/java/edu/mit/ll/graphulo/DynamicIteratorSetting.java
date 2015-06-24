@@ -126,6 +126,7 @@ public class DynamicIteratorSetting {
   }
 
   /**
+   * Used inside the Accumulo iterator stack to create the iterator list held in this object.
    * @see org.apache.accumulo.core.iterators.IteratorUtil#loadIterators
    * @return The iterators this object holds, loaded in order.
    */

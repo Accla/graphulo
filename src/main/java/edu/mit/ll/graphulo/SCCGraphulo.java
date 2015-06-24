@@ -77,12 +77,12 @@ public class SCCGraphulo extends Graphulo {
     // FOR TESTING PORPOISES
     Map<Key,Value> printer = new HashMap<>();
 
-    AdjBFS(tA, null, 1, tR, tAT, null, "", true, 0, Integer.MAX_VALUE, null, trace);
+    AdjBFS(tA, null, 1, tR, tAT, -1, null, "", true, 0, Integer.MAX_VALUE, null, trace);
     for (int k = 1; k < rowCount; k++) {
       if (k % 2 == 1) {
         if (k != 1)
           tops.delete(tAC);
-        TableMult(tAT, tA, tR, tAC, LongMultiply.class, null, null, null, null, false, false, -1, trace);
+        TableMult(tAT, tA, tR, tAC, -1, LongMultiply.class, null, null, null, null, false, false, -1, trace);
 
         if (trace) {
           // TESTING
@@ -102,7 +102,7 @@ public class SCCGraphulo extends Graphulo {
 
       } else {
         tops.delete(tAT);
-        TableMult(tAC, tA, tR, tAT, LongMultiply.class, null, null, null, null, false, false, -1, trace);
+        TableMult(tAC, tA, tR, tAT, -1, LongMultiply.class, null, null, null, null, false, false, -1, trace);
 
         if (trace) {
           // TESTING
@@ -123,7 +123,7 @@ public class SCCGraphulo extends Graphulo {
       }
     }
 
-    AdjBFS(tR, null, 1, null, tRT, null, "", true, 0, Integer.MAX_VALUE, null, trace);
+    AdjBFS(tR, null, 1, null, tRT, -1, null, "", true, 0, Integer.MAX_VALUE, null, trace);
 
     if (trace) {
       // TESTING
@@ -153,7 +153,7 @@ public class SCCGraphulo extends Graphulo {
       // TEST END
     }
 
-    SpEWiseX(tR, tRT, tRf, null, LongEWiseX.class, null, null, null, null, -1, trace);
+    SpEWiseX(tR, tRT, tRf, null, -1, LongEWiseX.class, null, null, null, null, -1, trace);
 
   }
 
@@ -184,7 +184,7 @@ public class SCCGraphulo extends Graphulo {
       String delims = "[ ]+";
       String[] mid = midstr.toString().split(delims);
       for (String s : mid) {
-        String bfs = AdjBFS(tA, s + ",", 1, null, null, null, "", true, 0, Integer.MAX_VALUE, Graphulo.DEFAULT_PLUS_ITERATOR, false);
+        String bfs = AdjBFS(tA, s + ",", 1, null, null, -1, null, "", true, 0, Integer.MAX_VALUE, Graphulo.DEFAULT_PLUS_ITERATOR, false);
         if (!bfs.isEmpty())
           vertset.add(bfs);
       }
@@ -192,7 +192,7 @@ public class SCCGraphulo extends Graphulo {
     }
 
     Set<String> vertset = new HashSet<>();
-    String bfs = AdjBFS(tA, vertex, 1, null, null, null, "", true, 0, Integer.MAX_VALUE, Graphulo.DEFAULT_PLUS_ITERATOR, false);
+    String bfs = AdjBFS(tA, vertex, 1, null, null, -1, null, "", true, 0, Integer.MAX_VALUE, Graphulo.DEFAULT_PLUS_ITERATOR, false);
     if (!bfs.isEmpty())
       vertset.add(bfs);
     return vertset;

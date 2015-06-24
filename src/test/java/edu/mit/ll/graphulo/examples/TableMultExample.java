@@ -1,10 +1,15 @@
 package edu.mit.ll.graphulo.examples;
 
 import edu.mit.ll.graphulo.Graphulo;
-import edu.mit.ll.graphulo.rowmult.MultiplyOp;
 import edu.mit.ll.graphulo.rowmult.LongMultiply;
+import edu.mit.ll.graphulo.rowmult.MultiplyOp;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
-import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -19,6 +24,7 @@ import org.junit.Test;
 import java.io.FileNotFoundException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -74,6 +80,7 @@ public class TableMultExample extends AccumuloTestBase {
 
     // Other options to TableMult
     String CTtable = null;                // Don't write the table transpose.
+    int BScanIteratorPriority = -1;       // Use the default priority for the scan-time table multiplication iterator
     Class<? extends MultiplyOp> multOp = LongMultiply.class; // Multiply operation.
     //                                    multOp satisfies requirement that 0 is multiplicative annihilator.
     Collection<Range> rowFilter = null;   // No row subsetting; run on whole tables.
@@ -81,14 +88,19 @@ public class TableMultExample extends AccumuloTestBase {
     String colFilterB = null;             // No column subsetting for  Btable; run on the whole table.
     boolean alsoDoAA = false;             // Don't also add in the product of A*A at the same time as A*B.
     boolean alsoDoBB = false;             // Don't also add in the product of B*B at the same time as A*B.
+    List<IteratorSetting>
+        iteratorsBeforeA = null,          // No extra iterators used on ATtable before TableMult.
+        iteratorsBeforeB = null,          // No extra iterators used on Btable before TableMult.
+        iteratorsAfterTwoTable = null;    // No extra iterators used after TableMult but before writing entries to Ctable and CTtable.
     int numEntriesCheckpoint = -1;        // Don't monitor TableMult progress.
     boolean trace = false;                // Don't record performance times at the server.
 
     // Matrix multiply A*B.  Uses +.* algebra.
     // This call blocks until the multiply completes,
     // i.e., until all partial products are sent to Ctable.
-    graphulo.TableMult(ATtable, Btable, Ctable, CTtable, multOp, plusOp,
-        rowFilter, colFilterAT, colFilterB, alsoDoAA, alsoDoBB, numEntriesCheckpoint, trace);
+    graphulo.TableMult(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority, multOp, plusOp,
+        rowFilter, colFilterAT, colFilterB, alsoDoAA, alsoDoBB,
+        iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable, numEntriesCheckpoint, trace);
 
     // Result is in Ctable. Do whatever you like with it.
     BatchScanner bs = conn.createBatchScanner(Ctable, Authorizations.EMPTY, 2);

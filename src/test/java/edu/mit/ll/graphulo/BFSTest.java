@@ -799,5 +799,129 @@ public class BFSTest extends AccumuloTestBase {
 
 
 
+  @Test
+  public void testGenerateDegreeTable() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
+    Connector conn = tester.getConnector();
+    final String tE, tET, tEDegOutIn, tEDegOut, tEDegIn, tEDegEdge, tEDegWeightEdge;
+    {
+      String[] names = getUniqueNames(7);
+      tE = names[0];
+      tET = names[1];
+      tEDegOutIn = names[2];
+      tEDegOut = names[3];
+      tEDegIn = names[4];
+      tEDegEdge = names[5];
+      tEDegWeightEdge = names[6];
+    }
+    Map<Key,Value>
+//        expectOut = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+//        actualOut = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+//        expectIn = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+//        actualIn = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+//        expectOutIn = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+//        actualOutIn = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+        expectEdgeDeg = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actualEdgeDeg = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+        expectEdgeDegWeight = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actualEdgeDegWeight = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+
+    {
+      Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("e0", "", "out|v0"), new Value("5".getBytes()));
+      input.put(new Key("e0", "", "in|v1"), new Value("5".getBytes()));
+      input.put(new Key("e1", "", "out|v1"), new Value("2".getBytes()));
+      input.put(new Key("e1", "", "in|v2"), new Value("2".getBytes()));
+      input.put(new Key("e2", "", "out|v2"), new Value("4".getBytes()));
+      input.put(new Key("e2", "", "in|v0"), new Value("4".getBytes()));
+      input.put(new Key("e3", "", "out|v0"), new Value("7".getBytes()));
+      input.put(new Key("e3", "", "in|vBig"), new Value("7".getBytes()));
+      input.put(new Key("e4", "", "out|v1"), new Value("7".getBytes()));
+      input.put(new Key("e4", "", "in|vBig"), new Value("7".getBytes()));
+      input.put(new Key("e5", "", "out|v2"), new Value("7".getBytes()));
+      input.put(new Key("e5", "", "in|vBig"), new Value("7".getBytes()));
+      input.put(new Key("e6", "", "out|vBig"), new Value("9".getBytes()));
+      input.put(new Key("e6", "", "in|v0"), new Value("9".getBytes()));
+      input.put(new Key("e7", "", "out|vBig"), new Value("9".getBytes()));
+      input.put(new Key("e7", "", "in|v1"), new Value("9".getBytes()));
+      input.put(new Key("e8", "", "out|vBig"), new Value("9".getBytes()));
+      input.put(new Key("e8", "", "in|v2"), new Value("9".getBytes()));
+      SortedSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("e33"));
+      TestUtil.createTestTable(conn, tE, splits, input);
+//      splits.clear();
+//      splits.add(new Text("out|v11"));
+//      TestUtil.createTestTable(conn, tET, splits, TestUtil.transposeMap(input));
+    }
+    {
+//      expectOut.put(new Key("v0", "",   ""), new Value("2".getBytes()));
+//      expectOut.put(new Key("v1", "",   ""), new Value("2".getBytes()));
+//      expectOut.put(new Key("v2", "",   ""), new Value("2".getBytes()));
+//      expectOut.put(new Key("vBig", "", ""), new Value("3".getBytes()));
+//
+//      expectIn.put(new Key("v0", "",   ""), new Value("2".getBytes()));
+//      expectIn.put(new Key("v1", "",   ""), new Value("2".getBytes()));
+//      expectIn.put(new Key("v2", "",   ""), new Value("2".getBytes()));
+//      expectIn.put(new Key("vBig", "", ""), new Value("3".getBytes()));
+//
+//      expectOutIn.put(new Key("v0", "",   ""), new Value("4".getBytes()));
+//      expectOutIn.put(new Key("v1", "",   ""), new Value("4".getBytes()));
+//      expectOutIn.put(new Key("v2", "",   ""), new Value("4".getBytes()));
+//      expectOutIn.put(new Key("vBig", "", ""), new Value("6".getBytes()));
+
+      expectEdgeDeg.put(new Key("e0", "", ""), new Value("2".getBytes()));
+      expectEdgeDeg.put(new Key("e1", "", ""), new Value("2".getBytes()));
+      expectEdgeDeg.put(new Key("e2", "", ""), new Value("2".getBytes()));
+      expectEdgeDeg.put(new Key("e3", "", ""), new Value("2".getBytes()));
+      expectEdgeDeg.put(new Key("e4", "", ""), new Value("2".getBytes()));
+      expectEdgeDeg.put(new Key("e5", "", ""), new Value("2".getBytes()));
+      expectEdgeDeg.put(new Key("e6", "", ""), new Value("2".getBytes()));
+      expectEdgeDeg.put(new Key("e7", "", ""), new Value("2".getBytes()));
+      expectEdgeDeg.put(new Key("e8", "", ""), new Value("2".getBytes()));
+
+      expectEdgeDegWeight.put(new Key("e0", "", ""), new Value("10".getBytes()));
+      expectEdgeDegWeight.put(new Key("e1", "", ""), new Value("4".getBytes()));
+      expectEdgeDegWeight.put(new Key("e2", "", ""), new Value("8".getBytes()));
+      expectEdgeDegWeight.put(new Key("e3", "", ""), new Value("14".getBytes()));
+      expectEdgeDegWeight.put(new Key("e4", "", ""), new Value("14".getBytes()));
+      expectEdgeDegWeight.put(new Key("e5", "", ""), new Value("14".getBytes()));
+      expectEdgeDegWeight.put(new Key("e6", "", ""), new Value("18".getBytes()));
+      expectEdgeDegWeight.put(new Key("e7", "", ""), new Value("18".getBytes()));
+      expectEdgeDegWeight.put(new Key("e8", "", ""), new Value("18".getBytes()));
+    }
+
+    {
+      Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+      long numRows = graphulo.generateDegreeTable(tE, tEDegEdge, true, true);
+
+      BatchScanner scanner = conn.createBatchScanner(tEDegEdge, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actualEdgeDeg.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expectEdgeDeg, actualEdgeDeg);
+      Assert.assertEquals(9, numRows);
+    }
+    {
+      Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+      long numRows = graphulo.generateDegreeTable(tE, tEDegWeightEdge, false, true);
+
+      BatchScanner scanner = conn.createBatchScanner(tEDegWeightEdge, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actualEdgeDegWeight.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expectEdgeDegWeight, actualEdgeDegWeight);
+      Assert.assertEquals(9, numRows);
+    }
+
+    conn.tableOperations().delete(tE);
+//    conn.tableOperations().delete(tET);
+    conn.tableOperations().delete(tEDegEdge);
+    conn.tableOperations().delete(tEDegWeightEdge);
+//    conn.tableOperations().delete(tEDegOut);
+  }
+
 
 }

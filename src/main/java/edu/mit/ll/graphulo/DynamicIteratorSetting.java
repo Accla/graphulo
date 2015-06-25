@@ -25,16 +25,19 @@ import java.util.Map;
 public class DynamicIteratorSetting {
   private Deque<IteratorSetting> iteratorSettingList = new LinkedList<>();
 
-  public void prepend(IteratorSetting setting) {
+  public DynamicIteratorSetting prepend(IteratorSetting setting) {
     iteratorSettingList.addFirst(setting);
+    return this;
   }
 
-  public void append(IteratorSetting setting) {
+  public DynamicIteratorSetting append(IteratorSetting setting) {
     iteratorSettingList.addLast(setting);
+    return this;
   }
 
-  public void clear() {
+  public DynamicIteratorSetting clear() {
     iteratorSettingList.clear();
+    return this;
   }
 
   public Map<String,String> buildSettingMap() {

@@ -367,36 +367,17 @@ public class Graphulo {
         throw new RuntimeException(e);
       }
 
-    String instance = connector.getInstance().getInstanceName();
-    String zookeepers = connector.getInstance().getZooKeepers();
-    String user = connector.whoami();
-
-    Map<String, String> optTT = new HashMap<>(), optRWI = new HashMap<>();
+    Map<String, String>
+        optTT = basicRemoteOpts("AT.", ATtable),
+        optRWI = (Ctable != null || CTtable != null) ? basicRemoteOpts("", Ctable, CTtable) : new HashMap<String,String>();
 //    optTT.put("trace", String.valueOf(trace)); // logs timing on server // todo Temp removed -- setting of Watch enable
     optTT.put("dotmode", dotmode.name());
-
     optTT.putAll(setupOpts);
-
-    optTT.put("AT.zookeeperHost", zookeepers);
-    optTT.put("AT.instanceName", instance);
-    optTT.put("AT.tableName", ATtable);
-    optTT.put("AT.username", user);
-    optTT.put("AT.password", new String(password.getPassword()));
     if (colFilterAT != null)
       optTT.put("AT.colFilter", colFilterAT);
-
     if (Ctable != null || CTtable != null) {
-      optRWI.put("zookeeperHost", zookeepers); // todo: abstract this into a method
-      optRWI.put("instanceName", instance);
-      if (Ctable != null)
-        optRWI.put("tableName", Ctable);
-      if (CTtable != null)
-        optRWI.put("tableNameTranspose", CTtable);
-      optRWI.put("username", user);
-      optRWI.put("password", new String(password.getPassword()));
       optRWI.put("numEntriesCheckpoint", String.valueOf(numEntriesCheckpoint));
     }
-
     optTT.put("AT.emitNoMatch", Boolean.toString(emitNoMatchA));
     optTT.put("B.emitNoMatch", Boolean.toString(emitNoMatchB));
 
@@ -600,27 +581,16 @@ public class Graphulo {
         throw new RuntimeException(e);
       }
 
-    Map<String, String> opt = new HashMap<>();
+    Map<String, String> opt = Rtable != null || RTtable != null ? basicRemoteOpts("", Rtable, RTtable) : new HashMap<String,String>();
 //    opt.put("trace", String.valueOf(trace)); // logs timing on server
     opt.put("reducer", GatherColQReducer.class.getName());
     if (Rtable != null || RTtable != null) {
-      String instance = connector.getInstance().getInstanceName();
-      String zookeepers = connector.getInstance().getZooKeepers();
-      String user = connector.whoami();
-      opt.put("zookeeperHost", zookeepers);
-      opt.put("instanceName", instance);
-      if (Rtable != null)
-        opt.put("tableName", Rtable);
-      if (RTtable != null)
-        opt.put("tableNameTranspose", RTtable);
-      opt.put("username", user);
-      opt.put("password", new String(password.getPassword()));
-
       if (Rtable != null && plusOp != null)
         GraphuloUtil.applyIteratorSoft(plusOp, tops, Rtable);
       if (RTtable != null && plusOp != null)
         GraphuloUtil.applyIteratorSoft(plusOp, tops, RTtable);
     }
+
     BatchScanner bs;
     try {
       bs = connector.createBatchScanner(Atable, Authorizations.EMPTY, 50); // TODO P2: set number of batch scan threads
@@ -883,14 +853,11 @@ public class Graphulo {
         throw new RuntimeException(e);
       }
 
-    Map<String, String> opt = new HashMap<>();
+    Map<String, String> opt = Rtable != null || RTtable != null ? basicRemoteOpts("C.", Rtable, RTtable) : new HashMap<String,String>();
 //    opt.put("trace", String.valueOf(trace)); // logs timing on server
 //    opt.put("gatherColQs", "true");  No gathering right now.  Need to implement more general gathering function on RemoteWriteIterator.
     opt.put("dotmode", TwoTableIterator.DOTMODE.ROW.name());
     opt.put("multiplyOp", EdgeBFSMultiply.class.getName());
-    String instance = connector.getInstance().getInstanceName();
-    String zookeepers = connector.getInstance().getZooKeepers();
-    String user = connector.whoami();
 //    opt.put("AT.zookeeperHost", zookeepers);
 //    opt.put("AT.instanceName", instance);
     opt.put("AT.tableName", TwoTableIterator.CLONESOURCE_TABLENAME);
@@ -899,14 +866,6 @@ public class Graphulo {
 
 
     if (Rtable != null || RTtable != null) {
-      opt.put("C.zookeeperHost", zookeepers);
-      opt.put("C.instanceName", instance);
-      if (Rtable != null)
-        opt.put("C.tableName", Rtable);
-      if (RTtable != null)
-        opt.put("C.tableNameTranspose", RTtable);
-      opt.put("C.username", user);
-      opt.put("C.password", new String(password.getPassword()));
       opt.put("C.reducer", EdgeBFSReducer.class.getName());
       opt.put("C.reducer.opt.inColumnPrefix", endPrefix);
 //      opt.put("C.numEntriesCheckpoint", String.valueOf(numEntriesCheckpoint));
@@ -1047,6 +1006,7 @@ public class Graphulo {
       sb.append(iterator.next().getKey().getRow().toString())
           .append(sep);
     }
+    scan.close();
     return sb.toString();
   }
 
@@ -1170,7 +1130,9 @@ public class Graphulo {
         throw new RuntimeException(e);
       }
 
-    Map<String, String> opt = new HashMap<>(), optSTI = new HashMap<>();
+    Map<String, String>
+        opt = Rtable != null ? basicRemoteOpts("", Rtable) : new HashMap<String,String>(),
+        optSTI = new HashMap<>();
     optSTI.put(SingleTransposeIterator.EDGESEP, edgeSepStr);
     optSTI.put(SingleTransposeIterator.NEG_ONE_IN_DEG, Boolean.toString(false)); // not a good option
     optSTI.put(SingleTransposeIterator.DEGCOL, degColumn);
@@ -1178,19 +1140,10 @@ public class Graphulo {
     opt.put("reducer", SingleBFSReducer.class.getName());
     opt.put("reducer.opt." + SingleBFSReducer.EDGE_SEP, edgeSepStr);
     if (Rtable != null) {
-      String instance = connector.getInstance().getInstanceName();
-      String zookeepers = connector.getInstance().getZooKeepers();
-      String user = connector.whoami();
-      opt.put("zookeeperHost", zookeepers);
-      opt.put("instanceName", instance);
-//        if (Rtable != null)
-      opt.put("tableName", Rtable);
-      opt.put("username", user);
-      opt.put("password", new String(password.getPassword()));
-
       if (/*Rtable != null &&*/ plusOp != null)
         GraphuloUtil.applyIteratorSoft(plusOp, tops, Rtable);
     }
+
     BatchScanner bs;
     try {
       bs = connector.createBatchScanner(Stable, Authorizations.EMPTY, 50); // TODO P2: set number of batch scan threads
@@ -1729,16 +1682,8 @@ public class Graphulo {
       DynamicIteratorSetting dis = new DynamicIteratorSetting();
       dis.append(DEFAULT_PLUS_ITERATOR);
 
-      Map<String,String> opt = new HashMap<>();
+      Map<String,String> opt = basicRemoteOpts(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX, ADeg);
       opt.put(ApplyIterator.APPLYOP, JaccardDegreeApply.class.getName());
-      String instance = connector.getInstance().getInstanceName();
-      String zookeepers = connector.getInstance().getZooKeepers();
-      String user = connector.whoami();
-      opt.put(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+"zookeeperHost", zookeepers); // todo: abstract this into a method
-      opt.put(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+"instanceName", instance);
-      opt.put(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+"tableName", ADeg);
-      opt.put(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+"username", user);
-      opt.put(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+"password", new String(password.getPassword()));
       IteratorSetting JDegApply = new IteratorSetting(1, ApplyIterator.class, opt);
       dis.append(JDegApply);
       RPlusIteratorSetting = dis.toIteratorSetting(DEFAULT_PLUS_ITERATOR.getPriority());
@@ -1765,5 +1710,91 @@ public class Graphulo {
     log.debug("Jaccard nnz "+Jnnz);
     return Jnnz;
   }
+
+
+  /**
+   * Create a degree table from an existing table.
+   * @param table Name of original table.
+   * @param Degtable Name of degree table. Created if it does not exist.
+   *                 Use a combiner if you want to sum in the new degree entries into an existing table.
+   * @param countColumns True means degrees are the <b>number of entries in each row</b>.
+   *                     False means degrees are the <b>sum or weights of entries in each row</b>.
+   * @param trace Server-side tracing.
+   * @return The number of rows in the original table.
+   */
+  public long generateDegreeTable(String table, String Degtable, boolean countColumns, boolean trace) {
+    table = emptyToNull(table);
+    Degtable = emptyToNull(Degtable);
+    Preconditions.checkArgument(table != null, "Input table must be given: table=%s", table);
+    Preconditions.checkArgument(Degtable != null, "Output table must be given: Degtable=%s", Degtable);
+    TableOperations tops = connector.tableOperations();
+    Preconditions.checkArgument(tops.exists(table), "Input table must exist: table=%s", table);
+    BatchScanner bs;
+    try {
+      if (!tops.exists(Degtable))
+        tops.create(Degtable);
+      bs = connector.createBatchScanner(table, Authorizations.EMPTY, 2); // todo: 2 threads arbitrary
+    } catch (TableNotFoundException | TableExistsException e) {
+      log.error("crazy", e);
+      throw new RuntimeException(e);
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      log.error("problem creating degree table "+Degtable, e);
+      throw new RuntimeException(e);
+    }
+    bs.setRanges(Collections.singleton(new Range()));
+
+    {
+      DynamicIteratorSetting dis = new DynamicIteratorSetting();
+      if (countColumns)
+          dis.append(new IteratorSetting(1, ApplyIterator.class,
+              Collections.singletonMap(ApplyIterator.APPLYOP, Abs0Apply.class.getName())));
+      dis
+        .append(new IteratorSetting(1, ApplyIterator.class,
+            Collections.singletonMap(ApplyIterator.APPLYOP, OnlyRowApply.class.getName())))
+        .append(DEFAULT_PLUS_ITERATOR)
+        .append(new IteratorSetting(1, RemoteWriteIterator.class, basicRemoteOpts("", Degtable)));
+      bs.addScanIterator(dis.toIteratorSetting(DEFAULT_PLUS_ITERATOR.getPriority()));
+    }
+
+    long totalRows = 0;
+    try {
+      for (Map.Entry<Key, Value> entry : bs) {
+        totalRows += RemoteWriteIterator.decodeValue(entry.getValue(), null);
+      }
+    } finally {
+      bs.close();
+    }
+
+    return totalRows;
+  }
+
+  private Map<String,String> basicRemoteOpts(String prefix, String remoteTable) {
+    return basicRemoteOpts(prefix, remoteTable, null);
+  }
+
+  /**
+   * Create the basic iterator settings for the {@link RemoteWriteIterator}.
+   * @param prefix A prefix to apply to keys in the option map, e.g., the "B" in "B.tableName".
+   * @param remoteTable Name of table to write to. Null does not put in the table name.
+   * @param remoteTableTranspose Name of table to write transpose to. Null does not put in the transpose table name.
+   * @return The basic set of options for {@link RemoteWriteIterator}.
+   */
+  private Map<String,String> basicRemoteOpts(String prefix, String remoteTable, String remoteTableTranspose) {
+    if (prefix == null) prefix = "";
+    Map<String,String> opt = new HashMap<>();
+    String instance = connector.getInstance().getInstanceName();
+    String zookeepers = connector.getInstance().getZooKeepers();
+    String user = connector.whoami();
+    opt.put(prefix+"zookeeperHost", zookeepers);
+    opt.put(prefix+"instanceName", instance);
+    if (remoteTable != null)
+      opt.put(prefix+"tableName", remoteTable);
+    if (remoteTableTranspose != null)
+      opt.put(prefix+"tableNameTranspose", remoteTableTranspose);
+    opt.put(prefix+"username", user);
+    opt.put(prefix+"password", new String(password.getPassword()));
+    return opt;
+  }
+
 
 }

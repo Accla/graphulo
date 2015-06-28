@@ -217,7 +217,9 @@ Before debugging a problem, consider
 1. checking the Accumulo monitor, running by default on <http://localhost:50095/>;
 2. printf or log4j debugging;
 3. debugging by deletion, i.e., if removing a piece of code solves your problem, 
-then you know where the problem is.
+then you know where the problem is;
+4. inserting the Accumulo system `DebugIterator` or the Graphulo `DebugInfoIterator` into the iterator stack,
+which log information about every call from the iterator above it at the `DEBUG` or `INFO` level respectively.
 
 Debuggers can be extraordinarily helpful once running but challenging to set up.
 There are two methods to use a debugger: 

@@ -21,7 +21,7 @@ public class ReducerTest {
   @Test
   public void testEdgeBFSReducer() {
     EdgeBFSReducer r = new EdgeBFSReducer();
-    r.init(Collections.singletonMap(EdgeBFSReducer.IN_COLUMN_PREFIX, "in|"), null);
+    r.init(Collections.singletonMap(EdgeBFSReducer.IN_COLUMN_PREFIX, "in|,"), null);
     r.update(new Key("","","out|v1"), new Value());
     r.update(new Key("","","in|v2"), new Value());
     r.update(new Key("","","out|v1"), new Value());
@@ -32,7 +32,7 @@ public class ReducerTest {
     e.add("v3");
     Assert.assertEquals(e, r.getForClient());
     EdgeBFSReducer r2 = new EdgeBFSReducer();
-    r2.init(Collections.singletonMap(EdgeBFSReducer.IN_COLUMN_PREFIX, "in|"), null);
+    r2.init(Collections.singletonMap(EdgeBFSReducer.IN_COLUMN_PREFIX, "in|,"), null);
     r.update(new Key("","","in|v5"), new Value());
     r.combine(r2.getForClient());
     e.add("v5");

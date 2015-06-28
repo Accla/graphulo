@@ -522,11 +522,41 @@ public class GraphuloUtil {
         : null;
   }
 
+  /**
+   * Add Cartesian product of prefixes and suffixes to a string.
+   * @see #padD4mString_Single(String, String, String)
+   */
+  public static String padD4mString(String prefixes, String suffixes, String str) {
+    if (prefixes == null)
+      prefixes = "";
+    if (suffixes == null)
+      suffixes = "";
+    if (prefixes.length() <= 1 && suffixes.length() <= 1)
+      return str;
+    String s = "";
+    if (prefixes.length() <= 1) {
+      for (String suf : suffixes.split(String.valueOf(suffixes.charAt(suffixes.length() - 1))))
+        s += padD4mString_Single("", suf, str);
+      return s;
+    }
+    if (suffixes.length() <= 1) {
+      for (String pre : prefixes.split(String.valueOf(prefixes.charAt(prefixes.length() - 1))))
+        s += padD4mString_Single(pre, "", str);
+      return s;
+    }
+    for (String pre : prefixes.split(String.valueOf(prefixes.charAt(prefixes.length() - 1)))) {
+      for (String suf : suffixes.split(String.valueOf(suffixes.charAt(suffixes.length() - 1)))) {
+        s += padD4mString_Single(pre, suf, str);
+      }
+    }
+    return s;
+  }
+
   /** Add prefix and/or suffix to every part of a D4M string.
    * prependStartPrefix("pre|","X","a,b,:,v,:,") ==>
    *  "pre|aX,pre|bX,:,pre|vX,:,"
    * */
-  public static String padD4mString(String prefix, String suffix, String str) {
+  public static String padD4mString_Single(String prefix, String suffix, String str) {
     if (prefix == null)
       prefix = "";
     if (suffix == null)

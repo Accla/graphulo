@@ -777,7 +777,7 @@ public class Graphulo {
 
   /**
    * Out-degree-filtered Breadth First Search on Incidence table.
-   * Conceptually k iterations of: v0 ==startPrefix==> edge ==endPrefix==> v1.
+   * Conceptually k iterations of: v0 ==startPrefixes==> edge ==endPrefixes==> v1.
    *
    * @param Etable        Incidence table; rows are edges, column qualifiers are nodes.
    * @param v0            Starting vertices, like "v0,v5,v6,".
@@ -785,8 +785,8 @@ public class Graphulo {
    * @param k             Number of steps.
    * @param Rtable        Name of table to store result. Null means don't store the result.
    * @param RTtable       Name of table to store transpose of result. Null means don't store the transpose.
-   * @param startPrefix   Prefix of 'start' of an edge including separator, e.g. 'out|'
-   * @param endPrefix     Prefix of 'end' of an edge including separator, e.g. 'in|'
+   * @param startPrefixes   D4M String of Prefixes of edge 'starts' including separator, e.g. 'outA|,outB|,'
+   * @param endPrefixes     D4M String of Prefixes of edge 'ends' including separator, e.g. 'inA|,inB|,'
    * @param ETDegtable    Name of table holding out-degrees for ET. Must be provided if degree filtering is used.
    * @param degColumn   Name of column for out-degrees in ETDegtable like "deg". Null means the empty column "".
    *                    If degInColQ==true, this is the prefix before the numeric portion of the column like "deg|", and null means no prefix.
@@ -800,7 +800,7 @@ public class Graphulo {
    * @return              The nodes reachable in exactly k steps from v0.
    */
   public String  EdgeBFS(String Etable, String v0, int k, String Rtable, String RTtable,
-                         String startPrefix, String endPrefix,
+                         String startPrefixes, String endPrefixes,
                          String ETDegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree,
                          IteratorSetting plusOp, int EScanIteratorPriority, boolean trace) {
     boolean needDegreeFiltering = minDegree > 0 || maxDegree < Integer.MAX_VALUE;
@@ -867,7 +867,7 @@ public class Graphulo {
 
     if (Rtable != null || RTtable != null) {
       opt.put("C.reducer", EdgeBFSReducer.class.getName());
-      opt.put("C.reducer.opt.inColumnPrefix", endPrefix);
+      opt.put("C.reducer.opt."+EdgeBFSReducer.IN_COLUMN_PREFIX, endPrefixes); // MULTI change EdgeBFSReducer for multiple endPrefixes
 //      opt.put("C.numEntriesCheckpoint", String.valueOf(numEntriesCheckpoint));
 
       if (Rtable != null && plusOp != null)
@@ -884,9 +884,9 @@ public class Graphulo {
       throw new RuntimeException(e);
     }
 
-    String colFilterB = prependStartPrefix(endPrefix, sep, null);
+    String colFilterB = prependStartPrefix(endPrefixes, sep, null); // MULTI
     log.debug("fetchColumn "+colFilterB);
-//    bs.fetchColumn(EMPTY_TEXT, new Text(GraphuloUtil.prependStartPrefix(endPrefix, v0, null)));
+//    bs.fetchColumn(EMPTY_TEXT, new Text(GraphuloUtil.prependStartPrefix(endPrefixes, v0, null)));
 
     try {
       long degTime = 0, scanTime = 0;
@@ -913,13 +913,13 @@ public class Graphulo {
 
           if (vktexts.isEmpty())
             break;
-          opt.put("AT.colFilter", prependStartPrefix(startPrefix, sep, vktexts));
+          opt.put("AT.colFilter", prependStartPrefix(startPrefixes, sep, vktexts)); // MULTI
 
         } else {  // no filtering
           if (thisk == 1)
-            opt.put("AT.colFilter", GraphuloUtil.padD4mString(startPrefix, "", v0));
+            opt.put("AT.colFilter", GraphuloUtil.padD4mString(startPrefixes, "", v0));
           else
-            opt.put("AT.colFilter", prependStartPrefix(startPrefix, sep, vktexts));
+            opt.put("AT.colFilter", prependStartPrefix(startPrefixes, sep, vktexts));
         }
         log.debug("AT.colFilter: " + opt.get("AT.colFilter"));
 
@@ -932,7 +932,7 @@ public class Graphulo {
         bs.addScanIterator(itset);
 
         EdgeBFSReducer reducer = new EdgeBFSReducer();
-        reducer.init(Collections.singletonMap("inColumnPrefix", endPrefix), null);
+        reducer.init(Collections.singletonMap(EdgeBFSReducer.IN_COLUMN_PREFIX, endPrefixes), null);
         long t2 = System.currentTimeMillis();
         for (Map.Entry<Key, Value> entry : bs) {
 //        System.out.println("A Entry: "+entry.getKey() + " -> " + entry.getValue());
@@ -1010,6 +1010,17 @@ public class Graphulo {
     return sb.toString();
   }
 
+  static String prependStartPrefix(String prefixes, char sep, Collection<Text> vktexts) {
+    if (prefixes == null)
+      prefixes = "";
+    if (prefixes.length() <= 1)
+      return prependStartPrefix_Single(null, sep, vktexts);
+    String s = "";
+    for (String prefix : prefixes.split(String.valueOf(prefixes.charAt(prefixes.length() - 1)))) {
+      s += prependStartPrefix_Single(prefix, sep, vktexts);
+    }
+    return s;
+  }
 
   /**
    * Todo? Replace with {@link Range#prefix} or {@link Range#followingPrefix(Text)}.
@@ -1018,8 +1029,10 @@ public class Graphulo {
    * @param vktexts Set of nodes like "v1,v3,v0,"
    * @return "out|v1,out|v3,out|v0," or "out|,:,out}," if vktexts is null or empty
    */
-  static String prependStartPrefix(String prefix, char sep, Collection<Text> vktexts) {
+  static String prependStartPrefix_Single(String prefix, char sep, Collection<Text> vktexts) {
     if (vktexts == null || vktexts.isEmpty()) {
+      if (prefix == null || prefix.isEmpty())
+        return ":"+sep;
 //      byte[] orig = prefix.getBytes();
 //      byte[] newb = new byte[orig.length*2+4];
 //      System.arraycopy(orig,0,newb,0,orig.length);

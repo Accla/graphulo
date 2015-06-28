@@ -353,7 +353,7 @@ public class UtilTest {
   @Test
   public void testPrependStartPrefix() {
     char sep = ',';
-    String startPrefix = "out|";
+    String startPrefix = "out|,";
     String v0 = "v1,v3,v0,";
     Collection<Text> vktexts = GraphuloUtil.d4mRowToTexts(v0);
     String expect = "out|v1,out|v3,out|v0,";
@@ -429,13 +429,13 @@ public class UtilTest {
   @Test
   public void testPrependStartPrefix_D4MRange() {
     Assert.assertEquals("pre|a,pre|b,:,pre|v,:,",
-        GraphuloUtil.padD4mString("pre|","","a,b,:,v,:,"));
+        GraphuloUtil.padD4mString("pre|,",null,"a,b,:,v,:,"));
     Assert.assertEquals("pre|aX,pre|bX,:,pre|vX,:,",
-        GraphuloUtil.padD4mString("pre|", "X", "a,b,:,v,:,"));
+        GraphuloUtil.padD4mString("pre|,", "X,", "a,b,:,v,:,"));
     Assert.assertEquals(":,a,b,",
         GraphuloUtil.padD4mString(null, null, ":,a,b,"));
     Assert.assertEquals(":,ax,bx,",
-        GraphuloUtil.padD4mString("", "x", ":,a,b,"));
+        GraphuloUtil.padD4mString(null, "x,", ":,a,b,"));
   }
 
   @Test

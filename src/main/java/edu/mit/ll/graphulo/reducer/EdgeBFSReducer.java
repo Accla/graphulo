@@ -14,12 +14,13 @@ import java.util.Map;
 /**
  * Column "in|v3" ==> "v3".
  * Stores a set of the columns reached in one step of BFS on the incidence matrix.
+ * Pass as an option a D4M string of all acceptable prefixes, e.g., "inA|,inB|,".
  */
 public class EdgeBFSReducer implements Reducer<HashSet<String>> {
   private static final Logger log = LogManager.getLogger(EdgeBFSReducer.class);
 
-  public static final String IN_COLUMN_PREFIX = "inColumnPrefix";
-  private byte[] inColumnPrefix;
+  public static final String IN_COLUMN_PREFIX = "inColumnPrefixes";
+  private byte[][] inColumnPrefixes;
 
   private HashSet<String> setNodesReached = new HashSet<>();
 
@@ -29,14 +30,17 @@ public class EdgeBFSReducer implements Reducer<HashSet<String>> {
       String optionValue = optionEntry.getValue();
       switch (optionKey) {
         case IN_COLUMN_PREFIX:
-          inColumnPrefix = optionValue.getBytes();
+          String[] prefixes = optionValue.split(String.valueOf(optionValue.charAt(optionValue.length() - 1)));
+          inColumnPrefixes = new byte[prefixes.length][];
+          for (int i = 0; i < prefixes.length; i++) {
+            inColumnPrefixes[i] = prefixes[i].getBytes();
+          }
           break;
         default:
           log.warn("Unrecognized option: " + optionEntry);
-          continue;
       }
     }
-    if (inColumnPrefix == null)
+    if (inColumnPrefixes == null)
       throw new IllegalArgumentException("no "+IN_COLUMN_PREFIX);
   }
 
@@ -50,9 +54,18 @@ public class EdgeBFSReducer implements Reducer<HashSet<String>> {
     setNodesReached.clear();
   }
 
+  private String findNodeAfter(byte[] cqBytes) {
+    for (byte[] inColumnPrefix : inColumnPrefixes) {
+      String nodeAfter = GraphuloUtil.stringAfter(inColumnPrefix, cqBytes);
+      if (nodeAfter != null)
+        return nodeAfter;
+    }
+    return null;
+  }
+
   @Override
   public void update(Key k, Value v) {
-    String nodeAfter = GraphuloUtil.stringAfter(inColumnPrefix, k.getColumnQualifier().getBytes());
+    String nodeAfter = findNodeAfter(k.getColumnQualifier().getBytes());
     if (nodeAfter != null)
       setNodesReached.add(nodeAfter);
 //    log.debug("received colQ "+k.getColumnQualifier().toString()+" : now "+setNodesReached.toString());

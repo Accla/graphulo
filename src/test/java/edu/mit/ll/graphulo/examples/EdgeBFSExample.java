@@ -45,8 +45,8 @@ public class EdgeBFSExample extends AccumuloTestBase {
     String RTtable = null;                              // Don't write transpose of BFS.
     String EDegTtable = "ex" + SCALE + "AEdgeDegT";     // Degree table for transpose of incidence table, containing out-degrees.
     String degColumn = "out";                           // Name of column qualifier under which out-degrees appear in EDegTtable.
-    String startPrefix = "out|";                        // Name of column qualifier prefix for the node an edge emanates from.
-    String endPrefix = "in|";                           // Name of column qualifier prefix for the node an edge goes into.
+    String startPrefixes = "out|,";                        // D4M String of the column qualifier prefixes for the node an acceptable edge emanates from.
+    String endPrefixes = "in|,";                           // D4M String of the column qualifier prefixes for the node an acceptable edge goes into.
     boolean degInColQ = false;                          // Degree is stored in the Value, not the Column Qualifier.
     int minDegree = 20;                                 // Bounding minimum degree: only include nodes with degree 20 or higher.
     int maxDegree = Integer.MAX_VALUE;                  // Unbounded maximum degree.  This and the minimum degree make a High-pass Filter.
@@ -85,7 +85,7 @@ public class EdgeBFSExample extends AccumuloTestBase {
     // Incidence Table Breadth First Search.
     // This call blocks until the BFS completes.
     String vReached = graphulo.EdgeBFS(Etable, v0, numSteps, Rtable, RTtable,
-        startPrefix, endPrefix, EDegTtable, degColumn, degInColQ, minDegree, maxDegree,
+        startPrefixes, endPrefixes, EDegTtable, degColumn, degInColQ, minDegree, maxDegree,
         plusOp, -1, trace);
     System.out.println("First few nodes reachable in exactly "+numSteps+" steps: " +
         vReached.substring(0,Math.min(20,vReached.length())));

@@ -45,8 +45,8 @@ public class EdgeBFSExample extends AccumuloTestBase {
     String RTtable = null;                              // Don't write transpose of BFS.
     String EDegTtable = "ex" + SCALE + "AEdgeDegT";     // Degree table for transpose of incidence table, containing out-degrees.
     String degColumn = "out";                           // Name of column qualifier under which out-degrees appear in EDegTtable.
-    String startPrefixes = "out|,";                        // D4M String of the column qualifier prefixes for the node an acceptable edge emanates from.
-    String endPrefixes = "in|,";                           // D4M String of the column qualifier prefixes for the node an acceptable edge goes into.
+    String startPrefixes = "out|,";                     // D4M String of the column qualifier prefixes for the node an acceptable edge emanates from.
+    String endPrefixes = "in|,";                        // D4M String of the column qualifier prefixes for the node an acceptable edge goes into.
     boolean degInColQ = false;                          // Degree is stored in the Value, not the Column Qualifier.
     int minDegree = 20;                                 // Bounding minimum degree: only include nodes with degree 20 or higher.
     int maxDegree = Integer.MAX_VALUE;                  // Unbounded maximum degree.  This and the minimum degree make a High-pass Filter.

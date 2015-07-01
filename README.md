@@ -290,12 +290,17 @@ D4M String  | Range
 `x,`        | [x,x)
 `x,z,`      | [x,x) U [z,z)
 `x,z,:`     | [x,x) U [z,+inf)
+`,`         | ["","")     (the empty string row)
+`,a,`       | ["","") U [a,a)
+`,:,b,f,:,` | ["",b] U [f,+inf)
 
 The "separator" character in D4M strings is arbitrary. The above examples use `,` but could just as easily
 have used the tab character, the newline character, or the null `\0` character.
 The key is to pick a separator character that never occurs elsewhere in the D4M String.
 It is also forbidden to reference a row that consists of the single character `:`.
 
+As a standard, the empty string and null always have the same semantic meaning
+for functions that take string arguments. Differentiating between them would create great confusion.
 
 ### Iterators
 

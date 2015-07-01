@@ -49,6 +49,30 @@ public class GraphuloUtil {
   private static final Text EMPTY_TEXT = new Text();
 
 
+  /* Motivation for using -1 argument in String.split() call:
+System.out.println(",".split(",",-1 ).length + Arrays.toString(",".split(",",-1 )));
+System.out.println(",".split(",",0  ).length + Arrays.toString(",".split(",",0  )));
+System.out.println("a,".split(",",-1).length + Arrays.toString("a,".split(",",-1)));
+System.out.println("a,".split(",",0 ).length + Arrays.toString("a,".split(",",0 )));
+System.out.println();
+System.out.println(",".split(",",-1 )[1].length);
+System.out.println("a,,".split(",",0 ).length + Arrays.toString("a,,".split(",",0 )));
+System.out.println("a,,".split(",",-1).length + Arrays.toString("a,,".split(",",-1)));
+System.out.println(",a,,".split(",",0 ).length + Arrays.toString(",a,,".split(",",0 )));
+System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",",-1)));
+   */
+
+  /**
+   * Split a D4M String into each component. Does nothing special with ranges, i.e. the ':' character.
+   */
+  public static String[] splitD4mString(String str) {
+    // maybe optimize away since this is a lower-level function
+    Preconditions.checkArgument(str != null && !str.isEmpty(), "%s must be length at least 1", str);
+    return str.substring(0,str.length()-1).split(
+        Character.toString(str.charAt(str.length() - 1)), -1
+    );
+  }
+
   /**
    * Split options on period characters.
    * "" holds entries without a period.
@@ -115,8 +139,7 @@ public class GraphuloUtil {
     if (rowStr == null || rowStr.isEmpty())
       return new TreeSet<>();
     // could write my own version that does not do regex, but probably not worth optimizing
-    String[] rowStrSplit = rowStr.substring(0, rowStr.length() - 1)
-        .split(String.valueOf(rowStr.charAt(rowStr.length() - 1)));
+    String[] rowStrSplit = splitD4mString(rowStr);
     //if (rowStrSplit.length == 1)
     List<String> rowStrList = Arrays.asList(rowStrSplit);
     PeekingIterator3<String> pi = new PeekingIterator3<>(rowStrList.iterator());
@@ -232,9 +255,9 @@ public class GraphuloUtil {
 
   /**
    * Convert D4M string representation of individual rows/columns to Text objects.
-   * No ':' character allowed!
+   * No ':' allowed as an entire row name!
    * Last character in the string is an arbitrary separator char
-   * that must not appear in the rows. The ':' cannot appear in rows either.
+   * that must not appear in the rows.
    * See UtilTest for more test cases.
    *
    * @param rowStr Ex: 'a,b,c,d,'
@@ -243,13 +266,11 @@ public class GraphuloUtil {
   public static Collection<Text> d4mRowToTexts(String rowStr) {
     if (rowStr == null || rowStr.isEmpty())
       return Collections.emptySet();
-    // could write my own version that does not do regex, but probably not worth optimizing
-    String[] rowStrSplit = rowStr.substring(0, rowStr.length() - 1)
-        .split(String.valueOf(rowStr.charAt(rowStr.length() - 1)));
+    String[] rowStrSplit = splitD4mString(rowStr);
     Collection<Text> ts = new HashSet<>(rowStrSplit.length);
     for (String row : rowStrSplit) {
       if (row.equals(":"))
-        throw new IllegalArgumentException("rowStr cannot contain ranges: " + rowStr);
+        throw new IllegalArgumentException("rowStr cannot contain the label \":\" ---- " + rowStr);
       ts.add(new Text(row));
     }
     return ts;
@@ -375,6 +396,8 @@ public class GraphuloUtil {
         IteratorSetting s;
         if (ranges.size() == 1) { // single range - use ColumnSliceFilter
           Range r = ranges.first();
+          if (r.isInfiniteStartKey() && r.isInfiniteStopKey())
+            return;               // Infinite case: no filtering.
           s = new IteratorSetting(priority, ColumnSliceFilter.class);
 //          System.err.println("start: "+(r.isInfiniteStartKey() ? null : r.getStartKey().getRow().toString())
 //              +"end: "+(r.isInfiniteStopKey() ? null : r.getEndKey().getRow().toString()));
@@ -494,6 +517,9 @@ public class GraphuloUtil {
     }
   }
 
+  /**
+   * Create a new instance of a class whose name is given, as a descendent of a given subclass.
+   */
   public static <E> E subclassNewInstance(String classname, Class<E> parentClass) {
     Class<?> c;
     try {
@@ -523,33 +549,45 @@ public class GraphuloUtil {
   }
 
   /**
-   * Add Cartesian product of prefixes and suffixes to a string.
+   * Add Cartesian product of prefixes and suffixes to a string, each give as a D4M String.
    * @see #padD4mString_Single(String, String, String)
    */
   public static String padD4mString(String prefixes, String suffixes, String str) {
-    if (prefixes == null)
-      prefixes = "";
-    if (suffixes == null)
-      suffixes = "";
-    if (prefixes.length() <= 1 && suffixes.length() <= 1)
+    if (prefixes == null || prefixes.isEmpty())
+      prefixes = ",";
+    if (suffixes == null || suffixes.isEmpty())
+      suffixes = ",";
+    if (prefixes.length()<=1 && suffixes.length()<=1)
       return str;
+
+    if (d4mStringContainsRange(str)) {
+//      if (suffixes.length()>1)
+//        throw new UnsupportedOperationException("No way to append the suffixes "+suffixes+
+//            " to a D4M String containing a Range: "+str);
+      // add prefix to v0 Ranges. Goto full Range Objects because ':' is complicated.
+      SortedSet<Range> tmp = GraphuloUtil.d4mRowToRanges(str), tmp2 = new TreeSet<>();
+      for (String startPre : GraphuloUtil.splitD4mString(prefixes))
+        for (Range range : tmp)
+          tmp2.add(GraphuloUtil.prependPrefixToRange(startPre, range));
+      str = GraphuloUtil.rangesToD4MString(tmp2, str.charAt(str.length()-1));
+      prefixes = ",";
+    }
+
     String s = "";
-    if (prefixes.length() <= 1) {
-      for (String suf : suffixes.split(String.valueOf(suffixes.charAt(suffixes.length() - 1))))
-        s += padD4mString_Single("", suf, str);
-      return s;
-    }
-    if (suffixes.length() <= 1) {
-      for (String pre : prefixes.split(String.valueOf(prefixes.charAt(prefixes.length() - 1))))
-        s += padD4mString_Single(pre, "", str);
-      return s;
-    }
-    for (String pre : prefixes.split(String.valueOf(prefixes.charAt(prefixes.length() - 1)))) {
-      for (String suf : suffixes.split(String.valueOf(suffixes.charAt(suffixes.length() - 1)))) {
+    for (String pre : GraphuloUtil.splitD4mString(prefixes)) {
+      for (String suf : GraphuloUtil.splitD4mString(suffixes)) {
         s += padD4mString_Single(pre, suf, str);
       }
     }
     return s;
+  }
+
+  /**
+   * Does the str contain the colon+separator, meaning it has a range?
+   */
+  public static boolean d4mStringContainsRange(String str) {
+    String cont = ":"+str.charAt(str.length()-1);
+    return str.contains(cont);
   }
 
   /** Add prefix and/or suffix to every part of a D4M string.
@@ -565,14 +603,45 @@ public class GraphuloUtil {
       return str;
     char sep = str.charAt(str.length() - 1);
     StringBuilder sb = new StringBuilder();
-    String[] split = str.split(String.valueOf(sep));
-    for (String part : split) {
+    for (String part : GraphuloUtil.splitD4mString(str)) {
       if (part.equals(":"))
         sb.append(part).append(sep);
       else
         sb.append(prefix).append(part).append(suffix).append(sep);
     }
     return sb.toString();
+  }
+
+  /**
+   * Pad a range with a prefix, so the new range points to entries
+   * that begin with the prefix and then satisfy the original range.
+   * Only uses the Row field of the original Range; discards the rest.
+   * @param pre The prefix
+   * @param rold The original Range
+   * @return New Range of the prefix plus the original
+   */
+  public static Range prependPrefixToRange(String pre, Range rold) {
+    if (pre == null || pre.isEmpty())
+      return rold;
+    if (rold.isInfiniteStopKey() && rold.isInfiniteStartKey())
+      return Range.prefix(pre);
+    if (rold.isInfiniteStartKey())
+      return new Range(pre, true, pre+normalizeEndRow(rold), true);
+    if (rold.isInfiniteStopKey())
+      return new Range(pre+normalizeStartRow(rold), true,
+          Range.followingPrefix(new Text(pre)).toString(), false);
+    return new Range(pre+normalizeStartRow(rold), true,
+        pre+normalizeEndRow(rold), true);
+  }
+
+  public static boolean d4mStringContainsEmptyString(String str) {
+    Preconditions.checkArgument(str != null && !str.isEmpty(), "%s is not a D4M String", str);
+    if (str.length()==1)
+      return true;
+    String sep = Character.toString(str.charAt(str.length()-1));
+    String sepsep = sep+sep;
+    return str.contains(sepsep);
+
   }
 
   /**
@@ -587,10 +656,12 @@ public class GraphuloUtil {
     Preconditions.checkArgument(!str.isEmpty());
 //    Preconditions.checkArgument(str.indexOf(':') != -1, "Cannot have the ':' character: "+str);
     char sep = str.charAt(str.length() - 1);
+    if (d4mStringContainsEmptyString(str)) // empty prefix is full range.
+      return ":"+sep;
 
-    if (str.indexOf(':') == -1) {
+    if (!d4mStringContainsRange(str)) {
       StringBuilder sb = new StringBuilder();
-      for (String vktext : str.split(String.valueOf(sep))) {
+      for (String vktext : GraphuloUtil.splitD4mString(str)) {
         sb.append(vktext).append(sep)
             .append(':').append(sep)
             .append(prevRow(Range.followingPrefix(new Text(vktext)).toString()))

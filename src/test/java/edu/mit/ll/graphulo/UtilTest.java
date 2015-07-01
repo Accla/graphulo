@@ -357,13 +357,34 @@ public class UtilTest {
     String v0 = "v1,v3,v0,";
     Collection<Text> vktexts = GraphuloUtil.d4mRowToTexts(v0);
     String expect = "out|v1,out|v3,out|v0,";
-    String actual = Graphulo.prependStartPrefix(startPrefix, sep, vktexts);
-    Set<String> expectSet = new HashSet<>(Arrays.asList(expect.split(","))),
-        actualSet = new HashSet<>(Arrays.asList(actual.split(",")));
+    String actual = Graphulo.prependStartPrefix(startPrefix, vktexts);
+    Set<String> expectSet = new HashSet<>(Arrays.asList(GraphuloUtil.splitD4mString(expect))),
+        actualSet = new HashSet<>(Arrays.asList(GraphuloUtil.splitD4mString(actual)));
     Assert.assertEquals(expectSet, actualSet);
 
     expect = "out|,:,out},";
-    Assert.assertEquals(expect, Graphulo.prependStartPrefix(startPrefix, sep, null));
+    Assert.assertEquals(expect, Graphulo.prependStartPrefix(startPrefix, null));
+
+    startPrefix = "out|,in|,";
+    v0 = "v1,v3,v0,";
+    vktexts = GraphuloUtil.d4mRowToTexts(v0);
+    expect = "out|v1,out|v3,out|v0,in|v1,in|v3,in|v0,";
+    actual = Graphulo.prependStartPrefix(startPrefix, vktexts);
+    expectSet = new HashSet<>(Arrays.asList(GraphuloUtil.splitD4mString(expect)));
+    actualSet = new HashSet<>(Arrays.asList(GraphuloUtil.splitD4mString(actual)));
+    Assert.assertEquals(expectSet, actualSet);
+
+    expect = "out|,:,out},in|,:,in},";
+    Assert.assertEquals(expect, Graphulo.prependStartPrefix(startPrefix, null));
+
+    startPrefix = "out|,in|,,";
+    v0 = "v1,v3,v0,";
+    vktexts = GraphuloUtil.d4mRowToTexts(v0);
+    expect = "out|v1,out|v3,out|v0,in|v1,in|v3,in|v0,v1,v3,v0,";
+    actual = Graphulo.prependStartPrefix(startPrefix, vktexts);
+    expectSet = new HashSet<>(Arrays.asList(GraphuloUtil.splitD4mString(expect)));
+    actualSet = new HashSet<>(Arrays.asList(GraphuloUtil.splitD4mString(actual)));
+    Assert.assertEquals(expectSet, actualSet);
   }
 
   @Test
@@ -428,14 +449,22 @@ public class UtilTest {
 
   @Test
   public void testPrependStartPrefix_D4MRange() {
-    Assert.assertEquals("pre|a,pre|b,:,pre|v,:,",
-        GraphuloUtil.padD4mString("pre|,",null,"a,b,:,v,:,"));
-    Assert.assertEquals("pre|aX,pre|bX,:,pre|vX,:,",
-        GraphuloUtil.padD4mString("pre|,", "X,", "a,b,:,v,:,"));
+//    System.out.println(GraphuloUtil.prevRow(Range.followingPrefix(new Text("pre|")).toString()));
+    Assert.assertEquals("pre|a,pre|b,:,pre|v,pre|z,:,pre|" + GraphuloUtil.LAST_ONE_BYTE_CHAR + ",",
+        GraphuloUtil.padD4mString("pre|,", null, "a,b,:,v,z,:,"));
+    Assert.assertEquals("pre|aX,pre|bX,:,pre|vX,pre|zX,:,pre|"+GraphuloUtil.LAST_ONE_BYTE_CHAR+"X,",
+        GraphuloUtil.padD4mString("pre|,", "X,", "a,b,:,v,z,:,"));
     Assert.assertEquals(":,a,b,",
         GraphuloUtil.padD4mString(null, null, ":,a,b,"));
     Assert.assertEquals(":,ax,bx,",
         GraphuloUtil.padD4mString(null, "x,", ":,a,b,"));
+    Assert.assertEquals("0,:,0a,0b,1,:,1a,1b,",
+        GraphuloUtil.padD4mString("0,1,", null, ":,a,b,"));
+
+    Assert.assertEquals("0a,0b,1a,1b,",
+        GraphuloUtil.padD4mString("0,1,", null, "a,b,"));
+    Assert.assertEquals("0ax,0bx,1ax,1bx,",
+        GraphuloUtil.padD4mString("0,1,", "x,", "a,b,"));
   }
 
   @Test
@@ -484,6 +513,59 @@ public class UtilTest {
     Map<String,String> mapCopy = new HashMap<>(setting1.getOptions());
     Assert.assertEquals(setting1,
         DynamicIteratorSetting.fromMap(mapCopy).toIteratorSetting(5));
+  }
+
+  @Test
+  public void testSplitD4mString() {
+    String s;
+    String[] e, a;
+
+    s = "a,b,c,";
+    e = new String[] {"a", "b", "c"};
+    a = GraphuloUtil.splitD4mString(s);
+    Assert.assertArrayEquals(e, a);
+
+    s = "a,b,::::,,";
+    e = new String[] {"a", "b", "::::", ""};
+    a = GraphuloUtil.splitD4mString(s);
+    Assert.assertArrayEquals(e, a);
+
+    s = ",";
+    e = new String[] {""};
+    a = GraphuloUtil.splitD4mString(s);
+    Assert.assertArrayEquals(e, a);
+  }
+
+  @Test
+  public void testPrependPrefixToString() {
+    Range r, e, a;
+    String pre = "pre|";
+    Assert.assertEquals("pre}", Range.followingPrefix(new Text("pre|")).toString());
+
+    r = new Range("a",true,"b",true);
+    e = new Range("pre|a",true,"pre|b",true);
+    a = GraphuloUtil.prependPrefixToRange(pre, r);
+    Assert.assertEquals(e, a);
+
+    r = new Range("a",true,null,false);
+    e = new Range("pre|a",true,"pre}",false);
+    log.info(e);
+    a = GraphuloUtil.prependPrefixToRange(pre, r);
+    Assert.assertEquals(e, a);
+
+    r = new Range(null,false,"b",true);
+    e = new Range("pre|",true,"pre|b",true);
+    a = GraphuloUtil.prependPrefixToRange(pre, r);
+    Assert.assertEquals(e, a);
+
+    r = new Range();
+    e = new Range("pre|",true,"pre}",false);
+    a = GraphuloUtil.prependPrefixToRange(pre, r);
+    Assert.assertEquals(e, a);
+
+    r = new Range("a",true,"b",true);
+    pre = "";
+    Assert.assertEquals(r, GraphuloUtil.prependPrefixToRange(pre, r));
   }
 
 }

@@ -778,6 +778,7 @@ public class Graphulo {
   /**
    * Out-degree-filtered Breadth First Search on Incidence table.
    * Conceptually k iterations of: v0 ==startPrefixes==> edge ==endPrefixes==> v1.
+   * Works for multi-edge search.
    *
    * @param Etable        Incidence table; rows are edges, column qualifiers are nodes.
    * @param v0            Starting vertices, like "v0,v5,v6,".
@@ -785,8 +786,11 @@ public class Graphulo {
    * @param k             Number of steps.
    * @param Rtable        Name of table to store result. Null means don't store the result.
    * @param RTtable       Name of table to store transpose of result. Null means don't store the transpose.
-   * @param startPrefixes   D4M String of Prefixes of edge 'starts' including separator, e.g. 'outA|,outB|,'
-   * @param endPrefixes     D4M String of Prefixes of edge 'ends' including separator, e.g. 'inA|,inB|,'
+   * @param startPrefixes   D4M String of Prefixes of edge 'starts' including separator, e.g. 'outA|,outB|,'.
+   *                        The "empty prefix" takes the form of ','. Required; if null or empty, assumes the empty prefix.
+   * @param endPrefixes     D4M String of Prefixes of edge 'ends' including separator, e.g. 'inA|,inB|,'.
+   *                        The "empty prefix" takes the form of ','. Required; if null or empty, assumes the empty prefix.
+   *                        Important for multi-edge: None of the end prefixes may be a prefix of another end prefix.
    * @param ETDegtable    Name of table holding out-degrees for ET. Must be provided if degree filtering is used.
    * @param degColumn   Name of column for out-degrees in ETDegtable like "deg". Null means the empty column "".
    *                    If degInColQ==true, this is the prefix before the numeric portion of the column like "deg|", and null means no prefix.
@@ -828,6 +832,23 @@ public class Graphulo {
       v0 = ":\t";
     Collection<Text> vktexts = new HashSet<>();
     char sep = v0.charAt(v0.length() - 1);
+
+    if (startPrefixes == null || startPrefixes.isEmpty())
+      startPrefixes = Character.toString(sep);
+    if (endPrefixes == null || endPrefixes.isEmpty())
+      endPrefixes = Character.toString(sep);
+    // error if any endPrefix is a prefix of another
+    {
+      String[] eps = GraphuloUtil.splitD4mString(endPrefixes);
+      for (int i = 0; i < eps.length-1; i++) {
+        for (int j = i+1; j < eps.length; j++)
+          Preconditions.checkArgument(!eps[i].startsWith(eps[j]) && !eps[j].startsWith(eps[i]),
+              "No end prefix should can be a prefix of another. Reason is that these endPrefixes conflict; " +
+                  "no way to tell what node comes after the shorter end prefix. Two conflicting end prefixes: %s %s",
+              eps[i], eps[j]);
+      }
+    }
+
 
     TableOperations tops = connector.tableOperations();
     if (!tops.exists(Etable))
@@ -884,7 +905,7 @@ public class Graphulo {
       throw new RuntimeException(e);
     }
 
-    String colFilterB = prependStartPrefix(endPrefixes, sep, null); // MULTI
+    String colFilterB = prependStartPrefix(endPrefixes, null); // MULTI
     log.debug("fetchColumn "+colFilterB);
 //    bs.fetchColumn(EMPTY_TEXT, new Text(GraphuloUtil.prependStartPrefix(endPrefixes, v0, null)));
 
@@ -913,13 +934,13 @@ public class Graphulo {
 
           if (vktexts.isEmpty())
             break;
-          opt.put("AT.colFilter", prependStartPrefix(startPrefixes, sep, vktexts)); // MULTI
+          opt.put("AT.colFilter", prependStartPrefix(startPrefixes, vktexts)); // MULTI
 
         } else {  // no filtering
-          if (thisk == 1)
-            opt.put("AT.colFilter", GraphuloUtil.padD4mString(startPrefixes, "", v0));
-          else
-            opt.put("AT.colFilter", prependStartPrefix(startPrefixes, sep, vktexts));
+          if (thisk == 1) {
+            opt.put("AT.colFilter", GraphuloUtil.padD4mString(startPrefixes, ",", v0));
+          } else
+            opt.put("AT.colFilter", prependStartPrefix(startPrefixes, vktexts));
         }
         log.debug("AT.colFilter: " + opt.get("AT.colFilter"));
 
@@ -1010,13 +1031,17 @@ public class Graphulo {
     return sb.toString();
   }
 
-  static String prependStartPrefix(String prefixes, char sep, Collection<Text> vktexts) {
-    if (prefixes == null)
-      prefixes = "";
-    if (prefixes.length() <= 1)
-      return prependStartPrefix_Single(null, sep, vktexts);
+
+  /** Essentially does same thing as {@link GraphuloUtil#padD4mString}.
+   * When vktexts is null, similar to {@link GraphuloUtil#singletonsAsPrefix}.
+   */
+  static String prependStartPrefix(String prefixes, Collection<Text> vktexts) {
+    if (prefixes == null || prefixes.isEmpty() ||
+        (GraphuloUtil.d4mStringContainsEmptyString(prefixes) && vktexts == null))
+      return prependStartPrefix_Single("", GraphuloUtil.DEFAULT_SEP_D4M_STRING, vktexts);
+    char sep = prefixes.charAt(prefixes.length()-1);
     String s = "";
-    for (String prefix : prefixes.split(String.valueOf(prefixes.charAt(prefixes.length() - 1)))) {
+    for (String prefix : GraphuloUtil.splitD4mString(prefixes)) {
       s += prependStartPrefix_Single(prefix, sep, vktexts);
     }
     return s;
@@ -1030,8 +1055,10 @@ public class Graphulo {
    * @return "out|v1,out|v3,out|v0," or "out|,:,out}," if vktexts is null or empty
    */
   static String prependStartPrefix_Single(String prefix, char sep, Collection<Text> vktexts) {
+    if (prefix == null)
+      prefix = "";
     if (vktexts == null || vktexts.isEmpty()) {
-      if (prefix == null || prefix.isEmpty())
+      if (prefix.isEmpty())
         return ":"+sep;
 //      byte[] orig = prefix.getBytes();
 //      byte[] newb = new byte[orig.length*2+4];

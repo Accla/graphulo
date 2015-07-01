@@ -30,11 +30,11 @@ public class EdgeBFSReducer implements Reducer<HashSet<String>> {
       String optionValue = optionEntry.getValue();
       switch (optionKey) {
         case IN_COLUMN_PREFIX:
-          String[] prefixes = optionValue.split(String.valueOf(optionValue.charAt(optionValue.length() - 1)));
+          log.debug("inColumnPrefixes: "+optionValue);
+          String[] prefixes = GraphuloUtil.splitD4mString(optionValue);
           inColumnPrefixes = new byte[prefixes.length][];
-          for (int i = 0; i < prefixes.length; i++) {
+          for (int i = 0; i < prefixes.length; i++)
             inColumnPrefixes[i] = prefixes[i].getBytes();
-          }
           break;
         default:
           log.warn("Unrecognized option: " + optionEntry);
@@ -55,8 +55,11 @@ public class EdgeBFSReducer implements Reducer<HashSet<String>> {
   }
 
   private String findNodeAfter(byte[] cqBytes) {
+    // sequential/linear search: try every inColumnPrefix.
+    // Binary search could speed this but almost always low number of inColumnPrefixes.
     for (byte[] inColumnPrefix : inColumnPrefixes) {
       String nodeAfter = GraphuloUtil.stringAfter(inColumnPrefix, cqBytes);
+      log.debug((nodeAfter==null? "NO : " : "YES: ")+new String(cqBytes));
       if (nodeAfter != null)
         return nodeAfter;
     }

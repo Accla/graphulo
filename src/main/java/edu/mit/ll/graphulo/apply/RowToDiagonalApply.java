@@ -1,0 +1,43 @@
+package edu.mit.ll.graphulo.apply;
+
+import com.google.common.collect.Iterators;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.hadoop.io.Text;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.util.AbstractMap;
+import java.util.Iterator;
+import java.util.Map;
+
+/**
+ * For every entry passed in, emits an entry with the same row,
+ * empty column family, and column qualifier set to the row.
+ */
+public class RowToDiagonalApply implements ApplyOp {
+  private static final Logger log = LogManager.getLogger(RowToDiagonalApply.class);
+
+  public static IteratorSetting iteratorSetting(int priority) {
+    IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
+    itset.addOption(ApplyIterator.APPLYOP, RowToDiagonalApply.class.getName());
+    return itset;
+  }
+
+  @Override
+  public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
+  }
+
+  private static final Text EMPTY_TEXT = new Text();
+
+  @Override
+  public Iterator<? extends Map.Entry<Key, Value>> apply(Key k, Value v) {
+    Text row = k.getRow();
+    Key knew = new Key(row, EMPTY_TEXT, row, System.currentTimeMillis());
+    return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(knew, v));
+  }
+
+}

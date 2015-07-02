@@ -1,11 +1,11 @@
 package edu.mit.ll.graphulo;
 
 import com.google.common.base.Preconditions;
-import edu.mit.ll.graphulo.apply.Abs0Apply;
 import edu.mit.ll.graphulo.apply.ApplyIterator;
 import edu.mit.ll.graphulo.apply.ColQSpecialByteApply;
 import edu.mit.ll.graphulo.apply.JaccardDegreeApply;
-import edu.mit.ll.graphulo.apply.OnlyRowApply;
+import edu.mit.ll.graphulo.apply.KeyRetainOnlyApply;
+import edu.mit.ll.graphulo.apply.ScalarApply;
 import edu.mit.ll.graphulo.ewise.AndEWiseX;
 import edu.mit.ll.graphulo.ewise.EWiseOp;
 import edu.mit.ll.graphulo.reducer.EdgeBFSReducer;
@@ -42,6 +42,7 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
@@ -1633,10 +1634,8 @@ public class Graphulo {
         minMaxSetting.addOption(MinMaxValueFilter.MINVALUE, "2");
         iteratorsBeforeA.add(minMaxSetting);
       }
-      iteratorsBeforeA.add(new IteratorSetting(1, ApplyIterator.class,
-          Collections.singletonMap(ApplyIterator.APPLYOP, Abs0Apply.class.getName())));
-      iteratorsBeforeA.add(new IteratorSetting(1, ApplyIterator.class,
-          Collections.singletonMap(ApplyIterator.APPLYOP, OnlyRowApply.class.getName())));
+      iteratorsBeforeA.add(ScalarApply.iteratorSettingLong(1, ScalarApply.ScalarOp.SET, 1));
+      iteratorsBeforeA.add(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW));
       iteratorsBeforeA.add(DEFAULT_PLUS_ITERATOR);
       iteratorsBeforeA.add(kTrussFilter);
 
@@ -1786,11 +1785,9 @@ public class Graphulo {
     {
       DynamicIteratorSetting dis = new DynamicIteratorSetting();
       if (countColumns)
-          dis.append(new IteratorSetting(1, ApplyIterator.class,
-              Collections.singletonMap(ApplyIterator.APPLYOP, Abs0Apply.class.getName())));
+          dis.append(ScalarApply.iteratorSettingLong(1, ScalarApply.ScalarOp.SET, 1l)); // Abs0
       dis
-        .append(new IteratorSetting(1, ApplyIterator.class,
-            Collections.singletonMap(ApplyIterator.APPLYOP, OnlyRowApply.class.getName())))
+        .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))
         .append(DEFAULT_PLUS_ITERATOR)
         .append(new IteratorSetting(1, RemoteWriteIterator.class, basicRemoteOpts("", Degtable)));
       bs.addScanIterator(dis.toIteratorSetting(DEFAULT_PLUS_ITERATOR.getPriority()));

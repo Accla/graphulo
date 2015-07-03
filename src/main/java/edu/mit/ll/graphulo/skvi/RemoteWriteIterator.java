@@ -231,7 +231,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
       }
     }
     // Required options
-    if ((tableName == null && tableNameTranspose == null && reducer.getClass().equals(NOOP_REDUCER.class)) ||
+    if (//(tableName == null && tableNameTranspose == null && reducer.getClass().equals(NOOP_REDUCER.class)) ||
+        // ^ Allowing case where RWI just acts as a RowRangeFilter / column range filter effectively
         ((tableName != null || tableNameTranspose != null) &&
             (zookeeperHost == null ||
                 instanceName == null ||
@@ -272,8 +273,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
       numEntriesCheckpoint = -2; // disable save state
     }
 
-    if (reducer != null)
-      reducer.init(reducerOptions, iteratorEnvironment);
+    reducer.init(reducerOptions, iteratorEnvironment);
 
     setupConnectorWriter();
 
@@ -331,10 +331,6 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
       if (writerTranspose != null)
         writerTranspose.close();
     }
-  }
-
-  void seekNextHeuristic(Range newSeekRange) {
-
   }
 
   @Override
@@ -529,9 +525,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
           .putChar(',')
           .put(orig)
           .rewind();
-      Value v = new Value(bb);
-//      log.debug("topValue entriesWritten: "+entriesWritten);
-      return v;
+      //      log.debug("topValue entriesWritten: "+entriesWritten);
+      return new Value(bb);
     }
   }
 

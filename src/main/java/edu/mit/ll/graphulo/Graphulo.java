@@ -21,6 +21,7 @@ import edu.mit.ll.graphulo.rowmult.SelectorRowMultiply;
 import edu.mit.ll.graphulo.skvi.CountAllIterator;
 import edu.mit.ll.graphulo.skvi.MinMaxValueFilter;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
+import edu.mit.ll.graphulo.skvi.SeekFilterIterator;
 import edu.mit.ll.graphulo.skvi.SingleTransposeIterator;
 import edu.mit.ll.graphulo.skvi.SmallLargeRowFilter;
 import edu.mit.ll.graphulo.skvi.TableMultIterator;
@@ -32,10 +33,12 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -370,15 +373,14 @@ public class Graphulo {
 
     Map<String, String>
         optTT = basicRemoteOpts("AT.", ATtable),
-        optRWI = (Ctable != null || CTtable != null) ? basicRemoteOpts("", Ctable, CTtable) : new HashMap<String,String>();
+        optRWI = (Ctable != null || CTtable != null) ? basicRemoteOpts("", Ctable, CTtable) : null;
 //    optTT.put("trace", String.valueOf(trace)); // logs timing on server // todo Temp removed -- setting of Watch enable
     optTT.put("dotmode", dotmode.name());
     optTT.putAll(setupOpts);
     if (colFilterAT != null)
       optTT.put("AT.colFilter", colFilterAT);
-    if (Ctable != null || CTtable != null) {
+    if (Ctable != null || CTtable != null)
       optRWI.put("numEntriesCheckpoint", String.valueOf(numEntriesCheckpoint));
-    }
     optTT.put("AT.emitNoMatch", Boolean.toString(emitNoMatchA));
     optTT.put("B.emitNoMatch", Boolean.toString(emitNoMatchB));
 
@@ -421,7 +423,8 @@ public class Graphulo {
     for (IteratorSetting setting : iteratorsAfterTwoTable)
       dis.append(setting);
 //    dis.append(new IteratorSetting(1, DebugInfoIterator.class)); // DEBUG
-    dis.append(new IteratorSetting(1, RemoteWriteIterator.class, optRWI));
+    if (Ctable != null || CTtable != null)
+      dis.append(new IteratorSetting(1, RemoteWriteIterator.class, optRWI));
     bs.addScanIterator(dis.toIteratorSetting(BScanIteratorPriority));
 
 
@@ -498,13 +501,14 @@ public class Graphulo {
   public String AdjBFS(String Atable, String v0, int k, String Rtable, String RtableTranspose,
                        String ADegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree) {
 
-    return AdjBFS(Atable, v0, k, Rtable, RtableTranspose, -1,
+    return AdjBFS(Atable, v0, k, Rtable, RtableTranspose, null, -1,
         ADegtable, degColumn, degInColQ, minDegree, maxDegree,
         DEFAULT_PLUS_ITERATOR, false);
   }
 
   /**
    * Adjacency table Breadth First Search. Sums entries into Rtable from each step of the BFS.
+   * Can gather entries at client if desired.
    *
    * @param Atable      Name of Accumulo table.
    * @param v0          Starting nodes, like "a,f,b,c,". Null or empty string "" means start from all nodes.
@@ -512,22 +516,25 @@ public class Graphulo {
    * @param k           Number of steps
    * @param Rtable      Name of table to store result. Null means don't store the result.
    * @param RTtable     Name of table to store transpose of result. Null means don't store the transpose.
+   * @param clientResultMap Only give non-null if Rtable==null && RTtable==null.
+   *                        Results of BFS are put inside the map instead of into a new Accumulo table.
+   *                        Yes, this means all the entries reached in the BFS are sent to the client. Use with care.
    * @param AScanIteratorPriority Priority to use for scan-time iterator on table A
    * @param ADegtable   Name of table holding out-degrees for A. Leave null to filter on the fly with
-   *                    the {@link SmallLargeRowFilter}, or do no filtering if minDegree=0 and maxDegree=Integer.MAX_VALUE.
+ *                    the {@link SmallLargeRowFilter}, or do no filtering if minDegree=0 and maxDegree=Integer.MAX_VALUE.
    * @param degColumn   Name of column for out-degrees in ADegtable like "deg". Null means the empty column "".
-   *                    If degInColQ==true, this is the prefix before the numeric portion of the column like "deg|", and null means no prefix. Unused if ADegtable is null.
+*                    If degInColQ==true, this is the prefix before the numeric portion of the column like "deg|", and null means no prefix. Unused if ADegtable is null.
    * @param degInColQ   True means degree is in the Column Qualifier. False means degree is in the Value.
-   *                    Unused if ADegtable is null.
+*                    Unused if ADegtable is null.
    * @param minDegree   Minimum out-degree. Checked before doing any searching, at every step, from ADegtable. Pass 0 for no filtering.
    * @param maxDegree   Maximum out-degree. Checked before doing any searching, at every step, from ADegtable. Pass Integer.MAX_VALUE for no filtering.
    * @param plusOp      An SKVI to apply to the result table that "sums" values. Not applied if null.
-   * @param trace       Enable server-side performance tracing.
-   * @return          The nodes reachable in exactly k steps from v0.
+   *                    Applied at the client if Rtable==null && RTtable==null && clientResultMap != null.
+   * @param trace       Enable server-side performance tracing.         @return          The nodes reachable in exactly k steps from v0.
    */
   @SuppressWarnings("unchecked")
   public String AdjBFS(String Atable, String v0, int k, String Rtable, String RTtable,
-                       int AScanIteratorPriority,
+                       Map<Key, Value> clientResultMap, int AScanIteratorPriority,
                        String ADegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree,
                        IteratorSetting plusOp,
                        boolean trace) {
@@ -546,6 +553,10 @@ public class Graphulo {
       throw new IllegalArgumentException("maxDegree=" + maxDegree + " should be >= minDegree=" + minDegree);
     if (AScanIteratorPriority <= 0)
       AScanIteratorPriority = 4; // default priority
+
+    Preconditions.checkArgument(Rtable != null || RTtable != null || clientResultMap != null,
+        "For writing results to an Accumulo table, please set Rtable != null || RTtable != null." +
+            "For gathering results at the client, please set clientResultMap != null.");
 
     if (degColumn == null)
       degColumn = "";
@@ -582,22 +593,44 @@ public class Graphulo {
         throw new RuntimeException(e);
       }
 
-    Map<String, String> opt = Rtable != null || RTtable != null ? basicRemoteOpts("", Rtable, RTtable) : new HashMap<String,String>();
+    Map<String, String> opt;
 //    opt.put("trace", String.valueOf(trace)); // logs timing on server
-    opt.put("reducer", GatherColQReducer.class.getName());
     if (Rtable != null || RTtable != null) {
-      if (Rtable != null && plusOp != null)
-        GraphuloUtil.applyIteratorSoft(plusOp, tops, Rtable);
-      if (RTtable != null && plusOp != null)
-        GraphuloUtil.applyIteratorSoft(plusOp, tops, RTtable);
-    }
+      opt = basicRemoteOpts("", Rtable, RTtable);
+      opt.put("reducer", GatherColQReducer.class.getName());
+    } else
+      opt = new HashMap<>();
 
-    BatchScanner bs;
-    try {
-      bs = connector.createBatchScanner(Atable, Authorizations.EMPTY, 50); // TODO P2: set number of batch scan threads
-    } catch (TableNotFoundException e) {
-      log.error("crazy", e);
-      throw new RuntimeException(e);
+    if (Rtable != null && plusOp != null)
+      GraphuloUtil.applyIteratorSoft(plusOp, tops, Rtable);
+    if (RTtable != null && plusOp != null)
+      GraphuloUtil.applyIteratorSoft(plusOp, tops, RTtable);
+
+    // NOTE: For the Rtable == null && RTtable == null version:
+    // It is possible to create a new ClientSideIterator class that uses a BatchScanner which returns results in unsorted order,
+    // but we would have to be careful to guarantee that iterators run on it at the client would have to be okay with unsorted order.
+    // I therefore do not implement that right now. Can do it when there is a clear use case (i.e. need BatchScan performance)
+
+    ScannerBase sb;
+    if (Rtable != null || RTtable != null) {
+      BatchScanner bs;
+      try {
+        bs = connector.createBatchScanner(Atable, Authorizations.EMPTY, 50); // TODO P2: set number of batch scan threads
+      } catch (TableNotFoundException e) {
+        log.error("crazy", e);
+        throw new RuntimeException(e);
+      }
+      bs.setRanges(Collections.singleton(new Range()));
+      sb = bs;
+    } else {
+      Scanner s;
+      try {
+        s = connector.createScanner(Atable, Authorizations.EMPTY);
+      } catch (TableNotFoundException e) {
+        log.error("crazy", e);
+        throw new RuntimeException(e);
+      }
+      sb = s;
     }
 
     DynamicIteratorSetting dis = new DynamicIteratorSetting();
@@ -607,7 +640,6 @@ public class Graphulo {
       SmallLargeRowFilter.setMinColumns(itsetDegreeFilter, minDegree);
       SmallLargeRowFilter.setMaxColumns(itsetDegreeFilter, maxDegree);
     }
-    bs.setRanges(Collections.singleton(new Range()));
 
     try {
       long degTime = 0, scanTime = 0;
@@ -619,7 +651,7 @@ public class Graphulo {
             System.out.println("k=" + thisk + " before filter" +
                 (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
 
-        bs.clearScanIterators();
+        sb.clearScanIterators();
         dis.clear();
 
         if (needDegreeFiltering && ADegtable != null) { // use degree table
@@ -648,18 +680,35 @@ public class Graphulo {
             dis.append(itsetDegreeFilter);
         }
 
-        dis.append(new IteratorSetting(4, RemoteWriteIterator.class, opt));
-        bs.addScanIterator(dis.toIteratorSetting(AScanIteratorPriority));
+        if (Rtable != null || RTtable != null)
+          dis.append(new IteratorSetting(4, RemoteWriteIterator.class, opt));
+        else
+          dis.append(new IteratorSetting(4, SeekFilterIterator.class, opt));
+        sb.addScanIterator(dis.toIteratorSetting(AScanIteratorPriority));
 
         GatherColQReducer reducer = new GatherColQReducer();
         reducer.init(Collections.<String, String>emptyMap(), null);
-        long t2 = System.currentTimeMillis();
-        for (Map.Entry<Key, Value> entry : bs) {
+        long t2 = System.currentTimeMillis(), dur;
+        {
+          ScannerBase SB = sb;
+          if (Rtable == null && RTtable == null) {
+            SB = new ClientSideIteratorScanner((Scanner)SB);
+            if (plusOp != null)
+              SB.addScanIterator(plusOp);
+          }
+
+          for (Map.Entry<Key, Value> entry : SB) {
 //        System.out.println("A Entry: "+entry.getKey() + " -> " + entry.getValue());
-          RemoteWriteIterator.decodeValue(entry.getValue(), reducer);
+            if (Rtable != null || RTtable != null)
+              RemoteWriteIterator.decodeValue(entry.getValue(), reducer);
+            else {
+              clientResultMap.put(entry.getKey(), entry.getValue());
+              reducer.update(entry.getKey(), entry.getValue());
+            }
+          }
+          dur = System.currentTimeMillis() - t2;
+          scanTime += dur;
         }
-        long dur = System.currentTimeMillis() - t2;
-        scanTime += dur;
 
         vktexts.clear();
 //      vktexts.addAll(reducer.getForClient());
@@ -677,7 +726,7 @@ public class Graphulo {
         System.out.println("Total BatchScan/Iterator Time: " + scanTime + " ms");
       }
     } finally {
-      bs.close();
+      sb.close();
     }
 
     return GraphuloUtil.textsToD4mString(vktexts, sep);
@@ -766,7 +815,7 @@ public class Graphulo {
           boolean remove = texts.remove(entry.getKey().getRow(badRow));
           if (!remove)
             log.warn("Unrecognized entry with bad degree; cannot remove: " + entry.getKey() + " -> " + entry.getValue());
-        } else if (addToTexts) {
+        } else if (addToTexts && !bad) {
           texts.add(entry.getKey().getRow()); // need new Text object
         }
       }
@@ -1452,7 +1501,7 @@ public class Graphulo {
     try {
       if (k <= 2) {               // trivial case: every graph is a 2-truss
         if (RfinalExists)
-          AdjBFS(Aorig, null, 1, Rfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+          AdjBFS(Aorig, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
         else
           tops.clone(Aorig, Rfinal, true, null, null);    // flushes Aorig before cloning
         return -1;
@@ -1512,7 +1561,7 @@ public class Graphulo {
       // Atmp, ATtmp have the result table. Could be empty.
 
       if (RfinalExists)  // sum whole graph into existing graph
-        AdjBFS(Atmp, null, 1, Rfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+        AdjBFS(Atmp, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
       else                                           // result is new;
         tops.clone(Atmp, Rfinal, true, null, null);  // flushes Atmp before cloning
 
@@ -1562,13 +1611,13 @@ public class Graphulo {
       if (k <= 2) {               // trivial case: every graph is a 2-truss
         if (RfinalExists && RTfinalExists) { // sum whole graph into existing graph
           // AdjBFS works just as well as EdgeBFS because we're not doing any filtering.
-          AdjBFS(Eorig, null, 1, Rfinal, RTfinal, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+          AdjBFS(Eorig, null, 1, Rfinal, RTfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
         } else if (RfinalExists) {
-          AdjBFS(Eorig, null, 1, Rfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+          AdjBFS(Eorig, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
           if (RTfinal != null)
             tops.clone(ETorig, RTfinal, true, null, null);
         } else if (RTfinalExists) {
-          AdjBFS(Eorig, null, 1, null, RTfinal, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+          AdjBFS(Eorig, null, 1, null, RTfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
           if (Rfinal != null)
             tops.clone(Eorig, Rfinal, true, null, null);
         } else {                                          // both graphs are new;
@@ -1667,13 +1716,13 @@ public class Graphulo {
 
       if (RfinalExists && RTfinalExists) { // sum whole graph into existing graph
         // AdjBFS works just as well as EdgeBFS because we're not doing any filtering.
-        AdjBFS(Etmp, null, 1, Rfinal, RTfinal, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+        AdjBFS(Etmp, null, 1, Rfinal, RTfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
       } else if (RfinalExists) {
-        AdjBFS(Etmp, null, 1, Rfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+        AdjBFS(Etmp, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
         if (RTfinal != null)
           tops.clone(ETtmp, RTfinal, true, null, null);
       } else if (RTfinalExists) {
-        AdjBFS(Etmp, null, 1, null, RTfinal, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+        AdjBFS(Etmp, null, 1, null, RTfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
         if (Rfinal != null)
           tops.clone(Etmp, Rfinal, true, null, null);
       } else {                                          // both graphs are new;

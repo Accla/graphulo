@@ -539,6 +539,7 @@ public class Graphulo {
                        IteratorSetting plusOp,
                        boolean trace) {
     boolean needDegreeFiltering = minDegree > 0 || maxDegree < Integer.MAX_VALUE;
+    boolean useRWI = clientResultMap == null;
     if (Atable == null || Atable.isEmpty())
       throw new IllegalArgumentException("Please specify Adjacency table. Given: " + Atable);
     if (ADegtable != null && ADegtable.isEmpty())
@@ -554,9 +555,11 @@ public class Graphulo {
     if (AScanIteratorPriority <= 0)
       AScanIteratorPriority = 4; // default priority
 
-    Preconditions.checkArgument(Rtable != null || RTtable != null || clientResultMap != null,
-        "For writing results to an Accumulo table, please set Rtable != null || RTtable != null." +
-            "For gathering results at the client, please set clientResultMap != null.");
+    Preconditions.checkArgument(clientResultMap == null || (Rtable == null && RTtable == null),
+        "clientResultMap must be null if given an Rtable or RTtable");
+//    Preconditions.checkArgument(Rtable != null || RTtable != null || clientResultMap != null,
+//        "For writing results to an Accumulo table, please set Rtable != null || RTtable != null." +
+//            "For gathering results at the client, please set clientResultMap != null.");
 
     if (degColumn == null)
       degColumn = "";
@@ -595,7 +598,7 @@ public class Graphulo {
 
     Map<String, String> opt;
 //    opt.put("trace", String.valueOf(trace)); // logs timing on server
-    if (Rtable != null || RTtable != null) {
+    if (useRWI) {
       opt = basicRemoteOpts("", Rtable, RTtable);
       opt.put("reducer", GatherColQReducer.class.getName());
     } else
@@ -612,7 +615,7 @@ public class Graphulo {
     // I therefore do not implement that right now. Can do it when there is a clear use case (i.e. need BatchScan performance)
 
     ScannerBase sb;
-    if (Rtable != null || RTtable != null) {
+    if (useRWI) {
       BatchScanner bs;
       try {
         bs = connector.createBatchScanner(Atable, Authorizations.EMPTY, 50); // TODO P2: set number of batch scan threads
@@ -680,7 +683,7 @@ public class Graphulo {
             dis.append(itsetDegreeFilter);
         }
 
-        if (Rtable != null || RTtable != null)
+        if (useRWI)
           dis.append(new IteratorSetting(4, RemoteWriteIterator.class, opt));
         else
           dis.append(new IteratorSetting(4, SeekFilterIterator.class, opt));
@@ -691,7 +694,7 @@ public class Graphulo {
         long t2 = System.currentTimeMillis(), dur;
         {
           ScannerBase SB = sb;
-          if (Rtable == null && RTtable == null) {
+          if (!useRWI) {
             SB = new ClientSideIteratorScanner((Scanner)SB);
             if (plusOp != null)
               SB.addScanIterator(plusOp);
@@ -699,7 +702,7 @@ public class Graphulo {
 
           for (Map.Entry<Key, Value> entry : SB) {
 //        System.out.println("A Entry: "+entry.getKey() + " -> " + entry.getValue());
-            if (Rtable != null || RTtable != null)
+            if (useRWI)
               RemoteWriteIterator.decodeValue(entry.getValue(), reducer);
             else {
               clientResultMap.put(entry.getKey(), entry.getValue());

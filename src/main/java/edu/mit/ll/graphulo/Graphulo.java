@@ -1658,12 +1658,9 @@ public class Graphulo {
    */
   public long kTrussAdj(String Aorig, String Rfinal, int k,
                         boolean forceDelete, boolean trace) {
-    Aorig = emptyToNull(Aorig);
-    Rfinal = emptyToNull(Rfinal);
-    Preconditions.checkArgument(Aorig != null, "Input table must be given: Aorig=%s", Aorig);
-    Preconditions.checkArgument(Rfinal != null, "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
+    checkGiven(true, "Aorig", Aorig);
+    Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
     TableOperations tops = connector.tableOperations();
-    Preconditions.checkArgument(tops.exists(Aorig), "Input table must exist: Aorig=%s", Aorig);
     boolean RfinalExists = tops.exists(Rfinal);
 
     try {
@@ -1682,16 +1679,8 @@ public class Graphulo {
       Atmp = tmpBaseName+"tmpA";
       A2tmp = tmpBaseName+"tmpA2";
       AtmpAlt = tmpBaseName+"tmpAalt";
-      // verify temporary tables do not exist
-      if (!forceDelete) {
-        Preconditions.checkState(!tops.exists(Atmp), "Temporary table already exists: %s. Set forceDelete=true to delete.", Atmp);
-        Preconditions.checkState(!tops.exists(A2tmp), "Temporary table already exists: %s. Set forceDelete=true to delete.", A2tmp);
-        Preconditions.checkState(!tops.exists(AtmpAlt), "Temporary table already exists: %s. Set forceDelete=true to delete.", AtmpAlt);
-      } else {
-        if (tops.exists(Atmp)) tops.delete( Atmp);
-        if (tops.exists(A2tmp)) tops.delete(A2tmp);
-        if (tops.exists(AtmpAlt)) tops.delete(AtmpAlt);
-      }
+      setupTempTables(forceDelete, Atmp, A2tmp, AtmpAlt);
+
       tops.clone(Aorig, Atmp, true, null, null);
 
       // Inital nnz
@@ -1763,15 +1752,11 @@ public class Graphulo {
                          // iterator priority?
                          boolean forceDelete, boolean trace) {
     // small optimization possible: pass in Aorig = ET*E if present. Saves first iteration matrix multiply. Not really worth it.
-    Eorig = emptyToNull(Eorig);
-    ETorig = emptyToNull(ETorig);
+    checkGiven(true, "Eorig, ETorig", Eorig, ETorig);
     Rfinal = emptyToNull(Rfinal);
-    Preconditions.checkArgument(Eorig != null, "Input table must be given: Eorig=%s", Eorig);
-    Preconditions.checkArgument(ETorig != null, "Input table must be given: ETorig=%s", ETorig);
+    RTfinal = emptyToNull(RTfinal);
     Preconditions.checkArgument(Rfinal != null || RTfinal != null, "One Output table must be given or operation is useless: Rfinal=%s; RTfinal=%s", Rfinal, RTfinal);
     TableOperations tops = connector.tableOperations();
-    Preconditions.checkArgument(tops.exists(Eorig), "Input table must exist: Eorig=%s", Eorig);
-    Preconditions.checkArgument(tops.exists(ETorig), "Input table must exist: ETorig=%s", ETorig);
     boolean RfinalExists = Rfinal != null && tops.exists(Rfinal),
         RTfinalExists = RTfinal != null && tops.exists(RTfinal);
 
@@ -1807,22 +1792,8 @@ public class Graphulo {
       Rtmp = tmpBaseName+"tmpR";
       EtmpAlt = tmpBaseName+"tmpEalt";
       ETtmpAlt = tmpBaseName+"tmpETalt";
-      // verify temporary tables do not exist
-      if (!forceDelete) {
-        Preconditions.checkState(!tops.exists(Etmp), "Temporary table already exists: %s. Set forceDelete=true to delete.", Etmp);
-        Preconditions.checkState(!tops.exists(ETtmp), "Temporary table already exists: %s. Set forceDelete=true to delete.", ETtmp);
-        Preconditions.checkState(!tops.exists(Atmp), "Temporary table already exists: %s. Set forceDelete=true to delete.", Atmp);
-        Preconditions.checkState(!tops.exists(Rtmp), "Temporary table already exists: %s. Set forceDelete=true to delete.", Rtmp);
-        Preconditions.checkState(!tops.exists(EtmpAlt), "Temporary table already exists: %s. Set forceDelete=true to delete.", EtmpAlt);
-        Preconditions.checkState(!tops.exists(ETtmpAlt), "Temporary table already exists: %s. Set forceDelete=true to delete.", ETtmpAlt);
-      } else {
-        if (tops.exists(Etmp)) tops.delete( Etmp);
-        if (tops.exists(ETtmp)) tops.delete( ETtmp);
-        if (tops.exists(Atmp)) tops.delete(Atmp);
-        if (tops.exists(Rtmp)) tops.delete(Rtmp);
-        if (tops.exists(EtmpAlt)) tops.delete(EtmpAlt);
-        if (tops.exists(ETtmpAlt)) tops.delete(ETtmpAlt);
-      }
+      setupTempTables(forceDelete, Etmp, ETtmp, Atmp, Rtmp, EtmpAlt, ETtmpAlt);
+
       tops.clone(Eorig, Etmp, true, null, null);
       tops.clone(ETorig, ETtmp, true, null, null);
 
@@ -1921,15 +1892,9 @@ public class Graphulo {
    */
   public long Jaccard(String Aorig, String ADeg, String Rfinal,
                       boolean trace) {
-    Aorig = emptyToNull(Aorig);
-    ADeg = emptyToNull(ADeg);
-    Rfinal = emptyToNull(Rfinal);
-    Preconditions.checkArgument(Aorig != null, "Input table must be given: Aorig=%s", Aorig);
-    Preconditions.checkArgument(ADeg != null, "Input degree table must be given: ADeg=%s", ADeg);
-    Preconditions.checkArgument(Rfinal != null, "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
+    checkGiven(true, "Aorig, ADeg", Aorig, ADeg);
+    Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
     TableOperations tops = connector.tableOperations();
-    Preconditions.checkArgument(tops.exists(Aorig), "Input table must exist: Aorig=%s", Aorig);
-    Preconditions.checkArgument(tops.exists(ADeg), "Input degree table must exist: ADeg=%s", ADeg);
     Preconditions.checkArgument(!tops.exists(Rfinal), "Output Jaccard table must not exist: Rfinal=%s", Rfinal);
 
     // "Plus" iterator to set on Rfinal
@@ -1979,12 +1944,9 @@ public class Graphulo {
    * @return The number of rows in the original table.
    */
   public long generateDegreeTable(String table, String Degtable, boolean countColumns, boolean trace) {
-    table = emptyToNull(table);
-    Degtable = emptyToNull(Degtable);
-    Preconditions.checkArgument(table != null, "Input table must be given: table=%s", table);
-    Preconditions.checkArgument(Degtable != null, "Output table must be given: Degtable=%s", Degtable);
+    checkGiven(true, "table", table);
+    Preconditions.checkArgument(Degtable != null && !Degtable.isEmpty(), "Output table must be given: Degtable=%s", Degtable);
     TableOperations tops = connector.tableOperations();
-    Preconditions.checkArgument(tops.exists(table), "Input table must exist: table=%s", table);
     BatchScanner bs;
     try {
       if (!tops.exists(Degtable))
@@ -2040,12 +2002,12 @@ public class Graphulo {
     String zookeepers = connector.getInstance().getZooKeepers();
     String user = connector.whoami();
     opt.put(prefix+"zookeeperHost", zookeepers);
-    opt.put(prefix+"instanceName", instance);
+    opt.put(prefix + "instanceName", instance);
     if (remoteTable != null)
       opt.put(prefix+"tableName", remoteTable);
     if (remoteTableTranspose != null)
       opt.put(prefix+"tableNameTranspose", remoteTableTranspose);
-    opt.put(prefix+"username", user);
+    opt.put(prefix + "username", user);
     opt.put(prefix+"password", new String(password.getPassword()));
     return opt;
   }
@@ -2083,7 +2045,8 @@ public class Graphulo {
     return cnt;
   }
 
-  // todo: replace previous methods with this simplified one
+  /** Create tables. If they already exist, delete and re-create them if forceDelete==true,
+   * otherwise throw an IllegalStateException. */
   private void setupTempTables(boolean forceDelete, String... tns) {
     TableOperations tops = connector.tableOperations();
     for (String tn : tns) {
@@ -2102,6 +2065,7 @@ public class Graphulo {
     }
   }
 
+  /** Ensure arugments are not null and not empty. If mustExist, ensures the arguments exist as Accumulo tables. */
   private void checkGiven(boolean mustExist, String varnames, String... args) {
     TableOperations tops = connector.tableOperations();
     String[] varnamesArr = varnames.split(",");
@@ -2119,7 +2083,7 @@ public class Graphulo {
   public double NMF(String Aorig, String ATorig,
                     String Wfinal, String WTfinal, String Hfinal, String HTfinal,
                     final int k, final int maxiter,
-                        boolean forceDelete, boolean trace) {
+                    boolean forceDelete, boolean trace) {
     if (true)
       throw new UnsupportedOperationException("nyi");
     checkGiven(true, "Aorig, ATorig", Aorig, ATorig);

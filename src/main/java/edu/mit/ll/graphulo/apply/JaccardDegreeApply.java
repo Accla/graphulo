@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.AbstractMap;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -68,5 +69,9 @@ public class JaccardDegreeApply implements ApplyOp {
     return Iterators.singletonIterator( new AbstractMap.SimpleImmutableEntry<>(newKey,
         new Value(Double.toString(Jij / (rowDeg+colDeg-Jij)).getBytes())
     ));
+  }
+
+  @Override
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
   }
 }

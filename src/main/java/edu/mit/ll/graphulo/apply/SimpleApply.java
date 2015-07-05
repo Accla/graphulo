@@ -1,12 +1,15 @@
 package edu.mit.ll.graphulo.apply;
 
 import com.google.common.collect.Iterators;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 
 import java.io.IOException;
 import java.util.AbstractMap;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
@@ -21,6 +24,10 @@ public abstract class SimpleApply implements ApplyOp {
 
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
+  }
+
+  @Override
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
   }
 
   @Override

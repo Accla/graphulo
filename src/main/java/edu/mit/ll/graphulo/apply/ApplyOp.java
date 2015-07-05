@@ -1,11 +1,14 @@
 package edu.mit.ll.graphulo.apply;
 
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
@@ -32,7 +35,12 @@ public interface ApplyOp {
 
   /**
    * The function to apply.
+   * If modifying the row portion of the Key, be careful to stay within the seek range.
    * @return Iterator over result of multiplying the two entries. Use {@link Collections#emptyIterator()} if no entries to emit.
    */
   Iterator<? extends Map.Entry<Key, Value>> apply(Key k, Value v);
+
+  /** Passes the seek range to the applyOp, in case knowing the seek range information is useful.
+   * This will be called before any {@link #apply}. */
+  void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException;
 }

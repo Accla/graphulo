@@ -12,6 +12,8 @@ import java.util.Map;
 /**
  * Count the number of rows in a table.
  * Counts everything at once; does not return intermediate values. Could take an option to emit a value every x seconds.
+ * <p>
+ * Can be replaced with {@link edu.mit.ll.graphulo.Graphulo#countRows(String)}.
  */
 public class RowCountingIterator implements SortedKeyValueIterator<Key,Value> {
     private SortedKeyValueIterator<Key,Value> source;

@@ -63,6 +63,36 @@ public class CountTest extends AccumuloTestBase {
   }
 
   @Test
+  public void testCountRows() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
+    Connector conn = tester.getConnector();
+    final String tA;
+    {
+      String[] names = getUniqueNames(1);
+      tA = names[0];
+    }
+
+    {
+      Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
+      input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
+      input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
+      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes()));
+      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes()));
+      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes()));
+      SortedSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("v15"));
+      TestUtil.createTestTable(conn, tA, splits, input);
+    }
+
+    Graphulo g = new Graphulo(conn, tester.getPassword());
+    long cnt = g.countRows(tA);
+    long expect = 3;
+    Assert.assertEquals(expect, cnt);
+
+    conn.tableOperations().delete(tA);
+  }
+
+  @Test
   public void testCountAllIterator() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
     Connector conn = tester.getConnector();
     final String tA;

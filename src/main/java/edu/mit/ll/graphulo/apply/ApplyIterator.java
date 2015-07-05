@@ -62,6 +62,7 @@ public class ApplyIterator implements SortedKeyValueIterator<Key, Value> {
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     source.seek(range, columnFamilies, inclusive);
+    applyOp.seek(range, columnFamilies, inclusive);
     if (source.hasTop()) {
       topIterator = new PeekingIterator1<>(applyOp.apply(source.getTopKey(), source.getTopValue()));
       prepNext(false);

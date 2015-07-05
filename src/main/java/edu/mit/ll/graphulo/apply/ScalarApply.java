@@ -2,7 +2,9 @@ package edu.mit.ll.graphulo.apply;
 
 import com.google.common.collect.Iterators;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.log4j.LogManager;
@@ -10,6 +12,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.AbstractMap;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -157,5 +160,10 @@ public class ScalarApply implements ApplyOp {
       default: throw new AssertionError();
     }
     return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(k, vnew));
+  }
+
+  @Override
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+
   }
 }

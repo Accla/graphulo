@@ -53,6 +53,7 @@ import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.ValueFormatException;
 import org.apache.accumulo.core.iterators.user.ColumnSliceFilter;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
+import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
@@ -1884,6 +1885,40 @@ public class Graphulo {
     opt.put(prefix+"password", new String(password.getPassword()));
     return opt;
   }
+
+
+  /** Count the number of unique rows in an existing table. */
+  public long countRows(String table) {
+    Preconditions.checkArgument(table != null && !table.isEmpty());
+
+    BatchScanner bs;
+    try {
+      bs = connector.createBatchScanner(table, Authorizations.EMPTY, 2); // todo: 2 threads is arbitrary
+    } catch (TableNotFoundException e) {
+      log.error("table "+table+" does not exist", e);
+      throw new RuntimeException(e);
+    }
+    bs.setRanges(Collections.singleton(new Range()));
+
+    bs.addScanIterator(new DynamicIteratorSetting()
+        .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))  // strip to row field
+        .append(new IteratorSetting(1, VersioningIterator.class))       // only count a row once
+        .append(ScalarApply.iteratorSettingLong(1, ScalarApply.ScalarOp.SET, 1)) // Abs0
+        .append(KeyRetainOnlyApply.iteratorSetting(1, null))            // strip all fields
+        .append(DEFAULT_PLUS_ITERATOR)                                  // Sum
+        .toIteratorSetting(10));
+
+    long cnt = 0l;
+    try {
+      for (Map.Entry<Key, Value> entry : bs) {
+        cnt += new Long(new String(entry.getValue().get()));
+      }
+    } finally {
+      bs.close();
+    }
+    return cnt;
+  }
+
 
 
 }

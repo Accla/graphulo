@@ -10,11 +10,13 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -66,6 +68,10 @@ public class DynamicIteratorSetting {
 
   public IteratorSetting toIteratorSetting(int priority, String name) {
     return new IteratorSetting(priority, name, DynamicIterator.class, buildSettingMap());
+  }
+
+  public List<IteratorSetting> getIteratorSettingList() {
+    return new ArrayList<>(iteratorSettingList);
   }
 
   /** Prefix is "".

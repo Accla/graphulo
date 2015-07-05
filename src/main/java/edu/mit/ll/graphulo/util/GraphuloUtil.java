@@ -418,10 +418,12 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
   /**
    * Apply an appropriate column filter based on the input string.
    * Four modes of operation:
-   1. Null or blank ("") `colFilter`: do nothing.
-   2. No ranges `colFilter`: use scanner.fetchColumn() which invokes an Accumulo system {@link ColumnQualifierFilter}.
-   3. Singleton range `colFilter`: use Accumulo user {@link ColumnSliceFilter}.
-   4. Multi-range `colFilter`: use Graphulo {@link D4mColumnRangeFilter}.
+   * <ol>
+   <li>1. Null or blank ("") `colFilter`: do nothing.</li>
+   <li>2. No ranges `colFilter`: use scanner.fetchColumn() which invokes an Accumulo system {@link ColumnQualifierFilter}.</li>
+   <li>3. Singleton range `colFilter`: use Accumulo user {@link ColumnSliceFilter}.</li>
+   <li>4. Multi-range `colFilter`: use Graphulo {@link D4mColumnRangeFilter}.</li>
+   </ol>
    * @param colFilter column filter string
    * @param scanner to call fetchColumn() on, for case #2
    * @param dis to call append()/prepend() on, for cases #3 and #4
@@ -432,6 +434,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
     if (colFilter != null && !colFilter.isEmpty()) {
       int pos1 = colFilter.indexOf(':');
       if (pos1 == -1) { // no ranges - collection of singleton texts
+        // todo - the order this filter applies is different. Ensure no logical bugs when we have case 2.
         for (Text text : GraphuloUtil.d4mRowToTexts(colFilter)) {
           scanner.fetchColumn(GraphuloUtil.EMPTY_TEXT, text);
         }
@@ -453,7 +456,10 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
           map.put(D4mColumnRangeFilter.COLRANGES,colFilter);
           s = new IteratorSetting(1, D4mColumnRangeFilter.class, map);
         }
-        dis.append(s);
+        if (append)
+          dis.append(s);
+        else
+          dis.prepend(s);
       }
     }
   }

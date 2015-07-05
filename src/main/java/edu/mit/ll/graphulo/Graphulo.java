@@ -5,11 +5,13 @@ import edu.mit.ll.graphulo.apply.ApplyIterator;
 import edu.mit.ll.graphulo.apply.ColQSpecialByteApply;
 import edu.mit.ll.graphulo.apply.JaccardDegreeApply;
 import edu.mit.ll.graphulo.apply.KeyRetainOnlyApply;
+import edu.mit.ll.graphulo.apply.RandomTopicApply;
 import edu.mit.ll.graphulo.apply.ScalarApply;
 import edu.mit.ll.graphulo.ewise.AndEWiseX;
 import edu.mit.ll.graphulo.ewise.EWiseOp;
 import edu.mit.ll.graphulo.reducer.EdgeBFSReducer;
 import edu.mit.ll.graphulo.reducer.GatherColQReducer;
+import edu.mit.ll.graphulo.reducer.Reducer;
 import edu.mit.ll.graphulo.reducer.SingleBFSReducer;
 import edu.mit.ll.graphulo.rowmult.AndMultiply;
 import edu.mit.ll.graphulo.rowmult.CartesianRowMultiply;
@@ -59,6 +61,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -341,7 +344,7 @@ public class Graphulo {
       throw new IllegalArgumentException("dotmode is required but given null");
 //    if (multOp == null)
 //      throw new IllegalArgumentException("multOp is required but given null");
-    if (rowFilter != null && rowFilter.isEmpty())
+    if (rowFilter != null && (rowFilter.isEmpty() || rowFilter.contains(new Range())))
       rowFilter = null;
 
     TableOperations tops = connector.tableOperations();
@@ -496,6 +499,166 @@ public class Graphulo {
   }
 
 
+
+  // reducer, if not null, must be already init'ed.
+
+  /**
+   * One-table operation.
+   * Includes the boilerplate necessary to filter, apply iterators, apply a Reducer,
+   * and write to result tables.
+   *
+   * @param Atable Input table to scan over. Must already exist.
+   * @param Rtable Output table to write result entries to.  Can be null.
+   * @param RTtable Output table to write transpose of result entries to.  Can be null.
+   * @param clientResultMap Only give non-null if Rtable==null && RTtable==null.
+   *                        Results of BFS are put inside the map instead of into a new Accumulo table.
+   *                        Yes, this means all the entries reached in the BFS are sent to the client. Use with care.
+   *                        Post-condition: this map will be modified, adding entries reached.
+   * @param AScanIteratorPriority Priority to use for scan-time iterator on table A
+   * @param reducer Reducer to gather information from entries passing through the RemoteWriteIterator. Can be null.
+   *                If not null, then it must have already been init'ed.
+   *                Post-condition: the reducer will be modified to include information from all traversed entries.
+   * @param reducerOpts Options for the reducer. Only give if reducer is given too.
+   * @param plusOp An SKVI to apply to the result table(s) that "sums" values. Not applied if null.
+   *               Applied at the client if Rtable==null && RTtable==null && clientResultMap != null.
+   * @param rowFilter Only reads rows in the given Ranges. Null means all rows.
+   * @param colFilterA Only acts on entries with a matching column. This is interpreted as a D4M string.
+   *                   Null means all columns. Note that the columns are still read, just not sent through the iterator stack.
+   * @param iteratorList Iterators to apply after the row and column filtering but before the RemoteWriteIterator.
+   *                     Always applied at the server.
+   * @param trace     Enable server-side performance tracing.
+   * @return Number of entries processed at the RemoteWriteIterator.
+   */
+  private <E extends Serializable> long OneTable(String Atable, String Rtable, String RTtable,
+                        Map<Key, Value> clientResultMap, // controls whether to use RWI
+                        int AScanIteratorPriority,
+                        Reducer<E> reducer, Map<String,String> reducerOpts, // applies at RWI if using RWI; otherwise applies at client
+                        IteratorSetting plusOp, // priority matters
+                        Collection<Range> rowFilter,
+                        String colFilterA,
+                        List<IteratorSetting> iteratorList, // applied after row and col filter but before RWI
+                        boolean trace) {
+    boolean useRWI = clientResultMap == null;
+    if (Atable == null || Atable.isEmpty())
+      throw new IllegalArgumentException("Please specify table A. Given: " + Atable);
+    // Prevent possibility for infinite loop:
+    if (Atable.equals(Rtable))
+      throw new UnsupportedOperationException("Could lead to unpredictable results: Atable=Rtable=" + Atable);
+    if (Atable.equals(RTtable))
+      throw new UnsupportedOperationException("Could lead to unpredictable results: Atable=RTtable=" + Atable);
+    if (iteratorList == null) iteratorList = Collections.emptyList();
+    if (AScanIteratorPriority <= 0)
+      AScanIteratorPriority = 27; // default priority
+    if (reducerOpts == null)
+      reducerOpts = new HashMap<>();
+
+    if (Rtable != null && Rtable.isEmpty())
+      Rtable = null;
+    if (RTtable != null && RTtable.isEmpty())
+      RTtable = null;
+    Preconditions.checkArgument(useRWI || (Rtable == null && RTtable == null),
+        "clientResultMap must be null if given an Rtable or RTtable");
+    if (!useRWI) {
+      log.warn("Experimental: Streaming back result of multiplication to client." +
+          "If Accumulo destroys, re-inits and re-seeks an iterator stack, the stack may not recover.");
+      Preconditions.checkArgument(reducer == null, "Cannot specify reducerClass if !useRWI: %s",reducer);
+      throw new UnsupportedOperationException("nyi");
+    }
+    if (rowFilter != null && (rowFilter.isEmpty() || rowFilter.contains(new Range())))
+      rowFilter = null;
+
+    TableOperations tops = connector.tableOperations();
+    if (!tops.exists(Atable))
+      throw new IllegalArgumentException("Table A does not exist. Given: " + Atable);
+
+    if (Rtable != null && !tops.exists(Rtable))
+      try {
+        tops.create(Rtable);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        log.error("error trying to create Rtable " + Rtable, e);
+        throw new RuntimeException(e);
+      } catch (TableExistsException e) {
+        log.error("crazy", e);
+        throw new RuntimeException(e);
+      }
+
+    if (RTtable != null && !tops.exists(RTtable))
+      try {
+        tops.create(RTtable);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        log.error("error trying to create RTtable " + Rtable, e);
+        throw new RuntimeException(e);
+      } catch (TableExistsException e) {
+        log.error("crazy", e);
+        throw new RuntimeException(e);
+      }
+
+    if (Rtable != null && plusOp != null)
+      GraphuloUtil.applyIteratorSoft(plusOp, tops, Rtable);
+    if (RTtable != null && plusOp != null)
+      GraphuloUtil.applyIteratorSoft(plusOp, tops, RTtable);
+
+    BatchScanner bs;
+    try {
+      bs = connector.createBatchScanner(Atable, Authorizations.EMPTY, 50); // TODO P2: set number of batch scan threads
+    } catch (TableNotFoundException e) {
+      log.error("crazy", e);
+      throw new RuntimeException(e);
+    }
+
+    Map<String, String>
+        optRWI = useRWI ? basicRemoteOpts("", Rtable, RTtable) : null;
+//    optRWI.put("trace", String.valueOf(trace)); // logs timing on server // todo Temp removed -- setting of Watch enable
+
+    if (rowFilter != null) {
+      Map<String,String> rowFilterOpt = Collections.singletonMap("rowRanges", GraphuloUtil.rangesToD4MString(rowFilter));
+      if (useRWI) {
+        optRWI.put("rowRanges", GraphuloUtil.rangesToD4MString(rowFilter)); // translate row filter to D4M notation
+        bs.setRanges(Collections.singleton(new Range()));
+      } else
+        bs.setRanges(rowFilter);
+    }
+
+    DynamicIteratorSetting dis = new DynamicIteratorSetting();
+
+    if (colFilterA != null)
+      GraphuloUtil.applyGeneralColumnFilter(colFilterA, bs, dis, true);
+
+    for (IteratorSetting setting : iteratorList)
+      dis.append(setting);
+
+    if (reducer != null) {
+      optRWI.put("reducer", reducer.getClass().getName());
+      for (Map.Entry<String, String> entry : reducerOpts.entrySet()) {
+        optRWI.put("reducer.opt."+entry.getKey(), entry.getValue());
+      }
+    }
+    dis.append(new IteratorSetting(1, RemoteWriteIterator.class, optRWI));
+
+    bs.addScanIterator(dis.toIteratorSetting(AScanIteratorPriority));
+
+
+    long numEntries = 0, thisEntries;
+    try {
+      for (Map.Entry<Key, Value> entry : bs) {
+        if (Rtable != null || RTtable != null) {
+//          log.debug(entry.getKey() + " -> " + entry.getValue() + " AS " + Key.toPrintableString(entry.getValue().get(), 0, entry.getValue().get().length, 40) + " RAW "+ Arrays.toString(entry.getValue().get()));
+          // mutates reducer if not null:
+          thisEntries = RemoteWriteIterator.decodeValue(entry.getValue(), reducer);
+          log.debug(entry.getKey() + " -> " + thisEntries + " entries processed");
+          numEntries += thisEntries;
+        } else {
+          log.debug(entry.getKey() + " -> " + entry.getValue());
+        }
+      }
+    } finally {
+      bs.close();
+    }
+
+    return numEntries;
+  }
+
+
   /**
    * Use LongCombiner to sum.
    */
@@ -529,9 +692,10 @@ public class Graphulo {
 *                    Unused if ADegtable is null.
    * @param minDegree   Minimum out-degree. Checked before doing any searching, at every step, from ADegtable. Pass 0 for no filtering.
    * @param maxDegree   Maximum out-degree. Checked before doing any searching, at every step, from ADegtable. Pass Integer.MAX_VALUE for no filtering.
-   * @param plusOp      An SKVI to apply to the result table that "sums" values. Not applied if null.
+   * @param plusOp      An SKVI to apply to the result table(s) that "sums" values. Not applied if null.
    *                    Applied at the client if Rtable==null && RTtable==null && clientResultMap != null.
-   * @param trace       Enable server-side performance tracing.         @return          The nodes reachable in exactly k steps from v0.
+   * @param trace       Enable server-side performance tracing.
+   * @return          The nodes reachable in exactly k steps from v0.
    */
   @SuppressWarnings("unchecked")
   public String AdjBFS(String Atable, String v0, int k, String Rtable, String RTtable,
@@ -556,7 +720,7 @@ public class Graphulo {
     if (AScanIteratorPriority <= 0)
       AScanIteratorPriority = 4; // default priority
 
-    Preconditions.checkArgument(clientResultMap == null || (Rtable == null && RTtable == null),
+    Preconditions.checkArgument(useRWI || (Rtable == null && RTtable == null),
         "clientResultMap must be null if given an Rtable or RTtable");
 //    Preconditions.checkArgument(Rtable != null || RTtable != null || clientResultMap != null,
 //        "For writing results to an Accumulo table, please set Rtable != null || RTtable != null." +
@@ -1919,6 +2083,115 @@ public class Graphulo {
     return cnt;
   }
 
+  // todo: replace previous methods with this simplified one
+  private void setupTempTables(boolean forceDelete, String... tns) {
+    TableOperations tops = connector.tableOperations();
+    for (String tn : tns) {
+      if (!forceDelete)
+        Preconditions.checkState(!tops.exists(tn), "Temporary table already exists: %s. Set forceDelete=true to delete.", tn);
+      else if (tops.exists(tn))
+        try {
+          tops.delete(tn);
+        } catch (AccumuloException | AccumuloSecurityException e) {
+          log.error("Problem deleing temporary table " + tn, e);
+          throw new RuntimeException(e);
+        } catch (TableNotFoundException e) {
+          log.error("crazy", e);
+          throw new RuntimeException(e);
+        }
+    }
+  }
+
+  private void checkGiven(boolean mustExist, String varnames, String... args) {
+    TableOperations tops = connector.tableOperations();
+    String[] varnamesArr = varnames.split(",");
+    assert varnamesArr.length == args.length;
+    for (int i = 0; i < args.length; i++) {
+      String arg = args[i];
+      Preconditions.checkArgument(arg != null && !arg.isEmpty(),
+          "%s: must be given", varnamesArr[i].trim());
+      if (mustExist)
+        Preconditions.checkArgument(tops.exists(arg), "%s: %s does not exist", varnamesArr[i].trim(), arg);
+    }
+  }
+
+  // Return |newerr-olderr| at end.
+  public double NMF(String Aorig, String ATorig,
+                    String Wfinal, String WTfinal, String Hfinal, String HTfinal,
+                    final int k, final int maxiter,
+                        boolean forceDelete, boolean trace) {
+    if (true)
+      throw new UnsupportedOperationException("nyi");
+    checkGiven(true, "Aorig, ATorig", Aorig, ATorig);
+    checkGiven(false, "Wfinal, WTfinal, Hfinal, HTfinal", Wfinal, WTfinal, Hfinal, HTfinal);
+    Preconditions.checkArgument(k > 0, "# of topics k must be > 0: "+k);
+//    TableOperations tops = connector.tableOperations();
+//    boolean RfinalExists = tops.exists(Wfinal);
+
+//    try {
+
+
+      // non-trivial case: k is 3 or more.
+//      String Wtmp, WTtmp, Htmp, HTtmp;
+//      String tmpBaseName = Aorig+"_NMF_";
+//      Atmp = tmpBaseName+ "tmpA";
+//      ATtmp = tmpBaseName+"tmpAT";
+//      Wtmp = tmpBaseName+ "tmpW";
+//      WTtmp = tmpBaseName+"tmpWT";
+//      Htmp = tmpBaseName+ "tmpH";
+//      HTtmp = tmpBaseName+"tmpHT";
+//      setupTempTables(forceDelete, Atmp, ATtmp, Wtmp, WTtmp, Htmp, HTtmp);
+
+      // Inital nnz
+      long N = countRows(Aorig);
+      long M = countRows(ATorig);
+
+      // create random W table of size NxK, DENSE
+      List<IteratorSetting> itCreateTopicList = new DynamicIteratorSetting()
+          .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))  // strip to row field
+          .append(new IteratorSetting(1, VersioningIterator.class))       // only count a row once
+          .append(RandomTopicApply.iteratorSetting(1, k))
+          .getIteratorSettingList();
+      OneTable(Aorig, Wfinal, WTfinal, null, -1, null, null, null, null, null, itCreateTopicList, trace);
+
+      // newerr starts at frobenius norm of A, since H starts at the zero matrix.
+      double newerr=0, olderr;
+      int numiter=0;
+
+      do {
+        olderr = newerr;
+
+        // todo all NMF steps
+        nmfStep(Wfinal, Aorig, Hfinal, HTfinal);
+        nmfStep(HTfinal, ATorig, WTfinal, Wfinal);
+
+        newerr = nmfFrobeniusNorm(Aorig, WTfinal, Hfinal);
+
+//        tops.delete(Atmp);
+//        tops.delete(A2tmp);
+//        { String t = Atmp; Atmp = AtmpAlt; AtmpAlt = t; }
+
+        log.debug("olderr "+olderr+" newerr "+newerr);
+        numiter++;
+      } while (Math.abs(newerr-olderr) > 0.01d && numiter < maxiter);
+
+
+      return Math.abs(newerr-olderr);
+
+//    } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
+//      log.error("Exception in NMF", e);
+//      throw new RuntimeException(e);
+//    }
+  }
+
+  private double nmfFrobeniusNorm(String Aorig, String WTfinal, String Hfinal) {
+    // todo
+    return 0;
+  }
+
+  private void nmfStep(String in1, String in2, String out1, String out2) {
+    // todo
+  }
 
 
 }

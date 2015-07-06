@@ -8,6 +8,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,7 +24,7 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
     DIVIDE, POWER, MIN, MAX
   }
   public enum ScalarType {
-    LONG, DOUBLE
+    LONG, DOUBLE, BIGDECIMAL
   }
 
   public static final String
@@ -43,10 +44,7 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
 
   /** For use as a MultiplyOp or EWiseOp. */
   public static Map<String,String> optionMapDouble(ScalarOp op) {
-    Map<String,String> map = new HashMap<>();
-    map.put(SCALAR_OP, op.name());
-    map.put(SCALAR_TYPE, ScalarType.DOUBLE.name());
-    return map;
+    return optionMap(op, ScalarType.DOUBLE);
   }
 
   /** For use as an ApplyOp.
@@ -61,10 +59,30 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
   }
 
   /** For use as a MultiplyOp or EWiseOp. */
+  public static Map<String,String> optionMapBigDecimal(ScalarOp op) {
+    return optionMap(op, ScalarType.BIGDECIMAL);
+  }
+
+  /** For use as an ApplyOp.
+   * Create an IteratorSetting that performs a ScalarOp on every Value it sees, parsing Values as BigDecimal objects. */
+  public static IteratorSetting iteratorSettingBigDecimal(int priority, boolean onRight, ScalarOp op, BigDecimal scalar) {
+    IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
+    itset.addOption(ApplyIterator.APPLYOP, MathTwoScalarOp.class.getName());
+    for (Map.Entry<String, String> entry : optionMapBigDecimal(op).entrySet())
+      itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + entry.getKey(), entry.getValue());
+    itset = SimpleTwoScalarOp.addOptionsToIteratorSetting(itset, onRight, new Value(scalar.toString().getBytes())); // byte encoding UTF-8?
+    return itset;
+  }
+
+  /** For use as a MultiplyOp or EWiseOp. */
   public static Map<String,String> optionMapLong(ScalarOp op) {
+    return optionMap(op, ScalarType.LONG);
+  }
+
+  private static Map<String,String> optionMap(ScalarOp op, ScalarType type) {
     Map<String,String> map = new HashMap<>();
     map.put(SCALAR_OP, op.name());
-    map.put(SCALAR_TYPE, ScalarType.LONG.name());
+    map.put(SCALAR_TYPE, type.name());
     return map;
   }
 
@@ -74,8 +92,8 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
 //    return iteratorSettingLong(priority, 1, ScalarOp.SET_LEFT);
 //  }
 
-  private ScalarType scalarType = ScalarType.DOUBLE;
-  private ScalarOp scalarOp; // TIMES  // default
+  private ScalarType scalarType = ScalarType.BIGDECIMAL; // default
+  private ScalarOp scalarOp = ScalarOp.TIMES;  // default
 
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
@@ -95,6 +113,7 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
     super.init(extraOpts, env);
   }
 
+  @SuppressWarnings("ConstantConditions")
   @Override
   public Value multiply(Value Aval, Value Bval) {
     if (scalarOp == ScalarOp.SET_LEFT) {
@@ -111,6 +130,10 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
         Anum = Double.valueOf(new String(Aval.get()));
         Bnum = Double.valueOf(new String(Bval.get()));
         break;
+      case BIGDECIMAL:
+        Anum = new BigDecimal(new String(Aval.get()));
+        Bnum = new BigDecimal(new String(Bval.get()));
+        break;
       default: throw new AssertionError();
     }
     Number nnew;
@@ -119,6 +142,7 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
         switch(scalarType) {
           case LONG: nnew = Anum.longValue() + Bnum.longValue(); break;
           case DOUBLE: nnew = Anum.doubleValue() + Bnum.doubleValue(); break;
+          case BIGDECIMAL: nnew = ((BigDecimal)Anum).add((BigDecimal)Bnum); break;
           default: throw new AssertionError();
         }
         break;
@@ -126,6 +150,7 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
         switch(scalarType) {
           case LONG: nnew = Anum.longValue() * Bnum.longValue(); break;
           case DOUBLE: nnew = Anum.doubleValue() * Bnum.doubleValue(); break;
+          case BIGDECIMAL: nnew = ((BigDecimal)Anum).multiply((BigDecimal)Bnum); break;
           default: throw new AssertionError();
         }
         break;
@@ -133,6 +158,7 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
         switch(scalarType) {
           case LONG: nnew = Anum.longValue() - Bnum.longValue(); break;
           case DOUBLE: nnew = Anum.doubleValue() - Bnum.doubleValue(); break;
+          case BIGDECIMAL: nnew = ((BigDecimal)Anum).subtract((BigDecimal) Bnum); break;
           default: throw new AssertionError();
         }
         break;
@@ -140,6 +166,7 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
         switch(scalarType) {
           case LONG: nnew = Anum.longValue() / Bnum.longValue(); break;
           case DOUBLE: nnew = Anum.doubleValue() / Bnum.doubleValue(); break;
+          case BIGDECIMAL: nnew = ((BigDecimal)Anum).divide((BigDecimal) Bnum, BigDecimal.ROUND_HALF_UP); break;
           default: throw new AssertionError();
         }
         break;
@@ -147,6 +174,7 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
         switch(scalarType) {
           case LONG: nnew = (long)Math.pow(Anum.longValue(), Bnum.longValue()); break;
           case DOUBLE: nnew = Math.pow(Anum.doubleValue(), Bnum.doubleValue()); break;
+          case BIGDECIMAL: nnew = ((BigDecimal)Anum).pow(Bnum.intValue()); break;
           default: throw new AssertionError();
         }
         break;
@@ -154,6 +182,7 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
         switch(scalarType) {
           case LONG: nnew = Math.min(Anum.longValue(), Bnum.longValue()); break;
           case DOUBLE: nnew = Math.min(Anum.doubleValue(), Bnum.doubleValue()); break;
+          case BIGDECIMAL: nnew = ((BigDecimal)Anum).min((BigDecimal) Bnum); break;
           default: throw new AssertionError();
         }
         break;
@@ -161,6 +190,7 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
         switch(scalarType) {
           case LONG: nnew = Math.max(Anum.longValue(), Bnum.longValue()); break;
           case DOUBLE: nnew = Math.max(Anum.doubleValue(), Bnum.doubleValue()); break;
+          case BIGDECIMAL: nnew = ((BigDecimal)Anum).max((BigDecimal) Bnum); break;
           default: throw new AssertionError();
         }
         break;
@@ -171,6 +201,7 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
     switch(scalarType) {
       case LONG: vnew = new Value(Long.toString(nnew.longValue()).getBytes()); break;
       case DOUBLE: vnew = new Value(Double.toString(nnew.doubleValue()).getBytes()); break;
+      case BIGDECIMAL: vnew = new Value(nnew.toString().getBytes()); break;
       default: throw new AssertionError();
     }
     return vnew;

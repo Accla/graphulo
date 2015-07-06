@@ -79,7 +79,7 @@ public class TableMultTest extends AccumuloTestBase {
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     long numpp = graphulo.TableMult(tAT, tB, tC, tCT, -1,
-        MathTwoScalarOp.class, MathTwoScalarOp.optionMapLong(MathTwoScalarOp.ScalarOp.TIMES), Graphulo.DEFAULT_PLUS_ITERATOR,
+        MathTwoScalarOp.class, MathTwoScalarOp.optionMapBigDecimal(MathTwoScalarOp.ScalarOp.TIMES), Graphulo.DEFAULT_PLUS_ITERATOR,
         null, null, null, false, false, 1, true);
 
     Assert.assertEquals(4, numpp);

@@ -138,7 +138,7 @@ public class Graphulo {
                          String colFilterAT, String colFilterB,
                          int numEntriesCheckpoint, boolean trace) {
     if (multOp.equals(MathTwoScalarOp.class) && multOpOptions == null)
-      multOpOptions = MathTwoScalarOp.optionMapLong(MathTwoScalarOp.ScalarOp.PLUS); // + by default for SpEWiseSum
+      multOpOptions = MathTwoScalarOp.optionMapBigDecimal(MathTwoScalarOp.ScalarOp.PLUS); // + by default for SpEWiseSum
     return TwoTableEWISE(Atable, Btable, Ctable, CTtable, BScanIteratorPriority,
         multOp, multOpOptions, plusOp, rowFilter, colFilterAT, colFilterB,
         true, true, Collections.<IteratorSetting>emptyList(),

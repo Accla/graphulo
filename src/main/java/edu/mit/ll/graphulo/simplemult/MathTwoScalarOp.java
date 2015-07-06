@@ -20,7 +20,7 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
 
   public enum ScalarOp {
     PLUS, TIMES, SET_LEFT, MINUS,
-    DIVIDE, POWER
+    DIVIDE, POWER, MIN, MAX
   }
   public enum ScalarType {
     LONG, DOUBLE
@@ -35,10 +35,18 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
   public static IteratorSetting iteratorSettingDouble(int priority, boolean onRight, ScalarOp op, double scalar) {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
     itset.addOption(ApplyIterator.APPLYOP, MathTwoScalarOp.class.getName());
-    itset.addOption(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+SCALAR_OP, op.name());
-    itset.addOption(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+SCALAR_TYPE, ScalarType.DOUBLE.name());
+    for (Map.Entry<String, String> entry : optionMapDouble(op).entrySet())
+      itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + entry.getKey(), entry.getValue());
     itset = SimpleTwoScalarOp.addOptionsToIteratorSetting(itset, onRight, new Value(Double.toString(scalar).getBytes()));
     return itset;
+  }
+
+  /** For use as a MultiplyOp or EWiseOp. */
+  public static Map<String,String> optionMapDouble(ScalarOp op) {
+    Map<String,String> map = new HashMap<>();
+    map.put(SCALAR_OP, op.name());
+    map.put(SCALAR_TYPE, ScalarType.DOUBLE.name());
+    return map;
   }
 
   /** For use as an ApplyOp.
@@ -46,10 +54,18 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
   public static IteratorSetting iteratorSettingLong(int priority, boolean onRight, ScalarOp op, long scalar) {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
     itset.addOption(ApplyIterator.APPLYOP, MathTwoScalarOp.class.getName());
-    itset.addOption(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+SCALAR_OP, op.name());
-    itset.addOption(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+SCALAR_TYPE, ScalarType.LONG.name());
+    for (Map.Entry<String, String> entry : optionMapLong(op).entrySet())
+      itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + entry.getKey(), entry.getValue());
     itset = SimpleTwoScalarOp.addOptionsToIteratorSetting(itset, onRight, new Value(Long.toString(scalar).getBytes()));
     return itset;
+  }
+
+  /** For use as a MultiplyOp or EWiseOp. */
+  public static Map<String,String> optionMapLong(ScalarOp op) {
+    Map<String,String> map = new HashMap<>();
+    map.put(SCALAR_OP, op.name());
+    map.put(SCALAR_TYPE, ScalarType.LONG.name());
+    return map;
   }
 
   // I want developers to get used to writing out the usual signatures.
@@ -59,7 +75,7 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
 //  }
 
   private ScalarType scalarType = ScalarType.DOUBLE;
-  private ScalarOp scalarOp;
+  private ScalarOp scalarOp; // TIMES  // default
 
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
@@ -131,6 +147,20 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
         switch(scalarType) {
           case LONG: nnew = (long)Math.pow(Anum.longValue(), Bnum.longValue()); break;
           case DOUBLE: nnew = Math.pow(Anum.doubleValue(), Bnum.doubleValue()); break;
+          default: throw new AssertionError();
+        }
+        break;
+      case MIN:
+        switch(scalarType) {
+          case LONG: nnew = Math.min(Anum.longValue(), Bnum.longValue()); break;
+          case DOUBLE: nnew = Math.min(Anum.doubleValue(), Bnum.doubleValue()); break;
+          default: throw new AssertionError();
+        }
+        break;
+      case MAX:
+        switch(scalarType) {
+          case LONG: nnew = Math.max(Anum.longValue(), Bnum.longValue()); break;
+          case DOUBLE: nnew = Math.max(Anum.doubleValue(), Bnum.doubleValue()); break;
           default: throw new AssertionError();
         }
         break;

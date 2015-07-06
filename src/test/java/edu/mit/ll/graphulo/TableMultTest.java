@@ -1,12 +1,15 @@
 package edu.mit.ll.graphulo;
 
-import edu.mit.ll.graphulo.rowmult.BigDecimalTwoScalarOp;
-import edu.mit.ll.graphulo.rowmult.LongTwoScalarOp;
+import edu.mit.ll.graphulo.simplemult.MathTwoScalarOp;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.TestUtil;
-import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -17,7 +20,13 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 /**
  * Test TableMult in {@link Graphulo}.
@@ -70,7 +79,7 @@ public class TableMultTest extends AccumuloTestBase {
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     long numpp = graphulo.TableMult(tAT, tB, tC, tCT, -1,
-        LongTwoScalarOp.class, Graphulo.DEFAULT_PLUS_ITERATOR,
+        MathTwoScalarOp.class, MathTwoScalarOp.optionMapLong(MathTwoScalarOp.ScalarOp.TIMES), Graphulo.DEFAULT_PLUS_ITERATOR,
         null, null, null, false, false, 1, true);
 
     Assert.assertEquals(4, numpp);
@@ -148,7 +157,7 @@ public class TableMultTest extends AccumuloTestBase {
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     long numpp = graphulo.TableMult(tAT, tB, tC, null, -1,
-        BigDecimalTwoScalarOp.class, Graphulo.DEFAULT_PLUS_ITERATOR,
+        MathTwoScalarOp.class, MathTwoScalarOp.optionMapLong(MathTwoScalarOp.ScalarOp.TIMES), Graphulo.DEFAULT_PLUS_ITERATOR,
         GraphuloUtil.d4mRowToRanges("C2,:,"), null, null, false, false, 1, false);
 
     Assert.assertEquals(2, numpp);
@@ -210,7 +219,7 @@ public class TableMultTest extends AccumuloTestBase {
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     long numpp = graphulo.TableMult(tAT, tB, tC, null, -1,
-        BigDecimalTwoScalarOp.class, Graphulo.DEFAULT_PLUS_ITERATOR,
+        MathTwoScalarOp.class, MathTwoScalarOp.optionMapLong(MathTwoScalarOp.ScalarOp.TIMES), Graphulo.DEFAULT_PLUS_ITERATOR,
         GraphuloUtil.d4mRowToRanges("C2,:,"),
         "A1,", "B1,", false, false, 1, false);
 
@@ -227,7 +236,7 @@ public class TableMultTest extends AccumuloTestBase {
     // now check more advanced column filter, write to transpose
     expect = TestUtil.transposeMap(expect);
     graphulo.TableMult(tAT, tB, null, tCT, -1,
-        BigDecimalTwoScalarOp.class, Graphulo.DEFAULT_PLUS_ITERATOR,
+        MathTwoScalarOp.class, MathTwoScalarOp.optionMapLong(MathTwoScalarOp.ScalarOp.TIMES), Graphulo.DEFAULT_PLUS_ITERATOR,
         GraphuloUtil.d4mRowToRanges("C2,:,"),
         "A1,:,A15,", "B1,:,B15,F,", false, false, 1, false);
     scanner = conn.createScanner(tCT, Authorizations.EMPTY);
@@ -292,7 +301,7 @@ public class TableMultTest extends AccumuloTestBase {
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     long numpp = graphulo.TableMult(tAT, tB, tC, null, -1,
-        BigDecimalTwoScalarOp.class, Graphulo.DEFAULT_PLUS_ITERATOR,
+        MathTwoScalarOp.class, MathTwoScalarOp.optionMapLong(MathTwoScalarOp.ScalarOp.TIMES), Graphulo.DEFAULT_PLUS_ITERATOR,
         GraphuloUtil.d4mRowToRanges("C2,:,"),
         "A1,", "B1,", true, false, 1, false);
 
@@ -308,7 +317,7 @@ public class TableMultTest extends AccumuloTestBase {
     // now check more advanced column filter, write to transpose
     expect = TestUtil.transposeMap(expect);
     graphulo.TableMult(tAT, tB, null, tCT, -1,
-        BigDecimalTwoScalarOp.class, Graphulo.DEFAULT_PLUS_ITERATOR,
+        MathTwoScalarOp.class, MathTwoScalarOp.optionMapLong(MathTwoScalarOp.ScalarOp.TIMES), Graphulo.DEFAULT_PLUS_ITERATOR,
         GraphuloUtil.d4mRowToRanges("C2,:,"),
         "A1,:,A15,", "B1,:,B15,F,", true, false, 1, false);
     scanner = conn.createScanner(tCT, Authorizations.EMPTY);

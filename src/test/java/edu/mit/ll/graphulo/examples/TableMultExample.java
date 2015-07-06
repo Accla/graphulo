@@ -1,8 +1,8 @@
 package edu.mit.ll.graphulo.examples;
 
 import edu.mit.ll.graphulo.Graphulo;
-import edu.mit.ll.graphulo.rowmult.LongTwoScalarOp;
 import edu.mit.ll.graphulo.rowmult.MultiplyOp;
+import edu.mit.ll.graphulo.simplemult.MathTwoScalarOp;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -81,8 +81,9 @@ public class TableMultExample extends AccumuloTestBase {
     // Other options to TableMult
     String CTtable = null;                // Don't write the table transpose.
     int BScanIteratorPriority = -1;       // Use the default priority for the scan-time table multiplication iterator
-    Class<? extends MultiplyOp> multOp = LongTwoScalarOp.class; // Multiply operation.
-    //                                    multOp satisfies requirement that 0 is multiplicative annihilator.
+    //  multOp must satisfy the requirement that 0 is multiplicative annihilator.
+    Class<? extends MultiplyOp> multOp = MathTwoScalarOp.class; // Multiply operation, generic to many kinds of mathematical operators.
+    Map<String,String> multOpOptions = null; // Null uses the default mode of MathTwoScalarOp is TIMES, which is what we want.
     Collection<Range> rowFilter = null;   // No row subsetting; run on whole tables.
     String colFilterAT = null;            // No column subsetting for ATtable; run on the whole table.
     String colFilterB = null;             // No column subsetting for  Btable; run on the whole table.
@@ -98,7 +99,7 @@ public class TableMultExample extends AccumuloTestBase {
     // Matrix multiply A*B.  Uses +.* algebra.
     // This call blocks until the multiply completes,
     // i.e., until all partial products are sent to Ctable.
-    graphulo.TableMult(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority, multOp, plusOp,
+    graphulo.TableMult(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority, multOp, multOpOptions, plusOp,
         rowFilter, colFilterAT, colFilterB, alsoDoAA, alsoDoBB,
         iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable, numEntriesCheckpoint, trace);
 
@@ -119,10 +120,8 @@ public class TableMultExample extends AccumuloTestBase {
 
   0)  Increase the SCALE parameter to 12, 14 or 16 to run on larger graphs.
 
-  1)  Replace: SummingCombiner.class ==>
-        MaxCombiner.class
-      and Replace: LongTwoScalarOp.class ==>
-        MinTwoScalarOp.class
+  1)  Replace: SummingCombiner.class ==> MaxCombiner.class
+      and Replace: multOpOptions = null; ==> multOpOptions = MathTwoScalarOp.optionMapLong(MathTwoScalarOp.ScalarOp.MIN);
       to use max.min algebra.  We assume all nonzero values are integers greater than 0.
       This maintains 0 as the additive identity since for any a, max(a,0)=a.
       This maintains 0 as the multiplicative annihilator since for any a, min(a,0)=0.
@@ -134,8 +133,7 @@ public class TableMultExample extends AccumuloTestBase {
       to include in the TableMult only columns after column "1" of A (which is a row of AT)
       and rows after row "1" of B. This restricts the dimension of the tables on which they are "joined."
 
-  3)  Replace: String colFilterAT = null; ==>
-        String colFilterAT = "7,23,85,";
+  3)  Replace: String colFilterAT = null; ==> String colFilterAT = "7,23,85,";
       to include in the TableMult only rows "7", "23", "85" of A (which are columns of AT).
       This restricts the rowspace of table C.
       Applying a column filter to colFilterB similarly restricts the columnspace of table C.

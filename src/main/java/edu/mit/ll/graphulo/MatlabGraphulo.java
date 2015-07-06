@@ -1,6 +1,6 @@
 package edu.mit.ll.graphulo;
 
-import edu.mit.ll.graphulo.rowmult.LongTwoScalarOp;
+import edu.mit.ll.graphulo.simplemult.MathTwoScalarOp;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -52,8 +52,8 @@ public class MatlabGraphulo extends Graphulo {
 
 
     return TableMult(ATtable, Btable, Ctable, null, -1,
-        LongTwoScalarOp.class, Graphulo.DEFAULT_PLUS_ITERATOR,
-        rowFilterRanges, colFilterAT, colFilterB, false, false, numEntriesCheckpoint, trace);
+        MathTwoScalarOp.class, MathTwoScalarOp.optionMapLong(MathTwoScalarOp.ScalarOp.TIMES), Graphulo.DEFAULT_PLUS_ITERATOR,
+        rowFilterRanges, colFilterAT, colFilterB, false, false, null, null, null, numEntriesCheckpoint, trace);
   }
 
 

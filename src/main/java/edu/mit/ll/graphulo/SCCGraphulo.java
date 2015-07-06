@@ -1,7 +1,6 @@
 package edu.mit.ll.graphulo;
 
-import edu.mit.ll.graphulo.ewise.LongEWiseX;
-import edu.mit.ll.graphulo.rowmult.LongTwoScalarOp;
+import edu.mit.ll.graphulo.simplemult.MathTwoScalarOp;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -82,7 +81,7 @@ public class SCCGraphulo extends Graphulo {
       if (k % 2 == 1) {
         if (k != 1)
           tops.delete(tAC);
-        TableMult(tAT, tA, tR, tAC, -1, LongTwoScalarOp.class, null, null, null, null, false, false, -1, trace);
+        TableMult(tAT, tA, tR, tAC, -1, MathTwoScalarOp.class, MathTwoScalarOp.optionMapLong(MathTwoScalarOp.ScalarOp.TIMES), null, null, null, null, false, false, -1, trace);
 
         if (trace) {
           // TESTING
@@ -102,7 +101,7 @@ public class SCCGraphulo extends Graphulo {
 
       } else {
         tops.delete(tAT);
-        TableMult(tAC, tA, tR, tAT, -1, LongTwoScalarOp.class, null, null, null, null, false, false, -1, trace);
+        TableMult(tAC, tA, tR, tAT, -1, MathTwoScalarOp.class, MathTwoScalarOp.optionMapLong(MathTwoScalarOp.ScalarOp.TIMES), null, null, null, null, false, false, -1, trace);
 
         if (trace) {
           // TESTING
@@ -153,7 +152,7 @@ public class SCCGraphulo extends Graphulo {
       // TEST END
     }
 
-    SpEWiseX(tR, tRT, tRf, null, -1, LongEWiseX.class, null, null, null, null, -1, trace);
+    SpEWiseX(tR, tRT, tRf, null, -1, MathTwoScalarOp.class, MathTwoScalarOp.optionMapLong(MathTwoScalarOp.ScalarOp.TIMES), null, null, null, null, -1, trace);
 
   }
 

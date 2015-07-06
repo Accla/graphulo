@@ -1,6 +1,7 @@
 package edu.mit.ll.graphulo.rowmult;
 
 import com.google.common.collect.Iterators;
+import edu.mit.ll.graphulo.simplemult.MathTwoScalarOp;
 import edu.mit.ll.graphulo.skvi.Watch;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.SKVIRowIterator;
@@ -99,8 +100,10 @@ public class CartesianRowMultiply implements RowMultiplyOp {
         }
       }
     }
-    if (multiplyOp == null)
-      multiplyOp = new BigDecimalTwoScalarOp(); // default
+    if (multiplyOp == null) {
+      multiplyOp = new MathTwoScalarOp(); // default
+      multiplyOpOptions.putAll(MathTwoScalarOp.optionMapLong(MathTwoScalarOp.ScalarOp.TIMES));
+    }
     if (alsoDoAA && alsoDoBB && rowmode != ROWMODE.TWOROW) {
       log.warn("Because alsoDoAA and alsoDoBB are true, forcing rowmode to " + ROWMODE.TWOROW);
       rowmode = ROWMODE.TWOROW;

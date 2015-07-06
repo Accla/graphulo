@@ -6,19 +6,18 @@ import edu.mit.ll.graphulo.apply.ColQSpecialByteApply;
 import edu.mit.ll.graphulo.apply.JaccardDegreeApply;
 import edu.mit.ll.graphulo.apply.KeyRetainOnlyApply;
 import edu.mit.ll.graphulo.apply.RandomTopicApply;
-import edu.mit.ll.graphulo.apply.ScalarApply;
 import edu.mit.ll.graphulo.ewise.EWiseOp;
 import edu.mit.ll.graphulo.reducer.EdgeBFSReducer;
 import edu.mit.ll.graphulo.reducer.GatherColQReducer;
 import edu.mit.ll.graphulo.reducer.Reducer;
 import edu.mit.ll.graphulo.reducer.SingleBFSReducer;
-import edu.mit.ll.graphulo.rowmult.AndTwoScalarOp;
 import edu.mit.ll.graphulo.rowmult.CartesianRowMultiply;
 import edu.mit.ll.graphulo.rowmult.EdgeBFSMultiply;
 import edu.mit.ll.graphulo.rowmult.LineRowMultiply;
-import edu.mit.ll.graphulo.rowmult.LongTwoScalarOp;
 import edu.mit.ll.graphulo.rowmult.MultiplyOp;
 import edu.mit.ll.graphulo.rowmult.SelectorRowMultiply;
+import edu.mit.ll.graphulo.simplemult.ConstantTwoScalarOp;
+import edu.mit.ll.graphulo.simplemult.MathTwoScalarOp;
 import edu.mit.ll.graphulo.skvi.CountAllIterator;
 import edu.mit.ll.graphulo.skvi.MinMaxValueFilter;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
@@ -113,18 +112,19 @@ public class Graphulo {
                         Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
                         Collection<Range> rowFilter,
                         String colFilterAT, String colFilterB) {
-    return TableMult(ATtable, Btable, Ctable, CTtable, -1, multOp, plusOp, rowFilter, colFilterAT, colFilterB,
+    return TableMult(ATtable, Btable, Ctable, CTtable, -1, multOp, null, plusOp, rowFilter, colFilterAT, colFilterB,
         false, false, -1, false);
   }
 
   public long SpEWiseX(String Atable, String Btable, String Ctable, String CTtable,
                        int BScanIteratorPriority,
-                       Class<? extends EWiseOp> multOp, IteratorSetting plusOp,
+                       Class<? extends EWiseOp> multOp, Map<String, String> multOpOptions,
+                       IteratorSetting plusOp,
                        Collection<Range> rowFilter,
                        String colFilterAT, String colFilterB,
                        int numEntriesCheckpoint, boolean trace) {
     return TwoTableEWISE(Atable, Btable, Ctable, CTtable, BScanIteratorPriority,
-        multOp, plusOp, rowFilter, colFilterAT, colFilterB,
+        multOp, multOpOptions, plusOp, rowFilter, colFilterAT, colFilterB,
         false, false, Collections.<IteratorSetting>emptyList(),
         Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
         numEntriesCheckpoint, trace);
@@ -132,12 +132,15 @@ public class Graphulo {
 
   public long SpEWiseSum(String Atable, String Btable, String Ctable, String CTtable,
                          int BScanIteratorPriority,
-                         Class<? extends EWiseOp> multOp, IteratorSetting plusOp,
+                         Class<? extends EWiseOp> multOp, Map<String, String> multOpOptions,
+                         IteratorSetting plusOp,
                          Collection<Range> rowFilter,
                          String colFilterAT, String colFilterB,
                          int numEntriesCheckpoint, boolean trace) {
+    if (multOp.equals(MathTwoScalarOp.class) && multOpOptions == null)
+      multOpOptions = MathTwoScalarOp.optionMapLong(MathTwoScalarOp.ScalarOp.PLUS); // + by default for SpEWiseSum
     return TwoTableEWISE(Atable, Btable, Ctable, CTtable, BScanIteratorPriority,
-        multOp, plusOp, rowFilter, colFilterAT, colFilterB,
+        multOp, multOpOptions, plusOp, rowFilter, colFilterAT, colFilterB,
         true, true, Collections.<IteratorSetting>emptyList(),
         Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
         numEntriesCheckpoint, trace);
@@ -147,12 +150,13 @@ public class Graphulo {
    * C += A * B.
    * User-defined "plus" and "multiply". Requires transpose table AT instead of A.
    * If C is not given, then the scan itself returns the results of A * B. (not thoroughly tested)
-   *  @param ATtable              Name of Accumulo table holding matrix transpose(A).
+   * @param ATtable              Name of Accumulo table holding matrix transpose(A).
    * @param Btable               Name of Accumulo table holding matrix B.
    * @param Ctable               Name of table to store result. Null means don't store the result.
    * @param CTtable              Name of table to store transpose of result. Null means don't store the transpose.
    * @param BScanIteratorPriority Priority to use for Table Multiplication scan-time iterator on table B
    * @param multOp               An operation that "multiplies" two values.
+   * @param multOpOptions        Options for multiply ops that need configuring. Can be null if no options needed.
    * @param plusOp               An SKVI to apply to the result table that "sums" values. Not applied if null.
    * @param rowFilter            Row subset of ATtable and Btable, like "a,:,b,g,c,:,". Null means run on all rows.
    * @param colFilterAT          Column qualifier subset of AT. Null means run on all columns.
@@ -165,13 +169,14 @@ public class Graphulo {
    */
   public long TableMult(String ATtable, String Btable, String Ctable, String CTtable,
                         int BScanIteratorPriority,
-                        Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
+                        Class<? extends MultiplyOp> multOp, Map<String, String> multOpOptions,
+                        IteratorSetting plusOp,
                         Collection<Range> rowFilter,
                         String colFilterAT, String colFilterB,
                         boolean alsoDoAA, boolean alsoDoBB,
                         int numEntriesCheckpoint, boolean trace) {
     return TwoTableROWCartesian(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority,
-        multOp, plusOp, rowFilter, colFilterAT, colFilterB,
+        multOp, multOpOptions, plusOp, rowFilter, colFilterAT, colFilterB,
         alsoDoAA, alsoDoBB, alsoDoAA, alsoDoBB, Collections.<IteratorSetting>emptyList(),
         Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
         numEntriesCheckpoint, trace);
@@ -187,6 +192,7 @@ public class Graphulo {
    * @param CTtable              Name of table to store transpose of result. Null means don't store the transpose.
    * @param BScanIteratorPriority Priority to use for Table Multiplication scan-time iterator on table B
    * @param multOp               An operation that "multiplies" two values.
+   * @param multOpOptions        Options for multiply ops that need configuring. Can be null if no options needed.
    * @param plusOp               An SKVI to apply to the result table that "sums" values. Not applied if null.
    * @param rowFilter            Row subset of ATtable and Btable, like "a,:,b,g,c,:,". Null means run on all rows.
    * @param colFilterAT          Column qualifier subset of AT. Null means run on all columns.
@@ -197,18 +203,19 @@ public class Graphulo {
    * @param iteratorsBeforeB     Extra iterators used on  Btable before TableMult.
    * @param iteratorsAfterTwoTable  Extra iterators used after TableMult but before writing entries to Ctable and CTtable.
    * @param numEntriesCheckpoint # of entries before we emit a checkpoint entry from the scan. -1 means no monitoring.
-   * @param trace                Enable server-side performance tracing.
-   * @return Number of partial products processed through the RemoteWriteIterator.
+   * @param trace                Enable server-side performance tracing.            @return Number of partial products processed through the RemoteWriteIterator.
    */
   public long TableMult(String ATtable, String Btable, String Ctable, String CTtable,
-                        int BScanIteratorPriority, Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
+                        int BScanIteratorPriority,
+                        Class<? extends MultiplyOp> multOp, Map<String, String> multOpOptions,
+                        IteratorSetting plusOp,
                         Collection<Range> rowFilter, String colFilterAT, String colFilterB,
                         boolean alsoDoAA, boolean alsoDoBB,
                         List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
                         List<IteratorSetting> iteratorsAfterTwoTable,
                         int numEntriesCheckpoint, boolean trace) {
     return TwoTableROWCartesian(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority,
-        multOp, plusOp, rowFilter, colFilterAT, colFilterB,
+        multOp, multOpOptions, plusOp, rowFilter, colFilterAT, colFilterB,
         alsoDoAA, alsoDoBB, alsoDoAA, alsoDoBB, iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
         numEntriesCheckpoint, trace);
   }
@@ -216,7 +223,8 @@ public class Graphulo {
   public long TwoTableROWCartesian(String ATtable, String Btable, String Ctable, String CTtable,
                                    int BScanIteratorPriority,
                                    //TwoTableIterator.DOTMODE dotmode, //CartesianRowMultiply.ROWMODE rowmode,
-                                   Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
+                                   Class<? extends MultiplyOp> multOp, Map<String, String> multOpOptions,
+                                   IteratorSetting plusOp,
                                    Collection<Range> rowFilter,
                                    String colFilterAT, String colFilterB,
                                    boolean emitNoMatchA, boolean emitNoMatchB,
@@ -227,6 +235,10 @@ public class Graphulo {
     Map<String,String> opt = new HashMap<>();
     opt.put("rowMultiplyOp", CartesianRowMultiply.class.getName());
     opt.put("rowMultiplyOp.opt.multiplyOp", multOp.getName()); // treated same as multiplyOp
+    if (multOpOptions != null)
+      for (Map.Entry<String, String> entry : multOpOptions.entrySet()) {
+        opt.put("multiplyOp.opt."+entry.getKey(), entry.getValue()); // treated same as multiplyOp
+      }
     opt.put("rowMultiplyOp.opt.rowmode", CartesianRowMultiply.ROWMODE.ONEROWA.name());
     opt.put("rowMultiplyOp.opt."+CartesianRowMultiply.ALSODOAA, Boolean.toString(alsoDoAA));
     opt.put("rowMultiplyOp.opt."+CartesianRowMultiply.ALSODOBB, Boolean.toString(alsoDoBB));
@@ -262,15 +274,20 @@ public class Graphulo {
   public long TwoTableEWISE(String ATtable, String Btable, String Ctable, String CTtable,
                             int BScanIteratorPriority,
                             //TwoTableIterator.DOTMODE dotmode, //CartesianRowMultiply.ROWMODE rowmode,
-                          Class<? extends EWiseOp> multOp, IteratorSetting plusOp,
-                          Collection<Range> rowFilter,
-                          String colFilterAT, String colFilterB,
-                          boolean emitNoMatchA, boolean emitNoMatchB,
+                            Class<? extends EWiseOp> multOp, Map<String, String> multOpOptions,
+                            IteratorSetting plusOp,
+                            Collection<Range> rowFilter,
+                            String colFilterAT, String colFilterB,
+                            boolean emitNoMatchA, boolean emitNoMatchB,
                             List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
                             List<IteratorSetting> iteratorsAfterTwoTable,
-                          int numEntriesCheckpoint, boolean trace) {
+                            int numEntriesCheckpoint, boolean trace) {
     Map<String,String> opt = new HashMap<>();
     opt.put("multiplyOp", multOp.getName());
+    if (multOpOptions != null)
+      for (Map.Entry<String, String> entry : multOpOptions.entrySet()) {
+        opt.put("multiplyOp.opt."+entry.getKey(), entry.getValue()); // treated same as multiplyOp
+      }
 
     return TwoTable(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority,
         TwoTableIterator.DOTMODE.EWISE, opt, plusOp,
@@ -282,13 +299,13 @@ public class Graphulo {
   public long TwoTableNONE(String ATtable, String Btable, String Ctable, String CTtable,
                            int BScanIteratorPriority,
                            //TwoTableIterator.DOTMODE dotmode, //CartesianRowMultiply.ROWMODE rowmode,
-                            Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
-                            Collection<Range> rowFilter,
-                            String colFilterAT, String colFilterB,
-                            boolean emitNoMatchA, boolean emitNoMatchB,
+                           IteratorSetting plusOp,
+                           Collection<Range> rowFilter,
+                           String colFilterAT, String colFilterB,
+                           boolean emitNoMatchA, boolean emitNoMatchB,
                            List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
                            List<IteratorSetting> iteratorsAfterTwoTable,
-                            int numEntriesCheckpoint, boolean trace) {
+                           int numEntriesCheckpoint, boolean trace) {
     Map<String,String> opt = new HashMap<>();
 
     return TwoTable(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority,
@@ -1631,14 +1648,14 @@ public class Graphulo {
       do {
         nnzBefore = nnzAfter;
 
-        TableMult(Atmp, Atmp, A2tmp, null, -1, AndTwoScalarOp.class, DEFAULT_PLUS_ITERATOR,
+        TableMult(Atmp, Atmp, A2tmp, null, -1, ConstantTwoScalarOp.class, null, DEFAULT_PLUS_ITERATOR,
             null, null, null, false, false,
             Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
             Collections.singletonList(kTrussFilter), -1, trace
         );
         // A2tmp has a SummingCombiner
 
-        nnzAfter = SpEWiseX(A2tmp, Atmp, AtmpAlt, null, -1, AndTwoScalarOp.class, null,
+        nnzAfter = SpEWiseX(A2tmp, Atmp, AtmpAlt, null, -1, ConstantTwoScalarOp.class, null, null,
             null, null, null, -1, trace);
 
         tops.delete(Atmp);
@@ -1754,7 +1771,7 @@ public class Graphulo {
         minMaxSetting.addOption(MinMaxValueFilter.MINVALUE, "2");
         iteratorsBeforeA.add(minMaxSetting);
       }
-      iteratorsBeforeA.add(ScalarApply.iteratorSettingLong(1, ScalarApply.ScalarOp.SET, 1));
+      iteratorsBeforeA.add(ConstantTwoScalarOp.iteratorSetting(1, new Value("1".getBytes())));
       iteratorsBeforeA.add(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW));
       iteratorsBeforeA.add(DEFAULT_PLUS_ITERATOR);
       iteratorsBeforeA.add(kTrussFilter);
@@ -1762,11 +1779,11 @@ public class Graphulo {
       do {
         nnzBefore = nnzAfter;
 
-        TableMult(Etmp, Etmp, Atmp, null, -1, AndTwoScalarOp.class, DEFAULT_PLUS_ITERATOR, null, null, null, false, false, null, null, Collections.singletonList(noDiagFilter), -1, trace
+        TableMult(Etmp, Etmp, Atmp, null, -1, ConstantTwoScalarOp.class, null, DEFAULT_PLUS_ITERATOR, null, null, null, false, false, null, null, Collections.singletonList(noDiagFilter), -1, trace
         );
         // Atmp has a SummingCombiner
 
-        TableMult(ETtmp, Atmp, Rtmp, null, -1, AndTwoScalarOp.class, DEFAULT_PLUS_ITERATOR, null, null, null, false, false, null, null, null, -1, trace
+        TableMult(ETtmp, Atmp, Rtmp, null, -1, ConstantTwoScalarOp.class, null, DEFAULT_PLUS_ITERATOR, null, null, null, false, false, null, null, null, -1, trace
         );
         // Rtmp has a SummingCombiner
         tops.delete(ETtmp);
@@ -1853,7 +1870,9 @@ public class Graphulo {
 //        afterTTIterators = dis.toIteratorSetting(1);
     }
 
-    long Jnnz = TableMult(Aorig, Aorig, Rfinal, null, -1, LongTwoScalarOp.class, RPlusIteratorSetting, null, null, null, true, true,
+    long Jnnz = TableMult(Aorig, Aorig, Rfinal, null, -1,
+        MathTwoScalarOp.class, MathTwoScalarOp.optionMapLong(MathTwoScalarOp.ScalarOp.TIMES),
+        RPlusIteratorSetting, null, null, null, true, true,
         Collections.singletonList(new IteratorSetting(1, TriangularFilter.class,
             Collections.singletonMap(TriangularFilter.TRIANGULAR_TYPE, TriangularFilter.TriangularType.Lower.name()))),
         Collections.singletonList(new IteratorSetting(1, TriangularFilter.class,
@@ -1897,7 +1916,7 @@ public class Graphulo {
     {
       DynamicIteratorSetting dis = new DynamicIteratorSetting();
       if (countColumns)
-          dis.append(ScalarApply.iteratorSettingLong(1, ScalarApply.ScalarOp.SET, 1l)); // Abs0
+          dis.append(ConstantTwoScalarOp.iteratorSetting(1, new Value("1".getBytes()))); // Abs0
       dis
         .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))
         .append(DEFAULT_PLUS_ITERATOR)
@@ -1962,7 +1981,7 @@ public class Graphulo {
     bs.addScanIterator(new DynamicIteratorSetting()
         .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))  // strip to row field
         .append(new IteratorSetting(1, VersioningIterator.class))       // only count a row once
-        .append(ScalarApply.iteratorSettingLong(1, ScalarApply.ScalarOp.SET, 1)) // Abs0
+        .append(ConstantTwoScalarOp.iteratorSetting(1, new Value("1".getBytes()))) // Abs0
         .append(KeyRetainOnlyApply.iteratorSetting(1, null))            // strip all fields
         .append(DEFAULT_PLUS_ITERATOR)                                  // Sum
         .toIteratorSetting(10));

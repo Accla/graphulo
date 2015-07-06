@@ -1,6 +1,5 @@
 package edu.mit.ll.graphulo.ewise;
 
-import edu.mit.ll.graphulo.ewise.SimpleEWiseX;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.TypedValueCombiner;
@@ -8,6 +7,7 @@ import org.apache.accumulo.core.iterators.TypedValueCombiner;
 /**
  * Decode Values as Long objects, sum and re-encode the result.
  * Used for EWiseSum.
+ * Can be implemented as MultiplyToEWiseAdapter passing in LongSumMultiply
  */
 public class LongEWiseSum extends SimpleEWiseX {
   private static final TypedValueCombiner.Encoder<Long> encoder = new LongCombiner.StringEncoder();

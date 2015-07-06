@@ -1,7 +1,7 @@
 package edu.mit.ll.graphulo.examples;
 
 import edu.mit.ll.graphulo.Graphulo;
-import edu.mit.ll.graphulo.rowmult.LongMultiply;
+import edu.mit.ll.graphulo.rowmult.LongTwoScalarOp;
 import edu.mit.ll.graphulo.rowmult.MultiplyOp;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -81,7 +81,7 @@ public class TableMultExample extends AccumuloTestBase {
     // Other options to TableMult
     String CTtable = null;                // Don't write the table transpose.
     int BScanIteratorPriority = -1;       // Use the default priority for the scan-time table multiplication iterator
-    Class<? extends MultiplyOp> multOp = LongMultiply.class; // Multiply operation.
+    Class<? extends MultiplyOp> multOp = LongTwoScalarOp.class; // Multiply operation.
     //                                    multOp satisfies requirement that 0 is multiplicative annihilator.
     Collection<Range> rowFilter = null;   // No row subsetting; run on whole tables.
     String colFilterAT = null;            // No column subsetting for ATtable; run on the whole table.
@@ -121,8 +121,8 @@ public class TableMultExample extends AccumuloTestBase {
 
   1)  Replace: SummingCombiner.class ==>
         MaxCombiner.class
-      and Replace: LongMultiply.class ==>
-        MinMultiply.class
+      and Replace: LongTwoScalarOp.class ==>
+        MinTwoScalarOp.class
       to use max.min algebra.  We assume all nonzero values are integers greater than 0.
       This maintains 0 as the additive identity since for any a, max(a,0)=a.
       This maintains 0 as the multiplicative annihilator since for any a, min(a,0)=0.

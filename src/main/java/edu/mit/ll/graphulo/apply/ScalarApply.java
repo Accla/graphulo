@@ -24,7 +24,8 @@ public class ScalarApply implements ApplyOp {
 
   public enum ScalarOp {
     PLUS, TIMES, SET, MINUS_SCALAR_RIGHT, MINUS_SCALAR_LEFT,
-    DIVIDE_SCALAR_RIGHT, DIVIDE_SCALAR_LEFT
+    DIVIDE_SCALAR_RIGHT, DIVIDE_SCALAR_LEFT,
+    POWER_SCALAR_RIGHT
   }
   public enum ScalarType {
     LONG, DOUBLE
@@ -147,6 +148,13 @@ public class ScalarApply implements ApplyOp {
         switch(scalarType) {
           case LONG: nnew = scalar.longValue() / vnum.longValue(); break;
           case DOUBLE: nnew = scalar.doubleValue() / vnum.doubleValue(); break;
+          default: throw new AssertionError();
+        }
+        break;
+      case POWER_SCALAR_RIGHT:
+        switch(scalarType) {
+          case LONG: nnew = (long)Math.pow(vnum.longValue(), scalar.longValue()); break;
+          case DOUBLE: nnew = Math.pow(vnum.doubleValue(), scalar.doubleValue()); break;
           default: throw new AssertionError();
         }
         break;

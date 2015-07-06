@@ -15,7 +15,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 /**
- * A abstract class for simple element0-wise function application
+ * A abstract class for simple element-wise function application
  * that returns zero or one entry per apply.
  */
 public abstract class SimpleApply implements ApplyOp {

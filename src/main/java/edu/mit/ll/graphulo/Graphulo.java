@@ -7,17 +7,16 @@ import edu.mit.ll.graphulo.apply.JaccardDegreeApply;
 import edu.mit.ll.graphulo.apply.KeyRetainOnlyApply;
 import edu.mit.ll.graphulo.apply.RandomTopicApply;
 import edu.mit.ll.graphulo.apply.ScalarApply;
-import edu.mit.ll.graphulo.ewise.AndEWiseX;
 import edu.mit.ll.graphulo.ewise.EWiseOp;
 import edu.mit.ll.graphulo.reducer.EdgeBFSReducer;
 import edu.mit.ll.graphulo.reducer.GatherColQReducer;
 import edu.mit.ll.graphulo.reducer.Reducer;
 import edu.mit.ll.graphulo.reducer.SingleBFSReducer;
-import edu.mit.ll.graphulo.rowmult.AndMultiply;
+import edu.mit.ll.graphulo.rowmult.AndTwoScalarOp;
 import edu.mit.ll.graphulo.rowmult.CartesianRowMultiply;
 import edu.mit.ll.graphulo.rowmult.EdgeBFSMultiply;
 import edu.mit.ll.graphulo.rowmult.LineRowMultiply;
-import edu.mit.ll.graphulo.rowmult.LongMultiply;
+import edu.mit.ll.graphulo.rowmult.LongTwoScalarOp;
 import edu.mit.ll.graphulo.rowmult.MultiplyOp;
 import edu.mit.ll.graphulo.rowmult.SelectorRowMultiply;
 import edu.mit.ll.graphulo.skvi.CountAllIterator;
@@ -1632,14 +1631,14 @@ public class Graphulo {
       do {
         nnzBefore = nnzAfter;
 
-        TableMult(Atmp, Atmp, A2tmp, null, -1, AndMultiply.class, DEFAULT_PLUS_ITERATOR,
+        TableMult(Atmp, Atmp, A2tmp, null, -1, AndTwoScalarOp.class, DEFAULT_PLUS_ITERATOR,
             null, null, null, false, false,
             Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
             Collections.singletonList(kTrussFilter), -1, trace
         );
         // A2tmp has a SummingCombiner
 
-        nnzAfter = SpEWiseX(A2tmp, Atmp, AtmpAlt, null, -1, AndEWiseX.class, null,
+        nnzAfter = SpEWiseX(A2tmp, Atmp, AtmpAlt, null, -1, AndTwoScalarOp.class, null,
             null, null, null, -1, trace);
 
         tops.delete(Atmp);
@@ -1763,11 +1762,11 @@ public class Graphulo {
       do {
         nnzBefore = nnzAfter;
 
-        TableMult(Etmp, Etmp, Atmp, null, -1, AndMultiply.class, DEFAULT_PLUS_ITERATOR, null, null, null, false, false, null, null, Collections.singletonList(noDiagFilter), -1, trace
+        TableMult(Etmp, Etmp, Atmp, null, -1, AndTwoScalarOp.class, DEFAULT_PLUS_ITERATOR, null, null, null, false, false, null, null, Collections.singletonList(noDiagFilter), -1, trace
         );
         // Atmp has a SummingCombiner
 
-        TableMult(ETtmp, Atmp, Rtmp, null, -1, AndMultiply.class, DEFAULT_PLUS_ITERATOR, null, null, null, false, false, null, null, null, -1, trace
+        TableMult(ETtmp, Atmp, Rtmp, null, -1, AndTwoScalarOp.class, DEFAULT_PLUS_ITERATOR, null, null, null, false, false, null, null, null, -1, trace
         );
         // Rtmp has a SummingCombiner
         tops.delete(ETtmp);
@@ -1854,7 +1853,7 @@ public class Graphulo {
 //        afterTTIterators = dis.toIteratorSetting(1);
     }
 
-    long Jnnz = TableMult(Aorig, Aorig, Rfinal, null, -1, LongMultiply.class, RPlusIteratorSetting, null, null, null, true, true,
+    long Jnnz = TableMult(Aorig, Aorig, Rfinal, null, -1, LongTwoScalarOp.class, RPlusIteratorSetting, null, null, null, true, true,
         Collections.singletonList(new IteratorSetting(1, TriangularFilter.class,
             Collections.singletonMap(TriangularFilter.TRIANGULAR_TYPE, TriangularFilter.TriangularType.Lower.name()))),
         Collections.singletonList(new IteratorSetting(1, TriangularFilter.class,

@@ -100,7 +100,7 @@ public class CartesianRowMultiply implements RowMultiplyOp {
       }
     }
     if (multiplyOp == null)
-      multiplyOp = new BigDecimalMultiply(); // default
+      multiplyOp = new BigDecimalTwoScalarOp(); // default
     if (alsoDoAA && alsoDoBB && rowmode != ROWMODE.TWOROW) {
       log.warn("Because alsoDoAA and alsoDoBB are true, forcing rowmode to " + ROWMODE.TWOROW);
       rowmode = ROWMODE.TWOROW;

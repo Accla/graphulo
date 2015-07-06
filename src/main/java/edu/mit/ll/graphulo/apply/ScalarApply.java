@@ -57,7 +57,7 @@ public class ScalarApply implements ApplyOp {
 
 //  /** Shortcut method for common Abs0 op */
 //  public static IteratorSetting abs0Apply(int priority) {
-//    return iteratorSettingLong(priority, 1, ScalarOp.SET);
+//    return iteratorSettingLong(priority, 1, ScalarOp.SET_LEFT);
 //  }
 
   private Number scalar;

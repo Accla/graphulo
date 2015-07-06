@@ -12,9 +12,9 @@ public class LongTwoScalarOp extends SimpleTwoScalarOp {
   private static final TypedValueCombiner.Encoder<Long> encoder = new LongCombiner.StringEncoder();
 
   @Override
-  public Value multiply(Value ATval, Value Bval) {
+  public Value multiply(Value Aval, Value Bval) {
     return new Value(encoder.encode(
-        encoder.decode(ATval.get()) * encoder.decode(Bval.get())
+        encoder.decode(Aval.get()) * encoder.decode(Bval.get())
     ));
   }
 }

@@ -6,6 +6,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.AbstractMap;
@@ -19,11 +21,17 @@ import java.util.Map;
  * that returns zero or one entry per apply.
  */
 public abstract class SimpleApply implements ApplyOp {
+  private static final Logger log = LogManager.getLogger(SimpleApply.class);
+
   /** Implements simple apply logic. Returning null means no entry is emitted. */
   public abstract Value simpleApply(Key k, Value v);
 
+  /** Unrecognized options printed here. */
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
+    for (Map.Entry<String, String> entry : options.entrySet()) {
+      log.warn("Unrecognized option: "+entry.getKey()+" -> "+entry.getValue());
+    }
   }
 
   @Override

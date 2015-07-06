@@ -14,9 +14,9 @@ public class BigDecimalTwoScalarOp extends SimpleTwoScalarOp {
     private static final TypedValueCombiner.Encoder<BigDecimal> encoder = new BigDecimalCombiner.BigDecimalEncoder();
 
     @Override
-    public Value multiply(Value ATval, Value Bval) {
+    public Value multiply(Value Aval, Value Bval) {
         return new Value(encoder.encode(
-            encoder.decode(ATval.get()).multiply( encoder.decode(Bval.get()) )
+            encoder.decode(Aval.get()).multiply( encoder.decode(Bval.get()) )
         ));
     }
 }

@@ -17,11 +17,11 @@ import java.io.IOException;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import static edu.mit.ll.graphulo.apply.EWiseToApplyAdapter.FixSide;
 
 /**
  * A simple abstract class for matrix multiplication or element-wise multiplication
@@ -30,50 +30,57 @@ import static edu.mit.ll.graphulo.apply.EWiseToApplyAdapter.FixSide;
  * <p>
  *   Can also be used for one-element Apply, if passed a fixed Value operand
  *   on the left or right of the multiplication inside iterator options.
+ *   Defaults to the left side of the multiplication; pass {@value #REVERSE} if the right is desired.
  */
 public abstract class SimpleTwoScalarOp extends SimpleApply implements MultiplyOp, EWiseOp {
 
   /** Implements simple multiply logic. Returning null means no entry is emitted. */
-  public abstract Value multiply(Value ATval, Value Bval);
+  public abstract Value multiply(Value Aval, Value Bval);
 
 
   public static final String
-      FIX_SIDE = "fixSide",
-      FIXED_VALUE = "fixedValue";
+      FIXED_VALUE = "simpleFixedValue",
+      REVERSE = "simpleReverse";
 
-  /** Subclasses must complete this method,
-   * because we don't know the name of the concrete class, because this method is static. */
+  /** For use in one-element applies. Subclasses must complete this method,
+   * because we don't know the name of the concrete class, because this method is static.
+   * Defaults to setting constant on the left if reverse is false. */
   protected static IteratorSetting addOptionsToIteratorSetting(
-      IteratorSetting itset, FixSide fixSide, Value fixedValue) {
+      IteratorSetting itset, boolean reverse, Value fixedValue) {
 //    IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
 //    itset.addOption(ApplyIterator.APPLYOP, this.getClass().getName());
-    itset.addOption(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+FIX_SIDE, fixSide.name());
     itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + FIXED_VALUE, new String(fixedValue.get()));
+    itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + REVERSE, Boolean.toString(reverse));
     return itset;
   }
 
-  private FixSide fixSide = FixSide.FIX_RIGHT;
   private Value fixedValue = null;
+  private boolean reverse = false;
 
+  /** Pass unrecognized options to the parent class. */
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
-    super.init(options, env);
-    if (options.containsKey(FIXED_VALUE))
-      fixedValue = new Value(options.get(FIXED_VALUE).getBytes());
-    if (options.containsKey(FIX_SIDE))
-      fixSide = FixSide.valueOf(options.get(FIX_SIDE));
+    Map<String,String> extraOpts = new HashMap<>();
+    for (Map.Entry<String, String> entry : options.entrySet()) {
+      String k = entry.getKey(), v = entry.getValue();
+      switch (k) {
+        case FIXED_VALUE:
+          fixedValue = new Value(v.getBytes());
+          break;
+        case REVERSE:
+          reverse = Boolean.parseBoolean(v);
+          break;
+        default:
+          extraOpts.put(k,v);
+          break;
+      }
+    }
+    super.init(extraOpts, env);
   }
 
   @Override
   public final Value simpleApply(Key k, Value v) {
-    switch (fixSide) {
-      case FIX_LEFT:
-        return multiply(fixedValue, v);
-      case FIX_RIGHT:
-        return multiply(v, fixedValue);
-      default:
-        throw new AssertionError();
-    }
+    return reverse ? multiply(v, fixedValue) : multiply(fixedValue, v);
   }
 
   @Override
@@ -91,7 +98,7 @@ public abstract class SimpleTwoScalarOp extends SimpleApply implements MultiplyO
 //    System.err.println("Mrow:"+Mrow+" ATcolQ:"+ATcolQ+" BcolQ:"+BcolQ+" ATval:"+ATval+" Bval:"+Bval);
     Key k = new Key(ATcolQ.getBackingArray(), ATcolF.getBackingArray(),
         BcolQ.getBackingArray(), GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis());
-    Value v = multiply(ATval, Bval);
+    Value v = reverse ? multiply(Bval, ATval) : multiply(ATval, Bval);
     return v == null ? Collections.<Entry<Key,Value>>emptyIterator() : Iterators.singletonIterator((Entry<Key, Value>) new SimpleImmutableEntry<>(k, v));
   }
 
@@ -99,7 +106,7 @@ public abstract class SimpleTwoScalarOp extends SimpleApply implements MultiplyO
   public final Iterator<? extends Entry<Key, Value>> multiply(ByteSequence Mrow, ByteSequence McolF, ByteSequence McolQ, Value Aval, Value Bval) {
     Key k = new Key(Mrow.getBackingArray(), McolF.getBackingArray(),
         McolQ.getBackingArray(), GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis());
-    Value v = multiply(Aval, Bval);
+    Value v = reverse ? multiply(Bval, Aval) : multiply(Aval, Bval);
     return v == null ? Collections.<Entry<Key,Value>>emptyIterator() : Iterators.singletonIterator((Entry<Key, Value>) new SimpleImmutableEntry<>(k, v));
   }
 }

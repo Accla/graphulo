@@ -65,7 +65,7 @@ shippable.yml         Enables continuous integration testing.
 
 ### Build
 [![Shippable Build Status](https://api.shippable.com/projects/54f27f245ab6cc13528fd44d/badge?branchName=master)](https://app.shippable.com/projects/54f27f245ab6cc13528fd44d/builds/latest)
-[![Travis Build Status](https://travis-ci.org/Accla/d4m_api_java.svg)](https://travis-ci.org/Accla/d4m_api_java)
+[![Travis Build Status](https://travis-ci.org/Accla/graphulo.svg?branch=master)](https://travis-ci.org/Accla/graphulo)
 
 Prerequisite: Install [Maven](https://maven.apache.org/download.cgi).
 
@@ -175,20 +175,29 @@ Addition is *lazy*, in the sense that the addition runs when a table is scanned 
 Do not remove addition iterators from a table until every entry in the table
 is summed together, which one can guarantee by running a full major compaction.
 
-To create a custom multiplication operation, 
-create a Java class implementing [MultiplyOp][] with the multiplication logic.
-For simple TableMult multiplication, you can extend the [SimpleMultiply][] class instead of implementing the full interface.
+There are three kinds of custom multiplication operations, each with its own interface you can implement:
+ 
+1. Matrix multiplication. Multiplies entries with matching row, column family and qualifier.
+See the interface [MultiplyOp][].
+2. Element-wise multiplication, also used for element-wise sum. A more accurate title is element-wise collision function.
+See the interface [EWiseOp][].
+3. Unary function application.  See the interface [ApplyOp][].  
+Alternatively, create a [SortedKeyValueIterator][] directly.
+
+For simple multiplication, you can extend the [SimpleTwoScalarOp][] class instead of implementing the full interface.
 For simple element-wise multiplication, you can extend the [SimpleEWiseX][] class instead of implementing the full interface.
 See the classes in the `edu.mit.ll.graphulo.rowmult` 
 and `edu.mit.ll.graphulo.ewise` packages for examples.
 
-Non-simple multiplication that should implement [MultiplyOp][] directly are multiplication logic that
+Non-simple multiplication that should implement [MultiplyOp][] directly 
+(with siimilar reasoning for [EWiseOp][] and [ApplyOp][]) are multiplication logic that
 
 1. manipulates returned Keys in non-standard ways; 
-2. takes init options (passed from the client through `multiplyOp.opt.OPTION_NAME` in an [IteratorSetting][]); 
+2. takes init options (passed from the client through `multiplyOp.opt.OPTION_NAME` in an [IteratorSetting][])
+(actually, you can get away with overriding `init` in this case);
 3. returns more than one entry per multiplication;
-4. performs some setup or other function based on holding one [`ONEROWA` or `ONEROWB` (default)] 
-or both [`TWOROW`] entire rows in memory
+4. performs some setup or other function based on holding one \[`ONEROWA` or `ONEROWB` (default)\] 
+or both \[`TWOROW`\] entire rows in memory
 (implement [RowStartMultiplyOp][] in this case); or 
 5. (advanced) performs a non-standard pattern of multiplying two matching rows, 
 different from the Cartesian product of the two rows' entries
@@ -197,9 +206,10 @@ different from the Cartesian product of the two rows' entries
 [SortedKeyValueIterator]: https://accumulo.apache.org/1.7/apidocs/org/apache/accumulo/core/iterators/SortedKeyValueIterator.html
 [IteratorSetting]: https://accumulo.apache.org/1.7/apidocs/org/apache/accumulo/core/client/IteratorSetting.html
 [MultiplyOp]: src/main/java/edu/mit/ll/graphulo/mult/MultiplyOp.java
+[EWiseOp]: src/main/java/edu/mit/ll/graphulo/ewise/EWiseOp.java
+[ApplyOp]: src/main/java/edu/mit/ll/graphulo/apply/ApplyOp.java
 [RowStartMultiplyOp]: src/main/java/edu/mit/ll/graphulo/mult/RowStartMultiplyOp.java
-[SimpleMultiply]: src/main/java/edu/mit/ll/graphulo/mult/SimpleMultiply.java
-[SimpleEWiseX]: src/main/java/edu/mit/ll/graphulo/ewise/SimpleEWiseX.java
+[SimpleTwoScalarOp]: src/main/java/edu/mit/ll/graphulo/simplemult/SimpleTwoScalarOp.java
 [RowMultiplyOp]: src/main/java/edu/mit/ll/graphulo/mult/RowMultiplyOp.java
 
 ### How to use Graphulo in Matlab client code with D4M

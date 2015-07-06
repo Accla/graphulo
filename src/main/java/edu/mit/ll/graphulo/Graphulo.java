@@ -1280,12 +1280,10 @@ public class Graphulo {
                           boolean copyOutDegrees, boolean computeInDegrees, int minDegree, int maxDegree,
                           IteratorSetting plusOp, boolean outputUnion, boolean trace) {
     boolean needDegreeFiltering = minDegree > 0 || maxDegree < Integer.MAX_VALUE;
-    if (Stable == null || Stable.isEmpty())
-      throw new IllegalArgumentException("Please specify Single-table. Given: " + Stable);
+    checkGiven(true, "Stable", Stable);
     if (needDegreeFiltering && (SDegtable == null || SDegtable.isEmpty()))
       throw new IllegalArgumentException("Please specify SDegtable since filtering is required. Given: " + Stable);
-    if (Rtable != null && Rtable.isEmpty())
-      Rtable = null;
+    Rtable = emptyToNull(Rtable);
     if (edgeColumn == null)
       edgeColumn = "";
     Text edgeColumnText = new Text(edgeColumn);
@@ -1329,19 +1327,11 @@ public class Graphulo {
         throw new RuntimeException(e);
       }
 
-    Map<String, String>
-        opt = Rtable != null ? basicRemoteOpts("", Rtable) : new HashMap<String,String>(),
-        optSTI = new HashMap<>();
+    Map<String, String> optSingleReducer = new HashMap<>(), optSTI = new HashMap<>();
     optSTI.put(SingleTransposeIterator.EDGESEP, edgeSepStr);
     optSTI.put(SingleTransposeIterator.NEG_ONE_IN_DEG, Boolean.toString(false)); // not a good option
     optSTI.put(SingleTransposeIterator.DEGCOL, degColumn);
-//    opt.put("trace", String.valueOf(trace)); // logs timing on server
-    opt.put("reducer", SingleBFSReducer.class.getName());
-    opt.put("reducer.opt." + SingleBFSReducer.EDGE_SEP, edgeSepStr);
-    if (Rtable != null) {
-      if (/*Rtable != null &&*/ plusOp != null)
-        GraphuloUtil.applyIteratorSoft(plusOp, tops, Rtable);
-    }
+    optSingleReducer.put(SingleBFSReducer.EDGE_SEP, edgeSepStr);
 
     BatchScanner bs;
     try {
@@ -1350,11 +1340,8 @@ public class Graphulo {
       log.error("crazy", e);
       throw new RuntimeException(e);
     }
-    bs.setRanges(Collections.singleton(new Range()));
 
-    bs.fetchColumn(EMPTY_TEXT, edgeColumnText);
-    if (copyOutDegrees)
-      bs.fetchColumn(EMPTY_TEXT, degColumnText);
+
 
     try {
       long degTime = 0, scanTime = 0;
@@ -1366,6 +1353,7 @@ public class Graphulo {
             System.out.println("k=" + thisk + " before filter" +
                 (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
 
+        Collection<Range> rowFilter;
         if (needDegreeFiltering /*&& SDegtable != null*/) { // use degree table
           long t1 = System.currentTimeMillis(), dur;
           vktexts = thisk == 1
@@ -1383,35 +1371,39 @@ public class Graphulo {
             break;
           if (mostAllOutNodes != null)
             mostAllOutNodes.addAll(vktexts);
-          opt.put("rowRanges", GraphuloUtil.singletonsAsPrefix(vktexts, sep));
-          optSTI.put(SingleTransposeIterator.STARTNODES, GraphuloUtil.textsToD4mString(vktexts, sep));
+//          opt.put("rowRanges", GraphuloUtil.singletonsAsPrefix(vktexts, sep));
+          rowFilter = GraphuloUtil.d4mRowToRanges(GraphuloUtil.singletonsAsPrefix(vktexts, sep));
+          optSTI.put(SingleTransposeIterator.STARTNODES, GraphuloUtil.singletonsAsPrefix(vktexts, sep));
 
         } else {  // no filtering
           if (thisk == 1) {
-            opt.put("rowRanges", GraphuloUtil.singletonsAsPrefix(v0));
+//            opt.put("rowRanges", GraphuloUtil.singletonsAsPrefix(v0));
+            rowFilter = GraphuloUtil.d4mRowToRanges(GraphuloUtil.singletonsAsPrefix(v0));
             optSTI.put(SingleTransposeIterator.STARTNODES, v0);
           } else {
             if (mostAllOutNodes != null)
               mostAllOutNodes.addAll(vktexts);
-            opt.put("rowRanges", GraphuloUtil.singletonsAsPrefix(vktexts, sep));
+//            opt.put("rowRanges", GraphuloUtil.singletonsAsPrefix(vktexts, sep));
+            rowFilter = GraphuloUtil.d4mRowToRanges(GraphuloUtil.singletonsAsPrefix(vktexts, sep));
             optSTI.put(SingleTransposeIterator.STARTNODES, GraphuloUtil.textsToD4mString(vktexts, sep));
           }
         }
 
-        bs.clearScanIterators();
-        DynamicIteratorSetting dis = new DynamicIteratorSetting();
-        dis.append(new IteratorSetting(3, SingleTransposeIterator.class, optSTI));
-        dis.append(new IteratorSetting(4, RemoteWriteIterator.class, opt));
-        bs.addScanIterator(dis.toIteratorSetting(3));
+        bs.fetchColumn(EMPTY_TEXT, edgeColumnText);
+        if (copyOutDegrees)
+          bs.fetchColumn(EMPTY_TEXT, degColumnText);
 
+        List<IteratorSetting> iteratorSettingList = Collections.singletonList(
+          new IteratorSetting(1, SingleTransposeIterator.class, optSTI));
 
         SingleBFSReducer reducer = new SingleBFSReducer();
-        reducer.init(Collections.singletonMap(SingleBFSReducer.EDGE_SEP, edgeSepStr), null);
+        reducer.init(optSingleReducer, null);
+
         long t2 = System.currentTimeMillis();
-        for (Map.Entry<Key, Value> entry : bs) {
-//        System.out.println("A Entry: "+entry.getKey() + " -> " + entry.getValue());
-          RemoteWriteIterator.decodeValue(entry.getValue(), reducer);
-        }
+        OneTable(Stable, Rtable, null, null, // feature addition: could gather entries at the client
+            4, reducer, optSingleReducer,
+            plusOp, rowFilter, null, // column filter applied through BatchScanner fetchColumn
+            iteratorSettingList, bs, trace);
         long dur = System.currentTimeMillis() - t2;
         scanTime += dur;
 

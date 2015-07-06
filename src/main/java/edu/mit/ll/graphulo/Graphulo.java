@@ -35,12 +35,10 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -610,16 +608,16 @@ public class Graphulo {
         optRWI = useRWI ? basicRemoteOpts("", Rtable, RTtable) : null;
 //    optRWI.put("trace", String.valueOf(trace)); // logs timing on server // todo Temp removed -- setting of Watch enable
 
+    DynamicIteratorSetting dis = new DynamicIteratorSetting();
+
     if (rowFilter != null) {
       Map<String,String> rowFilterOpt = Collections.singletonMap("rowRanges", GraphuloUtil.rangesToD4MString(rowFilter));
       if (useRWI) {
         optRWI.put("rowRanges", GraphuloUtil.rangesToD4MString(rowFilter)); // translate row filter to D4M notation
         bs.setRanges(Collections.singleton(new Range()));
       } else
-        bs.setRanges(rowFilter);
+        dis.append(new IteratorSetting(4, SeekFilterIterator.class, rowFilterOpt));
     }
-
-    DynamicIteratorSetting dis = new DynamicIteratorSetting();
 
     if (colFilterA != null)
       GraphuloUtil.applyGeneralColumnFilter(colFilterA, bs, dis, true);
@@ -627,28 +625,39 @@ public class Graphulo {
     for (IteratorSetting setting : iteratorList)
       dis.append(setting);
 
-    if (reducer != null) {
+    if (useRWI && reducer != null) {
       optRWI.put("reducer", reducer.getClass().getName());
       for (Map.Entry<String, String> entry : reducerOpts.entrySet()) {
         optRWI.put("reducer.opt."+entry.getKey(), entry.getValue());
       }
     }
-    dis.append(new IteratorSetting(1, RemoteWriteIterator.class, optRWI));
+    if (useRWI)
+      dis.append(new IteratorSetting(1, RemoteWriteIterator.class, optRWI));
 
     bs.addScanIterator(dis.toIteratorSetting(AScanIteratorPriority));
 
 
     long numEntries = 0, thisEntries;
     try {
-      for (Map.Entry<Key, Value> entry : bs) {
-        if (Rtable != null || RTtable != null) {
+      BatchScanner THISBS = bs;
+      if (!useRWI) {
+        THISBS = new ClientSideIteratorAggregatingScanner(THISBS);
+        if (plusOp != null)
+          THISBS.addScanIterator(plusOp);
+      }
+
+      for (Map.Entry<Key, Value> entry : THISBS) {
+        if (useRWI) {
 //          log.debug(entry.getKey() + " -> " + entry.getValue() + " AS " + Key.toPrintableString(entry.getValue().get(), 0, entry.getValue().get().length, 40) + " RAW "+ Arrays.toString(entry.getValue().get()));
           // mutates reducer if not null:
           thisEntries = RemoteWriteIterator.decodeValue(entry.getValue(), reducer);
           log.debug(entry.getKey() + " -> " + thisEntries + " entries processed");
           numEntries += thisEntries;
         } else {
-          log.debug(entry.getKey() + " -> " + entry.getValue());
+//          log.debug(entry.getKey() + " -> " + entry.getValue());
+          clientResultMap.put(entry.getKey(), entry.getValue());
+          reducer.update(entry.getKey(), entry.getValue());
+          numEntries++;
         }
       }
     } finally {
@@ -779,27 +788,14 @@ public class Graphulo {
     // but we would have to be careful to guarantee that iterators run on it at the client would have to be okay with unsorted order.
     // I therefore do not implement that right now. Can do it when there is a clear use case (i.e. need BatchScan performance)
 
-    ScannerBase sb;
-    if (useRWI) {
-      BatchScanner bs;
-      try {
-        bs = connector.createBatchScanner(Atable, Authorizations.EMPTY, 50); // TODO P2: set number of batch scan threads
-      } catch (TableNotFoundException e) {
-        log.error("crazy", e);
-        throw new RuntimeException(e);
-      }
-      bs.setRanges(Collections.singleton(new Range()));
-      sb = bs;
-    } else {
-      Scanner s;
-      try {
-        s = connector.createScanner(Atable, Authorizations.EMPTY);
-      } catch (TableNotFoundException e) {
-        log.error("crazy", e);
-        throw new RuntimeException(e);
-      }
-      sb = s;
+    BatchScanner bs;
+    try {
+      bs = connector.createBatchScanner(Atable, Authorizations.EMPTY, 50); // TODO P2: set number of batch scan threads
+    } catch (TableNotFoundException e) {
+      log.error("crazy", e);
+      throw new RuntimeException(e);
     }
+    bs.setRanges(Collections.singleton(new Range()));
 
     DynamicIteratorSetting dis = new DynamicIteratorSetting();
     IteratorSetting itsetDegreeFilter = null;
@@ -819,7 +815,7 @@ public class Graphulo {
             System.out.println("k=" + thisk + " before filter" +
                 (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
 
-        sb.clearScanIterators();
+        bs.clearScanIterators();
         dis.clear();
 
         if (needDegreeFiltering && ADegtable != null) { // use degree table
@@ -852,20 +848,20 @@ public class Graphulo {
           dis.append(new IteratorSetting(4, RemoteWriteIterator.class, opt));
         else
           dis.append(new IteratorSetting(4, SeekFilterIterator.class, opt));
-        sb.addScanIterator(dis.toIteratorSetting(AScanIteratorPriority));
+        bs.addScanIterator(dis.toIteratorSetting(AScanIteratorPriority));
 
         GatherColQReducer reducer = new GatherColQReducer();
         reducer.init(Collections.<String, String>emptyMap(), null);
         long t2 = System.currentTimeMillis(), dur;
         {
-          ScannerBase SB = sb;
+          BatchScanner THISBS = bs;
           if (!useRWI) {
-            SB = new ClientSideIteratorScanner((Scanner)SB);
+            THISBS = new ClientSideIteratorAggregatingScanner(THISBS);
             if (plusOp != null)
-              SB.addScanIterator(plusOp);
+              THISBS.addScanIterator(plusOp);
           }
 
-          for (Map.Entry<Key, Value> entry : SB) {
+          for (Map.Entry<Key, Value> entry : THISBS) {
 //        System.out.println("A Entry: "+entry.getKey() + " -> " + entry.getValue());
             if (useRWI)
               RemoteWriteIterator.decodeValue(entry.getValue(), reducer);
@@ -894,7 +890,7 @@ public class Graphulo {
         System.out.println("Total BatchScan/Iterator Time: " + scanTime + " ms");
       }
     } finally {
-      sb.close();
+      bs.close();
     }
 
     return GraphuloUtil.textsToD4mString(vktexts, sep);

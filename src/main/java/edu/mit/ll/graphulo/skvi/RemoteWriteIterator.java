@@ -248,7 +248,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
    * @param s -
    * @return a bunch of ranges
    */
-  private static SortedSet<Range> parseRanges(String s) {
+  static SortedSet<Range> parseRanges(String s) {
     SortedSet<Range> rngs = GraphuloUtil.d4mRowToRanges(s);
     return new TreeSet<>(Range.mergeOverlapping(rngs));
   }

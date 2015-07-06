@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import edu.mit.ll.graphulo.skvi.DynamicIterator;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -68,6 +69,16 @@ public class DynamicIteratorSetting {
 
   public IteratorSetting toIteratorSetting(int priority, String name) {
     return new IteratorSetting(priority, name, DynamicIterator.class, buildSettingMap());
+  }
+
+  public void addToScanner(ScannerBase scanner, int priority) {
+    if (!iteratorSettingList.isEmpty())
+      scanner.addScanIterator(toIteratorSetting(priority));
+  }
+
+  public void addToScanner(ScannerBase scanner, int priority, String name) {
+    if (!iteratorSettingList.isEmpty())
+      scanner.addScanIterator(toIteratorSetting(priority, name));
   }
 
   public List<IteratorSetting> getIteratorSettingList() {

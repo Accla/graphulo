@@ -83,13 +83,13 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
     map.put(SCALAR_TYPE, type.name());
     return map;
   }
-  
+
 
   private ScalarType scalarType = ScalarType.BIGDECIMAL; // default
   private ScalarOp scalarOp = ScalarOp.TIMES;  // default
 
   @Override
-  public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
+  public void init(Map<String, String> options, IteratorEnvironment env)  {
     Map<String,String> extraOpts = new HashMap<>();
     for (Map.Entry<String, String> entry : options.entrySet()) {
       String k = entry.getKey(), v = entry.getValue();
@@ -103,7 +103,11 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
           break;
       }
     }
-    super.init(extraOpts, env);
+    try {
+      super.init(extraOpts, env);
+    } catch (IOException e) {
+      assert false;
+    }
   }
 
   @SuppressWarnings("ConstantConditions")

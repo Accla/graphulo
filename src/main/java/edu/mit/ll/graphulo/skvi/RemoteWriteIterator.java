@@ -1,10 +1,10 @@
 package edu.mit.ll.graphulo.skvi;
 
 import com.google.common.collect.Iterators;
+import edu.mit.ll.graphulo.reducer.Reducer;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.PeekingIterator1;
 import edu.mit.ll.graphulo.util.RangeSet;
-import edu.mit.ll.graphulo.reducer.Reducer;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -27,12 +27,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
@@ -66,8 +64,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   private int timeout = -1;
   private int numEntriesCheckpoint = -1;
   /** Reduce-like functionality. */
-  private Reducer<? extends Serializable> reducer = new NOOP_REDUCER();
-  static final class NOOP_REDUCER implements Reducer<Serializable> {
+  private Reducer reducer = new NOOP_REDUCER();
+  static final class NOOP_REDUCER implements Reducer {
     @Override
     public void init(Map<String,String> options, IteratorEnvironment env) throws IOException {}
     @Override
@@ -75,13 +73,11 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     @Override
     public void update(Key k, Value v) {}
     @Override
-    public void combine(Serializable another) {}
+    public void combine(byte[] another) {}
     @Override
-    public boolean hasTop() { return false; }
+    public boolean hasTopForClient() { return false; }
     @Override
-    public Serializable getForClient() {
-      return null;
-    }
+    public byte[] getForClient() { return null; }
   }
   private Map<String,String> reducerOptions = new HashMap<>();
 
@@ -474,7 +470,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
         rowRangeIterator.hasNext() ||
             entriesWritten > 0 ||
         //source.hasTop() ||
-        reducer.hasTop());
+        reducer.hasTopForClient());
   }
 
   @Override
@@ -519,7 +515,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
       return new Value(bb);
     } else {
       byte[] orig = //((SaveStateIterator) source).safeState().getValue().get();
-          reducer.hasTop() ? SerializationUtils.serialize(reducer.getForClient()) : new byte[0];
+          reducer.hasTopForClient() ? reducer.getForClient() : new byte[0];
       ByteBuffer bb = ByteBuffer.allocate(orig.length + 8 + 2);
       bb.putLong(entriesWritten)
           .putChar(',')
@@ -552,14 +548,15 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   static final byte[] REJECT_MESSAGE = "Server_BatchWrite_Entries_Rejected!".getBytes();
 
   /**
-   *
+   * Use this method on entries retrieved from a scan with a RemoteWriteIterator attached.
+   * Decodes the Values received into the number of entries processed by RemoteWriteIterator
+   * and, if a Reducer is given, updates the Reducer with the byte[] emitted from the
+   * RemoteWriteIterator's server-side Reducer's {@link Reducer#getForClient()} method.
    * @param v Value from Scanner or BatchScanner.
    * @param reducer Calls combine() on the element inside if present. Pass null to ignore elements if any returned.
-   * @param <E> Class of the element inside to deserialize.
    * @return Number of entries seen by the RemoteWriteIterator
    */
-  @SuppressWarnings("unchecked")
-  public static <E extends Serializable> long decodeValue(Value v, Reducer<E> reducer) {
+  public static long decodeValue(Value v, Reducer reducer) {
     ByteBuffer bb = ByteBuffer.wrap(v.get());
     long numEntries = bb.getLong();
     bb.getChar(); // ','
@@ -569,7 +566,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
         log.error("mutations rejected at server!");
       } else {
         bb.get(rest);
-        reducer.combine((E) SerializationUtils.deserialize(rest));
+        reducer.combine(rest);
       }
     }
     return numEntries;

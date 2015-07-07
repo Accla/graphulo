@@ -4,6 +4,7 @@ import com.google.common.collect.Iterators;
 import edu.mit.ll.graphulo.apply.ApplyIterator;
 import edu.mit.ll.graphulo.apply.ApplyOp;
 import edu.mit.ll.graphulo.ewise.EWiseOp;
+import edu.mit.ll.graphulo.reducer.Reducer;
 import edu.mit.ll.graphulo.rowmult.MultiplyOp;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -31,17 +32,19 @@ import java.util.Map.Entry;
 /**
  * A simple abstract class for an operation acting on two scalars.
  * This includes matrix multiplication, element-wise multiplication,
- * element-wise sum, and Combiner-style sum.
+ * element-wise sum, Combiner-style sum, unary Apply, and Reductions.
  * <p>
  * The requirement is that this operation logic must return zero or one entry per multiply
  * and depend only on Values, not Keys.  More advanced operations should not use this class.
  * Certain methods are marked as final to prevent misuse/confusion.
+ * Please take care that your operator is commutative for the Combiner and Reduce usages.
+ * Your operator should always be associative.
  * <p>
- *   Can also be used for one-element Apply, if passed a fixed Value operand
+ *   Can be used for unary Apply if passed a fixed Value operand
  *   on the left or right of the multiplication inside iterator options.
  *   Defaults to the left side of the multiplication; pass {@value #REVERSE} if the right is desired.
  */
-public abstract class SimpleTwoScalarOp extends Combiner implements ApplyOp, MultiplyOp, EWiseOp {
+public abstract class SimpleTwoScalarOp extends Combiner implements ApplyOp, MultiplyOp, EWiseOp, Reducer {
   private static final Logger log = LogManager.getLogger(SimpleTwoScalarOp.class);
 
   //////////////////////////////////////////////////////////////////////////////////
@@ -206,5 +209,41 @@ public abstract class SimpleTwoScalarOp extends Combiner implements ApplyOp, Mul
   @Override
   protected final SortedKeyValueIterator<Key, Value> getSource() {
     return super.getSource();
+  }
+
+
+
+  private Value reducerV;
+
+  @Override
+  public final void reset() {
+    reducerV = null;
+  }
+
+  @Override
+  public final void update(Key k, Value v) {
+    if (reducerV == null)
+      reducerV = new Value(v);
+    else
+      reducerV = reverse ? multiply(reducerV, v) : multiply(v, reducerV);
+  }
+
+  @Override
+  public final void combine(byte[] another) {
+    Value v = new Value(another);
+    if (reducerV == null)
+      reducerV = new Value(v);
+    else
+      reducerV = reverse ? multiply(reducerV, v) : multiply(v, reducerV);
+  }
+
+  @Override
+  public final boolean hasTopForClient() {
+    return reducerV != null;
+  }
+
+  @Override
+  public final byte[] getForClient() {
+    return reducerV.get();
   }
 }

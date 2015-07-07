@@ -553,7 +553,7 @@ public class Graphulo {
   private <E extends Serializable> long OneTable(String Atable, String Rtable, String RTtable,
                         Map<Key, Value> clientResultMap, // controls whether to use RWI
                         int AScanIteratorPriority,
-                        Reducer<E> reducer, Map<String,String> reducerOpts, // applies at RWI if using RWI; otherwise applies at client
+                        Reducer reducer, Map<String,String> reducerOpts, // applies at RWI if using RWI; otherwise applies at client
                         IteratorSetting plusOp, // priority matters
                         Collection<Range> rowFilter,
                         String colFilter,
@@ -838,8 +838,8 @@ public class Graphulo {
         scanTime += dur;
 
         vktexts.clear();
-//      vktexts.addAll(reducer.getForClient());
-        for (String uk : reducer.getForClient()) {
+//      vktexts.addAll(reducer.getSerializableForClient());
+        for (String uk : reducer.getSerializableForClient()) {
           vktexts.add(new Text(uk));
         }
         if (trace)
@@ -1140,7 +1140,7 @@ public class Graphulo {
         scanTime += dur;
 
         vktexts.clear();
-        for (String uk : reducer.getForClient()) {
+        for (String uk : reducer.getSerializableForClient()) {
           vktexts.add(new Text(uk));
         }
         if (trace)
@@ -1426,8 +1426,8 @@ public class Graphulo {
         scanTime += dur;
 
         vktexts.clear();
-//      vktexts.addAll(reducer.getForClient());
-        for (String uk : reducer.getForClient()) {
+//      vktexts.addAll(reducer.getSerializableForClient());
+        for (String uk : reducer.getSerializableForClient()) {
           vktexts.add(new Text(uk));
         }
         if (trace)

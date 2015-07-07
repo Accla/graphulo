@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * Gathers column qualifiers into a set.
  */
-public class GatherColQReducer implements Reducer<HashSet<String>> {
+public class GatherColQReducer extends ReducerSerializable<HashSet<String>> {
   private HashSet<String> setColQ = new HashSet<>();
   private Text tmpTextColQ = new Text();
 
@@ -37,13 +37,13 @@ public class GatherColQReducer implements Reducer<HashSet<String>> {
   }
 
   @Override
-  public boolean hasTop() {
+  public boolean hasTopForClient() {
     return !setColQ.isEmpty();
   }
 
 
   @Override
-  public HashSet<String> getForClient() {
+  public HashSet<String> getSerializableForClient() {
     return setColQ;
   }
 

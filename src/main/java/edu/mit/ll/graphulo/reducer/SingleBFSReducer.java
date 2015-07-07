@@ -15,7 +15,7 @@ import java.util.Map;
  * Row "v1|v2" ==> "v2".
  * Stores a set of the "in-node" part of rows reached in one step of BFS on a single-table schema.
  */
-public class SingleBFSReducer implements Reducer<HashSet<String>> {
+public class SingleBFSReducer extends ReducerSerializable<HashSet<String>> {
   private static final Logger log = LogManager.getLogger(SingleBFSReducer.class);
 
   public static final String EDGE_SEP = "edgeSep";
@@ -102,12 +102,12 @@ public class SingleBFSReducer implements Reducer<HashSet<String>> {
   }
 
   @Override
-  public boolean hasTop() {
+  public boolean hasTopForClient() {
     return !setNodesReached.isEmpty();
   }
 
   @Override
-  public HashSet<String> getForClient() {
+  public HashSet<String> getSerializableForClient() {
     return setNodesReached;
   }
 

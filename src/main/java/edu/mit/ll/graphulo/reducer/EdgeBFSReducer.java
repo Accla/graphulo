@@ -16,7 +16,7 @@ import java.util.Map;
  * Stores a set of the columns reached in one step of BFS on the incidence matrix.
  * Pass as an option a D4M string of all acceptable prefixes, e.g., "inA|,inB|,".
  */
-public class EdgeBFSReducer implements Reducer<HashSet<String>> {
+public class EdgeBFSReducer extends ReducerSerializable<HashSet<String>> {
   private static final Logger log = LogManager.getLogger(EdgeBFSReducer.class);
 
   public static final String IN_COLUMN_PREFIX = "inColumnPrefixes";
@@ -80,12 +80,12 @@ public class EdgeBFSReducer implements Reducer<HashSet<String>> {
   }
 
   @Override
-  public boolean hasTop() {
+  public boolean hasTopForClient() {
     return !setNodesReached.isEmpty();
   }
 
   @Override
-  public HashSet<String> getForClient() {
+  public HashSet<String> getSerializableForClient() {
     return setNodesReached;
   }
 }

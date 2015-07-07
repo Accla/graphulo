@@ -47,7 +47,7 @@ public class TEST_CONFIG {
         AccumuloTester = new RealAccumuloTester("instance-1.7.0", "localhost:2181", 5000, "root", new PasswordToken("secret"));
         break;
       case "txe1":
-        AccumuloTester = new RealAccumuloTester("classdb51", "classdb51.cloud.llgrid.txe1.mit.edu:2181", 5000, "root", new PasswordToken("secret"));
+        AccumuloTester = new RealAccumuloTester("classdb51", "classdb51.cloud.llgrid.txe1.mit.edu:2181", 5000, "AccumuloUser", new PasswordToken("secret"));
         break;
       case "mini":
         AccumuloTester = new MiniAccumuloTester(1);

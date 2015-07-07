@@ -36,34 +36,34 @@ public class MathTwoScalar extends SimpleTwoScalar {
 
   /** For use as an ApplyOp.
    * Create an IteratorSetting that performs a ScalarOp on every Value it sees, parsing Values as Doubles. */
-  public static IteratorSetting applyOpDouble(int priority, boolean onRight, ScalarOp op, double scalar) {
+  public static IteratorSetting applyOpDouble(int priority, boolean constantOnRight, ScalarOp op, double scalar) {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
     itset.addOption(ApplyIterator.APPLYOP, MathTwoScalar.class.getName());
     for (Map.Entry<String, String> entry : optionMap(op, ScalarType.DOUBLE).entrySet())
       itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + entry.getKey(), entry.getValue());
-    itset = SimpleTwoScalar.addOptionsToIteratorSetting(itset, onRight, new Value(Double.toString(scalar).getBytes()));
+    itset = SimpleTwoScalar.addOptionsToIteratorSetting(itset, constantOnRight, new Value(Double.toString(scalar).getBytes()));
     return itset;
   }
 
   /** For use as an ApplyOp.
    * Create an IteratorSetting that performs a ScalarOp on every Value it sees, parsing Values as Longs. */
-  public static IteratorSetting applyOpLong(int priority, boolean onRight, ScalarOp op, long scalar) {
+  public static IteratorSetting applyOpLong(int priority, boolean constantOnRight, ScalarOp op, long scalar) {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
     itset.addOption(ApplyIterator.APPLYOP, MathTwoScalar.class.getName());
     for (Map.Entry<String, String> entry : optionMap(op, ScalarType.LONG).entrySet())
       itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + entry.getKey(), entry.getValue());
-    itset = SimpleTwoScalar.addOptionsToIteratorSetting(itset, onRight, new Value(Long.toString(scalar).getBytes()));
+    itset = SimpleTwoScalar.addOptionsToIteratorSetting(itset, constantOnRight, new Value(Long.toString(scalar).getBytes()));
     return itset;
   }
 
   /** For use as an ApplyOp.
    * Create an IteratorSetting that performs a ScalarOp on every Value it sees, parsing Values as BigDecimal objects. */
-  public static IteratorSetting applyOpBigDecimal(int priority, boolean onRight, ScalarOp op, BigDecimal scalar) {
+  public static IteratorSetting applyOpBigDecimal(int priority, boolean constantOnRight, ScalarOp op, BigDecimal scalar) {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
     itset.addOption(ApplyIterator.APPLYOP, MathTwoScalar.class.getName());
     for (Map.Entry<String, String> entry : optionMap(op, ScalarType.BIGDECIMAL).entrySet())
       itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + entry.getKey(), entry.getValue());
-    itset = SimpleTwoScalar.addOptionsToIteratorSetting(itset, onRight, new Value(scalar.toString().getBytes())); // byte encoding UTF-8?
+    itset = SimpleTwoScalar.addOptionsToIteratorSetting(itset, constantOnRight, new Value(scalar.toString().getBytes())); // byte encoding UTF-8?
     return itset;
   }
 

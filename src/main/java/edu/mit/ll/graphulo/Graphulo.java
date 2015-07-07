@@ -50,7 +50,6 @@ import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.ValueFormatException;
 import org.apache.accumulo.core.iterators.user.ColumnSliceFilter;
-import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
@@ -78,8 +77,11 @@ public class Graphulo {
   public static final IteratorSetting DEFAULT_PLUS_ITERATOR;
 
   static {
-    IteratorSetting sumSetting = new IteratorSetting(6, SummingCombiner.class);
-    LongCombiner.setEncodingType(sumSetting, LongCombiner.Type.STRING);
+//    IteratorSetting sumSetting = new IteratorSetting(6, SummingCombiner.class);
+//    LongCombiner.setEncodingType(sumSetting, LongCombiner.Type.STRING);
+//    Combiner.setCombineAllColumns(sumSetting, true);
+    IteratorSetting sumSetting = new IteratorSetting(6, MathTwoScalarOp.class);
+    sumSetting.addOptions(MathTwoScalarOp.optionMapBigDecimal(MathTwoScalarOp.ScalarOp.PLUS));
     Combiner.setCombineAllColumns(sumSetting, true);
     DEFAULT_PLUS_ITERATOR = sumSetting;
   }
@@ -2049,7 +2051,9 @@ public class Graphulo {
 
       // non-trivial case: k is 3 or more.
 //      String Wtmp, WTtmp, Htmp, HTtmp;
-//      String tmpBaseName = Aorig+"_NMF_";
+    String WHtmp;
+    String tmpBaseName = Aorig+"_NMF_";
+    WHtmp = tmpBaseName+"WH";
 //      Atmp = tmpBaseName+ "tmpA";
 //      ATtmp = tmpBaseName+"tmpAT";
 //      Wtmp = tmpBaseName+ "tmpW";
@@ -2084,7 +2088,7 @@ public class Graphulo {
       nmfStep(Wfinal, Aorig, Hfinal, HTfinal);
       nmfStep(HTfinal, ATorig, WTfinal, Wfinal);
 
-      newerr = nmfFrobeniusNorm(Aorig, WTfinal, Hfinal);
+      newerr = nmfDiffFrobeniusNorm(Aorig, WTfinal, Hfinal, WHtmp);
 
 //        tops.delete(Atmp);
 //        tops.delete(A2tmp);
@@ -2103,8 +2107,15 @@ public class Graphulo {
 //    }
   }
 
-  private double nmfFrobeniusNorm(String Aorig, String WTfinal, String Hfinal) {
-    // todo
+
+  private double nmfDiffFrobeniusNorm(String Aorig, String WTfinal, String Hfinal, String WHtmp) {
+    // todo - assume WHtmp does not exist
+
+    // Step 1: W*H => WHtmp
+//    TableMult(WTfinal, Hfinal, WHtmp, null, -1,
+//        MathTwoScalarOp.class, MathTwoScalarOp.optionMapDouble(MathTwoScalarOp.ScalarOp.TIMES),
+//        )
+
     return 0;
   }
 

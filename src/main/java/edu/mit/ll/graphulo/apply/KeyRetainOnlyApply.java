@@ -73,7 +73,7 @@ public class KeyRetainOnlyApply implements ApplyOp {
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+  public void seekApplyOp(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     if (pk == null) {
       if (range.isInfiniteStartKey())
         seekStartKey = new Key();

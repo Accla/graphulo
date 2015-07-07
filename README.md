@@ -160,18 +160,46 @@ Connector connector = instance.getConnector(USERNAME, PASSWORD_TOKEN);
 Graphulo graphulo = new Graphulo(connector, PASSWORD_TOKEN);
 
 // call Graphulo functions...
-graphulo.AdjBFS("Atable", "v0,", 3, "Rtable", null, "ADegtable", "deg", false, 5, 15);
+graphulo.AdjBFS("Atable", "v0,", 3, "Rtable", null, null, -1, 
+                "ADegtable", "deg", false, 5, 15, null, false);
 ```
 
 See Examples above for more elaborate client code usage.
 
 #### Creating custom addition and multiplication operators
+
+##### Simple custom operators
+If your operator meets the below requirements, you're in luck!  
+You can implement your operation by creating a Java subclass of [SimpleTwoScalarOp][].
+Define the method `Value multiply(Value Aval, Value Bval)`,
+and you are set to use your operator in the context of a matrix multiply, 
+matrix element-wise multiply or sum, Combiner sum, 
+or even unary function application if you fix one of the operands.
+
+1. Operator logic only acts on Values; no knowledge of the operands' Keys necessary.
+2. Operator returns exactly zero or one Value result. 
+The multiply method should return `null` if zero results are desired (e.g., filter operations).
+
+Even in this simpler model, some advanced logic is possible.
+Override the `init` method to take options provided from the client at runtime 
+through [IteratorSetting][] options that configure your operator, or setup initial state.
+
+Very simple example of a SimpleTwoScalarOp: 
+[ConstantTwoScalarOp][] ignores its operand Values and always returns a constant.
+The constant is "1" by default and can be changed through IteratorSetting options.
+
+Very useful SimpleTwoScalarOp: [MathTwoScalarOp][].
+It can do standard arithmetic +, *, -, /, min, max, and power on its two operands.
+
+
+##### Advanced custom operators
 To create a custom addition operator, 
 create a Java class implementing [SortedKeyValueIterator][] with the addition logic.
+You will probably want to subclass [Combiner][].
 Then pass an [IteratorSetting][] to the Graphulo functions,
 which will apply the iterator to result tables.
 Addition is *lazy*, in the sense that the addition runs when a table is scanned or compacted,
- which may be significantly after an operation finishes.
+ which may occur significantly after an operation finishes.
 Do not remove addition iterators from a table until every entry in the table
 is summed together, which one can guarantee by running a full major compaction.
 
@@ -184,22 +212,16 @@ See the interface [EWiseOp][].
 3. Unary function application.  See the interface [ApplyOp][].  
 Alternatively, create a [SortedKeyValueIterator][] directly.
 
-For simple multiplication, you can extend the [SimpleTwoScalarOp][] class instead of implementing the full interface.
-For simple element-wise multiplication, you can extend the [SimpleEWiseX][] class instead of implementing the full interface.
-See the classes in the `edu.mit.ll.graphulo.rowmult` 
-and `edu.mit.ll.graphulo.ewise` packages for examples.
+Some use cases for implementing advanced operator logic are if your logic
 
-Non-simple multiplication that should implement [MultiplyOp][] directly 
-(with siimilar reasoning for [EWiseOp][] and [ApplyOp][]) are multiplication logic that
-
-1. manipulates returned Keys in non-standard ways; 
-2. takes init options (passed from the client through `multiplyOp.opt.OPTION_NAME` in an [IteratorSetting][])
-(actually, you can get away with overriding `init` in this case);
-3. returns more than one entry per multiplication;
-4. performs some setup or other function based on holding one \[`ONEROWA` or `ONEROWB` (default)\] 
-or both \[`TWOROW`\] entire rows in memory
+1. manipulates returned Keys in non-standard ways 
+(i.e., changes the row and column qualifier differently than matrix multiply or element-wise multiply would); 
+3. returns more than one entry as the result of a single operator call;
+4. performs some setup or other function based on more stateful knowledge, 
+such as what the contents of one row of the input tables \[`ONEROWA` or `ONEROWB` (default)\] 
+or both rows of the input tables \[`TWOROW`\] held in memory during matrix multiplication
 (implement [RowStartMultiplyOp][] in this case); or 
-5. (advanced) performs a non-standard pattern of multiplying two matching rows, 
+5. (very advanced) performs a non-standard pattern of multiplying two matching rows, 
 different from the Cartesian product of the two rows' entries
 (implement [RowMultiplyOp][] in this case). 
 
@@ -210,7 +232,9 @@ different from the Cartesian product of the two rows' entries
 [ApplyOp]: src/main/java/edu/mit/ll/graphulo/apply/ApplyOp.java
 [RowStartMultiplyOp]: src/main/java/edu/mit/ll/graphulo/mult/RowStartMultiplyOp.java
 [SimpleTwoScalarOp]: src/main/java/edu/mit/ll/graphulo/simplemult/SimpleTwoScalarOp.java
+[ConstantTwoScalarOp]: src/main/java/edu/mit/ll/graphulo/simplemult/ConstantTwoScalarOp.java
 [RowMultiplyOp]: src/main/java/edu/mit/ll/graphulo/mult/RowMultiplyOp.java
+[Combiner]: https://accumulo.apache.org/1.7/apidocs/index.html?org/apache/accumulo/core/iterators/Combiner.html
 
 ### How to use Graphulo in Matlab client code with D4M
 The following code snippet is a good starting point for using Graphulo,

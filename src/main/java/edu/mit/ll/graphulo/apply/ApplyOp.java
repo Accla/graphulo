@@ -42,5 +42,5 @@ public interface ApplyOp {
 
   /** Passes the seek range to the applyOp, in case knowing the seek range information is useful.
    * This will be called before any {@link #apply}. */
-  void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException;
+  void seekApplyOp(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException;
 }

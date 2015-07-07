@@ -102,7 +102,7 @@ public class CartesianRowMultiply implements RowMultiplyOp {
     }
     if (multiplyOp == null) {
       multiplyOp = new MathTwoScalarOp(); // default
-      multiplyOpOptions.putAll(MathTwoScalarOp.optionMapBigDecimal(MathTwoScalarOp.ScalarOp.TIMES));
+      multiplyOpOptions.putAll(MathTwoScalarOp.optionMap(MathTwoScalarOp.ScalarOp.TIMES, MathTwoScalarOp.ScalarType.BIGDECIMAL));
     }
     if (alsoDoAA && alsoDoBB && rowmode != ROWMODE.TWOROW) {
       log.warn("Because alsoDoAA and alsoDoBB are true, forcing rowmode to " + ROWMODE.TWOROW);

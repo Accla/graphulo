@@ -56,8 +56,7 @@ public abstract class SimpleTwoScalarOp extends Combiner implements ApplyOp, Mul
   /** For use in one-element applies. Subclasses must complete this method,
    * because we don't know the name of the concrete class, because this method is static.
    * Defaults to setting constant on the left if reverse is false. */
-  protected static IteratorSetting addOptionsToIteratorSetting(
-      IteratorSetting itset, boolean reverse, Value fixedValue) {
+  protected static IteratorSetting addOptionsToIteratorSetting(IteratorSetting itset, boolean reverse, Value fixedValue) {
 //    IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
 //    itset.addOption(ApplyIterator.APPLYOP, this.getClass().getName());
     itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + FIXED_VALUE, new String(fixedValue.get()));
@@ -82,10 +81,9 @@ public abstract class SimpleTwoScalarOp extends Combiner implements ApplyOp, Mul
         case REVERSE:
           reverse = Boolean.parseBoolean(v);
           break;
-//        case ALL_OPTION:
-//        case COLUMNS_OPTION:
-//          combinerOpts.put(k, v);
-//          break;
+        case ALL_OPTION:
+        case COLUMNS_OPTION:
+          break;
         default:
           log.warn("Unrecognized option: "+k+" -> "+v);
           break;

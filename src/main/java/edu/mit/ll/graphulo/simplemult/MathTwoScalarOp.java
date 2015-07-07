@@ -3,6 +3,7 @@ package edu.mit.ll.graphulo.simplemult;
 import edu.mit.ll.graphulo.apply.ApplyIterator;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -10,6 +11,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -33,64 +35,55 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
 
   /** For use as an ApplyOp.
    * Create an IteratorSetting that performs a ScalarOp on every Value it sees, parsing Values as Doubles. */
-  public static IteratorSetting iteratorSettingDouble(int priority, boolean onRight, ScalarOp op, double scalar) {
+  public static IteratorSetting applyOpDouble(int priority, boolean onRight, ScalarOp op, double scalar) {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
     itset.addOption(ApplyIterator.APPLYOP, MathTwoScalarOp.class.getName());
-    for (Map.Entry<String, String> entry : optionMapDouble(op).entrySet())
+    for (Map.Entry<String, String> entry : optionMap(op, ScalarType.DOUBLE).entrySet())
       itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + entry.getKey(), entry.getValue());
     itset = SimpleTwoScalarOp.addOptionsToIteratorSetting(itset, onRight, new Value(Double.toString(scalar).getBytes()));
     return itset;
   }
 
-  /** For use as a MultiplyOp or EWiseOp. */
-  public static Map<String,String> optionMapDouble(ScalarOp op) {
-    return optionMap(op, ScalarType.DOUBLE);
-  }
-
   /** For use as an ApplyOp.
    * Create an IteratorSetting that performs a ScalarOp on every Value it sees, parsing Values as Longs. */
-  public static IteratorSetting iteratorSettingLong(int priority, boolean onRight, ScalarOp op, long scalar) {
+  public static IteratorSetting applyOpLong(int priority, boolean onRight, ScalarOp op, long scalar) {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
     itset.addOption(ApplyIterator.APPLYOP, MathTwoScalarOp.class.getName());
-    for (Map.Entry<String, String> entry : optionMapLong(op).entrySet())
+    for (Map.Entry<String, String> entry : optionMap(op, ScalarType.LONG).entrySet())
       itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + entry.getKey(), entry.getValue());
     itset = SimpleTwoScalarOp.addOptionsToIteratorSetting(itset, onRight, new Value(Long.toString(scalar).getBytes()));
     return itset;
   }
 
-  /** For use as a MultiplyOp or EWiseOp. */
-  public static Map<String,String> optionMapBigDecimal(ScalarOp op) {
-    return optionMap(op, ScalarType.BIGDECIMAL);
-  }
-
   /** For use as an ApplyOp.
    * Create an IteratorSetting that performs a ScalarOp on every Value it sees, parsing Values as BigDecimal objects. */
-  public static IteratorSetting iteratorSettingBigDecimal(int priority, boolean onRight, ScalarOp op, BigDecimal scalar) {
+  public static IteratorSetting applyOpBigDecimal(int priority, boolean onRight, ScalarOp op, BigDecimal scalar) {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
     itset.addOption(ApplyIterator.APPLYOP, MathTwoScalarOp.class.getName());
-    for (Map.Entry<String, String> entry : optionMapBigDecimal(op).entrySet())
+    for (Map.Entry<String, String> entry : optionMap(op, ScalarType.BIGDECIMAL).entrySet())
       itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + entry.getKey(), entry.getValue());
     itset = SimpleTwoScalarOp.addOptionsToIteratorSetting(itset, onRight, new Value(scalar.toString().getBytes())); // byte encoding UTF-8?
     return itset;
   }
 
-  /** For use as a MultiplyOp or EWiseOp. */
-  public static Map<String,String> optionMapLong(ScalarOp op) {
-    return optionMap(op, ScalarType.LONG);
+  /** For use as a Combiner. Pass columns as null or empty to combine on all columns. */
+  public static IteratorSetting combinerSetting(int priority, List<IteratorSetting.Column> columns, ScalarOp op, ScalarType type) {
+    IteratorSetting itset = new IteratorSetting(priority, MathTwoScalarOp.class);
+    if (columns == null || columns.isEmpty())
+      Combiner.setCombineAllColumns(itset, true);
+    else
+      Combiner.setColumns(itset, columns);
+    itset.addOptions(optionMap(op, type));
+    return itset;
   }
 
-  private static Map<String,String> optionMap(ScalarOp op, ScalarType type) {
+  public static Map<String,String> optionMap(ScalarOp op, ScalarType type) {
     Map<String,String> map = new HashMap<>();
     map.put(SCALAR_OP, op.name());
     map.put(SCALAR_TYPE, type.name());
     return map;
   }
-
-  // I want developers to get used to writing out the usual signatures.
-//  /** Shortcut method for common Abs0 op */
-//  public static IteratorSetting abs0Apply(int priority) {
-//    return iteratorSettingLong(priority, 1, ScalarOp.SET_LEFT);
-//  }
+  
 
   private ScalarType scalarType = ScalarType.BIGDECIMAL; // default
   private ScalarOp scalarOp = ScalarOp.TIMES;  // default

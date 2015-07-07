@@ -81,7 +81,7 @@ public class Graphulo {
 //    LongCombiner.setEncodingType(sumSetting, LongCombiner.Type.STRING);
 //    Combiner.setCombineAllColumns(sumSetting, true);
     IteratorSetting sumSetting = new IteratorSetting(6, MathTwoScalarOp.class);
-    sumSetting.addOptions(MathTwoScalarOp.optionMapBigDecimal(MathTwoScalarOp.ScalarOp.PLUS));
+    sumSetting.addOptions(MathTwoScalarOp.optionMap(MathTwoScalarOp.ScalarOp.PLUS, MathTwoScalarOp.ScalarType.BIGDECIMAL));
     Combiner.setCombineAllColumns(sumSetting, true);
     DEFAULT_PLUS_ITERATOR = sumSetting;
   }
@@ -140,7 +140,7 @@ public class Graphulo {
                          String colFilterAT, String colFilterB,
                          int numEntriesCheckpoint, boolean trace) {
     if (multOp.equals(MathTwoScalarOp.class) && multOpOptions == null)
-      multOpOptions = MathTwoScalarOp.optionMapBigDecimal(MathTwoScalarOp.ScalarOp.PLUS); // + by default for SpEWiseSum
+      multOpOptions = MathTwoScalarOp.optionMap(MathTwoScalarOp.ScalarOp.PLUS, MathTwoScalarOp.ScalarType.BIGDECIMAL); // + by default for SpEWiseSum
     return TwoTableEWISE(Atable, Btable, Ctable, CTtable, BScanIteratorPriority,
         multOp, multOpOptions, plusOp, rowFilter, colFilterAT, colFilterB,
         true, true, Collections.<IteratorSetting>emptyList(),
@@ -1873,7 +1873,7 @@ public class Graphulo {
     }
 
     long Jnnz = TableMult(Aorig, Aorig, Rfinal, null, -1,
-        MathTwoScalarOp.class, MathTwoScalarOp.optionMapLong(MathTwoScalarOp.ScalarOp.TIMES),
+        MathTwoScalarOp.class, MathTwoScalarOp.optionMap(MathTwoScalarOp.ScalarOp.TIMES, MathTwoScalarOp.ScalarType.LONG),
         RPlusIteratorSetting, null, null, null, true, true,
         Collections.singletonList(new IteratorSetting(1, TriangularFilter.class,
             Collections.singletonMap(TriangularFilter.TRIANGULAR_TYPE, TriangularFilter.TriangularType.Lower.name()))),
@@ -2112,9 +2112,12 @@ public class Graphulo {
     // todo - assume WHtmp does not exist
 
     // Step 1: W*H => WHtmp
-//    TableMult(WTfinal, Hfinal, WHtmp, null, -1,
-//        MathTwoScalarOp.class, MathTwoScalarOp.optionMapDouble(MathTwoScalarOp.ScalarOp.TIMES),
-//        )
+    TableMult(WTfinal, Hfinal, WHtmp, null, -1,
+        MathTwoScalarOp.class, MathTwoScalarOp.optionMap(MathTwoScalarOp.ScalarOp.TIMES, MathTwoScalarOp.ScalarType.DOUBLE),
+        MathTwoScalarOp.combinerSetting(DEFAULT_PLUS_ITERATOR.getPriority(), null, MathTwoScalarOp.ScalarOp.PLUS, MathTwoScalarOp.ScalarType.DOUBLE),
+        null, null, null, false, false, -1, false);
+
+    // Step 2: A * WH => ^2 => ((+all)) => Client w/ Reducer => Sq.Root. => newerr return
 
     return 0;
   }

@@ -121,7 +121,7 @@ public class TableMultExample extends AccumuloTestBase {
   0)  Increase the SCALE parameter to 12, 14 or 16 to run on larger graphs.
 
   1)  Replace: SummingCombiner.class ==> MaxCombiner.class
-      and Replace: multOpOptions = null; ==> multOpOptions = MathTwoScalarOp.optionMapLong(MathTwoScalarOp.ScalarOp.MIN);
+      and Replace: multOpOptions = null; ==> multOpOptions = MathTwoScalarOp.optionMap(MathTwoScalarOp.ScalarOp.MIN, MathTwoScalarOp.ScalarType.LONG);
       to use max.min algebra.  We assume all nonzero values are integers greater than 0.
       This maintains 0 as the additive identity since for any a, max(a,0)=a.
       This maintains 0 as the multiplicative annihilator since for any a, min(a,0)=0.

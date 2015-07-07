@@ -10,6 +10,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -202,5 +203,32 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
       default: throw new AssertionError();
     }
     return vnew;
+  }
+
+  @Override
+  public MathTwoScalarOp deepCopy(IteratorEnvironment env) {
+    MathTwoScalarOp copy = (MathTwoScalarOp) super.deepCopy(env);
+    copy.scalarOp = scalarOp;
+    copy.scalarType = scalarType;
+    return copy;
+  }
+
+  @Override
+  public IteratorOptions describeOptions() {
+    IteratorOptions io = super.describeOptions();
+    io.setName("MathTwoScalar");
+    io.setDescription("A Combiner that decodes and performs a math operation on every pair of entries matching row through column visibility");
+    io.addNamedOption(SCALAR_OP, "Math operation; one of: " + Arrays.toString(ScalarOp.values()));
+    io.addNamedOption(SCALAR_TYPE, "Decode/encode values as one of: "+Arrays.toString(ScalarType.values()));
+    return io;
+  }
+
+  @Override
+  public boolean validateOptions(Map<String, String> options) {
+    if (options.containsKey(SCALAR_TYPE))
+      ScalarType.valueOf(options.get(SCALAR_TYPE));
+    if (options.containsKey(SCALAR_OP))
+      ScalarOp.valueOf(options.get(SCALAR_OP));
+    return super.validateOptions(options);
   }
 }

@@ -211,7 +211,23 @@ public abstract class SimpleTwoScalarOp extends Combiner implements ApplyOp, Mul
     return super.getSource();
   }
 
+  @Override
+  public IteratorOptions describeOptions() {
+    IteratorOptions io = super.describeOptions();
+    io.setName("SimpleTwoScalar");
+    io.setDescription("A Combiner that operates on every pair of entries matching row through column visibility");
+    return io;
+  }
 
+  @SuppressWarnings("ResultOfMethodCallIgnored")
+  @Override
+  public boolean validateOptions(Map<String, String> options) {
+    if (options.containsKey(REVERSE))
+      Boolean.parseBoolean(options.get(REVERSE));
+    if (options.containsKey(FIXED_VALUE))
+      log.warn("SimpleTwoScalarOp ignores fixed values when used as a Combiner");
+    return super.validateOptions(options);
+  }
 
   private Value reducerV;
 

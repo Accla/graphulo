@@ -44,8 +44,8 @@ import java.util.Map.Entry;
  *   on the left or right of the multiplication inside iterator options.
  *   Defaults to the left side of the multiplication; pass {@value #REVERSE} if the right is desired.
  */
-public abstract class SimpleTwoScalarOp extends Combiner implements ApplyOp, MultiplyOp, EWiseOp, Reducer {
-  private static final Logger log = LogManager.getLogger(SimpleTwoScalarOp.class);
+public abstract class SimpleTwoScalar extends Combiner implements ApplyOp, MultiplyOp, EWiseOp, Reducer {
+  private static final Logger log = LogManager.getLogger(SimpleTwoScalar.class);
 
   //////////////////////////////////////////////////////////////////////////////////
   /** Implements simple multiply logic. Returning null means no entry is emitted. */
@@ -161,8 +161,8 @@ public abstract class SimpleTwoScalarOp extends Combiner implements ApplyOp, Mul
   }
 
   @Override
-  public SimpleTwoScalarOp deepCopy(IteratorEnvironment env) {
-    SimpleTwoScalarOp copy = (SimpleTwoScalarOp) super.deepCopy(env);
+  public SimpleTwoScalar deepCopy(IteratorEnvironment env) {
+    SimpleTwoScalar copy = (SimpleTwoScalar) super.deepCopy(env);
     copy.fixedValue = new Value(fixedValue);
     copy.reverse = reverse;
     return copy;
@@ -225,7 +225,7 @@ public abstract class SimpleTwoScalarOp extends Combiner implements ApplyOp, Mul
     if (options.containsKey(REVERSE))
       Boolean.parseBoolean(options.get(REVERSE));
     if (options.containsKey(FIXED_VALUE))
-      log.warn("SimpleTwoScalarOp ignores fixed values when used as a Combiner");
+      log.warn("SimpleTwoScalar ignores fixed values when used as a Combiner");
     return super.validateOptions(options);
   }
 

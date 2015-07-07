@@ -13,13 +13,13 @@ import java.util.Map;
 /**
  * Return a constant regardless of input values.  Default "1".
  */
-public class ConstantTwoScalarOp extends SimpleTwoScalarOp {
+public class ConstantTwoScalar extends SimpleTwoScalar {
   public static final String CONSTANT = "constant";
 
   /** For use as an ApplyOp. */
   public static IteratorSetting iteratorSetting(int priority, Value constant) {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
-    itset.addOption(ApplyIterator.APPLYOP, ConstantTwoScalarOp.class.getName());
+    itset.addOption(ApplyIterator.APPLYOP, ConstantTwoScalar.class.getName());
     for (Map.Entry<String, String> entry : optionMap(constant).entrySet())
       itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + entry.getKey(), entry.getValue());
     return itset;
@@ -52,5 +52,28 @@ public class ConstantTwoScalarOp extends SimpleTwoScalarOp {
   @Override
   public Value multiply(Value Aval, Value Bval) {
     return constant;
+  }
+
+  @Override
+  public ConstantTwoScalar deepCopy(IteratorEnvironment env) {
+    ConstantTwoScalar copy = (ConstantTwoScalar) super.deepCopy(env);
+    copy.constant = constant;
+    return copy;
+  }
+
+  @Override
+  public IteratorOptions describeOptions() {
+    IteratorOptions io = super.describeOptions();
+    io.setName("ConstantTwoScalar");
+    io.setDescription("A Combiner that replaces all entries that match on row through column visibility with a constant Value");
+    io.addNamedOption(CONSTANT, "The constant Value");
+    return io;
+  }
+
+  @Override
+  public boolean validateOptions(Map<String, String> options) {
+    if (options.containsKey(CONSTANT))
+      new Value(options.get(CONSTANT).getBytes());
+    return super.validateOptions(options);
   }
 }

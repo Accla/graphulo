@@ -5,7 +5,7 @@ import edu.mit.ll.graphulo.DynamicIteratorSetting;
 import edu.mit.ll.graphulo.ewise.EWiseOp;
 import edu.mit.ll.graphulo.rowmult.CartesianRowMultiply;
 import edu.mit.ll.graphulo.rowmult.RowMultiplyOp;
-import edu.mit.ll.graphulo.simplemult.ConstantTwoScalarOp;
+import edu.mit.ll.graphulo.simplemult.ConstantTwoScalar;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.PeekingIterator2;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -179,7 +179,7 @@ public class TwoTableIterator implements SaveStateIterator {
       case EWISE:
         if (eWiseOp == null)
 //          throw new IllegalArgumentException("EWISE mode: Must specify rowMultiplyOp");
-          eWiseOp = new ConstantTwoScalarOp(); // default: 1 on collision
+          eWiseOp = new ConstantTwoScalar(); // default: 1 on collision
         break;
       case NONE:
         break;

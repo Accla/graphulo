@@ -16,8 +16,8 @@ import edu.mit.ll.graphulo.rowmult.EdgeBFSMultiply;
 import edu.mit.ll.graphulo.rowmult.LineRowMultiply;
 import edu.mit.ll.graphulo.rowmult.MultiplyOp;
 import edu.mit.ll.graphulo.rowmult.SelectorRowMultiply;
-import edu.mit.ll.graphulo.simplemult.ConstantTwoScalarOp;
-import edu.mit.ll.graphulo.simplemult.MathTwoScalarOp;
+import edu.mit.ll.graphulo.simplemult.ConstantTwoScalar;
+import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import edu.mit.ll.graphulo.skvi.CountAllIterator;
 import edu.mit.ll.graphulo.skvi.MinMaxValueFilter;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
@@ -80,8 +80,8 @@ public class Graphulo {
 //    IteratorSetting sumSetting = new IteratorSetting(6, SummingCombiner.class);
 //    LongCombiner.setEncodingType(sumSetting, LongCombiner.Type.STRING);
 //    Combiner.setCombineAllColumns(sumSetting, true);
-    IteratorSetting sumSetting = new IteratorSetting(6, MathTwoScalarOp.class);
-    sumSetting.addOptions(MathTwoScalarOp.optionMap(MathTwoScalarOp.ScalarOp.PLUS, MathTwoScalarOp.ScalarType.BIGDECIMAL));
+    IteratorSetting sumSetting = new IteratorSetting(6, MathTwoScalar.class);
+    sumSetting.addOptions(MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.BIGDECIMAL));
     Combiner.setCombineAllColumns(sumSetting, true);
     DEFAULT_PLUS_ITERATOR = sumSetting;
   }
@@ -139,8 +139,8 @@ public class Graphulo {
                          Collection<Range> rowFilter,
                          String colFilterAT, String colFilterB,
                          int numEntriesCheckpoint, boolean trace) {
-    if (multOp.equals(MathTwoScalarOp.class) && multOpOptions == null)
-      multOpOptions = MathTwoScalarOp.optionMap(MathTwoScalarOp.ScalarOp.PLUS, MathTwoScalarOp.ScalarType.BIGDECIMAL); // + by default for SpEWiseSum
+    if (multOp.equals(MathTwoScalar.class) && multOpOptions == null)
+      multOpOptions = MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.BIGDECIMAL); // + by default for SpEWiseSum
     return TwoTableEWISE(Atable, Btable, Ctable, CTtable, BScanIteratorPriority,
         multOp, multOpOptions, plusOp, rowFilter, colFilterAT, colFilterB,
         true, true, Collections.<IteratorSetting>emptyList(),
@@ -1650,14 +1650,14 @@ public class Graphulo {
       do {
         nnzBefore = nnzAfter;
 
-        TableMult(Atmp, Atmp, A2tmp, null, -1, ConstantTwoScalarOp.class, null, DEFAULT_PLUS_ITERATOR,
+        TableMult(Atmp, Atmp, A2tmp, null, -1, ConstantTwoScalar.class, null, DEFAULT_PLUS_ITERATOR,
             null, null, null, false, false,
             Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
             Collections.singletonList(kTrussFilter), -1, trace
         );
         // A2tmp has a SummingCombiner
 
-        nnzAfter = SpEWiseX(A2tmp, Atmp, AtmpAlt, null, -1, ConstantTwoScalarOp.class, null, null,
+        nnzAfter = SpEWiseX(A2tmp, Atmp, AtmpAlt, null, -1, ConstantTwoScalar.class, null, null,
             null, null, null, -1, trace);
 
         tops.delete(Atmp);
@@ -1773,7 +1773,7 @@ public class Graphulo {
         minMaxSetting.addOption(MinMaxValueFilter.MINVALUE, "2");
         iteratorsBeforeA.add(minMaxSetting);
       }
-      iteratorsBeforeA.add(ConstantTwoScalarOp.iteratorSetting(1, new Value("1".getBytes())));
+      iteratorsBeforeA.add(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes())));
       iteratorsBeforeA.add(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW));
       iteratorsBeforeA.add(DEFAULT_PLUS_ITERATOR);
       iteratorsBeforeA.add(kTrussFilter);
@@ -1781,11 +1781,11 @@ public class Graphulo {
       do {
         nnzBefore = nnzAfter;
 
-        TableMult(Etmp, Etmp, Atmp, null, -1, ConstantTwoScalarOp.class, null, DEFAULT_PLUS_ITERATOR, null, null, null, false, false, null, null, Collections.singletonList(noDiagFilter), -1, trace
+        TableMult(Etmp, Etmp, Atmp, null, -1, ConstantTwoScalar.class, null, DEFAULT_PLUS_ITERATOR, null, null, null, false, false, null, null, Collections.singletonList(noDiagFilter), -1, trace
         );
         // Atmp has a SummingCombiner
 
-        TableMult(ETtmp, Atmp, Rtmp, null, -1, ConstantTwoScalarOp.class, null, DEFAULT_PLUS_ITERATOR, null, null, null, false, false, null, null, null, -1, trace
+        TableMult(ETtmp, Atmp, Rtmp, null, -1, ConstantTwoScalar.class, null, DEFAULT_PLUS_ITERATOR, null, null, null, false, false, null, null, null, -1, trace
         );
         // Rtmp has a SummingCombiner
         tops.delete(ETtmp);
@@ -1873,7 +1873,7 @@ public class Graphulo {
     }
 
     long Jnnz = TableMult(Aorig, Aorig, Rfinal, null, -1,
-        MathTwoScalarOp.class, MathTwoScalarOp.optionMap(MathTwoScalarOp.ScalarOp.TIMES, MathTwoScalarOp.ScalarType.LONG),
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG),
         RPlusIteratorSetting, null, null, null, true, true,
         Collections.singletonList(new IteratorSetting(1, TriangularFilter.class,
             Collections.singletonMap(TriangularFilter.TRIANGULAR_TYPE, TriangularFilter.TriangularType.Lower.name()))),
@@ -1918,7 +1918,7 @@ public class Graphulo {
     {
       DynamicIteratorSetting dis = new DynamicIteratorSetting();
       if (countColumns)
-          dis.append(ConstantTwoScalarOp.iteratorSetting(1, new Value("1".getBytes()))); // Abs0
+          dis.append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes()))); // Abs0
       dis
         .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))
         .append(DEFAULT_PLUS_ITERATOR)
@@ -1983,7 +1983,7 @@ public class Graphulo {
     bs.addScanIterator(new DynamicIteratorSetting()
         .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))  // strip to row field
         .append(new IteratorSetting(1, VersioningIterator.class))       // only count a row once
-        .append(ConstantTwoScalarOp.iteratorSetting(1, new Value("1".getBytes()))) // Abs0
+        .append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes()))) // Abs0
         .append(KeyRetainOnlyApply.iteratorSetting(1, null))            // strip all fields
         .append(DEFAULT_PLUS_ITERATOR)                                  // Sum
         .toIteratorSetting(10));
@@ -2113,8 +2113,8 @@ public class Graphulo {
 
     // Step 1: W*H => WHtmp
     TableMult(WTfinal, Hfinal, WHtmp, null, -1,
-        MathTwoScalarOp.class, MathTwoScalarOp.optionMap(MathTwoScalarOp.ScalarOp.TIMES, MathTwoScalarOp.ScalarType.DOUBLE),
-        MathTwoScalarOp.combinerSetting(DEFAULT_PLUS_ITERATOR.getPriority(), null, MathTwoScalarOp.ScalarOp.PLUS, MathTwoScalarOp.ScalarType.DOUBLE),
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.DOUBLE),
+        MathTwoScalar.combinerSetting(DEFAULT_PLUS_ITERATOR.getPriority(), null, MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.DOUBLE),
         null, null, null, false, false, -1, false);
 
     // Step 2: A * WH => ^2 => ((+all)) => Client w/ Reducer => Sq.Root. => newerr return

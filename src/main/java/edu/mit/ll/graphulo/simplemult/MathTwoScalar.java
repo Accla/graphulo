@@ -19,8 +19,8 @@ import java.util.Map;
  * Math operations between two scalars.
  * Can be used as an ApplyOp by setting one of the sides to a constant scalar.
  */
-public class MathTwoScalarOp extends SimpleTwoScalarOp {
-  private static final Logger log = LogManager.getLogger(MathTwoScalarOp.class);
+public class MathTwoScalar extends SimpleTwoScalar {
+  private static final Logger log = LogManager.getLogger(MathTwoScalar.class);
 
   public enum ScalarOp {
     PLUS, TIMES, SET_LEFT, MINUS,
@@ -38,10 +38,10 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
    * Create an IteratorSetting that performs a ScalarOp on every Value it sees, parsing Values as Doubles. */
   public static IteratorSetting applyOpDouble(int priority, boolean onRight, ScalarOp op, double scalar) {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
-    itset.addOption(ApplyIterator.APPLYOP, MathTwoScalarOp.class.getName());
+    itset.addOption(ApplyIterator.APPLYOP, MathTwoScalar.class.getName());
     for (Map.Entry<String, String> entry : optionMap(op, ScalarType.DOUBLE).entrySet())
       itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + entry.getKey(), entry.getValue());
-    itset = SimpleTwoScalarOp.addOptionsToIteratorSetting(itset, onRight, new Value(Double.toString(scalar).getBytes()));
+    itset = SimpleTwoScalar.addOptionsToIteratorSetting(itset, onRight, new Value(Double.toString(scalar).getBytes()));
     return itset;
   }
 
@@ -49,10 +49,10 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
    * Create an IteratorSetting that performs a ScalarOp on every Value it sees, parsing Values as Longs. */
   public static IteratorSetting applyOpLong(int priority, boolean onRight, ScalarOp op, long scalar) {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
-    itset.addOption(ApplyIterator.APPLYOP, MathTwoScalarOp.class.getName());
+    itset.addOption(ApplyIterator.APPLYOP, MathTwoScalar.class.getName());
     for (Map.Entry<String, String> entry : optionMap(op, ScalarType.LONG).entrySet())
       itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + entry.getKey(), entry.getValue());
-    itset = SimpleTwoScalarOp.addOptionsToIteratorSetting(itset, onRight, new Value(Long.toString(scalar).getBytes()));
+    itset = SimpleTwoScalar.addOptionsToIteratorSetting(itset, onRight, new Value(Long.toString(scalar).getBytes()));
     return itset;
   }
 
@@ -60,16 +60,16 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
    * Create an IteratorSetting that performs a ScalarOp on every Value it sees, parsing Values as BigDecimal objects. */
   public static IteratorSetting applyOpBigDecimal(int priority, boolean onRight, ScalarOp op, BigDecimal scalar) {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
-    itset.addOption(ApplyIterator.APPLYOP, MathTwoScalarOp.class.getName());
+    itset.addOption(ApplyIterator.APPLYOP, MathTwoScalar.class.getName());
     for (Map.Entry<String, String> entry : optionMap(op, ScalarType.BIGDECIMAL).entrySet())
       itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + entry.getKey(), entry.getValue());
-    itset = SimpleTwoScalarOp.addOptionsToIteratorSetting(itset, onRight, new Value(scalar.toString().getBytes())); // byte encoding UTF-8?
+    itset = SimpleTwoScalar.addOptionsToIteratorSetting(itset, onRight, new Value(scalar.toString().getBytes())); // byte encoding UTF-8?
     return itset;
   }
 
   /** For use as a Combiner. Pass columns as null or empty to combine on all columns. */
   public static IteratorSetting combinerSetting(int priority, List<IteratorSetting.Column> columns, ScalarOp op, ScalarType type) {
-    IteratorSetting itset = new IteratorSetting(priority, MathTwoScalarOp.class);
+    IteratorSetting itset = new IteratorSetting(priority, MathTwoScalar.class);
     if (columns == null || columns.isEmpty())
       Combiner.setCombineAllColumns(itset, true);
     else
@@ -206,8 +206,8 @@ public class MathTwoScalarOp extends SimpleTwoScalarOp {
   }
 
   @Override
-  public MathTwoScalarOp deepCopy(IteratorEnvironment env) {
-    MathTwoScalarOp copy = (MathTwoScalarOp) super.deepCopy(env);
+  public MathTwoScalar deepCopy(IteratorEnvironment env) {
+    MathTwoScalar copy = (MathTwoScalar) super.deepCopy(env);
     copy.scalarOp = scalarOp;
     copy.scalarType = scalarType;
     return copy;

@@ -2,7 +2,7 @@ package edu.mit.ll.graphulo.examples;
 
 import edu.mit.ll.graphulo.Graphulo;
 import edu.mit.ll.graphulo.rowmult.MultiplyOp;
-import edu.mit.ll.graphulo.simplemult.MathTwoScalarOp;
+import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -82,8 +82,8 @@ public class TableMultExample extends AccumuloTestBase {
     String CTtable = null;                // Don't write the table transpose.
     int BScanIteratorPriority = -1;       // Use the default priority for the scan-time table multiplication iterator
     //  multOp must satisfy the requirement that 0 is multiplicative annihilator.
-    Class<? extends MultiplyOp> multOp = MathTwoScalarOp.class; // Multiply operation, generic to many kinds of mathematical operators.
-    Map<String,String> multOpOptions = null; // Null uses the default mode of MathTwoScalarOp is TIMES, which is what we want.
+    Class<? extends MultiplyOp> multOp = MathTwoScalar.class; // Multiply operation, generic to many kinds of mathematical operators.
+    Map<String,String> multOpOptions = null; // Null uses the default mode of MathTwoScalar is TIMES, which is what we want.
     Collection<Range> rowFilter = null;   // No row subsetting; run on whole tables.
     String colFilterAT = null;            // No column subsetting for ATtable; run on the whole table.
     String colFilterB = null;             // No column subsetting for  Btable; run on the whole table.
@@ -121,7 +121,7 @@ public class TableMultExample extends AccumuloTestBase {
   0)  Increase the SCALE parameter to 12, 14 or 16 to run on larger graphs.
 
   1)  Replace: SummingCombiner.class ==> MaxCombiner.class
-      and Replace: multOpOptions = null; ==> multOpOptions = MathTwoScalarOp.optionMap(MathTwoScalarOp.ScalarOp.MIN, MathTwoScalarOp.ScalarType.LONG);
+      and Replace: multOpOptions = null; ==> multOpOptions = MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.MIN, MathTwoScalar.ScalarType.LONG);
       to use max.min algebra.  We assume all nonzero values are integers greater than 0.
       This maintains 0 as the additive identity since for any a, max(a,0)=a.
       This maintains 0 as the multiplicative annihilator since for any a, min(a,0)=0.

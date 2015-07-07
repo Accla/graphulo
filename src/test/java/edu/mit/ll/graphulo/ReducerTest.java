@@ -3,7 +3,7 @@ package edu.mit.ll.graphulo;
 import edu.mit.ll.graphulo.reducer.EdgeBFSReducer;
 import edu.mit.ll.graphulo.reducer.Reducer;
 import edu.mit.ll.graphulo.reducer.SingleBFSReducer;
-import edu.mit.ll.graphulo.simplemult.MathTwoScalarOp;
+import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.junit.Assert;
@@ -71,8 +71,8 @@ public class ReducerTest {
 
   @Test
   public void testMathReducer() {
-    MathTwoScalarOp r = new MathTwoScalarOp();
-    r.init(MathTwoScalarOp.optionMap(MathTwoScalarOp.ScalarOp.PLUS, MathTwoScalarOp.ScalarType.LONG), null);
+    MathTwoScalar r = new MathTwoScalar();
+    r.init(MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.LONG), null);
 
     r.update(new Key("", "", "oad|v1"), new Value("1".getBytes()));
     r.update(new Key("","","infcds"), new Value("2".getBytes()));

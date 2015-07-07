@@ -170,7 +170,7 @@ See Examples above for more elaborate client code usage.
 
 ##### Simple custom operators
 If your operator meets the below requirements, you're in luck!  
-You can implement your operation by creating a Java subclass of [SimpleTwoScalarOp][].
+You can implement your operation by creating a Java subclass of [SimpleTwoScalar][].
 Define the method `Value multiply(Value Aval, Value Bval)`,
 and you are set to use your operator in the context of a matrix multiply, 
 matrix element-wise multiply or sum, Combiner sum, 
@@ -184,11 +184,11 @@ Even in this simpler model, some advanced logic is possible.
 Override the `init` method to take options provided from the client at runtime 
 through [IteratorSetting][] options that configure your operator, or setup initial state.
 
-Very simple example of a SimpleTwoScalarOp: 
-[ConstantTwoScalarOp][] ignores its operand Values and always returns a constant.
+Very simple example of a SimpleTwoScalar: 
+[ConstantTwoScalar][] ignores its operand Values and always returns a constant.
 The constant is "1" by default and can be changed through IteratorSetting options.
 
-Very useful SimpleTwoScalarOp: [MathTwoScalarOp][].
+Very useful SimpleTwoScalar: [MathTwoScalar][].
 It can do standard arithmetic +, *, -, /, min, max, and power on its two operands.
 
 
@@ -231,8 +231,8 @@ different from the Cartesian product of the two rows' entries
 [EWiseOp]: src/main/java/edu/mit/ll/graphulo/ewise/EWiseOp.java
 [ApplyOp]: src/main/java/edu/mit/ll/graphulo/apply/ApplyOp.java
 [RowStartMultiplyOp]: src/main/java/edu/mit/ll/graphulo/mult/RowStartMultiplyOp.java
-[SimpleTwoScalarOp]: src/main/java/edu/mit/ll/graphulo/simplemult/SimpleTwoScalarOp.java
-[ConstantTwoScalarOp]: src/main/java/edu/mit/ll/graphulo/simplemult/ConstantTwoScalarOp.java
+[SimpleTwoScalar]: src/main/java/edu/mit/ll/graphulo/simplemult/SimpleTwoScalar.java
+[ConstantTwoScalar]: src/main/java/edu/mit/ll/graphulo/simplemult/ConstantTwoScalar.java
 [RowMultiplyOp]: src/main/java/edu/mit/ll/graphulo/mult/RowMultiplyOp.java
 [Combiner]: https://accumulo.apache.org/1.7/apidocs/index.html?org/apache/accumulo/core/iterators/Combiner.html
 

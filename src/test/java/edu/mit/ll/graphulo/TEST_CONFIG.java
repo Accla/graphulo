@@ -19,6 +19,7 @@ import org.junit.runners.Suite;
     CountTest.class,
     RowMultiplyTest.class,
     ReducerTest.class,
+    EWiseTest.class,
     SCCTest.class,
     LineTest.class,
     AlgorithmTest.class

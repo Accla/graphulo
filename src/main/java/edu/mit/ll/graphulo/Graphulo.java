@@ -2118,6 +2118,7 @@ public class Graphulo {
         null, null, null, false, false, -1, false);
 
     // Step 2: A * WH => ^2 => ((+all)) => Client w/ Reducer => Sq.Root. => newerr return
+//    SpEWiseSum()
 
     return 0;
   }

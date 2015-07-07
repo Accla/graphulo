@@ -39,6 +39,7 @@ import java.util.Map.Entry;
  * Certain methods are marked as final to prevent misuse/confusion.
  * Please take care that your operator is commutative for the Combiner and Reduce usages.
  * Your operator should always be associative.
+ * Finally, in the case of EWiseOp, the operation logic must not need to act on non-matching Values.
  * <p>
  *   Can be used for unary Apply if passed a fixed Value operand
  *   on the left or right of the multiplication inside iterator options.
@@ -130,15 +131,29 @@ public abstract class SimpleTwoScalar extends Combiner implements ApplyOp, Multi
   @Override
   public final Iterator<? extends Entry<Key, Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence BcolF, ByteSequence BcolQ, Value ATval, Value Bval) {
 //    System.err.println("Mrow:"+Mrow+" ATcolQ:"+ATcolQ+" BcolQ:"+BcolQ+" ATval:"+ATval+" Bval:"+Bval);
+    assert ATval != null || Bval != null;
     Key k = new Key(ATcolQ.getBackingArray(), ATcolF.getBackingArray(),
         BcolQ.getBackingArray(), GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis());
     Value v = reverse ? multiply(Bval, ATval) : multiply(ATval, Bval);
     return v == null ? Collections.<Entry<Key,Value>>emptyIterator() : Iterators.singletonIterator((Entry<Key, Value>) new SimpleImmutableEntry<>(k, v));
   }
 
+  private static final byte[] EMPTY_BYTES = new byte[0];
+
   @Override
   public final Iterator<? extends Entry<Key, Value>> multiply(ByteSequence Mrow, ByteSequence McolF, ByteSequence McolQ, Value Aval, Value Bval) {
-    // todo - Aval xor Bval could be null, if emitNoMatchA or emitNoMatchB are true in TwoTableIterator. Not sure the best way to architect. Deferring.
+    // Important!  Aval xor Bval could be null, if emitNoMatchA or emitNoMatchB are true in TwoTableIterator.
+    // Decision is to emit the non-matching entries untouched by the operation.  This is a *SIMPLETwoScalar* operator.
+    assert Aval != null || Bval != null;
+    if (Aval == null)
+      return Iterators.singletonIterator((Entry<Key, Value>) new SimpleImmutableEntry<>(
+          new Key(Mrow.getBackingArray(), McolF.getBackingArray(), McolQ.getBackingArray(), EMPTY_BYTES, System.currentTimeMillis()),
+          Bval));
+    if (Bval == null)
+      return Iterators.singletonIterator((Entry<Key, Value>) new SimpleImmutableEntry<>(
+          new Key(Mrow.getBackingArray(), McolF.getBackingArray(), McolQ.getBackingArray(), EMPTY_BYTES, System.currentTimeMillis()),
+          Aval));
+
     Key k = new Key(Mrow.getBackingArray(), McolF.getBackingArray(),
         McolQ.getBackingArray(), GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis());
     Value v = reverse ? multiply(Bval, Aval) : multiply(Aval, Bval);

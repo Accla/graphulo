@@ -2193,7 +2193,7 @@ public class Graphulo {
     MathTwoScalar sumReducer = new MathTwoScalar();
     sumReducer.init(sumReducerOpts, null);
 
-    // Execute.
+    // Execute. Sum into sumReducer.
     SpEWiseSum(Aorig, WHtmp, null, null, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.MINUS, ScalarType.DOUBLE),
         null, null, null, null, null, null,
@@ -2202,7 +2202,7 @@ public class Graphulo {
         -1, false);
     if (!sumReducer.hasTopForClient())
       return 0.0; // no error. This will never happen realistically.
-    return Double.parseDouble(new String(sumReducer.getForClient()));
+    return Math.sqrt(Double.parseDouble(new String(sumReducer.getForClient())));
   }
 
   private void nmfStep(String in1, String in2, String out1, String out2) {

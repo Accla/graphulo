@@ -1,6 +1,7 @@
 package edu.mit.ll.graphulo.examples;
 
 import edu.mit.ll.graphulo.Graphulo;
+import edu.mit.ll.graphulo.reducer.Reducer;
 import edu.mit.ll.graphulo.rowmult.MultiplyOp;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
@@ -93,6 +94,8 @@ public class TableMultExample extends AccumuloTestBase {
         iteratorsBeforeA = null,          // No extra iterators used on ATtable before TableMult.
         iteratorsBeforeB = null,          // No extra iterators used on Btable before TableMult.
         iteratorsAfterTwoTable = null;    // No extra iterators used after TableMult but before writing entries to Ctable and CTtable.
+    Reducer reducer = null;               // No reducer. This is used for reduce operations, to gather
+    Map<String,String> reducerOpts = null;// summary information about entries processed at the server. No reducer options.
     int numEntriesCheckpoint = -1;        // Don't monitor TableMult progress.
     boolean trace = false;                // Don't record performance times at the server.
 
@@ -101,7 +104,8 @@ public class TableMultExample extends AccumuloTestBase {
     // i.e., until all partial products are sent to Ctable.
     graphulo.TableMult(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority, multOp, multOpOptions, plusOp,
         rowFilter, colFilterAT, colFilterB, alsoDoAA, alsoDoBB,
-        iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable, numEntriesCheckpoint, trace);
+        iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
+        reducer, reducerOpts, numEntriesCheckpoint, trace);
 
     // Result is in Ctable. Do whatever you like with it.
     BatchScanner bs = conn.createBatchScanner(Ctable, Authorizations.EMPTY, 2);

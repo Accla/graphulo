@@ -5,6 +5,8 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.TypedValueCombiner.Encoder;
+import org.apache.accumulo.core.iterators.ValueFormatException;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -14,6 +16,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Math operations between two scalars.
@@ -26,9 +30,49 @@ public class MathTwoScalar extends SimpleTwoScalar {
     PLUS, TIMES, SET_LEFT, MINUS,
     DIVIDE, POWER, MIN, MAX
   }
-  public enum ScalarType {
-    LONG, DOUBLE, BIGDECIMAL
+  public enum ScalarType /*implements Encoder*/ {
+    LONG(/*new SummingCombiner.StringEncoder()*/),
+    DOUBLE(/*new DoubleEncoder()*/),
+    BIGDECIMAL(/*new BigDecimalCombiner.BigDecimalEncoder()*/);
+
+
+    // Core Developer note: I tried to make the encoding and decoding generic,
+    // but this did not play well with how Java handles enums. Someone can make this nicer.
+//    private Encoder<? extends Number> encoder;
+//
+//    ScalarType(Encoder<? extends Number> encoder) {
+//      this.encoder = encoder;
+//    }
+//
+//    @Override
+//    public byte[] encode(Object number) {
+//      return encoder.encode((Number)number);
+//    }
+//
+//    @Override
+//    public Number decode(byte[] b) throws ValueFormatException {
+//      return encoder.decode(b);
+//    }
   }
+
+  public static class DoubleEncoder implements Encoder<Double> {
+    @Override
+    public byte[] encode(Double v) {
+      return v.toString().getBytes(UTF_8);
+    }
+    @Override
+    public Double decode(byte[] b) throws ValueFormatException {
+      try {
+        return Double.parseDouble(new String(b, UTF_8));
+      } catch (NumberFormatException nfe) {
+        throw new ValueFormatException(nfe);
+      }
+    }
+  }
+
+//  private interface ScalarOpInterface<T> extends Encoder<T> {
+//    Value doOp(Value Aval, ScalarOp op, Value Bval);
+//  }
 
   public static final String
       SCALAR_OP = "ScalarOp",

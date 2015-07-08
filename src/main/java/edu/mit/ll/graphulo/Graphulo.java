@@ -2109,7 +2109,7 @@ public class Graphulo {
     checkGiven(true, "Aorig, ATorig", Aorig, ATorig);
     checkGiven(false, "Wfinal, WTfinal, Hfinal, HTfinal", Wfinal, WTfinal, Hfinal, HTfinal);
     Preconditions.checkArgument(k > 0, "# of topics k must be > 0: "+k);
-//    TableOperations tops = connector.tableOperations();
+    TableOperations tops = connector.tableOperations();
 //    boolean RfinalExists = tops.exists(Wfinal);
 
 //    try {
@@ -2117,9 +2117,10 @@ public class Graphulo {
 
       // non-trivial case: k is 3 or more.
 //      String Wtmp, WTtmp, Htmp, HTtmp;
-    String WHtmp;
+    String Ttmp1, Ttmp2;
     String tmpBaseName = Aorig+"_NMF_";
-    WHtmp = tmpBaseName+"WH";
+    Ttmp1 = tmpBaseName+"tmp1";
+    Ttmp2 = tmpBaseName+"tmp2";
 //      Atmp = tmpBaseName+ "tmpA";
 //      ATtmp = tmpBaseName+"tmpAT";
 //      Wtmp = tmpBaseName+ "tmpW";
@@ -2151,10 +2152,11 @@ public class Graphulo {
       olderr = newerr;
 
       // todo all NMF steps
-      nmfStep(Wfinal, Aorig, Hfinal, HTfinal);
-      nmfStep(HTfinal, ATorig, WTfinal, Wfinal);
+      nmfStep(Wfinal, Aorig, Hfinal, HTfinal, Ttmp1, Ttmp2);
+      nmfStep(HTfinal, ATorig, WTfinal, Wfinal, Ttmp1, Ttmp2);
 
-      newerr = nmfDiffFrobeniusNorm(Aorig, WTfinal, Hfinal, WHtmp);
+      newerr = nmfDiffFrobeniusNorm(Aorig, WTfinal, Hfinal, Ttmp1);
+
 
 //        tops.delete(Atmp);
 //        tops.delete(A2tmp);
@@ -2200,13 +2202,51 @@ public class Graphulo {
         iterAfterMinus,
         sumReducer, sumReducerOpts,
         -1, false);
+
+    // Delete temporary WH table.
+    try {
+      connector.tableOperations().delete(WHtmp);
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      log.error("problem deleting temporary table "+WHtmp, e);
+      throw new RuntimeException(e);
+    } catch (TableNotFoundException e) {
+      log.error("crazy", e);
+      throw new RuntimeException(e);
+    }
+
     if (!sumReducer.hasTopForClient())
       return 0.0; // no error. This will never happen realistically.
     return Math.sqrt(Double.parseDouble(new String(sumReducer.getForClient())));
   }
 
-  private void nmfStep(String in1, String in2, String out1, String out2) {
+  private void nmfStep(String in1, String in2, String out1, String out2, String tmp1, String tmp2) {
+    // Step 1: in1^T * in1 ==transpose==> tmp1
+    TableMult(in1, in1, null, tmp1, -1,
+        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
+        MathTwoScalar.combinerSetting(DEFAULT_PLUS_ITERATOR.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
+        null, null, null, false, false, -1, false);
+
+    // Step 2: tmp1 => tmp1 inverse.
     // todo
+
+    // Step 3: in1^T * in2 => tmp2.  This can run concurrently with step 1 and 2.
+    TableMult(in1, in2, tmp2, null, -1,
+        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
+        MathTwoScalar.combinerSetting(DEFAULT_PLUS_ITERATOR.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
+        null, null, null, false, false, -1, false);
+
+    // Step 4: tmp1^T * tmp2 => OnlyPositiveFilter => {out1, tranpsose to out2}
+    // Filter out entries <= 0.
+    List<IteratorSetting> resultFilter = Collections.singletonList(
+        MinMaxValueFilter.iteratorSetting(1, ScalarType.DOUBLE, Double.MIN_NORMAL, Double.MAX_VALUE));
+
+    // Execute.
+    TableMult(tmp1, tmp2, out1, out2, -1,
+        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
+        MathTwoScalar.combinerSetting(DEFAULT_PLUS_ITERATOR.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
+        null, null, null, false, false, null, null,
+        resultFilter,
+        null, null, -1, false);
   }
 
 

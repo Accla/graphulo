@@ -31,6 +31,7 @@ public class DebugUtil {
       throw new RuntimeException(e);
     }
     printMapFull(scan.iterator());
+    scan.close();
   }
 
 

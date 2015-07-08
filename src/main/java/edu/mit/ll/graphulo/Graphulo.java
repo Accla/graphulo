@@ -2129,7 +2129,8 @@ public class Graphulo {
         .getIteratorSettingList();
     OneTable(Aorig, Wfinal, WTfinal, null, -1, null, null, null, null, null, itCreateTopicList, null,
         trace);
-    DebugUtil.printTable("0: W is NxK:", connector, Wfinal);
+    if (trace)
+      DebugUtil.printTable("0: W is NxK:", connector, Wfinal);
 
     // newerr starts at frobenius norm of A, since H starts at the zero matrix.
     double newerr = 0, olderr;
@@ -2139,13 +2140,16 @@ public class Graphulo {
       numiter++;
       olderr = newerr;
 
-      nmfStep(K, Wfinal, Aorig, Hfinal, HTfinal, Ttmp1, Ttmp2);
-      DebugUtil.printTable(numiter + ": H is KxM:", connector, Hfinal);
-      nmfStep(K, HTfinal, ATorig, WTfinal, Wfinal, Ttmp1, Ttmp2);
-      DebugUtil.printTable(numiter + ": W is NxK:", connector, Wfinal);
+      nmfStep(K, Wfinal, Aorig, Hfinal, HTfinal, Ttmp1, Ttmp2, trace);
+      if (trace)
+        DebugUtil.printTable(numiter + ": H is KxM:", connector, Hfinal);
+      nmfStep(K, HTfinal, ATorig, WTfinal, Wfinal, Ttmp1, Ttmp2, trace);
+      if (trace)
+        DebugUtil.printTable(numiter + ": W is NxK:", connector, Wfinal);
 
-      newerr = nmfDiffFrobeniusNorm(Aorig, WTfinal, Hfinal, Ttmp1);
-      DebugUtil.printTable(numiter + ": A is NxM --- error is "+newerr+":", connector, Aorig);
+      newerr = nmfDiffFrobeniusNorm(Aorig, WTfinal, Hfinal, Ttmp1, trace);
+      if (trace)
+        DebugUtil.printTable(numiter + ": A is NxM --- error is "+newerr+":", connector, Aorig);
 
       log.debug("NMF Iteration "+numiter+": olderr " + olderr + " newerr " + newerr);
     } while (Math.abs(newerr - olderr) > 0.01d && numiter < maxiter);
@@ -2154,7 +2158,7 @@ public class Graphulo {
   }
 
 
-  private double nmfDiffFrobeniusNorm(String Aorig, String WTfinal, String Hfinal, String WHtmp) {
+  private double nmfDiffFrobeniusNorm(String Aorig, String WTfinal, String Hfinal, String WHtmp, boolean trace) {
     // assume WHtmp has no entries / does not exist
 
     // Step 1: W*H => WHtmp
@@ -2162,7 +2166,8 @@ public class Graphulo {
         MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
         MathTwoScalar.combinerSetting(DEFAULT_PLUS_ITERATOR.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
         null, null, null, false, false, -1, false);
-    DebugUtil.printTable("WH is NxM:", connector, WHtmp);
+    if (trace)
+      DebugUtil.printTable("WH is NxM:", connector, WHtmp);
 
     // Step 2: A - WH => ^2 => ((+all)) => Client w/ Reducer => Sq.Root. => newerr return
     // Prep.
@@ -2190,7 +2195,7 @@ public class Graphulo {
     return Math.sqrt(Double.parseDouble(new String(sumReducer.getForClient())));
   }
 
-  private void nmfStep(int K, String in1, String in2, String out1, String out2, String tmp1, String tmp2) {
+  private void nmfStep(int K, String in1, String in2, String out1, String out2, String tmp1, String tmp2, boolean trace) {
     // delete out1, out2
     deleteTables(true, out1, out2);
 
@@ -2199,7 +2204,8 @@ public class Graphulo {
         MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
         MathTwoScalar.combinerSetting(DEFAULT_PLUS_ITERATOR.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
         null, null, null, false, false, -1, false);
-    DebugUtil.printTable("tmp1 is KxK:", connector, tmp1);
+    if (trace)
+      DebugUtil.printTable("tmp1 is KxK:", connector, tmp1);
 
     // Step 2: tmp1 => tmp1 inverse.
     try {
@@ -2214,7 +2220,8 @@ public class Graphulo {
       log.error("crazy", e);
       throw new RuntimeException(e);
     }
-    DebugUtil.printTable("tmp1 INVERSE is KxK:", connector, tmp1);
+    if (trace)
+      DebugUtil.printTable("tmp1 INVERSE is KxK:", connector, tmp1);
 
     // Step 3: in1^T * in2 => tmp2.  This can run concurrently with step 1 and 2.
     TableMult(in1, in2, tmp2, null, -1,

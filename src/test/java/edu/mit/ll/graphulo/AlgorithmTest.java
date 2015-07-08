@@ -257,7 +257,10 @@ public class AlgorithmTest extends AccumuloTestBase {
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     int maxIter = 4;
-    double error = graphulo.NMF(tE, tET, tW, tWT, tH, tHT, 3, maxIter, true, true);
+    boolean trace = false;
+    long t = System.currentTimeMillis();
+    double error = graphulo.NMF(tE, tET, tW, tWT, tH, tHT, 3, maxIter, true, trace);
+    System.out.println("Trace is "+trace+"; NMF time "+(System.currentTimeMillis()-t));
     log.info("NMF error " + error);
 
     System.out.println("A:");

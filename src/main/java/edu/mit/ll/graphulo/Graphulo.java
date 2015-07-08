@@ -30,6 +30,7 @@ import edu.mit.ll.graphulo.skvi.SmallLargeRowFilter;
 import edu.mit.ll.graphulo.skvi.TableMultIterator;
 import edu.mit.ll.graphulo.skvi.TriangularFilter;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
+import edu.mit.ll.graphulo.util.DebugUtil;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -2128,20 +2129,24 @@ public class Graphulo {
         .getIteratorSettingList();
     OneTable(Aorig, Wfinal, WTfinal, null, -1, null, null, null, null, null, itCreateTopicList, null,
         trace);
+    DebugUtil.printTable("0: W is NxK:", connector, Wfinal);
 
     // newerr starts at frobenius norm of A, since H starts at the zero matrix.
     double newerr = 0, olderr;
     int numiter = 0;
 
     do {
+      numiter++;
       olderr = newerr;
 
       nmfStep(K, Wfinal, Aorig, Hfinal, HTfinal, Ttmp1, Ttmp2);
+      DebugUtil.printTable(numiter + ": H is KxM:", connector, Hfinal);
       nmfStep(K, HTfinal, ATorig, WTfinal, Wfinal, Ttmp1, Ttmp2);
+      DebugUtil.printTable(numiter + ": W is NxK:", connector, Wfinal);
 
       newerr = nmfDiffFrobeniusNorm(Aorig, WTfinal, Hfinal, Ttmp1);
+      DebugUtil.printTable(numiter + ": A is NxM --- error is "+newerr+":", connector, Aorig);
 
-      numiter++;
       log.debug("NMF Iteration "+numiter+": olderr " + olderr + " newerr " + newerr);
     } while (Math.abs(newerr - olderr) > 0.01d && numiter < maxiter);
 
@@ -2157,6 +2162,7 @@ public class Graphulo {
         MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
         MathTwoScalar.combinerSetting(DEFAULT_PLUS_ITERATOR.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
         null, null, null, false, false, -1, false);
+    DebugUtil.printTable("WH is NxM:", connector, WHtmp);
 
     // Step 2: A - WH => ^2 => ((+all)) => Client w/ Reducer => Sq.Root. => newerr return
     // Prep.
@@ -2177,15 +2183,7 @@ public class Graphulo {
         -1, false);
 
     // Delete temporary WH table.
-    try {
-      connector.tableOperations().delete(WHtmp);
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      log.error("problem deleting temporary table "+WHtmp, e);
-      throw new RuntimeException(e);
-    } catch (TableNotFoundException e) {
-      log.error("crazy", e);
-      throw new RuntimeException(e);
-    }
+    deleteTables(true, WHtmp);
 
     if (!sumReducer.hasTopForClient())
       return 0.0; // no error. This will never happen realistically.
@@ -2193,18 +2191,16 @@ public class Graphulo {
   }
 
   private void nmfStep(int K, String in1, String in2, String out1, String out2, String tmp1, String tmp2) {
+    // delete out1, out2
+    deleteTables(true, out1, out2);
+
     // Step 1: in1^T * in1 ==transpose==> tmp1
     TableMult(in1, in1, null, tmp1, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
         MathTwoScalar.combinerSetting(DEFAULT_PLUS_ITERATOR.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
         null, null, null, false, false, -1, false);
+    DebugUtil.printTable("tmp1 is KxK:", connector, tmp1);
 
-    try {
-      Thread.sleep(3000);
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
-    System.out.println("before compact");
     // Step 2: tmp1 => tmp1 inverse.
     try {
       connector.tableOperations().compact(tmp1, null, null,
@@ -2218,38 +2214,33 @@ public class Graphulo {
       log.error("crazy", e);
       throw new RuntimeException(e);
     }
-    System.out.println("after compact");
+    DebugUtil.printTable("tmp1 INVERSE is KxK:", connector, tmp1);
 
     // Step 3: in1^T * in2 => tmp2.  This can run concurrently with step 1 and 2.
     TableMult(in1, in2, tmp2, null, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
         MathTwoScalar.combinerSetting(DEFAULT_PLUS_ITERATOR.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
         null, null, null, false, false, -1, false);
+//    DebugUtil.printTable("tmp1 INVERSE is KxK:", connector, tmp1);
 
     // Step 4: tmp1^T * tmp2 => OnlyPositiveFilter => {out1, tranpsose to out2}
-    // Filter out entries <= 0.
-    List<IteratorSetting> resultFilter = Collections.singletonList(
-        MinMaxValueFilter.iteratorSetting(1, ScalarType.DOUBLE, Double.MIN_NORMAL, Double.MAX_VALUE));
+    // Filter out entries <= 0 after combining partial products.
+    IteratorSetting sumFilterOp =
+        new DynamicIteratorSetting()
+        .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.DOUBLE))
+        .append(MinMaxValueFilter.iteratorSetting(1, ScalarType.DOUBLE, Double.MIN_NORMAL, Double.MAX_VALUE))
+        .toIteratorSetting(DEFAULT_PLUS_ITERATOR.getPriority());
 
     // Execute.
     TableMult(tmp1, tmp2, out1, out2, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
-        MathTwoScalar.combinerSetting(DEFAULT_PLUS_ITERATOR.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
+        sumFilterOp,
         null, null, null, false, false, null, null,
-        resultFilter,
+        null,
         null, null, -1, false);
 
     // Delete temporary tables.
-    try {
-      connector.tableOperations().delete(tmp1);
-      connector.tableOperations().delete(tmp2);
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      log.error("problem deleting temporary table "+tmp1+" or "+tmp2, e);
-      throw new RuntimeException(e);
-    } catch (TableNotFoundException e) {
-      log.error("crazy", e);
-      throw new RuntimeException(e);
-    }
+    deleteTables(true, tmp1, tmp2);
   }
 
 

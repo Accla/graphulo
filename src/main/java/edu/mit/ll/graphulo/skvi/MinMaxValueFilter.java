@@ -79,6 +79,7 @@ public class MinMaxValueFilter extends Filter {
     }
     if (bad)
       throw new IllegalArgumentException("maxValue < minValue: "+maxValue+" < "+minValue);
+    log.info("minValue "+minValue+" maxValue"+maxValue);
   }
 
   @Override
@@ -86,7 +87,7 @@ public class MinMaxValueFilter extends Filter {
     switch (scalarType) {
       case LONG:
         long l = Long.parseLong(new String(v.get(), StandardCharsets.UTF_8));
-//    if (l >= minValue && l <= maxValue) // DEBUG
+//    if (l >= minValue.longValue() && l <= maxValue.longValue()) // DEBUG
 //      log.info("accept: "+k+" -> "+v);
 //    else {
 //      log.info("REJECT: "+k+" -> "+v);
@@ -94,6 +95,11 @@ public class MinMaxValueFilter extends Filter {
         return l >= minValue.longValue() && l <= maxValue.longValue();
       case DOUBLE:
         double d = Double.parseDouble(new String(v.get(), StandardCharsets.UTF_8));
+        if (d >= minValue.doubleValue() && d <= maxValue.doubleValue()) // DEBUG
+          log.info("accept: "+k.toStringNoTime()+" -> "+v);
+        else {
+          log.info("REJECT: "+k.toStringNoTime()+" -> "+v);
+        }
         return d >= minValue.doubleValue() && d <= maxValue.doubleValue();
       case BIGDECIMAL:
         BigDecimal b = new BigDecimal(new String(v.get(), StandardCharsets.UTF_8));

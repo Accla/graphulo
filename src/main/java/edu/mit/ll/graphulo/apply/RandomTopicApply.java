@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Random;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -58,6 +59,7 @@ public class RandomTopicApply implements ApplyOp {
   }
 
   private static final Text EMPTY_TEXT = new Text();
+  private static final Random rand = new Random();
 
   @Override
   public Iterator<? extends Map.Entry<Key, Value>> apply(Key k, Value v) {
@@ -65,7 +67,10 @@ public class RandomTopicApply implements ApplyOp {
     SortedMap<Key,Value> map = new TreeMap<>();
     for (int i = 1; i <= knum; i++) {
       Key knew = new Key(row, EMPTY_TEXT, new Text(Integer.toString(i)), System.currentTimeMillis());
-      Value vnew = new Value(Double.toString(Math.random()).getBytes());
+
+      Value vnew = new Value(Double.toString(
+          Math.abs(rand.nextGaussian()))        // absolute value of random normal
+          .getBytes());
       map.put(knew, vnew);
     }
     return map.entrySet().iterator();

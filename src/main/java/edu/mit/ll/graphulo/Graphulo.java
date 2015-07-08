@@ -2136,8 +2136,8 @@ public class Graphulo {
     do {
       olderr = newerr;
 
-      nmfStep(Wfinal, Aorig, Hfinal, HTfinal, Ttmp1, Ttmp2);
-      nmfStep(HTfinal, ATorig, WTfinal, Wfinal, Ttmp1, Ttmp2);
+      nmfStep(K, Wfinal, Aorig, Hfinal, HTfinal, Ttmp1, Ttmp2);
+      nmfStep(K, HTfinal, ATorig, WTfinal, Wfinal, Ttmp1, Ttmp2);
 
       newerr = nmfDiffFrobeniusNorm(Aorig, WTfinal, Hfinal, Ttmp1);
 
@@ -2192,7 +2192,7 @@ public class Graphulo {
     return Math.sqrt(Double.parseDouble(new String(sumReducer.getForClient())));
   }
 
-  private void nmfStep(String in1, String in2, String out1, String out2, String tmp1, String tmp2) {
+  private void nmfStep(int K, String in1, String in2, String out1, String out2, String tmp1, String tmp2) {
     // Step 1: in1^T * in1 ==transpose==> tmp1
     TableMult(in1, in1, null, tmp1, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
@@ -2208,7 +2208,8 @@ public class Graphulo {
     // Step 2: tmp1 => tmp1 inverse.
     try {
       connector.tableOperations().compact(tmp1, null, null,
-          Collections.singletonList(new IteratorSetting(DEFAULT_PLUS_ITERATOR.getPriority()+1, InverseMatrixIterator.class)),
+          Collections.singletonList(InverseMatrixIterator.iteratorSetting(DEFAULT_PLUS_ITERATOR.getPriority() + 1,
+              K)),
           true, true); // blocks
     } catch (AccumuloException | AccumuloSecurityException e) {
       log.error("problem while compacting "+tmp1+" to take the matrix inverse", e);

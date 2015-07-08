@@ -256,7 +256,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    int maxIter = 5;
+    int maxIter = 4;
     double error = graphulo.NMF(tE, tET, tW, tWT, tH, tHT, 3, maxIter, true, true);
     log.info("NMF error " + error);
 

@@ -15,6 +15,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -206,6 +207,15 @@ public class TestUtil {
       neww.put(k, entry.getValue());
     }
     return neww;
+  }
+
+  public static void assertEqualDoubleMap(Map<Key, Value> expect, Map<Key, Value> actual) {
+    for (Map.Entry<Key, Value> actualEntry : actual.entrySet()) {
+      double actualValue = Double.parseDouble(new String(actualEntry.getValue().get()));
+      double expectValue = expect.containsKey(actualEntry.getKey())
+          ? Double.parseDouble(new String(expect.get(actualEntry.getKey()).get())) : 0.0;
+      Assert.assertEquals(expectValue, actualValue, 0.001);
+    }
   }
 
 }

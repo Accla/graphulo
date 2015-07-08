@@ -21,6 +21,7 @@ import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar.ScalarOp;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar.ScalarType;
 import edu.mit.ll.graphulo.skvi.CountAllIterator;
+import edu.mit.ll.graphulo.skvi.InverseMatrixIterator;
 import edu.mit.ll.graphulo.skvi.MinMaxValueFilter;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
 import edu.mit.ll.graphulo.skvi.SeekFilterIterator;
@@ -1696,7 +1697,7 @@ public class Graphulo {
       Atmp = tmpBaseName+"tmpA";
       A2tmp = tmpBaseName+"tmpA2";
       AtmpAlt = tmpBaseName+"tmpAalt";
-      setupTempTables(forceDelete, Atmp, A2tmp, AtmpAlt);
+      deleteTables(forceDelete, Atmp, A2tmp, AtmpAlt);
 
       tops.clone(Aorig, Atmp, true, null, null);
 
@@ -1809,7 +1810,7 @@ public class Graphulo {
       Rtmp = tmpBaseName+"tmpR";
       EtmpAlt = tmpBaseName+"tmpEalt";
       ETtmpAlt = tmpBaseName+"tmpETalt";
-      setupTempTables(forceDelete, Etmp, ETtmp, Atmp, Rtmp, EtmpAlt, ETtmpAlt);
+      deleteTables(forceDelete, Etmp, ETtmp, Atmp, Rtmp, EtmpAlt, ETtmpAlt);
 
       tops.clone(Eorig, Etmp, true, null, null);
       tops.clone(ETorig, ETtmp, true, null, null);
@@ -2065,9 +2066,9 @@ public class Graphulo {
     return cnt;
   }
 
-  /** Create tables. If they already exist, delete and re-create them if forceDelete==true,
+  /** Delete tables. If they already exist, delete and re-create them if forceDelete==true,
    * otherwise throw an IllegalStateException. */
-  private void setupTempTables(boolean forceDelete, String... tns) {
+  private void deleteTables(boolean forceDelete, String... tns) {
     TableOperations tops = connector.tableOperations();
     for (String tn : tns) {
       if (!forceDelete)
@@ -2102,47 +2103,31 @@ public class Graphulo {
   // Return |newerr-olderr| at end.
   public double NMF(String Aorig, String ATorig,
                     String Wfinal, String WTfinal, String Hfinal, String HTfinal,
-                    final int k, final int maxiter,
+                    final int K, final int maxiter,
                     boolean forceDelete, boolean trace) {
-    if (true)
-      throw new UnsupportedOperationException("nyi");
     checkGiven(true, "Aorig, ATorig", Aorig, ATorig);
     checkGiven(false, "Wfinal, WTfinal, Hfinal, HTfinal", Wfinal, WTfinal, Hfinal, HTfinal);
-    Preconditions.checkArgument(k > 0, "# of topics k must be > 0: "+k);
-    TableOperations tops = connector.tableOperations();
-//    boolean RfinalExists = tops.exists(Wfinal);
+    Preconditions.checkArgument(K > 0, "# of topics K must be > 0: "+K);
+    deleteTables(false, Wfinal, WTfinal, Hfinal, HTfinal);
 
-//    try {
-
-
-      // non-trivial case: k is 3 or more.
-//      String Wtmp, WTtmp, Htmp, HTtmp;
     String Ttmp1, Ttmp2;
     String tmpBaseName = Aorig+"_NMF_";
     Ttmp1 = tmpBaseName+"tmp1";
     Ttmp2 = tmpBaseName+"tmp2";
-//      Atmp = tmpBaseName+ "tmpA";
-//      ATtmp = tmpBaseName+"tmpAT";
-//      Wtmp = tmpBaseName+ "tmpW";
-//      WTtmp = tmpBaseName+"tmpWT";
-//      Htmp = tmpBaseName+ "tmpH";
-//      HTtmp = tmpBaseName+"tmpHT";
-//      setupTempTables(forceDelete, Atmp, ATtmp, Wtmp, WTtmp, Htmp, HTtmp);
+    deleteTables(forceDelete, Ttmp1, Ttmp2);
 
     // Inital nnz
     long N = countRows(Aorig);
     long M = countRows(ATorig);
 
-    // create random W table of size NxK, DENSE
+    // Initialize W to a dense random matrix of size N x K
     List<IteratorSetting> itCreateTopicList = new DynamicIteratorSetting()
         .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))  // strip to row field
         .append(new IteratorSetting(1, VersioningIterator.class))       // only count a row once
-        .append(RandomTopicApply.iteratorSetting(1, k))
+        .append(RandomTopicApply.iteratorSetting(1, K))
         .getIteratorSettingList();
-
     OneTable(Aorig, Wfinal, WTfinal, null, -1, null, null, null, null, null, itCreateTopicList, null,
         trace);
-    // todo: improve efficiency of above call by re-using bs
 
     // newerr starts at frobenius norm of A, since H starts at the zero matrix.
     double newerr = 0, olderr;
@@ -2151,33 +2136,21 @@ public class Graphulo {
     do {
       olderr = newerr;
 
-      // todo all NMF steps
       nmfStep(Wfinal, Aorig, Hfinal, HTfinal, Ttmp1, Ttmp2);
       nmfStep(HTfinal, ATorig, WTfinal, Wfinal, Ttmp1, Ttmp2);
 
       newerr = nmfDiffFrobeniusNorm(Aorig, WTfinal, Hfinal, Ttmp1);
 
-
-//        tops.delete(Atmp);
-//        tops.delete(A2tmp);
-//        { String t = Atmp; Atmp = AtmpAlt; AtmpAlt = t; }
-
-      log.debug("olderr " + olderr + " newerr " + newerr);
       numiter++;
+      log.debug("NMF Iteration "+numiter+": olderr " + olderr + " newerr " + newerr);
     } while (Math.abs(newerr - olderr) > 0.01d && numiter < maxiter);
 
-
     return Math.abs(newerr - olderr);
-
-//    } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
-//      log.error("Exception in NMF", e);
-//      throw new RuntimeException(e);
-//    }
   }
 
 
   private double nmfDiffFrobeniusNorm(String Aorig, String WTfinal, String Hfinal, String WHtmp) {
-    // todo - assume WHtmp does not exist
+    // assume WHtmp has no entries / does not exist
 
     // Step 1: W*H => WHtmp
     TableMult(WTfinal, Hfinal, WHtmp, null, -1,
@@ -2185,7 +2158,7 @@ public class Graphulo {
         MathTwoScalar.combinerSetting(DEFAULT_PLUS_ITERATOR.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
         null, null, null, false, false, -1, false);
 
-    // Step 2: A * WH => ^2 => ((+all)) => Client w/ Reducer => Sq.Root. => newerr return
+    // Step 2: A - WH => ^2 => ((+all)) => Client w/ Reducer => Sq.Root. => newerr return
     // Prep.
     List<IteratorSetting> iterAfterMinus = new DynamicIteratorSetting()
         .append(MathTwoScalar.applyOpDouble(1, true, ScalarOp.POWER, 2.0))
@@ -2226,8 +2199,25 @@ public class Graphulo {
         MathTwoScalar.combinerSetting(DEFAULT_PLUS_ITERATOR.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
         null, null, null, false, false, -1, false);
 
+    try {
+      Thread.sleep(3000);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+    System.out.println("before compact");
     // Step 2: tmp1 => tmp1 inverse.
-    // todo
+    try {
+      connector.tableOperations().compact(tmp1, null, null,
+          Collections.singletonList(new IteratorSetting(DEFAULT_PLUS_ITERATOR.getPriority()+1, InverseMatrixIterator.class)),
+          true, true); // blocks
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      log.error("problem while compacting "+tmp1+" to take the matrix inverse", e);
+      throw new RuntimeException(e);
+    } catch (TableNotFoundException e) {
+      log.error("crazy", e);
+      throw new RuntimeException(e);
+    }
+    System.out.println("after compact");
 
     // Step 3: in1^T * in2 => tmp2.  This can run concurrently with step 1 and 2.
     TableMult(in1, in2, tmp2, null, -1,
@@ -2247,6 +2237,18 @@ public class Graphulo {
         null, null, null, false, false, null, null,
         resultFilter,
         null, null, -1, false);
+
+    // Delete temporary tables.
+    try {
+      connector.tableOperations().delete(tmp1);
+      connector.tableOperations().delete(tmp2);
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      log.error("problem deleting temporary table "+tmp1+" or "+tmp2, e);
+      throw new RuntimeException(e);
+    } catch (TableNotFoundException e) {
+      log.error("crazy", e);
+      throw new RuntimeException(e);
+    }
   }
 
 

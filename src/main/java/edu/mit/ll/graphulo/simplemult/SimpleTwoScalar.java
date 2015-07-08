@@ -109,7 +109,6 @@ public abstract class SimpleTwoScalar extends Combiner implements ApplyOp, Multi
           break;
         default:
           notCombinerOpts.put(k, v);
-          log.warn("Unrecognized option: "+k+" -> "+v);
           break;
       }
     }

@@ -36,22 +36,8 @@ public class KnownBugRunner extends BlockJUnit4ClassRunner {
     if (ignore != null && !ignore.value().startsWith("KnownBug")) {
       notifier.fireTestIgnored(description);
     } else {
-//      Result result = new Result();
-//      RunListener listenerResult = result.createListener(),
-//        listenerText = new TextListener(System.out);
-////      RunNotifier topNotifier = new RunNotifier();
-//      notifier.addListener(listenerResult);
-//      notifier.addListener(listenerText);
-//      notifier.fireTestStarted(description);
-      try {
-        RunRules runRules = new RunRules(methodBlock(method), Arrays.asList(new TestRule[]{new KnownBugRule()}), description);
-        runLeaf(runRules, description, notifier);
-      } finally {
-//        notifier.fireTestFinished(description);
-//        notifier.removeListener(listenerResult);
-//        notifier.removeListener(listenerText);
-      }
-
+      RunRules runRules = new RunRules(methodBlock(method), Arrays.asList(new TestRule[]{new KnownBugRule()}), description);
+      runLeaf(runRules, description, notifier);
     }
   }
 

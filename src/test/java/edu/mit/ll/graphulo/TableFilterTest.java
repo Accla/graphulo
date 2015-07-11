@@ -59,7 +59,7 @@ public class TableFilterTest extends AccumuloTestBase {
       actual.put(entry.getKey(), entry.getValue());
     }
     Assert.assertEquals(expect, actual);
-
+    bs.close();
     conn.tableOperations().delete(tA);
   }
 

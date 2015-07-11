@@ -50,17 +50,20 @@ public class TEST_CONFIG {
         AccumuloTester = new RealAccumuloTester("classdb51", "classdb51.cloud.llgrid.txe1.mit.edu:2181", 5000, "AccumuloUser", new PasswordToken("secret"));
         break;
       case "mini":
-        AccumuloTester = new MiniAccumuloTester(1);
+        AccumuloTester = new MiniAccumuloTester(1, false, false);
         break;
       case "miniDebug":   // Enables debugging on started MiniAccumulo process.
-        AccumuloTester = new MiniAccumuloTester(1, true);
+        AccumuloTester = new MiniAccumuloTester(1, true, false);
         break;
       case "mini2": // 2 tablet server MiniAccumuloCluster
-        AccumuloTester = new MiniAccumuloTester(2);
+        AccumuloTester = new MiniAccumuloTester(2, false, false);
+        break;
+      case "miniReuse":
+        AccumuloTester = new MiniAccumuloTester(2, false, true);
         break;
       default:
         log.warn("Using \"mini\" due to unrecognized TEST_ACCUMULO option: " + s);
-        AccumuloTester = new MiniAccumuloTester();
+        AccumuloTester = new MiniAccumuloTester(1, false, false);
         break;
     }
   }

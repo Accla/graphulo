@@ -1,10 +1,8 @@
-package edu.mit.ll.grapuhlo_ndsi;
+package edu.mit.ll.graphulo_ndsi;
 
 import edu.mit.ll.graphulo.examples.ExampleUtil;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import edu.mit.ll.graphulo.util.TestUtil;
-import edu.mit.ll.graphulo_ndsi.NDSIGraphulo;
-import edu.mit.ll.graphulo_ndsi.NDSIIngester;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -17,7 +15,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
@@ -56,18 +53,16 @@ public class NDSITest extends AccumuloTestBase {
 //      TestUtil.createTestTable(conn, tA, splits, input);
 //    }
 
-    File file = ExampleUtil.getDataFile("ndsi_snippet.txt");
+    File file = ExampleUtil.getDataFile("ndsi_snippet.csv");
 
     NDSIIngester ingester = new NDSIIngester(conn);
     ingester.ingestFile(file, tA, true);
-    if (true) return;
     long
         minX = 0,
-        minY = 0,
-        maxX = 0,
-        maxY = 0,
-        binsizeX = 0,
-        binsizeY = 0;
+        minY = 50,
+        maxX = 1,
+        maxY = 149;
+    double binsizeX = 1, binsizeY = 25;
 
     NDSIGraphulo graphulo = new NDSIGraphulo(conn, tester.getPassword());
     long cnt = graphulo.windowSubset(tA, tR, minX, minY, maxX, maxY, binsizeX, binsizeY);
@@ -77,9 +72,10 @@ public class NDSITest extends AccumuloTestBase {
     scanner.setRanges(Collections.singleton(new Range()));
     for (Map.Entry<Key, Value> entry : scanner) {
       actual.put(entry.getKey(), entry.getValue());
+      System.out.println(entry.getKey().toStringNoTime()+" -> "+entry.getValue());
     }
     scanner.close();
-    Assert.assertEquals(expect, actual);
+//    Assert.assertEquals(expect, actual);
 
     conn.tableOperations().delete(tA);
     conn.tableOperations().delete(tR);

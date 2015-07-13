@@ -28,17 +28,18 @@ public class Histogram2DTransformer implements ApplyOp {
   public static final String
       MIN_X = "minX", MIN_Y = "minY", BINSIZE_X = "binsizeX", BINSIZE_Y = "binsizeY";
 
-  public static IteratorSetting iteratorSetting(int priority, long minX, long minY, long binsizeX, long binsizeY) {
+  public static IteratorSetting iteratorSetting(int priority, long minX, long minY, double binsizeX, double binsizeY) {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
     itset.addOption(ApplyIterator.APPLYOP, Histogram2DTransformer.class.getName());
     itset.addOption(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+MIN_X, Long.toString(minX));
     itset.addOption(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+MIN_Y, Long.toString(minY));
-    itset.addOption(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+BINSIZE_X, Long.toString(binsizeX));
-    itset.addOption(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+BINSIZE_Y, Long.toString(binsizeY));
+    itset.addOption(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+BINSIZE_X, Double.toString(binsizeX));
+    itset.addOption(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+BINSIZE_Y, Double.toString(binsizeY));
     return itset;
   }
 
-  private long minX = 0, minY = 0, binsizeX = 1, binsizeY = 1;
+  private long minX = 0, minY = 0;
+  private double binsizeX = 1, binsizeY = 1;
 
 
   @Override
@@ -53,10 +54,10 @@ public class Histogram2DTransformer implements ApplyOp {
           minY = Long.parseLong(v);
           break;
         case BINSIZE_X:
-          binsizeX = Long.parseLong(v);
+          binsizeX = Double.parseDouble(v);
           break;
         case BINSIZE_Y:
-          binsizeY = Long.parseLong(v);
+          binsizeY = Double.parseDouble(v);
           break;
         default:
           log.warn("Unrecognized option: " + entry);
@@ -71,8 +72,8 @@ public class Histogram2DTransformer implements ApplyOp {
     long col = Long.parseLong(key.getColumnQualifier().toString());
     assert row > minX;
     assert col > minY;
-    long newRow = (row-minX)/binsizeX;
-    long newCol = (col-minY)/binsizeY;
+    long newRow = (long)((row-minX)/binsizeX);
+    long newCol = (long)((col-minY)/binsizeY);
     Text newRowText = new Text(Long.toString(newRow));
     Text newColText = new Text(Long.toString(newCol));
     Key newKey = new Key(newRowText, key.getColumnFamily(), newColText, System.currentTimeMillis());

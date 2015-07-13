@@ -6,7 +6,6 @@ import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Collections;
@@ -36,10 +35,10 @@ public class NDSIGraphulo extends Graphulo {
    * @return The number of entries processed in making the window subset.
    */
   public long windowSubset(String Atable, String Rtable,
-                           long minX, long minY, long maxX, long maxY, long binsizeX, long binsizeY) {
+                           long minX, long minY, long maxX, long maxY, double binsizeX, double binsizeY) {
     Atable = emptyToNull(Atable);
     Rtable = emptyToNull(Rtable);
-    Preconditions.checkArgument(minX > 0 && minY > 0 && maxX > minX && maxY > minY
+    Preconditions.checkArgument(minX >= 0 && minY >= 0 && maxX > minX && maxY > minY
         && binsizeX > 0 && binsizeY > 0 && Atable != null && Rtable != null);
 
     String startX = StringUtils.leftPad(Long.toString(minX), PADSIZE_LATLON, '0');
@@ -50,16 +49,13 @@ public class NDSIGraphulo extends Graphulo {
     String colFilter = startY + ",:," + endY + ",";
 
     IteratorSetting itsetHistogram = Histogram2DTransformer.iteratorSetting(1, minX, minY, binsizeX, binsizeY);
-
-    IteratorSetting itsetStats = null; // todo - StatsCombiner on all columns
-    Combiner.setCombineAllColumns(itsetStats, true);
+    IteratorSetting itsetStats = DoubleStatsCombiner.iteratorSetting(DEFAULT_PLUS_ITERATOR.getPriority(), null);
 
     // support transpose?
     // could reuse batchscanner if called many times
     return OneTable(Atable, Rtable, null, null, -1, null, null, itsetStats,
         GraphuloUtil.d4mRowToRanges(rowFilter), colFilter, Collections.singletonList(itsetHistogram),
         null, false);
-
   }
 
 }

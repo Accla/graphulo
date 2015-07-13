@@ -6,6 +6,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -51,6 +52,15 @@ public class NDSIIngester {
       } catch (TableNotFoundException e) {
         throw new RuntimeException(e);
       }
+    if (!connector.tableOperations().exists(Atable))
+      try {
+        connector.tableOperations().create(Atable);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        log.warn("trouble creating table " + Atable, e);
+        throw new RuntimeException(e);
+      } catch (TableExistsException e) {
+        throw new RuntimeException(e);
+      }
 
     BatchWriter bw = null;
     String line = null;
@@ -60,9 +70,12 @@ public class NDSIIngester {
       BatchWriterConfig config = new BatchWriterConfig();
       bw = connector.createBatchWriter(Atable, config);
 
-      while ((line = fo.readLine()) != null) {
-        entriesProcessed += ingestLine(bw, line);
-      }
+      // Skip header line
+      fo.readLine();
+
+      while ((line = fo.readLine()) != null)
+        if (!line.isEmpty())
+          entriesProcessed += ingestLine(bw, line);
 
     } catch (TableNotFoundException e) {
       throw new RuntimeException(e);

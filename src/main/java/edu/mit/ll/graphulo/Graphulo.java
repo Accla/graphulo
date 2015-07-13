@@ -60,7 +60,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -374,7 +373,7 @@ public class Graphulo {
         numEntriesCheckpoint, trace);
   }
 
-  private long TwoTable(String ATtable, String Btable, String Ctable, String CTtable,
+  public long TwoTable(String ATtable, String Btable, String Ctable, String CTtable,
                         int BScanIteratorPriority,
                        TwoTableIterator.DOTMODE dotmode, Map<String, String> optsTT,
                        IteratorSetting plusOp, // priority matters
@@ -617,7 +616,7 @@ public class Graphulo {
    * @param trace     Enable server-side performance tracing.
    * @return Number of entries processed at the RemoteWriteIterator.
    */
-  private <E extends Serializable> long OneTable(String Atable, String Rtable, String RTtable,
+  public long OneTable(String Atable, String Rtable, String RTtable,
                         Map<Key, Value> clientResultMap, // controls whether to use RWI
                         int AScanIteratorPriority,
                         Reducer reducer, Map<String,String> reducerOpts, // applies at RWI if using RWI; otherwise applies at client
@@ -1631,7 +1630,7 @@ public class Graphulo {
         numEntriesCheckpoint, trace);
   }
 
-  String emptyToNull(String s) { return s != null && s.isEmpty() ? null : s; }
+  protected String emptyToNull(String s) { return s != null && s.isEmpty() ? null : s; }
 
   /**
    * Count number of entries in a table using a BatchScanner with {@link CountAllIterator}.

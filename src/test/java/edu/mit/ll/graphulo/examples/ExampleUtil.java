@@ -16,7 +16,7 @@ import java.net.URL;
 public class ExampleUtil {
   private static final Logger log = LogManager.getLogger(ExampleUtil.class);
 
-  static File getDataFile(String name) {
+  public static File getDataFile(String name) {
     URL url = Thread.currentThread().getContextClassLoader().getResource("data/"+name);
     if (url == null)
       url = Thread.currentThread().getContextClassLoader().getResource("data/"+name+".gz");

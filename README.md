@@ -385,8 +385,20 @@ The reduce operation must therefore be commutative and associative.
 * `tableName`
 * `tableNameTranspose`
 
-
-
+##### DynamicIterator
+Sometimes one wants to use multiple iterators in a chain in a place where there is a spot only for a single iterator.
+This is DynamicIteratorSetting's use case. It loads multiple iterators in a list with options at the Accumulo server.
+For example, the following code creates an iterator at priority 6
+that first applies a Combiner to sum values together 
+and then filters away zero and negative values:
+  
+```Java
+IteratorSetting sumFilterOp =
+  new DynamicIteratorSetting()
+  .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.DOUBLE))
+  .append(MinMaxValueFilter.iteratorSetting(1, ScalarType.DOUBLE, Double.MIN_NORMAL, Double.MAX_VALUE))
+  .toIteratorSetting(6);
+```
 
 ##### Other places to use iterators
 * Can place an iterator before a TwoTableIterator (meaning lower priority), which runs on data from the local table 

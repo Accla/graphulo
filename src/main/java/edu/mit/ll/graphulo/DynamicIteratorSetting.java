@@ -29,12 +29,25 @@ public class DynamicIteratorSetting {
   private Deque<IteratorSetting> iteratorSettingList = new LinkedList<>();
 
   public DynamicIteratorSetting prepend(IteratorSetting setting) {
-    iteratorSettingList.addFirst(setting);
+    if (setting.getIteratorClass().equals(DynamicIterator.class.getName())) {
+      DynamicIteratorSetting dis = fromMap(setting.getOptions());
+      for (Iterator<IteratorSetting> iterator = dis.iteratorSettingList.descendingIterator(); iterator.hasNext(); ) {
+        IteratorSetting itset = iterator.next();
+        iteratorSettingList.addFirst(itset);
+      }
+    } else
+      iteratorSettingList.addFirst(setting);
     return this;
   }
 
   public DynamicIteratorSetting append(IteratorSetting setting) {
-    iteratorSettingList.addLast(setting);
+    if (setting.getIteratorClass().equals(DynamicIterator.class.getName())) {
+      DynamicIteratorSetting dis = fromMap(setting.getOptions());
+      for (IteratorSetting itset : dis.iteratorSettingList) {
+        iteratorSettingList.addLast(itset);
+      }
+    } else
+      iteratorSettingList.addLast(setting);
     return this;
   }
 

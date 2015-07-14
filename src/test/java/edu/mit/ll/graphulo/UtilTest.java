@@ -3,6 +3,7 @@ package edu.mit.ll.graphulo;
 import com.google.common.collect.Iterators;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import edu.mit.ll.graphulo.skvi.MinMaxValueFilter;
+import edu.mit.ll.graphulo.skvi.TriangularFilter;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.PeekingIterator2;
 import edu.mit.ll.graphulo.util.RangeSet;
@@ -508,12 +509,20 @@ public class UtilTest {
   public void testDynamicIteratorSetting() {
     DynamicIteratorSetting dis = new DynamicIteratorSetting();
     dis.append(MinMaxValueFilter.iteratorSetting(1, MathTwoScalar.ScalarType.LONG, 5, null));
-    dis.append(new IteratorSetting(1, "negFilter", MinMaxValueFilter.class, Collections.singletonMap("negate", Boolean.toString(true))));
+    dis.append(new IteratorSetting(1, MinMaxValueFilter.class, Collections.singletonMap("negate", Boolean.toString(true))));
 
     IteratorSetting setting1 = dis.toIteratorSetting(5);
     Map<String,String> mapCopy = new HashMap<>(setting1.getOptions());
     Assert.assertEquals(setting1,
         DynamicIteratorSetting.fromMap(mapCopy).toIteratorSetting(5));
+
+    DynamicIteratorSetting dis2 = new DynamicIteratorSetting();
+    dis2.append(TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.Upper));
+    dis2.prepend(setting1);
+    IteratorSetting setting2 = dis2.toIteratorSetting(5);
+    Assert.assertEquals(setting2,
+        DynamicIteratorSetting.fromMap(setting2.getOptions()).toIteratorSetting(5));
+    log.info("DynamicIteratorSetting2: "+setting2);
   }
 
   @Test

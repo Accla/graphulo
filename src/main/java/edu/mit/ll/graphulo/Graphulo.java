@@ -606,13 +606,13 @@ public class Graphulo {
    * @param rowFilter Only reads rows in the given Ranges. Null means all rows.
    * @param colFilter Only acts on entries with a matching column. This is interpreted as a D4M string.
    *                   Null means all columns. Note that the columns are still read, just not sent through the iterator stack.
-   * @param iteratorList Iterators to apply after the row and column filtering but before the RemoteWriteIterator.
+   * @param midIterator Iterators to apply after the row and column filtering but before the RemoteWriteIterator.
    *                     Always applied at the server.
    * @param bs Pass in a BatchScanner if you wish to re-use a BatchScanner across multiple calls.
    *           If given, will NOT call close().  If not given, will create a new one and close it before finishing.
    *           Post-condition: This method will <b>CLEAR scan-time iterators and fetched columns</b> from the BatchScanner.
    *           Thus, scan-time iterators and fetched columns on a given BatchScanner will affect this OneTable operation once.
-   *           It is better to specify a column filter and iteratorList instead of setting these on the BatchScanner directly.
+   *           It is better to specify a column filter and midIterator instead of setting these on the BatchScanner directly.
    * @param trace     Enable server-side performance tracing.
    * @return Number of entries processed at the RemoteWriteIterator.
    */
@@ -623,7 +623,7 @@ public class Graphulo {
                         IteratorSetting plusOp, // priority matters
                         Collection<Range> rowFilter,
                         String colFilter,
-                        List<IteratorSetting> iteratorList, // applied after row and col filter but before RWI
+                        List<IteratorSetting> midIterator, // applied after row and col filter but before RWI
                         BatchScanner bs,
                         boolean trace) {
     boolean useRWI = clientResultMap == null;
@@ -634,7 +634,7 @@ public class Graphulo {
       throw new UnsupportedOperationException("Could lead to unpredictable results: Atable=Rtable=" + Atable);
     if (Atable.equals(RTtable))
       throw new UnsupportedOperationException("Could lead to unpredictable results: Atable=RTtable=" + Atable);
-    if (iteratorList == null) iteratorList = Collections.emptyList();
+    if (midIterator == null) midIterator = Collections.emptyList();
     if (AScanIteratorPriority <= 0)
       AScanIteratorPriority = 27; // default priority
     if (reducerOpts == null)
@@ -709,7 +709,7 @@ public class Graphulo {
     if (colFilter != null)
       GraphuloUtil.applyGeneralColumnFilter(colFilter, bs, dis, true);
 
-    for (IteratorSetting setting : iteratorList)
+    for (IteratorSetting setting : midIterator)
       dis.append(setting);
 
     if (useRWI && reducer != null) {

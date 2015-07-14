@@ -2,7 +2,12 @@ package edu.mit.ll.graphulo.skvi;
 
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.data.*;
+import org.apache.accumulo.core.data.ArrayByteSequence;
+import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.PartialKey;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.OptionDescriber;
@@ -11,7 +16,11 @@ import org.apache.hadoop.io.Text;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Map;
 
 /**
  * Used for on-the-fly degree filtering with min and max degree.
@@ -271,6 +280,15 @@ public class SmallLargeRowFilter implements SortedKeyValueIterator<Key, Value>, 
       throw new IllegalArgumentException(MAX_COLUMNS+"="+maxColumns+" should be > than "+MIN_COLUMNS+"="+minColumns);
 
     return true;
+  }
+
+  public static IteratorSetting iteratorSetting(int priority, int minColumns, int maxColumns) {
+    IteratorSetting itset = new IteratorSetting(priority, SmallLargeRowFilter.class);
+    if (minColumns > 1)
+      itset.addOption(MIN_COLUMNS, Integer.toString(minColumns));
+    if (maxColumns < Integer.MAX_VALUE)
+      itset.addOption(MAX_COLUMNS, Integer.toString(maxColumns));
+    return itset;
   }
 
   /**

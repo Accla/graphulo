@@ -700,9 +700,9 @@ public class Graphulo {
 
     if (rowFilter != null) {
       Map<String,String> rowFilterOpt = Collections.singletonMap("rowRanges", GraphuloUtil.rangesToD4MString(rowFilter));
-      if (useRWI) {
+      if (useRWI)
         optRWI.put("rowRanges", GraphuloUtil.rangesToD4MString(rowFilter)); // translate row filter to D4M notation
-      } else
+      else
         dis.append(new IteratorSetting(4, SeekFilterIterator.class, rowFilterOpt));
     }
 
@@ -839,11 +839,8 @@ public class Graphulo {
     List<IteratorSetting> iteratorSettingList = new ArrayList<>();
 
     IteratorSetting itsetDegreeFilter = null;
-    if (needDegreeFiltering && ADegtable == null) {
-      itsetDegreeFilter = new IteratorSetting(3, SmallLargeRowFilter.class);
-      SmallLargeRowFilter.setMinColumns(itsetDegreeFilter, minDegree);
-      SmallLargeRowFilter.setMaxColumns(itsetDegreeFilter, maxDegree);
-    }
+    if (needDegreeFiltering && ADegtable == null)
+      itsetDegreeFilter = SmallLargeRowFilter.iteratorSetting(3, minDegree, maxDegree);
 
     try {
       long degTime = 0, scanTime = 0;

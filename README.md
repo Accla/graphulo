@@ -51,6 +51,7 @@ docs/...              Papers and presentations related to Graphulo.
   
 pom.xml               Maven Project Object Model. Defines how to build graphulo.
 post-test.bash        Script to display output of tests from shippable/testresults.
+viewMiniServerLogs.sh Script to display server-side MiniAccumulo logs for most recent singleton test.
 deploy.sh             Script to deploy a graphulo build to Accumulo and Matlab D4M.
 README.md             This file.
 README-D4M.md         Readme for d4m_api_java, also included in this distribution.
@@ -75,10 +76,6 @@ The main distribution files are a JAR containing graphulo code,
 and a libext ZIP file containing dependencies for both projects.
 The JAR and ZIP are created inside the `target/` directory.
 
-Run `mvn package -Paccumulo1.6 -DskipTests=true` to explicitly compile against Accumulo 1.6,
-but this should not be necessary because Accumulo 1.7 is backward-compatible with 1.6.
-More generally, append `-Paccumulo1.6` to any mvn command to act on Accumulo 1.7. 
-
 The maven script will build everything on Unix-like systems.
 On Windows systems, `DBinit.m` may not be built (used in D4M installation). 
 See the message in the build after running `mvn package`.
@@ -90,11 +87,14 @@ Tests only run on Unix-like systems.
 a portable, lightweight Accumulo instance started before and stopped after each test class.
 * `mvn test -DTEST_CONFIG=local` to run tests on a local instance of Accumulo.
 See TEST_CONFIG.java for changing connection parameters, such as testing on a remote Accumulo instance.
+  * When running on a full Accumulo instance, if a test fails for any reason, it
+  may leave a test table on the Accumulo instance which will mess up future tests.  
+  Delete the tables manually if this happens.
 * `post-test.bash` is a utility script to output test results to the console.
 * Test results are saved in the `shippable/testresults` folder.
 * Run `mvn clean` to delete output from previously run tests.
 
-[MiniAccumulo]: https://accumulo.apache.org/1.6/accumulo_user_manual.html#_mini_accumulo_cluster
+[MiniAccumulo]: https://accumulo.apache.org/1.7/accumulo_user_manual.html#_mini_accumulo_cluster
 
 ### Examples
 The classes in [`src/test/java/edu/mit/ll/graphulo/examples/`](src/test/java/edu/mit/ll/graphulo/examples/)
@@ -396,3 +396,13 @@ before passing to the TwoTableIterator. Useful:
   * `emitEmptyEntries` Choose whether to emit entries with a Value of an empty byte array ""
   * `emitZeroEntries` Choose whether to emit entries with a Value encoding "0"
 
+
+### Misc
+The Maven profile `accumulo1.6` compiles the source code against the 1.6 Accumulo client library.
+This was found unnecessary as the 1.7 client library is backward-compatible with the 1.6 server library,
+such that compiling against 1.7 client Accumulo produces code that works on Accumulo 1.6 instances.
+
+To get the legacy 1.6 client code compilation, 
+run `mvn package -Paccumulo1.6 -DskipTests=true`,
+but this should not be necessary because Accumulo 1.7 is backward-compatible with 1.6.
+More generally, append `-Paccumulo1.6` to any mvn command to act on Accumulo 1.7. 

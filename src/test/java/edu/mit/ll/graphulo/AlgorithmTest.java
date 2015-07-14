@@ -193,8 +193,8 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    long nnzJaccard = graphulo.Jaccard(tA, tADeg, tR, true);
-    log.info("Jaccard table has "+nnzJaccard+" nnz");
+    long npp = graphulo.Jaccard(tA, tADeg, tR, true);
+    log.info("Jaccard table has "+npp+" #partial products sent to "+tR);
 
     BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
     scanner.setRanges(Collections.singleton(new Range()));
@@ -204,7 +204,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     scanner.close();
     System.out.println("Jaccard test:");
     TestUtil.printExpectActual(expect, actual);
-    Assert.assertEquals(10, nnzJaccard);
+    Assert.assertEquals(10, npp);
     // need to be careful about comparing doubles
     for (Map.Entry<Key, Double> actualEntry : actual.entrySet()) {
       double actualValue = actualEntry.getValue();

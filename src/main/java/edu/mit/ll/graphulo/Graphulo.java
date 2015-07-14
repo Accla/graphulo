@@ -809,8 +809,6 @@ public class Graphulo {
     ADegtable = emptyToNull(ADegtable);
     Rtable = emptyToNull(Rtable);
     RTtable = emptyToNull(RTtable);
-    if (minDegree < 1)
-      minDegree = 1;
     Preconditions.checkArgument(maxDegree >= minDegree, "maxDegree=%s should be >= minDegree=%s", maxDegree, minDegree);
     if (AScanIteratorPriority <= 0)
       AScanIteratorPriority = 4; // default priority
@@ -1711,8 +1709,7 @@ public class Graphulo {
       nnzAfter = countEntries(Aorig);
 
       // Filter out entries with < k-2
-      IteratorSetting kTrussFilter = new IteratorSetting(10, MinMaxValueFilter.class);
-      kTrussFilter.addOption(MinMaxValueFilter.MINVALUE, Long.toString(k-2l));
+      IteratorSetting kTrussFilter = MinMaxValueFilter.iteratorSetting(10, ScalarType.LONG, k-2, null);
 
       do {
         nnzBefore = nnzAfter;
@@ -1825,21 +1822,14 @@ public class Graphulo {
       nnzAfter = countEntries(Eorig);
 
       // Filter out entries with < k-2
-      IteratorSetting kTrussFilter = new IteratorSetting(10, MinMaxValueFilter.class);
-      kTrussFilter.addOption(MinMaxValueFilter.MINVALUE, Long.toString(k-2l));
+      IteratorSetting kTrussFilter = MinMaxValueFilter.iteratorSetting(10, ScalarType.LONG, k-2, null);
 
       // No Diagonal Filter
-      IteratorSetting noDiagFilter = new IteratorSetting(10, TriangularFilter.class);
-      noDiagFilter.addOption(TriangularFilter.TRIANGULAR_TYPE, TriangularFilter.TriangularType.NoDiagonal.name());
+      IteratorSetting noDiagFilter = TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.NoDiagonal);
 
       // R -> sum -> kTrussFilter -> TT_RowSelector
       List<IteratorSetting> iteratorsBeforeA = new ArrayList<>();
-      {
-        IteratorSetting minMaxSetting = new IteratorSetting(1, MinMaxValueFilter.class);
-        minMaxSetting.addOption(MinMaxValueFilter.MAXVALUE, "2");
-        minMaxSetting.addOption(MinMaxValueFilter.MINVALUE, "2");
-        iteratorsBeforeA.add(minMaxSetting);
-      }
+      iteratorsBeforeA.add(MinMaxValueFilter.iteratorSetting(1, ScalarType.LONG, 2, 2));
       iteratorsBeforeA.add(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes())));
       iteratorsBeforeA.add(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW));
       iteratorsBeforeA.add(DEFAULT_PLUS_ITERATOR);
@@ -1907,7 +1897,7 @@ public class Graphulo {
    * @param Rfinal Should not previously exist. Writes the Jaccard table into Rfinal,
    *               using a couple combiner-like iterators.
    * @param trace Server-side tracing.
-   * @return nnz of the result Jaccard table
+   * @return number of partial products sent to Rtable during the Jaccard coefficient calculation
    */
   public long Jaccard(String Aorig, String ADeg, String Rfinal,
                       boolean trace) {
@@ -1932,25 +1922,21 @@ public class Graphulo {
     List<IteratorSetting> afterTTIterators = new LinkedList<>();
     {
 //        DynamicIteratorSetting dis = new DynamicIteratorSetting();
-      afterTTIterators.add(new IteratorSetting(1, TriangularFilter.class,
-          Collections.singletonMap(TriangularFilter.TRIANGULAR_TYPE,
-              TriangularFilter.TriangularType.Upper.name())));
+      afterTTIterators.add(TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.Upper));
       afterTTIterators.add(new IteratorSetting(1, ApplyIterator.class,
           Collections.singletonMap(ApplyIterator.APPLYOP, ColQSpecialByteApply.class.getName())));
 //        afterTTIterators = dis.toIteratorSetting(1);
     }
 
-    long Jnnz = TableMult(Aorig, Aorig, Rfinal, null, -1,
+    long npp = TableMult(Aorig, Aorig, Rfinal, null, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.LONG),
         RPlusIteratorSetting, null, null, null, true, true,
-        Collections.singletonList(new IteratorSetting(1, TriangularFilter.class,
-            Collections.singletonMap(TriangularFilter.TRIANGULAR_TYPE, TriangularFilter.TriangularType.Lower.name()))),
-        Collections.singletonList(new IteratorSetting(1, TriangularFilter.class,
-            Collections.singletonMap(TriangularFilter.TRIANGULAR_TYPE, TriangularFilter.TriangularType.Upper.name()))),
+        Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.Lower)),
+        Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.Upper)),
         afterTTIterators, null, null, -1, trace);
 
-    log.debug("Jaccard nnz "+Jnnz);
-    return Jnnz;
+    log.debug("Jaccard #partial products "+npp);
+    return npp;
   }
 
 

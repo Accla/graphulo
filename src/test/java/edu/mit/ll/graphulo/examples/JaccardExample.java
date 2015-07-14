@@ -6,14 +6,10 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.Combiner;
-import org.apache.accumulo.core.iterators.LongCombiner;
-import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -26,31 +22,21 @@ import java.util.Map;
 /**
  * Example demonstrating
  * (1) ingest the adjacency matrix representation of a graph into the D4M Schema tables ex10A, ex10AT, ex10ADeg;
- * (2) create a new Accumulo table ex10Astep3 with the union sum of three BFS steps;
+ * (2) create a new Accumulo table ex10J holding the Jaccard coefficients in the upper triangle of a subset of ex10A;
  * (3) count the number of entries in ex10Astep3.
  */
-public class AdjBFSExample extends AccumuloTestBase {
-  private static final Logger log = LogManager.getLogger(AdjBFSExample.class);
+public class JaccardExample extends AccumuloTestBase {
+  private static final Logger log = LogManager.getLogger(JaccardExample.class);
 
   /** Corresponds to saved files in the test/java/resources/data folder. */
   public static final int SCALE = 10;
 
-  public static final int numSteps = 3;
-
   @Test
-  public void exampleAdjBFS() throws FileNotFoundException, TableNotFoundException, AccumuloSecurityException, AccumuloException {
+  public void exampleJaccard() throws FileNotFoundException, TableNotFoundException, AccumuloSecurityException, AccumuloException {
     String Atable = "ex" + SCALE + "A";                 // Adjacency table A.
-    String Rtable = "ex" + SCALE + "Astep" + numSteps;  // Result of BFS is summed into Rtable.
-    String RTtable = null;                              // Don't write transpose of BFS.
+    String Rtable = "ex" + SCALE + "J";                 // Table to write Jaccard coefficients.
     String ADegtable = "ex" + SCALE + "ADeg";           // Adjacency table A containing out-degrees.
-    String degColumn = "out";                           // Name of column qualifier under which out-degrees appear in ADegtable.
-    boolean degInColQ = false;                          // Degree is stored in the Value, not the Column Qualifier.
-    int minDegree = 20;                                 // Bounding minimum degree: only include nodes with degree 20 or higher.
-    int maxDegree = Integer.MAX_VALUE;                  // Unbounded maximum degree.  This and the minimum degree make a High-pass Filter.
-    int AScanIteratorPriority = -1;                     // Use default priority for scan-time iterator on table A
-    String v0 = "1,25,:,27,";                           // Starting nodes: node 1 (the supernode) and all the nodes from 25 to 27 inclusive.
     boolean trace = false;                              // Disable debug printing.
-    Map<Key,Value> clientResultMap = null;              // Unused because we are writing entries to a remote table instead of gathering at the client.
 
     // In your code, you would connect to an Accumulo instance by writing something similar to:
 //    ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance("instance").withZkHosts("localhost:2181").withZkTimeout(5000);
@@ -71,32 +57,19 @@ public class AdjBFSExample extends AccumuloTestBase {
     // Create Graphulo executor. Supply the password for your Accumulo user account.
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
 
-    // We choose to use Accumulo's SummingCombiner as the plus operation.
-    // Satisfies requirement that 0 is additive identity.
-    // This iterator decodes values as longs and sums them using long-type addition.
-    int sumPriority = 6;
-    IteratorSetting plusOp = new IteratorSetting(sumPriority, SummingCombiner.class);
-    // Options for plus operator: encode/decode with a string representation; act on all columns of Ctable.
-    LongCombiner.setEncodingType(plusOp, LongCombiner.Type.STRING);
-    Combiner.setCombineAllColumns(plusOp, true);
-    // Note: this is the same as Graphulo.DEFAULT_PLUS_ITERATOR
-
-    // Adjacency Table Breadth First Search.
     // This call blocks until the BFS completes.
-    String vReached = graphulo.AdjBFS(Atable, v0, numSteps, Rtable, RTtable, clientResultMap, AScanIteratorPriority,
-        ADegtable, degColumn, degInColQ, minDegree, maxDegree, plusOp, trace);
-    log.info("First few nodes reachable in exactly "+numSteps+" steps: " +
-            vReached.substring(0,Math.min(20,vReached.length())));
+    long npp = graphulo.Jaccard(Atable, ADegtable, Rtable, trace);log.info("Number of Jaccard coefficients in result table: " + npp);
+    log.info("Number of partial products sent to result table: " + npp);
 
     // Result is in output table. Do whatever you like with it.
     BatchScanner bs = conn.createBatchScanner(Rtable, Authorizations.EMPTY, 2);
     bs.setRanges(Collections.singleton(new Range()));   // Scan whole table.
-    int cnt = 0;
+    int nnzJaccard = 0;
     for (Map.Entry<Key, Value> entry : bs) {
-      cnt++;
+      nnzJaccard++;
     }
     bs.close();
-    log.info("# of entries in output table '" + Rtable + ": " + cnt);
+    log.info("Number of Jaccard coefficients in result table: " + nnzJaccard);
   }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////

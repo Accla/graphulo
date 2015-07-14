@@ -1,6 +1,7 @@
 package edu.mit.ll.graphulo;
 
 import com.google.common.collect.Iterators;
+import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import edu.mit.ll.graphulo.skvi.MinMaxValueFilter;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.PeekingIterator2;
@@ -506,8 +507,8 @@ public class UtilTest {
   @Test
   public void testDynamicIteratorSetting() {
     DynamicIteratorSetting dis = new DynamicIteratorSetting();
-    dis.append(new IteratorSetting(1, MinMaxValueFilter.class, Collections.singletonMap(MinMaxValueFilter.MINVALUE, Long.toString(5))));
-    dis.append(new IteratorSetting(15, "negFilter", MinMaxValueFilter.class, Collections.singletonMap("negate", Boolean.toString(true))));
+    dis.append(MinMaxValueFilter.iteratorSetting(1, MathTwoScalar.ScalarType.LONG, 5, null));
+    dis.append(new IteratorSetting(1, "negFilter", MinMaxValueFilter.class, Collections.singletonMap("negate", Boolean.toString(true))));
 
     IteratorSetting setting1 = dis.toIteratorSetting(5);
     Map<String,String> mapCopy = new HashMap<>(setting1.getOptions());

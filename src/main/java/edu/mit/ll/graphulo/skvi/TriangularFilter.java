@@ -1,5 +1,6 @@
 package edu.mit.ll.graphulo.skvi;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
@@ -23,6 +24,12 @@ public class TriangularFilter extends Filter {
 
   public enum TriangularType { Upper, UpperDiagonal, Lower, LowerDiagonal, Diagonal, NoDiagonal }
   public static final String TRIANGULAR_TYPE = "triangularType";
+
+  public static IteratorSetting iteratorSetting(int priority, TriangularType type) {
+    IteratorSetting itset = new IteratorSetting(priority, TriangularFilter.class);
+    itset.addOption(TRIANGULAR_TYPE, type.name());
+    return itset;
+  }
 
   private TriangularType triangularType = TriangularType.Upper;
 

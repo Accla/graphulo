@@ -291,8 +291,8 @@ public class D4MTripleFileWriter {
         valText = new Text();
       }
 
-      Text outCol = new Text("out"),
-        inCol = new Text("in"),
+      Text outCol = new Text("deg"), // changed to undirected version
+        inCol = new Text("deg"),
         edgeCol = new Text("edge");
       String Stable = baseName+"Single";
       char edgeSep = '|';
@@ -334,6 +334,12 @@ public class D4MTripleFileWriter {
           bw.addMutation(mut);
 
           text.set(rowStr+edgeSep+colStr);
+          mut = new Mutation(text);
+          mut.put(D4MTableWriter.EMPTYCF, edgeCol, val);
+          bw.addMutation(mut);
+
+          // Force undirected
+          text.set(colStr+edgeSep+rowStr);
           mut = new Mutation(text);
           mut.put(D4MTableWriter.EMPTYCF, edgeCol, val);
           bw.addMutation(mut);

@@ -813,16 +813,16 @@ public class BFSTest extends AccumuloTestBase {
       tS = names[0];
       tR = names[1];
     }
-    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+    Map<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
         actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
         degex = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
         degin = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v0|v1",   "", "edge"), new Value("5".getBytes()));
-      input.put(new Key("v1|v0",   "", "edge"), new Value("5".getBytes()));
-      input.put(new Key("v1|v2",   "", "edge"), new Value("2".getBytes()));
-      input.put(new Key("v2|v1",   "", "edge"), new Value("2".getBytes()));
+      input.put(new Key("v0|v1", "", "edge"), new Value("5".getBytes()));
+      input.put(new Key("v1|v0", "", "edge"), new Value("5".getBytes()));
+      input.put(new Key("v1|v2", "", "edge"), new Value("2".getBytes()));
+      input.put(new Key("v2|v1", "", "edge"), new Value("2".getBytes()));
       input.put(new Key("v0|vBig", "", "edge"), new Value("6".getBytes()));
       input.put(new Key("v1|vBig", "", "edge"), new Value("7".getBytes()));
       input.put(new Key("v2|vBig", "", "edge"), new Value("8".getBytes()));
@@ -831,10 +831,10 @@ public class BFSTest extends AccumuloTestBase {
       input.put(new Key("vBig|v1", "", "edge"), new Value("7".getBytes()));
       input.put(new Key("vBig|v2", "", "edge"), new Value("8".getBytes()));
       input.put(new Key("vBig|v9", "", "edge"), new Value("9".getBytes()));
-      input.put(new Key("v0", "",   "deg"), new Value("2".getBytes()));
-      input.put(new Key("v1", "",   "deg"), new Value("3".getBytes()));
-      input.put(new Key("v2", "",   "deg"), new Value("2".getBytes()));
-      input.put(new Key("v9", "",   "deg"), new Value("1".getBytes()));
+      input.put(new Key("v0", "", "deg"), new Value("2".getBytes()));
+      input.put(new Key("v1", "", "deg"), new Value("3".getBytes()));
+      input.put(new Key("v2", "", "deg"), new Value("2".getBytes()));
+      input.put(new Key("v9", "", "deg"), new Value("1".getBytes()));
       input.put(new Key("vBig", "", "deg"), new Value("4".getBytes()));
 
       SortedSet<Text> splits = new TreeSet<>();
@@ -853,9 +853,9 @@ public class BFSTest extends AccumuloTestBase {
       expect.put(new Key("vBig|v1", "", "edge"), new Value("7".getBytes()));
       expect.put(new Key("vBig|v2", "", "edge"), new Value("8".getBytes()));
 //      expect.put(new Key("vBig|v9", "", "edge"), new Value("9".getBytes()));
-      degex.put(new Key("v0", "",   "deg"), new Value("2".getBytes()));
-      degex.put(new Key("v1", "",   "deg"), new Value("3".getBytes()));
-      degex.put(new Key("v2", "",   "deg"), new Value("2".getBytes()));
+      degex.put(new Key("v0", "", "deg"), new Value("2".getBytes()));
+      degex.put(new Key("v1", "", "deg"), new Value("3".getBytes()));
+      degex.put(new Key("v2", "", "deg"), new Value("2".getBytes()));
 //      degex.put(new Key("v9", "",   "deg"), new Value("1".getBytes()));
       degin.put(new Key("vBig", "", "deg"), new Value("3".getBytes())); // 3, not 4!!
 
@@ -868,6 +868,33 @@ public class BFSTest extends AccumuloTestBase {
     // Want to treat degree as the number of columns, not the sum of weights
 
 
+    // Below code for experimenting:
+//    {
+//      // 1 step
+//      boolean copyOutDegrees = true, computeInDegrees = false, outputUnion = false;
+//      String v0 = "v0,";
+//      Collection<Text> u3expect = GraphuloUtil.d4mRowToTexts("v1,vBig,");
+//      {
+//        Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+//        String u3actual = graphulo.SingleBFS(tS, "edge", '|', v0, 1, tR,
+//            tS, "deg", false, copyOutDegrees, computeInDegrees, 1, 3, sumSetting, outputUnion, true);
+//
+//
+//        BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
+//        scanner.setRanges(Collections.singleton(new Range()));
+//        for (Map.Entry<Key, Value> entry : scanner) {
+//          actual.put(entry.getKey(), entry.getValue());
+//          System.out.println(entry.getKey().toStringNoTime()+" -> "+entry.getValue());
+//        }
+//        scanner.close();
+//  //      TestUtil.printExpectActual(expect, actual);
+//        Assert.assertEquals(expect, actual);
+//        Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
+//      }
+//    }
+//    if (true) return;
+
+    conn.tableOperations().delete(tR);
     boolean copyOutDegrees = false, computeInDegrees = false, outputUnion = false;
     String v0 = "v0,";
     Collection<Text> u3expect = GraphuloUtil.d4mRowToTexts("v1,vBig,");

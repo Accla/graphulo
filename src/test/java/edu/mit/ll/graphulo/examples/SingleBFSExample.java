@@ -44,7 +44,7 @@ public class SingleBFSExample extends AccumuloTestBase {
     String edgeColumn = "edge";                         // Name of column that edges are stored in.
     char edgeSep = '|';                                 // Separator character for edges, e.g. the '|' in "v1|v2"
     String Rtable = "ex" + SCALE + "ASingleStep" + numSteps;   // Result of BFS is summed into Rtable.
-    String degColumn = "out";                           // Name of column qualifier under which out-degrees appear in ADegtable.
+    String degColumn = "deg";                           // Name of column qualifier under which degrees appear in ADegtable.
     boolean degInColQ = false;                          // Degree is stored in the Value, not the Column Qualifier.
     boolean copyOutDegrees = true;                      // Copy out-degrees to the result table. Note that in-degrees are not copied.
     boolean computeInDegrees = true;                    // Use extra client scans/writes after the BFS to compute result table in-degrees.
@@ -97,6 +97,7 @@ public class SingleBFSExample extends AccumuloTestBase {
     int cnt = 0;
     for (Map.Entry<Key, Value> entry : bs) {
       cnt++;
+      System.out.println(entry.getKey().toStringNoTime()+" -> "+entry.getValue());
     }
     bs.close();
     log.info("# of entries in output table '" + Rtable + ": " + cnt);
@@ -118,7 +119,7 @@ public class SingleBFSExample extends AccumuloTestBase {
       in exactly numSteps as a return value from the BFS call,
       without writing the subgraph traversed at each step to result tables.
 
-  5)  Set outputUnion = true to obtain all the nodes reached
+  5)  Set outputUnion = true to obtain (at the client) all the nodes reached
       in UP TO numSteps distance from the v0 nodes.
 
   */

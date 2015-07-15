@@ -24,6 +24,8 @@ import java.util.Map;
  * (1) ingest the adjacency matrix representation of a graph into the D4M Schema tables ex10A, ex10AT, ex10ADeg;
  * (2) create a new Accumulo table ex10J holding the Jaccard coefficients in the upper triangle of a subset of ex10A;
  * (3) count the number of entries in ex10Astep3.
+ * This example forms Jaccard coefficients for the entire input graph.
+ * Other use cases may want to sample a graph before computing Jaccard coefficients.
  */
 public class JaccardExample extends AccumuloTestBase {
   private static final Logger log = LogManager.getLogger(JaccardExample.class);

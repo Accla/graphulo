@@ -94,6 +94,7 @@ public class AdjBFSExample extends AccumuloTestBase {
     int cnt = 0;
     for (Map.Entry<Key, Value> entry : bs) {
       cnt++;
+//      System.out.println(entry.getKey().toStringNoTime()+" -> "+entry.getValue());
     }
     bs.close();
     log.info("# of entries in output table '" + Rtable + ": " + cnt);

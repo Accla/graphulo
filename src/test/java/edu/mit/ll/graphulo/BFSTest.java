@@ -893,8 +893,8 @@ public class BFSTest extends AccumuloTestBase {
 //      }
 //    }
 //    if (true) return;
+//    conn.tableOperations().delete(tR);
 
-    conn.tableOperations().delete(tR);
     boolean copyOutDegrees = false, computeInDegrees = false, outputUnion = false;
     String v0 = "v0,";
     Collection<Text> u3expect = GraphuloUtil.d4mRowToTexts("v1,vBig,");

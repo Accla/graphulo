@@ -5,12 +5,19 @@ import edu.mit.ll.graphulo.DynamicIteratorSetting;
 import edu.mit.ll.graphulo.skvi.D4mColumnRangeFilter;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -773,5 +780,52 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
         throw new UnsupportedOperationException();
       }
     };
+  }
+
+  /**
+   * Write entries to a table.
+   */
+  public static void writeEntries(Connector connector, Map<Key, Value> map, String table, boolean createIfNotExist) {
+    if (createIfNotExist && !connector.tableOperations().exists(table))
+      try {
+        connector.tableOperations().create(table);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        log.error("trouble creating "+table, e);
+        throw new RuntimeException(e);
+      } catch (TableExistsException e) {
+        log.error("crazy", e);
+        throw new RuntimeException(e);
+      }
+
+    BatchWriterConfig bwc = new BatchWriterConfig();
+    BatchWriter bw;
+    try {
+      bw = connector.createBatchWriter(table, bwc);
+    } catch (TableNotFoundException e) {
+      log.error("tried to write to a non-existant table "+table, e);
+      throw new RuntimeException(e);
+    }
+
+    try {
+      for (Map.Entry<Key, Value> entry : map.entrySet()) {
+        Key k = entry.getKey();
+        ByteSequence rowData = k.getRowData(),
+            cfData = k.getColumnFamilyData(),
+            cqData = k.getColumnQualifierData();
+        Mutation m = new Mutation(rowData.getBackingArray(), rowData.offset(), rowData.length());
+        m.put(cfData.getBackingArray(), cqData.getBackingArray(), k.getColumnVisibilityParsed(), entry.getValue().get());
+        bw.addMutation(m);
+      }
+
+    } catch (MutationsRejectedException e) {
+      log.error("mutations rejected", e);
+      throw new RuntimeException(e);
+    } finally {
+      try {
+        bw.close();
+      } catch (MutationsRejectedException e) {
+        log.error("mutations rejected while trying to close BatchWriter", e);
+      }
+    }
   }
 }

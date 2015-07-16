@@ -1,6 +1,6 @@
 package edu.mit.ll.graphulo;
 
-import edu.mit.ll.graphulo.util.MatrixUtil;
+import edu.mit.ll.graphulo.util.MemMatrixUtil;
 import edu.mit.ll.graphulo.util.TestUtil;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -15,7 +15,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 /**
- * Test MatrixUtil
+ * Test MemMatrixUtil
  */
 public class MatrixTest  {
   private static final Logger log = LogManager.getLogger(MatrixTest.class);
@@ -29,7 +29,7 @@ public class MatrixTest  {
 //    input.put(new Key("2", "", "1"), new Value("1".getBytes()));
     input.put(new Key("2", "", "2"), new Value("1".getBytes()));
 
-    RealMatrix matrix = MatrixUtil.buildMatrix(input.entrySet().iterator(), 2);
+    RealMatrix matrix = MemMatrixUtil.buildMatrix(input.entrySet().iterator(), 2);
     Assert.assertEquals(2, matrix.getRowDimension());
     Assert.assertEquals(2, matrix.getColumnDimension());
     Assert.assertEquals(1, matrix.getEntry(0, 0), tol);
@@ -37,7 +37,7 @@ public class MatrixTest  {
     Assert.assertEquals(0, matrix.getEntry(1, 0), tol);
     Assert.assertEquals(1, matrix.getEntry(1, 1), tol);
 
-    matrix = MatrixUtil.doInverse(matrix);
+    matrix = MemMatrixUtil.doInverse(matrix);
     Assert.assertEquals(2, matrix.getRowDimension());
     Assert.assertEquals(2, matrix.getColumnDimension());
     Assert.assertEquals(1, matrix.getEntry(0, 0), tol);
@@ -45,7 +45,7 @@ public class MatrixTest  {
     Assert.assertEquals(0, matrix.getEntry(1, 0), tol);
     Assert.assertEquals(1, matrix.getEntry(1, 1), tol);
 
-    SortedMap<Key, Value> back = MatrixUtil.matrixToMap(new TreeMap<Key,Value>(TestUtil.COMPARE_KEY_TO_COLQ), matrix);
+    SortedMap<Key, Value> back = MemMatrixUtil.matrixToMap(new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ), matrix);
     TestUtil.assertEqualDoubleMap(input, back);
 //    Assert.assertEquals(1, Double.parseDouble(new String(back.get(new Key("1", "", "1")).get())), tol);
 //    Assert.assertEquals(1, Double.parseDouble(new String(back.get(new Key("2", "", "2")).get())), tol);
@@ -65,7 +65,7 @@ public class MatrixTest  {
     expect.put(new Key("2", "", "1"), new Value("-1".getBytes()));
     expect.put(new Key("2", "", "2"), new Value("4 ".getBytes()));
 
-    RealMatrix matrix = MatrixUtil.buildMatrix(input.entrySet().iterator(), 2);
+    RealMatrix matrix = MemMatrixUtil.buildMatrix(input.entrySet().iterator(), 2);
     Assert.assertEquals(2, matrix.getRowDimension());
     Assert.assertEquals(2, matrix.getColumnDimension());
     Assert.assertEquals(4, matrix.getEntry(0, 0), tol);
@@ -73,7 +73,7 @@ public class MatrixTest  {
     Assert.assertEquals(1, matrix.getEntry(1, 0), tol);
     Assert.assertEquals(1, matrix.getEntry(1, 1), tol);
 
-    matrix = MatrixUtil.doInverse(matrix);
+    matrix = MemMatrixUtil.doInverse(matrix);
     Assert.assertEquals(2, matrix.getRowDimension());
     Assert.assertEquals(2, matrix.getColumnDimension());
     Assert.assertEquals(1 , matrix.getEntry(0, 0), tol);
@@ -81,7 +81,7 @@ public class MatrixTest  {
     Assert.assertEquals(-1, matrix.getEntry(1, 0), tol);
     Assert.assertEquals(4 , matrix.getEntry(1, 1), tol);
 
-    SortedMap<Key, Value> back = MatrixUtil.matrixToMap(new TreeMap<Key,Value>(TestUtil.COMPARE_KEY_TO_COLQ), matrix);
+    SortedMap<Key, Value> back = MemMatrixUtil.matrixToMap(new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ), matrix);
     TestUtil.assertEqualDoubleMap(expect, back);
   }
 }

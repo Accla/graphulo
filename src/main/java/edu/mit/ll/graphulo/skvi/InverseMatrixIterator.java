@@ -1,7 +1,7 @@
 package edu.mit.ll.graphulo.skvi;
 
 import com.google.common.base.Preconditions;
-import edu.mit.ll.graphulo.util.MatrixUtil;
+import edu.mit.ll.graphulo.util.MemMatrixUtil;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.mock.IteratorAdapter;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -56,8 +56,8 @@ public class InverseMatrixIterator implements SortedKeyValueIterator<Key,Value> 
     source.seek(range, columnFamilies, inclusive);
 
     IteratorAdapter ia = new IteratorAdapter(source);
-    SortedMap<Key, Value> map = MatrixUtil.matrixToMap(new TreeMap<Key, Value>(),
-        MatrixUtil.doInverse(MatrixUtil.buildMatrix(ia, matrixSize)));
+    SortedMap<Key, Value> map = MemMatrixUtil.matrixToMap(new TreeMap<Key, Value>(),
+        MemMatrixUtil.doInverse(MemMatrixUtil.buildMatrix(ia, matrixSize)));
 
     mapIterator = new MapIterator(map);
     mapIterator.init(null, null, null);

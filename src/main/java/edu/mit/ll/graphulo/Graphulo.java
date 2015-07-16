@@ -32,6 +32,7 @@ import edu.mit.ll.graphulo.skvi.TriangularFilter;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import edu.mit.ll.graphulo.util.DebugUtil;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
+import edu.mit.ll.graphulo.util.MemMatrixUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -56,6 +57,8 @@ import org.apache.accumulo.core.iterators.ValueFormatException;
 import org.apache.accumulo.core.iterators.user.ColumnSliceFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.RealMatrixChangingVisitor;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -69,6 +72,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 /**
@@ -742,7 +747,8 @@ public class Graphulo {
         } else {
 //          log.debug(entry.getKey() + " -> " + entry.getValue());
           clientResultMap.put(entry.getKey(), entry.getValue());
-          reducer.update(entry.getKey(), entry.getValue());
+          if (reducer != null)
+            reducer.update(entry.getKey(), entry.getValue());
           numEntries++;
         }
       }
@@ -2230,6 +2236,98 @@ public class Graphulo {
 
     // Delete temporary tables.
     deleteTables(true, tmp1, tmp2);
+  }
+
+
+
+  // Return |newerr-olderr| at end.
+  public double NMF_Client(String Aorig,
+                    String Wfinal, /*String WTfinal,*/ String Hfinal, /*String HTfinal,*/
+                    final int K, final int maxiter,
+                    boolean trace) {
+    checkGiven(true, "Aorig", Aorig);
+    checkGiven(false, "Wfinal, Hfinal", Wfinal, Hfinal); // WTfinal, HTfinal
+    Preconditions.checkArgument(K > 0, "# of topics K must be > 0: " + K);
+    deleteTables(false, Wfinal, Hfinal); // WTfinal, HTfinal
+
+    // Scan A into memory
+    Map<Key,Value> Aentries = new TreeMap<>(); //GraphuloUtil.scanAll(connector, Aorig);
+    OneTable(Aorig, null, null, Aentries, -1, null, null, null, null, null, null, null, false); // returns nnz A
+
+    // Replace row and col labels with integer indexes; create map from indexes to original labels
+    // The Maps are used to put the original labels on W and H
+    SortedMap<Integer,String> rowMap = new TreeMap<>(), colMap = new TreeMap<>();
+    RealMatrix Amatrix = MemMatrixUtil.indexMapAndMatrix(Aentries, rowMap, colMap);
+    RealMatrix ATmatrix = Amatrix.transpose();
+
+    int N = Amatrix.getRowDimension();
+    int M = Amatrix.getColumnDimension();
+
+    // Initialize W to a dense random matrix of size N x K
+    RealMatrix Wmatrix = MemMatrixUtil.randNormPosFull(N, K);
+    RealMatrix WTmatrix = Wmatrix.transpose(), Hmatrix, HTmatrix;
+
+//    if (trace)
+//      DebugUtil.printTable("0: W is NxK:", connector, Wfinal);
+
+    // newerr starts at frobenius norm of A, since H starts at the zero matrix.
+    double newerr = 0, olderr;
+    int numiter = 0;
+
+    do {
+      numiter++;
+      olderr = newerr;
+
+      // H = ONLYPOS( (WT*W)^-1 * (WT*A) )
+      //nmfStep(K, Wfinal, Aorig, Hfinal, HTfinal, Ttmp1, Ttmp2, trace);
+      // assign to Hmatrix
+      Hmatrix = nmfStep_Client(WTmatrix, Wmatrix, Amatrix);
+      HTmatrix = Hmatrix.transpose();
+//      if (trace)
+//        DebugUtil.printTable(numiter + ": H is KxM:", connector, Hfinal);
+
+      // WT = ONLYPOS( (H*HT)^-1 * (H*AT) )
+      WTmatrix = nmfStep_Client(Hmatrix, HTmatrix, ATmatrix);
+      Wmatrix = WTmatrix.transpose();
+//      if (trace)
+//        DebugUtil.printTable(numiter + ": W is NxK:", connector, Wfinal);
+
+      newerr = Amatrix.subtract(Wmatrix.multiply(Hmatrix)).getFrobeniusNorm();
+//      if (trace)
+//        DebugUtil.printTable(numiter + ": A is NxM --- error is "+newerr+":", connector, Aorig);
+
+      log.debug("NMF Iteration "+numiter+": olderr " + olderr + " newerr " + newerr);
+    } while (Math.abs(newerr - olderr) > 0.01d && numiter < maxiter);
+
+    // Write out results!
+    Map<Key,Value> Wmap = MemMatrixUtil.matrixToMapWithLabels(Wmatrix, rowMap, false); // false = label row
+    Map<Key,Value> Hmap = MemMatrixUtil.matrixToMapWithLabels(Hmatrix, colMap, true); // true = label column qualifier
+    GraphuloUtil.writeEntries(connector, Wmap, Wfinal, true);
+    GraphuloUtil.writeEntries(connector, Hmap, Hfinal, true);
+
+    return Math.abs(newerr - olderr);
+  }
+
+  private RealMatrix nmfStep_Client(RealMatrix M1, RealMatrix M2, RealMatrix MA) {
+    RealMatrix MR = MemMatrixUtil.doInverse(M1.multiply(M2)).multiply(M1.multiply(MA));
+    // only keep positive entries
+    MR.walkInOptimizedOrder(new RealMatrixChangingVisitor() {
+      @Override
+      public void start(int rows, int columns, int startRow, int endRow, int startColumn, int endColumn) {
+
+      }
+
+      @Override
+      public double visit(int row, int column, double value) {
+        return value > 0 ? value : 0;
+      }
+
+      @Override
+      public double end() {
+        return 0;
+      }
+    });
+    return MR;
   }
 
 

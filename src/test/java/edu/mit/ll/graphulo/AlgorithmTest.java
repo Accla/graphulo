@@ -305,4 +305,88 @@ public class AlgorithmTest extends AccumuloTestBase {
     conn.tableOperations().delete(tWH);
   }
 
+  @Test
+  public void testNMF_Client() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    Connector conn = tester.getConnector();
+    final String tE, tET, tW, tWT, tH, tHT, tWH;
+    {
+      String[] names = getUniqueNames(7);
+      tE = names[0];
+      tW = names[2];
+      tH = names[4];
+//      tWH = names[6];
+    }
+    {
+      Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("e1", "", "v1"), new Value("1".getBytes()));
+      input.put(new Key("e1", "", "v2"), new Value("1".getBytes()));
+      input.put(new Key("e2", "", "v2"), new Value("1".getBytes()));
+      input.put(new Key("e2", "", "v3"), new Value("1".getBytes()));
+      input.put(new Key("e3", "", "v1"), new Value("1".getBytes()));
+      input.put(new Key("e3", "", "v4"), new Value("1".getBytes()));
+      input.put(new Key("e4", "", "v3"), new Value("1".getBytes()));
+      input.put(new Key("e4", "", "v4"), new Value("1".getBytes()));
+      input.put(new Key("e5", "", "v1"), new Value("1".getBytes()));
+      input.put(new Key("e5", "", "v3"), new Value("1".getBytes()));
+      input.put(new Key("e6", "", "v2"), new Value("1".getBytes()));
+      input.put(new Key("e6", "", "v5"), new Value("1".getBytes()));
+      SortedSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("e22"));
+      TestUtil.createTestTable(conn, tE, splits, input);
+//      splits.clear();
+//      splits.add(new Text("v22"));
+//      TestUtil.createTestTable(conn, tET, splits, TestUtil.transposeMap(input));
+    }
+
+    Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+    int K = 3;
+    int maxIter = 10;
+    boolean trace = false;
+    long t = System.currentTimeMillis();
+    double error = graphulo.NMF_Client(tE, tW, tH, K, maxIter, trace);
+    System.out.println("Trace is "+trace+"; Client NMF time "+(System.currentTimeMillis()-t));
+    log.info("NMF error " + error);
+
+    System.out.println("A:");
+    Scanner scanner = conn.createScanner(tE, Authorizations.EMPTY);
+    for (Map.Entry<Key, Value> entry : scanner) {
+      System.out.println(entry.getKey().toStringNoTime() + " -> " + entry.getValue());
+    }
+    scanner.close();
+
+    System.out.println("W:");
+    scanner = conn.createScanner(tW, Authorizations.EMPTY);
+    for (Map.Entry<Key, Value> entry : scanner) {
+      System.out.println(entry.getKey().toStringNoTime() + " -> " + entry.getValue());
+    }
+    scanner.close();
+
+    System.out.println("H:");
+    scanner = conn.createScanner(tH, Authorizations.EMPTY);
+    for (Map.Entry<Key, Value> entry : scanner) {
+      System.out.println(entry.getKey().toStringNoTime() + " -> " + entry.getValue());
+    }
+    scanner.close();
+
+//    graphulo.TableMult(tWT, tH, tWH, null, -1,
+//        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.DOUBLE),
+//        MathTwoScalar.combinerSetting(Graphulo.DEFAULT_PLUS_ITERATOR.getPriority(), null, MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.DOUBLE),
+//        null, null, null, false, false, -1, false);
+//
+//    System.out.println("WH:");
+//    scanner = conn.createScanner(tWH, Authorizations.EMPTY);
+//    for (Map.Entry<Key, Value> entry : scanner) {
+//      System.out.println(entry.getKey().toStringNoTime() + " -> " + entry.getValue());
+//    }
+//    scanner.close();
+
+    conn.tableOperations().delete(tE);
+//    conn.tableOperations().delete(tET);
+    conn.tableOperations().delete(tW);
+//    conn.tableOperations().delete(tWT);
+    conn.tableOperations().delete(tH);
+//    conn.tableOperations().delete(tHT);
+//    conn.tableOperations().delete(tWH);
+  }
+
 }

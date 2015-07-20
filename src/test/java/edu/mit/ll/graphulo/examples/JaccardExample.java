@@ -1,11 +1,18 @@
 package edu.mit.ll.graphulo.examples;
 
+import com.google.common.collect.Iterables;
+import edu.mit.ll.graphulo.ClientSideIteratorAggregatingScanner;
+import edu.mit.ll.graphulo.DynamicIteratorSetting;
 import edu.mit.ll.graphulo.Graphulo;
+import edu.mit.ll.graphulo.apply.KeyRetainOnlyApply;
+import edu.mit.ll.graphulo.simplemult.ConstantTwoScalar;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
+import edu.mit.ll.graphulo_ndsi.DoubleStatsCombiner;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -22,10 +29,9 @@ import java.util.Map;
 /**
  * Example demonstrating
  * (1) ingest the adjacency matrix representation of a graph into the D4M Schema tables ex10A, ex10AT, ex10ADeg;
- * (2) create a new Accumulo table ex10J holding the Jaccard coefficients in the upper triangle of a subset of ex10A;
- * (3) count the number of entries in ex10Astep3.
- * This example forms Jaccard coefficients for the entire input graph.
- * Other use cases may want to sample a graph before computing Jaccard coefficients.
+ * (2) copy a subset of ex10A to a table ex10ASub, using low-pass degree filtering;
+ * (3) create a new Accumulo table ex10J holding the Jaccard coefficients in the upper triangle of a subset of ex10A;
+ * (4) find the minimum, maximum, sum, count and average of the Jaccard coefficients in ex10J.
  */
 public class JaccardExample extends AccumuloTestBase {
   private static final Logger log = LogManager.getLogger(JaccardExample.class);
@@ -38,7 +44,7 @@ public class JaccardExample extends AccumuloTestBase {
     String Atable = "ex" + SCALE + "A";                 // Adjacency table A.
     String Rtable = "ex" + SCALE + "J";                 // Table to write Jaccard coefficients.
     String ADegtable = "ex" + SCALE + "ADeg";           // Adjacency table A containing out-degrees.
-    boolean trace = false;                              // Disable debug printing.
+    boolean trace = true;                              // Disable debug printing.
 
     // In your code, you would connect to an Accumulo instance by writing something similar to:
 //    ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance("instance").withZkHosts("localhost:2181").withZkTimeout(5000);
@@ -59,35 +65,62 @@ public class JaccardExample extends AccumuloTestBase {
     // Create Graphulo executor. Supply the password for your Accumulo user account.
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
 
-    // This call blocks until the BFS completes.
-    long npp = graphulo.Jaccard(Atable, ADegtable, Rtable, trace);log.info("Number of Jaccard coefficients in result table: " + npp);
+    // Materialize a subset of the adjacency table as a new table AtableSub.
+    // Subset is all nodes and edges reachable in one step from v0.
+    // By writing both the normal table and the transpose to the same table,
+    // we create an undirected adjacency table subset.
+    // Low-pass Degree Filtering: limit the maximum degree to 75.
+    String AtableSub = Atable+"Sub";
+    String v0 = "2,4,6,8,15,25,37,42,69,150,155,";
+    // Iterator on new table forces Values to 1, creating an unweighted adj. table.
+    IteratorSetting itset = ConstantTwoScalar.iteratorSetting(
+        Graphulo.DEFAULT_PLUS_ITERATOR.getPriority(), new Value("1".getBytes()));
+
+    String nodesReached = graphulo.AdjBFS(Atable, v0, 1, AtableSub, AtableSub, null, -1,
+        ADegtable, "out", false, 1, 75, itset, trace);
+    log.info("Nodes reached from v0: "+nodesReached);
+    log.info("Does AtableSub exist? "+conn.tableOperations().exists(AtableSub));
+
+    long npp = graphulo.Jaccard(AtableSub, ADegtable, Rtable, trace);
     log.info("Number of partial products sent to result table: " + npp);
 
     // Result is in output table. Do whatever you like with it.
+    // In this example, we scan the result table with a special Combiner
+    // that emits statistics based on entries it sees in each row-column.
+    // The KeyRetainOnlyApply iterator puts all entries in the same row-column in each tablet.
+    // It must be run once more at the client to aggregate across tablets.
+    // See ClientSideIteratorAggregatingScanner, since
+    // we can hold one entry from each tablet in memory.
+    IteratorSetting scanIters = new DynamicIteratorSetting()
+        .append(KeyRetainOnlyApply.iteratorSetting(1, null))
+        .append(DoubleStatsCombiner.iteratorSetting(1, null))
+        .toIteratorSetting(19, "statsCombineAll");
     BatchScanner bs = conn.createBatchScanner(Rtable, Authorizations.EMPTY, 2);
     bs.setRanges(Collections.singleton(new Range()));   // Scan whole table.
-    int nnzJaccard = 0;
-    for (Map.Entry<Key, Value> entry : bs) {
-      nnzJaccard++;
-    }
+    bs.addScanIterator(scanIters);  // Run at server.
+    bs = new ClientSideIteratorAggregatingScanner(bs);
+    bs.addScanIterator(scanIters);  // Run at client.
+    Map.Entry<Key, Value> allStatsEntry = Iterables.getOnlyElement(bs); // Single entry returned.
     bs.close();
-    log.info("Number of Jaccard coefficients in result table: " + nnzJaccard);
+
+    String[] statParts = allStatsEntry.getValue().toString().split(",");
+    double min = Double.parseDouble(statParts[0]),
+        max = Double.parseDouble(statParts[1]),
+        sum = Double.parseDouble(statParts[2]),
+        cnt = Double.parseDouble(statParts[3]);
+    log.info("Jaccard min: "+min);
+    log.info("Jaccard max: "+max);
+    log.info("Jaccard sum: "+sum);
+    log.info("Jaccard cnt: " + cnt);
+    log.info("Jaccard avg: " + (sum/cnt));
   }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////
   /*  Variations of above example:
 
-  1)  Change the minimum and maximum degrees, the starting nodes and the plus operation.
-      Setting plusOp to null means that entries sent to Rtable overwrite existing entries
-      instead of summing.
+  1)  Change the subset by modifying the AdjBFS call.
 
   2)  Increase the SCALE parameter to 12, 14 or 16 to run on larger graphs.
-
-  3)  Set ADegtable to null to instruct Graphulo to filter degrees on the fly using an iterator.
-
-  4)  Set Rtable and RTtable both to null to obtain the nodes reachable
-      in exactly numSteps as a return value from the BFS call,
-      without writing the subgraph traversed at each step to result tables.
 
   */
   ////////////////////////////////////////////////////////////////////////////////////////////////

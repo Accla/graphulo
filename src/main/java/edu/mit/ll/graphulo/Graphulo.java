@@ -51,7 +51,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.ValueFormatException;
 import org.apache.accumulo.core.iterators.user.ColumnSliceFilter;
@@ -800,9 +799,11 @@ public class Graphulo {
                        String ADegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree,
                        IteratorSetting plusOp,
                        boolean trace) {
-    boolean needDegreeFiltering = minDegree > 0 || maxDegree < Integer.MAX_VALUE;
+    boolean needDegreeFiltering = minDegree > 1 || maxDegree < Integer.MAX_VALUE;
     boolean useRWI = clientResultMap == null;
     checkGiven(true, "Atable", Atable);
+    if (minDegree < 1)
+      minDegree = 1;
     ADegtable = emptyToNull(ADegtable);
     Rtable = emptyToNull(Rtable);
     RTtable = emptyToNull(RTtable);
@@ -951,8 +952,8 @@ public class Graphulo {
     if (degColumnText.getLength() == 0)
       degColumnText = null;
     TableOperations tops = connector.tableOperations();
-    assert ADegtable != null && !ADegtable.isEmpty() && minDegree > 0 && maxDegree >= minDegree
-        && tops.exists(ADegtable);
+    assert ADegtable != null && !ADegtable.isEmpty() && (minDegree > 1 || maxDegree < Integer.MAX_VALUE)
+        && maxDegree >= minDegree && tops.exists(ADegtable);
     BatchScanner bs;
     try {
       bs = connector.createBatchScanner(ADegtable, Authorizations.EMPTY, 4); // TODO P2: set number of batch scan threads
@@ -1042,7 +1043,7 @@ public class Graphulo {
                          String startPrefixes, String endPrefixes,
                          String ETDegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree,
                          IteratorSetting plusOp, int EScanIteratorPriority, boolean trace) {
-    boolean needDegreeFiltering = minDegree > 0 || maxDegree < Integer.MAX_VALUE;
+    boolean needDegreeFiltering = minDegree > 1 || maxDegree < Integer.MAX_VALUE;
     if (Etable == null || Etable.isEmpty())
       throw new IllegalArgumentException("Please specify Incidence table. Given: " + Etable);
     if (needDegreeFiltering && (ETDegtable == null || ETDegtable.isEmpty()))
@@ -1355,7 +1356,7 @@ public class Graphulo {
                           String SDegtable, String degColumn, boolean degInColQ,
                           boolean copyOutDegrees, boolean computeInDegrees, int minDegree, int maxDegree,
                           IteratorSetting plusOp, boolean outputUnion, boolean trace) {
-    boolean needDegreeFiltering = minDegree > 0 || maxDegree < Integer.MAX_VALUE;
+    boolean needDegreeFiltering = minDegree > 1 || maxDegree < Integer.MAX_VALUE;
     checkGiven(true, "Stable", Stable);
     if (needDegreeFiltering && (SDegtable == null || SDegtable.isEmpty()))
       throw new IllegalArgumentException("Please specify SDegtable since filtering is required. Given: " + Stable);

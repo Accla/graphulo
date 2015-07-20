@@ -82,17 +82,8 @@ import java.util.TreeSet;
 public class Graphulo {
   private static final Logger log = LogManager.getLogger(Graphulo.class);
 
-  public static final IteratorSetting DEFAULT_PLUS_ITERATOR;
-
-  static {
-//    IteratorSetting sumSetting = new IteratorSetting(6, SummingCombiner.class);
-//    LongCombiner.setEncodingType(sumSetting, LongCombiner.Type.STRING);
-//    Combiner.setCombineAllColumns(sumSetting, true);
-    IteratorSetting sumSetting = new IteratorSetting(6, MathTwoScalar.class);
-    sumSetting.addOptions(MathTwoScalar.optionMap(ScalarOp.PLUS, ScalarType.BIGDECIMAL));
-    Combiner.setCombineAllColumns(sumSetting, true);
-    DEFAULT_PLUS_ITERATOR = sumSetting;
-  }
+  public static final IteratorSetting DEFAULT_PLUS_ITERATOR =
+            MathTwoScalar.combinerSetting(6, null, ScalarOp.PLUS, ScalarType.BIGDECIMAL);
 
   protected Connector connector;
   protected PasswordToken password;
@@ -379,18 +370,18 @@ public class Graphulo {
   }
 
   public long TwoTable(String ATtable, String Btable, String Ctable, String CTtable,
-                        int BScanIteratorPriority,
+                       int BScanIteratorPriority,
                        TwoTableIterator.DOTMODE dotmode, Map<String, String> optsTT,
                        IteratorSetting plusOp, // priority matters
                        Collection<Range> rowFilter,
                        String colFilterAT, String colFilterB,
                        boolean emitNoMatchA, boolean emitNoMatchB,
-                        // RemoteSourceIterator has its own priority for scan-time iterators.
-                        // Could override by "diterPriority" option
-                        List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
-                        List<IteratorSetting> iteratorsAfterTwoTable, // priority doesn't matter for these three
-                        Reducer reducer, Map<String,String> reducerOpts, // applies at RWI if using RWI; otherwise applies at client. Reducer must be init'ed previously
-                        int numEntriesCheckpoint, boolean trace) {
+                       // RemoteSourceIterator has its own priority for scan-time iterators.
+                       // Could override by "diterPriority" option
+                       List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
+                       List<IteratorSetting> iteratorsAfterTwoTable, // priority doesn't matter for these three
+                       Reducer reducer, Map<String,String> reducerOpts, // applies at RWI if using RWI; otherwise applies at client. Reducer must be init'ed previously
+                       int numEntriesCheckpoint, boolean trace) {
     if (ATtable == null || ATtable.isEmpty())
       throw new IllegalArgumentException("Please specify table AT. Given: " + ATtable);
     if (Btable == null || Btable.isEmpty())
@@ -620,17 +611,17 @@ public class Graphulo {
    *           It is better to specify a column filter and midIterator instead of setting these on the BatchScanner directly.
    * @param trace     Enable server-side performance tracing.
    * @return Number of entries processed at the RemoteWriteIterator.
-   */
-  public long OneTable(String Atable, String Rtable, String RTtable,
-                        Map<Key, Value> clientResultMap, // controls whether to use RWI
-                        int AScanIteratorPriority,
-                        Reducer reducer, Map<String,String> reducerOpts, // applies at RWI if using RWI; otherwise applies at client
-                        IteratorSetting plusOp, // priority matters
-                        Collection<Range> rowFilter,
-                        String colFilter,
-                        List<IteratorSetting> midIterator, // applied after row and col filter but before RWI
-                        BatchScanner bs,
-                        boolean trace) {
+   */    // Return number of entries processed at RemoteWriteIterator or client
+  public long OneTable(String Atable, String Rtable, String RTtable,      // Input, output table names
+                       Map<Key, Value> clientResultMap,                   // controls whether to use RWI
+                       int AScanIteratorPriority,                         // Scan-time iterator priority
+                       Reducer reducer, Map<String, String> reducerOpts,  // Applies at RemoteWriteIterator and/or client
+                       IteratorSetting plusOp,                            // priority matters
+                       Collection<Range> rowFilter,
+                       String colFilter,
+                       List<IteratorSetting> midIterator,                 // Applied after row, col filter but before RWI
+                       BatchScanner bs,                                   // Optimization: re-use BatchScanner
+                       boolean trace) {
     boolean useRWI = clientResultMap == null;
     if (Atable == null || Atable.isEmpty())
       throw new IllegalArgumentException("Please specify table A. Given: " + Atable);

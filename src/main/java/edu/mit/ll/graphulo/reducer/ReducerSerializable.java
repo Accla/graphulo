@@ -19,12 +19,12 @@ public abstract class ReducerSerializable<E extends Serializable> implements Red
 
   @SuppressWarnings("unchecked")
   @Override
-  public void combine(byte[] another) {
+  public final void combine(byte[] another) {
     combine((E) SerializationUtils.deserialize(another));
   }
 
   @Override
-  public byte[] getForClient() {
+  public final byte[] getForClient() {
     return SerializationUtils.serialize(getSerializableForClient());
   }
 }

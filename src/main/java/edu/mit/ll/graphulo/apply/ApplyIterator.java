@@ -104,7 +104,7 @@ public class ApplyIterator implements SortedKeyValueIterator<Key, Value> {
   }
 
   @Override
-  public SortedKeyValueIterator<Key, Value> deepCopy(IteratorEnvironment env) {
+  public ApplyIterator deepCopy(IteratorEnvironment env) {
     ApplyIterator copy = new ApplyIterator();
     try {
       copy.applyOp = applyOp.getClass().newInstance();

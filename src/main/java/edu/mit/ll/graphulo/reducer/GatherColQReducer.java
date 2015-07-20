@@ -18,7 +18,6 @@ public class GatherColQReducer extends ReducerSerializable<HashSet<String>> {
 
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env)  {
-
   }
 
   @Override

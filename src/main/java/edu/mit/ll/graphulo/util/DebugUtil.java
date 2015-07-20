@@ -16,7 +16,7 @@ import java.util.TreeSet;
 
 
 /**
- * Helpful for deugging
+ * Helpful for debugging
  */
 public class DebugUtil {
 

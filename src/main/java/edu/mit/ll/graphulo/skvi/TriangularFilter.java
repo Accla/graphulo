@@ -36,9 +36,8 @@ public class TriangularFilter extends Filter {
   @Override
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env); // initializes NEGATE
-    if (options.containsKey(TRIANGULAR_TYPE)) {
+    if (options.containsKey(TRIANGULAR_TYPE))
       triangularType = TriangularType.valueOf(options.get(TRIANGULAR_TYPE));
-    }
   }
 
   @Override

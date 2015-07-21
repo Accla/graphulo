@@ -56,7 +56,7 @@ public class JaccardDegreeApply implements ApplyOp {
     Text rowHolder = new Text();
     while (remoteDegTable.hasTop()) {
       degMap.put(remoteDegTable.getTopKey().getRow(rowHolder).toString(),
-          (double) Long.parseLong(remoteDegTable.getTopValue().toString()));
+          Double.valueOf(remoteDegTable.getTopValue().toString()));
       remoteDegTable.next();
     }
   }
@@ -77,7 +77,6 @@ public class JaccardDegreeApply implements ApplyOp {
       throw new IllegalStateException("Cannot find rowDeg in degree table:" +row);
     if (colDeg == null)
       throw new IllegalStateException("Cannot find colDeg in degree table:" +col);
-//    double rowDeg = degMap.get(row), colDeg = degMap.get(col),
     double Jij = Long.parseLong(vstr);
     return Iterators.singletonIterator( new AbstractMap.SimpleImmutableEntry<>(k,
         new Value(Double.toString(Jij / (rowDeg+colDeg-Jij)).getBytes())

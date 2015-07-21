@@ -2,7 +2,6 @@ package edu.mit.ll.graphulo;
 
 import com.google.common.base.Preconditions;
 import edu.mit.ll.graphulo.apply.ApplyIterator;
-import edu.mit.ll.graphulo.apply.ColQSpecialByteApply;
 import edu.mit.ll.graphulo.apply.JaccardDegreeApply;
 import edu.mit.ll.graphulo.apply.KeyRetainOnlyApply;
 import edu.mit.ll.graphulo.apply.RandomTopicApply;
@@ -68,7 +67,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
@@ -1903,11 +1901,6 @@ public class Graphulo {
     TableOperations tops = connector.tableOperations();
     Preconditions.checkArgument(!tops.exists(Rfinal), "Output Jaccard table must not exist: Rfinal=%s", Rfinal); // this could be relaxed, at the possibility of peril
 
-    List<IteratorSetting> afterTTIterators = new DynamicIteratorSetting()
-      .append(TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.Upper))
-      .append(ColQSpecialByteApply.iteratorSetting(1))
-      .getIteratorSettingList();
-
     // "Plus" iterator to set on Rfinal
     IteratorSetting RPlusIteratorSetting = new DynamicIteratorSetting()
       .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.LONG))
@@ -1916,14 +1909,15 @@ public class Graphulo {
 
     // use a deepCopy of the local iterator on A for the left part of the TwoTable
     long npp = TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Aorig, Rfinal, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.LONG),
+        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.LONG),    // this could be a ConstantTwoScalar if we knew no "0" entries present
         RPlusIteratorSetting,
         filterRowCol == null ? null : GraphuloUtil.d4mRowToRanges(filterRowCol),
         filterRowCol, filterRowCol,
         true, true,
         Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.Lower)),
         Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.Upper)),
-        afterTTIterators, null, null, -1, trace);
+        Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.Upper)),
+        null, null, -1, trace);
 
     log.debug("Jaccard #partial products " + npp);
     return npp;

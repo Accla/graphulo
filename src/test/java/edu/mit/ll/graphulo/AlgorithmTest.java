@@ -196,6 +196,9 @@ public class AlgorithmTest extends AccumuloTestBase {
     long npp = graphulo.Jaccard(tA, tADeg, tR, null, true);
     log.info("Jaccard table has "+npp+" #partial products sent to "+tR);
 
+    // Just for fun, let's compact and ensure idempotence.
+    conn.tableOperations().compact(tR, null, null, true, true);
+
     BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
     scanner.setRanges(Collections.singleton(new Range()));
     for (Map.Entry<Key, Value> entry : scanner) {

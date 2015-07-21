@@ -63,19 +63,23 @@ public class JaccardDegreeApply implements ApplyOp {
 
   @Override
   public Iterator<? extends Map.Entry<Key, Value>> apply(final Key k, Value v) {
-    Key newKey = ColQSpecialByteApply.removeSpecialBytes(k);
-    if (newKey == null)
+//    Key newKey = ColQSpecialByteApply.removeSpecialBytes(k);
+//    if (newKey == null)
+//      return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(k, v));
+    // Period indicates already processed Double value. No period indicates unprocessed Long value.
+    String vstr = v.toString();
+    if (vstr.contains("."))
       return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(k, v));
 
-    String row = k.getRow().toString(), col = newKey.getColumnQualifier().toString();
+    String row = k.getRow().toString(), col = k.getColumnQualifier().toString();
     Double rowDeg = degMap.get(row), colDeg = degMap.get(col);
     if (rowDeg == null)
       throw new IllegalStateException("Cannot find rowDeg in degree table:" +row);
     if (colDeg == null)
       throw new IllegalStateException("Cannot find colDeg in degree table:" +col);
 //    double rowDeg = degMap.get(row), colDeg = degMap.get(col),
-    double Jij = Long.parseLong(v.toString());
-    return Iterators.singletonIterator( new AbstractMap.SimpleImmutableEntry<>(newKey,
+    double Jij = Long.parseLong(vstr);
+    return Iterators.singletonIterator( new AbstractMap.SimpleImmutableEntry<>(k,
         new Value(Double.toString(Jij / (rowDeg+colDeg-Jij)).getBytes())
     ));
   }

@@ -418,7 +418,7 @@ public class Graphulo {
       rowFilter = null;
 
     TableOperations tops = connector.tableOperations();
-    if (!tops.exists(ATtable))
+    if (!ATtable.equals(TwoTableIterator.CLONESOURCE_TABLENAME) && !tops.exists(ATtable))
       throw new IllegalArgumentException("Table AT does not exist. Given: " + ATtable);
     if (!tops.exists(Btable))
       throw new IllegalArgumentException("Table B does not exist. Given: " + Btable);
@@ -1923,7 +1923,8 @@ public class Graphulo {
 //        afterTTIterators = dis.toIteratorSetting(1);
     }
 
-    long npp = TableMult(Aorig, Aorig, Rfinal, null, -1,
+    // use a deepCopy of the local iterator on A for the left part of the TwoTable
+    long npp = TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Aorig, Rfinal, null, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.LONG),
         RPlusIteratorSetting, null, null, null, true, true,
         Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.Lower)),

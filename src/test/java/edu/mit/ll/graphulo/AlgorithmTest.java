@@ -193,7 +193,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    long npp = graphulo.Jaccard(tA, tADeg, tR, true);
+    long npp = graphulo.Jaccard(tA, tADeg, tR, null, true);
     log.info("Jaccard table has "+npp+" #partial products sent to "+tR);
 
     BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);

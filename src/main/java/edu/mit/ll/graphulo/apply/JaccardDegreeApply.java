@@ -2,6 +2,7 @@ package edu.mit.ll.graphulo.apply;
 
 import com.google.common.collect.Iterators;
 import edu.mit.ll.graphulo.skvi.RemoteSourceIterator;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -29,7 +30,15 @@ import java.util.Map;
  * we should scan the degree table on (v3,+inf) and load those degrees into a Map.
  */
 public class JaccardDegreeApply implements ApplyOp {
-  private static final Logger log = LogManager.getLogger(ApplyIterator.class);
+  private static final Logger log = LogManager.getLogger(JaccardDegreeApply.class);
+
+  /** Setup with {@link edu.mit.ll.graphulo.Graphulo#basicRemoteOpts(String, String)}
+   * options for RemoteSourceIterator. */
+  public static IteratorSetting iteratorSetting(int priority, Map<String,String> remoteOpts) {
+    IteratorSetting JDegApply = new IteratorSetting(priority, ApplyIterator.class, remoteOpts);
+    JDegApply.addOption(ApplyIterator.APPLYOP, JaccardDegreeApply.class.getName());
+    return JDegApply;
+  }
 
   private RemoteSourceIterator remoteDegTable;
   private Map<String,Double> degMap;

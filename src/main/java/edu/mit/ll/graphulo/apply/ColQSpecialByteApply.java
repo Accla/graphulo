@@ -1,6 +1,7 @@
 package edu.mit.ll.graphulo.apply;
 
 import com.google.common.collect.Iterators;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -20,6 +21,12 @@ import java.util.Map;
  */
 public class ColQSpecialByteApply implements ApplyOp {
   private static final Logger log = LogManager.getLogger(ColQSpecialByteApply.class);
+
+  public static IteratorSetting iteratorSetting(int priority) {
+    IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
+    itset.addOption(ApplyIterator.APPLYOP, ColQSpecialByteApply.class.getName());
+    return itset;
+  }
 
   static final byte SPECIAL_BYTE = 0;
 

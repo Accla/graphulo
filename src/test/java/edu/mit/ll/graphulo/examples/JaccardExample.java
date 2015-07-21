@@ -81,7 +81,8 @@ public class JaccardExample extends AccumuloTestBase {
     log.info("Nodes reached from v0: "+nodesReached);
     log.info("Does AtableSub exist? "+conn.tableOperations().exists(AtableSub));
 
-    long npp = graphulo.Jaccard(AtableSub, ADegtable, Rtable, trace);
+    String filterRowCol = null; // no filtering beyond what we already did with the AdjBFS
+    long npp = graphulo.Jaccard(AtableSub, ADegtable, Rtable, filterRowCol, trace);
     log.info("Number of partial products sent to result table: " + npp);
 
     // Result is in output table. Do whatever you like with it.
@@ -121,6 +122,11 @@ public class JaccardExample extends AccumuloTestBase {
   1)  Change the subset by modifying the AdjBFS call.
 
   2)  Increase the SCALE parameter to 12, 14 or 16 to run on larger graphs.
+
+  3)  Run the Jaccard coefficients on a static set of nodes instead of the nodes reachable from v0.
+      Remove the AdjBFS call and let
+        filterRowCol = "8,15,25,37,42,69,150,";
+      for example.
 
   */
   ////////////////////////////////////////////////////////////////////////////////////////////////

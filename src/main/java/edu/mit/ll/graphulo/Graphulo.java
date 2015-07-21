@@ -1891,47 +1891,41 @@ public class Graphulo {
    * @param Aorig Unweighted, undirected adjacency table.
    * @param Rfinal Should not previously exist. Writes the Jaccard table into Rfinal,
    *               using a couple combiner-like iterators.
+   * @param filterRowCol Filter applied to rows and columns of Aorig
+   *                     (must apply to both rows and cols because A is undirected Adjacency table).
    * @param trace Server-side tracing.
    * @return number of partial products sent to Rtable during the Jaccard coefficient calculation
    */
   public long Jaccard(String Aorig, String ADeg, String Rfinal,
-                      boolean trace) {
+                      String filterRowCol, boolean trace) {
     checkGiven(true, "Aorig, ADeg", Aorig, ADeg);
     Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
     TableOperations tops = connector.tableOperations();
-    Preconditions.checkArgument(!tops.exists(Rfinal), "Output Jaccard table must not exist: Rfinal=%s", Rfinal);
+    Preconditions.checkArgument(!tops.exists(Rfinal), "Output Jaccard table must not exist: Rfinal=%s", Rfinal); // this could be relaxed, at the possibility of peril
+
+    List<IteratorSetting> afterTTIterators = new DynamicIteratorSetting()
+      .append(TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.Upper))
+      .append(ColQSpecialByteApply.iteratorSetting(1))
+      .getIteratorSettingList();
 
     // "Plus" iterator to set on Rfinal
-    IteratorSetting RPlusIteratorSetting;
-    {
-      DynamicIteratorSetting dis = new DynamicIteratorSetting();
-      dis.append(DEFAULT_PLUS_ITERATOR);
-
-      Map<String,String> opt = basicRemoteOpts(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX, ADeg);
-      opt.put(ApplyIterator.APPLYOP, JaccardDegreeApply.class.getName());
-      IteratorSetting JDegApply = new IteratorSetting(1, ApplyIterator.class, opt);
-      dis.append(JDegApply);
-      RPlusIteratorSetting = dis.toIteratorSetting(DEFAULT_PLUS_ITERATOR.getPriority());
-    }
-
-    List<IteratorSetting> afterTTIterators = new LinkedList<>();
-    {
-//        DynamicIteratorSetting dis = new DynamicIteratorSetting();
-      afterTTIterators.add(TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.Upper));
-      afterTTIterators.add(new IteratorSetting(1, ApplyIterator.class,
-          Collections.singletonMap(ApplyIterator.APPLYOP, ColQSpecialByteApply.class.getName())));
-//        afterTTIterators = dis.toIteratorSetting(1);
-    }
+    IteratorSetting RPlusIteratorSetting = new DynamicIteratorSetting()
+      .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.LONG))
+      .append(JaccardDegreeApply.iteratorSetting(1, basicRemoteOpts(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX, ADeg)))
+      .toIteratorSetting(DEFAULT_PLUS_ITERATOR.getPriority());
 
     // use a deepCopy of the local iterator on A for the left part of the TwoTable
     long npp = TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Aorig, Rfinal, null, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.LONG),
-        RPlusIteratorSetting, null, null, null, true, true,
+        RPlusIteratorSetting,
+        filterRowCol == null ? null : GraphuloUtil.d4mRowToRanges(filterRowCol),
+        filterRowCol, filterRowCol,
+        true, true,
         Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.Lower)),
         Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.Upper)),
         afterTTIterators, null, null, -1, trace);
 
-    log.debug("Jaccard #partial products "+npp);
+    log.debug("Jaccard #partial products " + npp);
     return npp;
   }
 

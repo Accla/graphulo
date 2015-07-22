@@ -32,6 +32,7 @@ import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import edu.mit.ll.graphulo.util.DebugUtil;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.MemMatrixUtil;
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -91,6 +92,7 @@ public class Graphulo {
     this.connector = connector;
     this.password = password;
     checkCredentials();
+    checkGraphuloInstalled();
   }
 
   /**
@@ -105,6 +107,12 @@ public class Graphulo {
     }
   }
 
+  /** Check the Graphulo classes are installed on the Accumulo server. */
+  private void checkGraphuloInstalled() {
+//    connector.tableOperations().testClassLoad()
+    // Works on a table-level basis...
+  }
+
   private static final Text EMPTY_TEXT = new Text();
 
 
@@ -113,7 +121,7 @@ public class Graphulo {
                         Collection<Range> rowFilter,
                         String colFilterAT, String colFilterB) {
     return TableMult(ATtable, Btable, Ctable, CTtable, -1, multOp, null, plusOp, rowFilter, colFilterAT, colFilterB,
-        false, false, -1, false);
+            false, false, -1, false);
   }
 
   public long SpEWiseX(String Atable, String Btable, String Ctable, String CTtable,
@@ -179,11 +187,11 @@ public class Graphulo {
     if (multOp.equals(MathTwoScalar.class) && multOpOptions == null)
       multOpOptions = MathTwoScalar.optionMap(ScalarOp.PLUS, ScalarType.BIGDECIMAL); // + by default for SpEWiseSum
     return TwoTableEWISE(Atable, Btable, Ctable, CTtable, BScanIteratorPriority,
-        multOp, multOpOptions, plusOp, rowFilter, colFilterAT, colFilterB,
-        true, true, iteratorsBeforeA,
-        iteratorsBeforeB, iteratorsAfterTwoTable,
-        reducer, reducerOpts,
-        numEntriesCheckpoint, trace);
+            multOp, multOpOptions, plusOp, rowFilter, colFilterAT, colFilterB,
+            true, true, iteratorsBeforeA,
+            iteratorsBeforeB, iteratorsAfterTwoTable,
+            reducer, reducerOpts,
+            numEntriesCheckpoint, trace);
   }
 
   /**
@@ -259,10 +267,10 @@ public class Graphulo {
                         Reducer reducer, Map<String,String> reducerOpts,
                         int numEntriesCheckpoint, boolean trace) {
     return TwoTableROWCartesian(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority,
-        multOp, multOpOptions, plusOp, rowFilter, colFilterAT, colFilterB,
-        alsoDoAA, alsoDoBB, alsoDoAA, alsoDoBB, iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
-        reducer, reducerOpts,
-        numEntriesCheckpoint, trace);
+            multOp, multOpOptions, plusOp, rowFilter, colFilterAT, colFilterB,
+            alsoDoAA, alsoDoBB, alsoDoAA, alsoDoBB, iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
+            reducer, reducerOpts,
+            numEntriesCheckpoint, trace);
   }
 
   public long TwoTableROWCartesian(String ATtable, String Btable, String Ctable, String CTtable,
@@ -1714,10 +1722,12 @@ public class Graphulo {
       AtmpAlt = tmpBaseName+"tmpAalt";
       deleteTables(forceDelete, Atmp, A2tmp, AtmpAlt);
 
-      if (filterRowCol == null)
+      if (filterRowCol == null) {
         tops.clone(Aorig, Atmp, true, null, null);
+        nnzAfter = countEntries(Aorig);
+      }
       else
-        OneTable(Aorig, Atmp, null, null, -1, null, null, PLUS_ITERATOR_LONG,
+        nnzAfter = OneTable(Aorig, Atmp, null, null, -1, null, null, null,
                 filterRowCol == null ? null : GraphuloUtil.d4mRowToRanges(filterRowCol),
                 filterRowCol, null, null, trace);
 
@@ -1728,19 +1738,23 @@ public class Graphulo {
 //          connector.getInstance().getZooKeepers(), connector.whoami(), new String(password.getPassword()));
 //      nnzAfter = d4mtops.getNumberOfEntries(Collections.singletonList(Aorig))
       // Above method dangerous. Instead:
-      nnzAfter = countEntries(Aorig);
+      
 
       // Filter out entries with < k-2
-      IteratorSetting kTrussFilter = MinMaxValueFilter.iteratorSetting(10, ScalarType.LONG, k-2, null);
+      IteratorSetting sumAndFilter = new DynamicIteratorSetting()
+        .append(PLUS_ITERATOR_LONG)
+        .append(MinMaxValueFilter.iteratorSetting(10, ScalarType.LONG, k-2, null))
+        .toIteratorSetting(PLUS_ITERATOR_LONG.getPriority());
+      // No Diagonal filter
+      List<IteratorSetting> noDiagFilter = Collections.singletonList(
+          TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.NoDiagonal));
 
       do {
         nnzBefore = nnzAfter;
 
         TableMult(Atmp, Atmp, A2tmp, null, -1, ConstantTwoScalar.class, null,
-            MathTwoScalar.combinerSetting(6, null, ScalarOp.PLUS, ScalarType.LONG),
-            null, null, null, false, false,
-            Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
-            Collections.singletonList(kTrussFilter),
+            sumAndFilter, null, null, null, false, false,
+            null, null, noDiagFilter,
             null, null, -1, trace);
         // A2tmp has a SummingCombiner
 
@@ -2340,6 +2354,5 @@ public class Graphulo {
     });
     return MR;
   }
-
 
 }

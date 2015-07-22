@@ -79,8 +79,10 @@ import java.util.TreeSet;
 public class Graphulo {
   private static final Logger log = LogManager.getLogger(Graphulo.class);
 
-  public static final IteratorSetting DEFAULT_PLUS_ITERATOR =
+  public static final IteratorSetting PLUS_ITERATOR_BIGDECIMAL =
             MathTwoScalar.combinerSetting(6, null, ScalarOp.PLUS, ScalarType.BIGDECIMAL);
+  public static final IteratorSetting PLUS_ITERATOR_LONG =
+            MathTwoScalar.combinerSetting(6, null, ScalarOp.PLUS, ScalarType.LONG);
 
   protected Connector connector;
   protected PasswordToken password;
@@ -607,8 +609,9 @@ public class Graphulo {
    *           Thus, scan-time iterators and fetched columns on a given BatchScanner will affect this OneTable operation once.
    *           It is better to specify a column filter and midIterator instead of setting these on the BatchScanner directly.
    * @param trace     Enable server-side performance tracing.
-   * @return Number of entries processed at the RemoteWriteIterator.
-   */    // Return number of entries processed at RemoteWriteIterator or client
+   * @return Number of entries processed at the RemoteWriteIterator or gathered at the client.
+   *
+   */
   public long OneTable(String Atable, String Rtable, String RTtable,      // Input, output table names
                        Map<Key, Value> clientResultMap,                   // controls whether to use RWI
                        int AScanIteratorPriority,                         // Scan-time iterator priority
@@ -647,6 +650,23 @@ public class Graphulo {
     TableOperations tops = connector.tableOperations();
     if (!tops.exists(Atable))
       throw new IllegalArgumentException("Table A does not exist. Given: " + Atable);
+
+    // special case worth optimizing; we can clone if minimal options present
+    // Returns -1 if number of entries cannot be determined, e.g., because a table clone is used as an optimization.
+    // Chose not to include this so that OneTable would always return the partial product count (less confusion).
+    /*if (useRWI && rowFilter == null && colFilter == null && plusOp == null && reducer == null
+            && midIterator.isEmpty() && Rtable != null && !tops.exists(Rtable) && RTtable == null) {
+      try {
+          tops.clone(Atable, Rtable, true, null, null);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+          log.error("trouble cloning "+Atable+" to "+Rtable, e);
+          throw new RuntimeException(e);
+      } catch (TableNotFoundException | TableExistsException e) {
+          log.error("crazy",e);
+          throw new RuntimeException(e);
+      }
+      return -1;
+    }*/
 
     if (Rtable != null && !tops.exists(Rtable))
       try {
@@ -761,7 +781,7 @@ public class Graphulo {
 
     return AdjBFS(Atable, v0, k, Rtable, RtableTranspose, null, -1,
         ADegtable, degColumn, degInColQ, minDegree, maxDegree,
-        DEFAULT_PLUS_ITERATOR, false);
+            PLUS_ITERATOR_BIGDECIMAL, false);
   }
 
   /**
@@ -1659,6 +1679,8 @@ public class Graphulo {
    * @param Rfinal Does not have to previously exist. Writes the kTruss into Rfinal if it already exists.
    *               Use a combiner if you want to sum it in.
    * @param k Trivial if k <= 2.
+   * @param filterRowCol Filter applied to rows and columns of Aorig
+   *                     (must apply to both rows and cols because A is undirected Adjacency table).
    * @param forceDelete False means throws exception if the temporary tables used inside the algorithm already exist.
    *                    True means delete them if they exist.
    * @param trace Server-side tracing.
@@ -1666,7 +1688,7 @@ public class Graphulo {
    *          Returns -1 if k < 2 since there is no point in counting the number of edges.
    */
   public long kTrussAdj(String Aorig, String Rfinal, int k,
-                        boolean forceDelete, boolean trace) {
+                        String filterRowCol, boolean forceDelete, boolean trace) {
     checkGiven(true, "Aorig", Aorig);
     Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
     TableOperations tops = connector.tableOperations();
@@ -1674,8 +1696,10 @@ public class Graphulo {
 
     try {
       if (k <= 2) {               // trivial case: every graph is a 2-truss
-        if (RfinalExists)
-          AdjBFS(Aorig, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, trace);
+        if (RfinalExists || filterRowCol != null)
+          OneTable(Aorig, Rfinal, null, null, -1, null, null, PLUS_ITERATOR_LONG,
+                  filterRowCol == null ? null : GraphuloUtil.d4mRowToRanges(filterRowCol),
+                  filterRowCol, null, null, trace);
         else
           tops.clone(Aorig, Rfinal, true, null, null);    // flushes Aorig before cloning
         return -1;
@@ -1690,7 +1714,12 @@ public class Graphulo {
       AtmpAlt = tmpBaseName+"tmpAalt";
       deleteTables(forceDelete, Atmp, A2tmp, AtmpAlt);
 
-      tops.clone(Aorig, Atmp, true, null, null);
+      if (filterRowCol == null)
+        tops.clone(Aorig, Atmp, true, null, null);
+      else
+        OneTable(Aorig, Atmp, null, null, -1, null, null, PLUS_ITERATOR_LONG,
+                filterRowCol == null ? null : GraphuloUtil.d4mRowToRanges(filterRowCol),
+                filterRowCol, null, null, trace);
 
       // Inital nnz
       // Careful: nnz figure will be inaccurate if there are multiple versions of an entry in Aorig.
@@ -1707,7 +1736,8 @@ public class Graphulo {
       do {
         nnzBefore = nnzAfter;
 
-        TableMult(Atmp, Atmp, A2tmp, null, -1, ConstantTwoScalar.class, null, DEFAULT_PLUS_ITERATOR,
+        TableMult(Atmp, Atmp, A2tmp, null, -1, ConstantTwoScalar.class, null,
+            MathTwoScalar.combinerSetting(6, null, ScalarOp.PLUS, ScalarType.LONG),
             null, null, null, false, false,
             Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
             Collections.singletonList(kTrussFilter),
@@ -1825,18 +1855,18 @@ public class Graphulo {
       iteratorsBeforeA.add(MinMaxValueFilter.iteratorSetting(1, ScalarType.LONG, 2, 2));
       iteratorsBeforeA.add(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes())));
       iteratorsBeforeA.add(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW));
-      iteratorsBeforeA.add(DEFAULT_PLUS_ITERATOR);
+      iteratorsBeforeA.add(PLUS_ITERATOR_BIGDECIMAL);
       iteratorsBeforeA.add(kTrussFilter);
 
       do {
         nnzBefore = nnzAfter;
 
-        TableMult(Etmp, Etmp, Atmp, null, -1, ConstantTwoScalar.class, null, DEFAULT_PLUS_ITERATOR,
+        TableMult(Etmp, Etmp, Atmp, null, -1, ConstantTwoScalar.class, null, PLUS_ITERATOR_BIGDECIMAL,
             null, null, null, false, false, null, null, Collections.singletonList(noDiagFilter),
             null, null, -1, trace);
         // Atmp has a SummingCombiner
 
-        TableMult(ETtmp, Atmp, Rtmp, null, -1, ConstantTwoScalar.class, null, DEFAULT_PLUS_ITERATOR,
+        TableMult(ETtmp, Atmp, Rtmp, null, -1, ConstantTwoScalar.class, null, PLUS_ITERATOR_BIGDECIMAL,
             null, null, null, false, false, null, null, null, null, null, -1, trace);
         // Rtmp has a SummingCombiner
         tops.delete(ETtmp);
@@ -1905,7 +1935,7 @@ public class Graphulo {
     IteratorSetting RPlusIteratorSetting = new DynamicIteratorSetting()
       .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.LONG))
       .append(JaccardDegreeApply.iteratorSetting(1, basicRemoteOpts(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX, ADeg)))
-      .toIteratorSetting(DEFAULT_PLUS_ITERATOR.getPriority());
+      .toIteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority());
 
     // use a deepCopy of the local iterator on A for the left part of the TwoTable
     long npp = TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Aorig, Rfinal, null, -1,
@@ -1958,9 +1988,9 @@ public class Graphulo {
           dis.append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes()))); // Abs0
       dis
         .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))
-        .append(DEFAULT_PLUS_ITERATOR)
+        .append(PLUS_ITERATOR_BIGDECIMAL)
         .append(new IteratorSetting(1, RemoteWriteIterator.class, basicRemoteOpts("", Degtable)));
-      bs.addScanIterator(dis.toIteratorSetting(DEFAULT_PLUS_ITERATOR.getPriority()));
+      bs.addScanIterator(dis.toIteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority()));
     }
 
     long totalRows = 0;
@@ -2022,7 +2052,7 @@ public class Graphulo {
         .append(new IteratorSetting(1, VersioningIterator.class))       // only count a row once
         .append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes()))) // Abs0
         .append(KeyRetainOnlyApply.iteratorSetting(1, null))            // strip all fields
-        .append(DEFAULT_PLUS_ITERATOR)                                  // Sum
+        .append(PLUS_ITERATOR_BIGDECIMAL)                                  // Sum
         .toIteratorSetting(10));
 
     long cnt = 0l;
@@ -2133,7 +2163,7 @@ public class Graphulo {
     // Step 1: W*H => WHtmp
     TableMult(WTfinal, Hfinal, WHtmp, null, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
-        MathTwoScalar.combinerSetting(DEFAULT_PLUS_ITERATOR.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
+        MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
         null, null, null, false, false, -1, false);
     if (trace)
       DebugUtil.printTable("WH is NxM:", connector, WHtmp);
@@ -2171,7 +2201,7 @@ public class Graphulo {
     // Step 1: in1^T * in1 ==transpose==> tmp1
     TableMult(in1, in1, null, tmp1, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
-        MathTwoScalar.combinerSetting(DEFAULT_PLUS_ITERATOR.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
+        MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
         null, null, null, false, false, -1, false);
     if (trace)
       DebugUtil.printTable("tmp1 is KxK:", connector, tmp1);
@@ -2179,7 +2209,7 @@ public class Graphulo {
     // Step 2: tmp1 => tmp1 inverse.
     try {
       connector.tableOperations().compact(tmp1, null, null,
-          Collections.singletonList(InverseMatrixIterator.iteratorSetting(DEFAULT_PLUS_ITERATOR.getPriority() + 1,
+          Collections.singletonList(InverseMatrixIterator.iteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority() + 1,
               K)),
           true, true); // blocks
     } catch (AccumuloException | AccumuloSecurityException e) {
@@ -2195,7 +2225,7 @@ public class Graphulo {
     // Step 3: in1^T * in2 => tmp2.  This can run concurrently with step 1 and 2.
     TableMult(in1, in2, tmp2, null, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
-        MathTwoScalar.combinerSetting(DEFAULT_PLUS_ITERATOR.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
+        MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
         null, null, null, false, false, -1, false);
 //    DebugUtil.printTable("tmp1 INVERSE is KxK:", connector, tmp1);
 
@@ -2205,7 +2235,7 @@ public class Graphulo {
         new DynamicIteratorSetting()
         .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.DOUBLE))
         .append(MinMaxValueFilter.iteratorSetting(1, ScalarType.DOUBLE, Double.MIN_NORMAL, Double.MAX_VALUE))
-        .toIteratorSetting(DEFAULT_PLUS_ITERATOR.getPriority());
+        .toIteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority());
 
     // Execute.
     TableMult(tmp1, tmp2, out1, out2, -1,

@@ -52,7 +52,7 @@ public class MatlabGraphulo extends Graphulo {
 
 
     return TableMult(ATtable, Btable, Ctable, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG), Graphulo.DEFAULT_PLUS_ITERATOR,
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG), Graphulo.PLUS_ITERATOR_BIGDECIMAL,
         rowFilterRanges, colFilterAT, colFilterB, false, false, null, null, null, null, null, numEntriesCheckpoint, trace);
   }
 

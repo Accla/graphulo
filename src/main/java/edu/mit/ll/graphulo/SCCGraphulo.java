@@ -183,7 +183,7 @@ public class SCCGraphulo extends Graphulo {
       String delims = "[ ]+";
       String[] mid = midstr.toString().split(delims);
       for (String s : mid) {
-        String bfs = AdjBFS(tA, s + ",", 1, null, null, null, -1, null, "", true, 0, Integer.MAX_VALUE, Graphulo.DEFAULT_PLUS_ITERATOR, false);
+        String bfs = AdjBFS(tA, s + ",", 1, null, null, null, -1, null, "", true, 0, Integer.MAX_VALUE, Graphulo.PLUS_ITERATOR_BIGDECIMAL, false);
         if (!bfs.isEmpty())
           vertset.add(bfs);
       }
@@ -191,7 +191,7 @@ public class SCCGraphulo extends Graphulo {
     }
 
     Set<String> vertset = new HashSet<>();
-    String bfs = AdjBFS(tA, vertex, 1, null, null, null, -1, null, "", true, 0, Integer.MAX_VALUE, Graphulo.DEFAULT_PLUS_ITERATOR, false);
+    String bfs = AdjBFS(tA, vertex, 1, null, null, null, -1, null, "", true, 0, Integer.MAX_VALUE, Graphulo.PLUS_ITERATOR_BIGDECIMAL, false);
     if (!bfs.isEmpty())
       vertset.add(bfs);
     return vertset;

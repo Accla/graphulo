@@ -77,7 +77,7 @@ public class TableMultExample extends AccumuloTestBase {
     // Options for plus operator: encode/decode with a string representation; act on all columns of Ctable.
     LongCombiner.setEncodingType(plusOp, LongCombiner.Type.STRING);
     Combiner.setCombineAllColumns(plusOp, true);
-    // Note: this is the same as Graphulo.DEFAULT_PLUS_ITERATOR
+    // Note: this is the same as Graphulo.PLUS_ITERATOR_BIGDECIMAL
 
     // Other options to TableMult
     String CTtable = null;                // Don't write the table transpose.

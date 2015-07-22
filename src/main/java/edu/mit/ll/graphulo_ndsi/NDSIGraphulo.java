@@ -49,7 +49,7 @@ public class NDSIGraphulo extends Graphulo {
     String colFilter = startY + ",:," + endY + ",";
 
     IteratorSetting itsetHistogram = Histogram2DTransformer.iteratorSetting(1, minX, minY, binsizeX, binsizeY);
-    IteratorSetting itsetStats = DoubleStatsCombiner.iteratorSetting(DEFAULT_PLUS_ITERATOR.getPriority(), null);
+    IteratorSetting itsetStats = DoubleStatsCombiner.iteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null);
 
     // support transpose?
     // could reuse batchscanner if called many times

@@ -81,7 +81,7 @@ public class EdgeBFSExample extends AccumuloTestBase {
     // Options for plus operator: encode/decode with a string representation; act on all columns of Ctable.
     LongCombiner.setEncodingType(plusOp, LongCombiner.Type.STRING);
     Combiner.setCombineAllColumns(plusOp, true);
-    // Note: this is the same as Graphulo.DEFAULT_PLUS_ITERATOR
+    // Note: this is the same as Graphulo.PLUS_ITERATOR_BIGDECIMAL
 
     // Incidence Table Breadth First Search.
     // This call blocks until the BFS completes.

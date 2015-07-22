@@ -62,7 +62,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    long nnzkTruss = graphulo.kTrussAdj(tA, tR, 3, true, true);
+    long nnzkTruss = graphulo.kTrussAdj(tA, tR, 3, null, true, true);
     log.info("kTruss has "+nnzkTruss+" nnz");
 
     BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -289,7 +289,7 @@ public class AlgorithmTest extends AccumuloTestBase {
 
     graphulo.TableMult(tWT, tH, tWH, null, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.DOUBLE),
-        MathTwoScalar.combinerSetting(Graphulo.DEFAULT_PLUS_ITERATOR.getPriority(), null, MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.DOUBLE),
+        MathTwoScalar.combinerSetting(Graphulo.PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.DOUBLE),
         null, null, null, false, false, -1, false);
 
     System.out.println("WH:");
@@ -373,7 +373,7 @@ public class AlgorithmTest extends AccumuloTestBase {
 
 //    graphulo.TableMult(tWT, tH, tWH, null, -1,
 //        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.DOUBLE),
-//        MathTwoScalar.combinerSetting(Graphulo.DEFAULT_PLUS_ITERATOR.getPriority(), null, MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.DOUBLE),
+//        MathTwoScalar.combinerSetting(Graphulo.PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.DOUBLE),
 //        null, null, null, false, false, -1, false);
 //
 //    System.out.println("WH:");

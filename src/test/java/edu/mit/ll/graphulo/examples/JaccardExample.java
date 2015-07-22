@@ -74,7 +74,7 @@ public class JaccardExample extends AccumuloTestBase {
     String v0 = "2,4,6,8,15,25,37,42,69,150,155,";
     // Iterator on new table forces Values to 1, creating an unweighted adj. table.
     IteratorSetting itset = ConstantTwoScalar.iteratorSetting(
-        Graphulo.DEFAULT_PLUS_ITERATOR.getPriority(), new Value("1".getBytes()));
+        Graphulo.PLUS_ITERATOR_BIGDECIMAL.getPriority(), new Value("1".getBytes()));
 
     String nodesReached = graphulo.AdjBFS(Atable, v0, 1, AtableSub, AtableSub, null, -1,
         ADegtable, "out", false, 1, 75, itset, trace);

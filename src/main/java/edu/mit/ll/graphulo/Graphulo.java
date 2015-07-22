@@ -121,7 +121,7 @@ public class Graphulo {
                         Collection<Range> rowFilter,
                         String colFilterAT, String colFilterB) {
     return TableMult(ATtable, Btable, Ctable, CTtable, -1, multOp, null, plusOp, rowFilter, colFilterAT, colFilterB,
-            false, false, -1, false);
+        false, false, -1, false);
   }
 
   public long SpEWiseX(String Atable, String Btable, String Ctable, String CTtable,
@@ -187,11 +187,11 @@ public class Graphulo {
     if (multOp.equals(MathTwoScalar.class) && multOpOptions == null)
       multOpOptions = MathTwoScalar.optionMap(ScalarOp.PLUS, ScalarType.BIGDECIMAL); // + by default for SpEWiseSum
     return TwoTableEWISE(Atable, Btable, Ctable, CTtable, BScanIteratorPriority,
-            multOp, multOpOptions, plusOp, rowFilter, colFilterAT, colFilterB,
-            true, true, iteratorsBeforeA,
-            iteratorsBeforeB, iteratorsAfterTwoTable,
-            reducer, reducerOpts,
-            numEntriesCheckpoint, trace);
+        multOp, multOpOptions, plusOp, rowFilter, colFilterAT, colFilterB,
+        true, true, iteratorsBeforeA,
+        iteratorsBeforeB, iteratorsAfterTwoTable,
+        reducer, reducerOpts,
+        numEntriesCheckpoint, trace);
   }
 
   /**
@@ -267,10 +267,10 @@ public class Graphulo {
                         Reducer reducer, Map<String,String> reducerOpts,
                         int numEntriesCheckpoint, boolean trace) {
     return TwoTableROWCartesian(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority,
-            multOp, multOpOptions, plusOp, rowFilter, colFilterAT, colFilterB,
-            alsoDoAA, alsoDoBB, alsoDoAA, alsoDoBB, iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
-            reducer, reducerOpts,
-            numEntriesCheckpoint, trace);
+        multOp, multOpOptions, plusOp, rowFilter, colFilterAT, colFilterB,
+        alsoDoAA, alsoDoBB, alsoDoAA, alsoDoBB, iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
+        reducer, reducerOpts,
+        numEntriesCheckpoint, trace);
   }
 
   public long TwoTableROWCartesian(String ATtable, String Btable, String Ctable, String CTtable,
@@ -1752,7 +1752,8 @@ public class Graphulo {
       do {
         nnzBefore = nnzAfter;
 
-        TableMult(Atmp, Atmp, A2tmp, null, -1, ConstantTwoScalar.class, null,
+        // Use Atmp for both AT and B
+        TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Atmp, A2tmp, null, -1, ConstantTwoScalar.class, null,
             sumAndFilter, null, null, null, false, false,
             null, null, noDiagFilter,
             null, null, -1, trace);

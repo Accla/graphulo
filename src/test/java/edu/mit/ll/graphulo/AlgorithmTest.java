@@ -2,6 +2,7 @@ package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
+import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.TestUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -60,19 +61,44 @@ public class AlgorithmTest extends AccumuloTestBase {
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
     }
+    {
+      Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+      long nnzkTruss = graphulo.kTrussAdj(tA, tR, 3, null, true, true);
+      log.info("3Truss has " + nnzkTruss + " nnz");
 
-    Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    long nnzkTruss = graphulo.kTrussAdj(tA, tR, 3, null, true, true);
-    log.info("kTruss has "+nnzkTruss+" nnz");
-
-    BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
-    scanner.setRanges(Collections.singleton(new Range()));
-    for (Map.Entry<Key, Value> entry : scanner) {
-      actual.put(entry.getKey(), entry.getValue());
+      BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(10, nnzkTruss);
+      Assert.assertEquals(expect, actual);
     }
-    scanner.close();
-    Assert.assertEquals(10, nnzkTruss);
-    Assert.assertEquals(expect, actual);
+
+    // Now test 4-truss
+    {
+      Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("v2", "", "v4"), new Value("1".getBytes()));
+      input.put(new Key("v4", "", "v2"), new Value("1".getBytes()));
+      expect.putAll(input);
+      GraphuloUtil.writeEntries(conn, input, tA, false);
+    }
+    {
+      Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+      long nnzkTruss = graphulo.kTrussAdj(tA, tR, 4, null, true, true);
+      log.info("4Truss has " + nnzkTruss + " nnz");
+
+      BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(12, nnzkTruss);
+      Assert.assertEquals(expect, actual);
+    }
+
 
     conn.tableOperations().delete(tA);
     conn.tableOperations().delete(tR);
@@ -118,29 +144,64 @@ public class AlgorithmTest extends AccumuloTestBase {
       splits.add(new Text("v22"));
       TestUtil.createTestTable(conn, tET, splits, TestUtil.transposeMap(input));
     }
+    {
+      Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+      long nnzkTruss = graphulo.kTrussEdge(tE, tET, tR, tRT, 3, null, true, true);
+      log.info("3Truss has " + nnzkTruss + " nnz");
 
-    Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    long nnzkTruss = graphulo.kTrussEdge(tE, tET, tR, tRT, 3, true, true);
-    log.info("kTruss has "+nnzkTruss+" nnz");
+      BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expect, actual);
+      Assert.assertEquals(10, nnzkTruss);
 
-    BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
-    scanner.setRanges(Collections.singleton(new Range()));
-    for (Map.Entry<Key, Value> entry : scanner) {
-      actual.put(entry.getKey(), entry.getValue());
+      scanner = conn.createBatchScanner(tRT, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actualTranspose.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expectTranspose, actualTranspose);
+      Assert.assertEquals(10, nnzkTruss);
     }
-    scanner.close();
-    Assert.assertEquals(expect, actual);
-    Assert.assertEquals(10, nnzkTruss);
 
-    scanner = conn.createBatchScanner(tRT, Authorizations.EMPTY, 2);
-    scanner.setRanges(Collections.singleton(new Range()));
-    for (Map.Entry<Key, Value> entry : scanner) {
-      actualTranspose.put(entry.getKey(), entry.getValue());
+    // Now test 4-truss
+    {
+      Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("e7", "", "v4"), new Value("1".getBytes()));
+      input.put(new Key("e7", "", "v2"), new Value("1".getBytes()));
+      expect.putAll(input);
+      GraphuloUtil.writeEntries(conn, input, tE, false);
+      Map<Key, Value> inputTranspose = TestUtil.transposeMap(input);
+      expectTranspose.putAll(inputTranspose);
+      GraphuloUtil.writeEntries(conn, inputTranspose, tET, false);
     }
-    scanner.close();
-    Assert.assertEquals(expectTranspose, actualTranspose);
-    Assert.assertEquals(10, nnzkTruss);
+    {
+      Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+      long nnzkTruss = graphulo.kTrussEdge(tE, tET, tR, tRT, 3, null, true, true);
+      log.info("4Truss has " + nnzkTruss + " nnz");
 
+      BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(12, nnzkTruss);
+      Assert.assertEquals(expect, actual);
+
+      scanner = conn.createBatchScanner(tRT, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actualTranspose.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expectTranspose, actualTranspose);
+      Assert.assertEquals(12, nnzkTruss);
+    }
     conn.tableOperations().delete(tE);
     conn.tableOperations().delete(tET);
     conn.tableOperations().delete(tR);

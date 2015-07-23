@@ -117,6 +117,12 @@ public class Graphulo {
 
 
   public long TableMult(String ATtable, String Btable, String Ctable, String CTtable,
+                        Class<? extends MultiplyOp> multOp, IteratorSetting plusOp) {
+    return TableMult(ATtable, Btable, Ctable, CTtable, -1, multOp, null, plusOp, null, null, null,
+        false, false, -1, false);
+  }
+
+  public long TableMult(String ATtable, String Btable, String Ctable, String CTtable,
                         Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
                         Collection<Range> rowFilter,
                         String colFilterAT, String colFilterB) {
@@ -1789,12 +1795,12 @@ public class Graphulo {
    * of Eorig in Rfinal.  Needs transpose ETorig, and can output transpose of k-Truss subgraph too.
    * @param Eorig Unweighted, undirected incidence table.
    * @param ETorig Transpose of input incidence table.
-   *               Please use <tt>AdjBFS(Eorig, null, 1, null, ETorig, null, null, false, 0, Integer.MAX_VALUE, null, trace)</tt>
-   *               if you need to create it.
+   *               Optional.  Created on the fly if not given.
    * @param Rfinal Does not have to previously exist. Writes the kTruss into Rfinal if it already exists.
    *               Use a combiner if you want to sum it in.
    * @param RTfinal Does not have to previously exist. Writes in the transpose of the kTruss subgraph.
    * @param k Trivial if k <= 2.
+   * @param edgeFilter Filter on rows of Eorig, i.e., the edges in an incidence table.
    * @param forceDelete False means throws exception if the temporary tables used inside the algorithm already exist.
    *                    True means delete them if they exist.
    * @param trace Server-side tracing.
@@ -1802,12 +1808,12 @@ public class Graphulo {
    *          Returns -1 if k < 2 since there is no point in counting the number of edges.
    */
   public long kTrussEdge(String Eorig, String ETorig, String Rfinal, String RTfinal, int k,
-                         // iterator priority?
-                         boolean forceDelete, boolean trace) {
+                         Collection<Range> edgeFilter, boolean forceDelete, boolean trace) { // iterator priority?
     // small optimization possible: pass in Aorig = ET*E if present. Saves first iteration matrix multiply. Not really worth it.
-    checkGiven(true, "Eorig, ETorig", Eorig, ETorig);
+    checkGiven(true, "Eorig", Eorig);
     Rfinal = emptyToNull(Rfinal);
     RTfinal = emptyToNull(RTfinal);
+    ETorig = emptyToNull(ETorig);
     Preconditions.checkArgument(Rfinal != null || RTfinal != null, "One Output table must be given or operation is useless: Rfinal=%s; RTfinal=%s", Rfinal, RTfinal);
     TableOperations tops = connector.tableOperations();
     boolean RfinalExists = Rfinal != null && tops.exists(Rfinal),
@@ -1847,8 +1853,12 @@ public class Graphulo {
       ETtmpAlt = tmpBaseName+"tmpETalt";
       deleteTables(forceDelete, Etmp, ETtmp, Atmp, Rtmp, EtmpAlt, ETtmpAlt);
 
-      tops.clone(Eorig, Etmp, true, null, null);
-      tops.clone(ETorig, ETtmp, true, null, null);
+      if (edgeFilter == null && ETorig != null && tops.exists(ETorig)) {
+        tops.clone(Eorig, Etmp, true, null, null);
+        tops.clone(ETorig, ETtmp, true, null, null);
+        nnzAfter = countEntries(Eorig);
+      } else
+        nnzAfter = OneTable(Eorig, Etmp, ETtmp, null, -1, null, null, null, edgeFilter, null, null, null, trace);
 
       // Inital nnz
       // Careful: nnz figure will be inaccurate if there are multiple versions of an entry in Aorig.
@@ -1857,41 +1867,39 @@ public class Graphulo {
 //          connector.getInstance().getZooKeepers(), connector.whoami(), new String(password.getPassword()));
 //      nnzAfter = d4mtops.getNumberOfEntries(Collections.singletonList(Eorig))
       // Above method dangerous. Instead:
-      nnzAfter = countEntries(Eorig);
 
-      // Filter out entries with < k-2
-      IteratorSetting kTrussFilter = MinMaxValueFilter.iteratorSetting(10, ScalarType.LONG, k-2, null);
 
       // No Diagonal Filter
       IteratorSetting noDiagFilter = TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.NoDiagonal);
-
-      // R -> sum -> kTrussFilter -> TT_RowSelector
-      List<IteratorSetting> iteratorsBeforeA = new ArrayList<>();
-      iteratorsBeforeA.add(MinMaxValueFilter.iteratorSetting(1, ScalarType.LONG, 2, 2));
-      iteratorsBeforeA.add(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes())));
-      iteratorsBeforeA.add(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW));
-      iteratorsBeforeA.add(PLUS_ITERATOR_BIGDECIMAL);
-      iteratorsBeforeA.add(kTrussFilter);
+      // E*A -> sum -> ==2 -> Abs0 -> OnlyRow -> sum -> kTrussFilter -> TT_RowSelector
+      IteratorSetting itsBeforeR = new DynamicIteratorSetting()
+          .append(PLUS_ITERATOR_LONG)
+          .append(MinMaxValueFilter.iteratorSetting(1, ScalarType.LONG, 2, 2))
+          .append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes())))
+          .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))
+          .append(PLUS_ITERATOR_LONG)
+          .append(MinMaxValueFilter.iteratorSetting(10, ScalarType.LONG, k-2, null))
+          .toIteratorSetting(PLUS_ITERATOR_LONG.getPriority());
 
       do {
         nnzBefore = nnzAfter;
 
-        TableMult(Etmp, Etmp, Atmp, null, -1, ConstantTwoScalar.class, null, PLUS_ITERATOR_BIGDECIMAL,
-            null, null, null, false, false, null, null, Collections.singletonList(noDiagFilter),
-            null, null, -1, trace);
+        TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Etmp, Atmp, null, -1, ConstantTwoScalar.class, null,
+            PLUS_ITERATOR_LONG, null, null, null, false, false, null, null,
+            Collections.singletonList(noDiagFilter), null, null, -1, trace);
         // Atmp has a SummingCombiner
 
-        TableMult(ETtmp, Atmp, Rtmp, null, -1, ConstantTwoScalar.class, null, PLUS_ITERATOR_BIGDECIMAL,
-            null, null, null, false, false, null, null, null, null, null, -1, trace);
-        // Rtmp has a SummingCombiner
+        TableMult(ETtmp, Atmp, Rtmp, null, ConstantTwoScalar.class, itsBeforeR);
+        // Rtmp has a big DynamicIterator
         tops.delete(ETtmp);
         tops.delete(Atmp);
 
-        // R -> sum -> kTrussFilter -> TT_RowSelector <- E
-        //                              \-> Writing to EtmpAlt, ETtmpAlt
+        // E*A -> sum -> ==2 -> Abs0 -> OnlyRow -> sum -> kTrussFilter -> TT_RowSelector <- E
+        //                                                                \-> Writing to EtmpAlt, ETtmpAlt
         nnzAfter = TwoTableROWSelector(Rtmp, Etmp, EtmpAlt, ETtmpAlt, -1, null, null, null, true,
-            iteratorsBeforeA, null, null, null, null, -1, trace);
+            null, null, null, null, null, -1, trace);
         tops.delete(Etmp);
+        tops.delete(Rtmp);
 
         { String t = Etmp; Etmp = EtmpAlt; EtmpAlt = t; }
         { String t = ETtmp; ETtmp = ETtmpAlt; ETtmpAlt = t; }

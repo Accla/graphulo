@@ -146,7 +146,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      long nnzkTruss = graphulo.kTrussEdge(tE, tET, tR, tRT, 3, true, true);
+      long nnzkTruss = graphulo.kTrussEdge(tE, tET, tR, tRT, 3, null, true, true);
       log.info("3Truss has " + nnzkTruss + " nnz");
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -181,7 +181,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      long nnzkTruss = graphulo.kTrussEdge(tE, tET, tR, tRT, 3, true, true);
+      long nnzkTruss = graphulo.kTrussEdge(tE, tET, tR, tRT, 3, null, true, true);
       log.info("4Truss has " + nnzkTruss + " nnz");
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);

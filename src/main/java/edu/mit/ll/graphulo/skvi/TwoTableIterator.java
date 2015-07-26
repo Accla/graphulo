@@ -164,6 +164,9 @@ public class TwoTableIterator implements SaveStateIterator {
             break;
           case "dotmode":
             break;
+          case "trace":
+            Watch.enableTrace = Boolean.parseBoolean(optionValue);
+            break;
           default:
             log.warn("Unrecognized option: " + optionEntry);
             break;

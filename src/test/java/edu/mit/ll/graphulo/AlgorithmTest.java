@@ -14,6 +14,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -319,6 +320,8 @@ public class AlgorithmTest extends AccumuloTestBase {
       TestUtil.createTestTable(conn, tET, splits, TestUtil.transposeMap(input));
     }
 
+    DistributedTrace.enable("testNMF");
+
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     int maxIter = 4;
     boolean trace = false;
@@ -326,6 +329,8 @@ public class AlgorithmTest extends AccumuloTestBase {
     double error = graphulo.NMF(tE, tET, tW, tWT, tH, tHT, 3, maxIter, true, trace);
     System.out.println("Trace is "+trace+"; NMF time "+(System.currentTimeMillis()-t));
     log.info("NMF error " + error);
+
+    DistributedTrace.disable();
 
     System.out.println("A:");
     Scanner scanner = conn.createScanner(tE, Authorizations.EMPTY);

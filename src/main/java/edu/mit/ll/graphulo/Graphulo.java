@@ -32,7 +32,6 @@ import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import edu.mit.ll.graphulo.util.DebugUtil;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.MemMatrixUtil;
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -59,6 +58,9 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealMatrixChangingVisitor;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.Sampler;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -462,7 +464,7 @@ public class Graphulo {
     Map<String, String>
         optTT = basicRemoteOpts("AT.", ATtable),
         optRWI = (useRWI) ? basicRemoteOpts("", Ctable, CTtable) : null;
-//    optTT.put("trace", String.valueOf(trace)); // logs timing on server // todo Temp removed -- setting of Watch enable
+    optTT.put("trace", String.valueOf(trace)); // logs timing on server
     optTT.put("dotmode", dotmode.name());
     optTT.putAll(optsTT);
     if (colFilterAT != null)
@@ -721,7 +723,8 @@ public class Graphulo {
 
     Map<String, String>
         optRWI = useRWI ? basicRemoteOpts("", Rtable, RTtable) : null;
-//    optRWI.put("trace", String.valueOf(trace)); // logs timing on server // todo Temp removed -- setting of Watch enable
+    if (useRWI)
+      optRWI.put("trace", String.valueOf(trace)); // logs timing on server
 
     DynamicIteratorSetting dis = new DynamicIteratorSetting();
 
@@ -2139,20 +2142,23 @@ public class Graphulo {
     Ttmp2 = tmpBaseName+"tmp2";
     deleteTables(forceDelete, Ttmp1, Ttmp2);
 
-    // Inital nnz
-    long N = countRows(Aorig);
-    long M = countRows(ATorig);
-
     // Initialize W to a dense random matrix of size N x K
     List<IteratorSetting> itCreateTopicList = new DynamicIteratorSetting()
         .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))  // strip to row field
         .append(new IteratorSetting(1, VersioningIterator.class))       // only count a row once
         .append(RandomTopicApply.iteratorSetting(1, K))
         .getIteratorSettingList();
-    OneTable(Aorig, Wfinal, WTfinal, null, -1, null, null, null, null, null, itCreateTopicList, null,
-        trace);
+    try (TraceScope scope = Trace.startSpan("nmfCreateRandW", Sampler.ALWAYS)) {
+      long NK = OneTable(Aorig, Wfinal, WTfinal, null, -1, null, null, null, null, null, itCreateTopicList, null, trace);
+    }
     if (trace)
       DebugUtil.printTable("0: W is NxK:", connector, Wfinal);
+
+    // No need to actually measure N and M
+////    long N = countRows(Aorig);
+//    assert NK % K == 0;
+//    long N = NK / K;
+//    long M = countRows(ATorig);
 
     // newerr starts at frobenius norm of A, since H starts at the zero matrix.
     double newerr = 0, olderr;
@@ -2162,14 +2168,20 @@ public class Graphulo {
       numiter++;
       olderr = newerr;
 
-      nmfStep(K, Wfinal, Aorig, Hfinal, HTfinal, Ttmp1, Ttmp2, trace);
+      try (TraceScope scope = Trace.startSpan("nmfStepToH", Sampler.ALWAYS)) {
+        nmfStep(K, Wfinal, Aorig, Hfinal, HTfinal, Ttmp1, Ttmp2, trace);
+      }
       if (trace)
         DebugUtil.printTable(numiter + ": H is KxM:", connector, Hfinal);
-      nmfStep(K, HTfinal, ATorig, WTfinal, Wfinal, Ttmp1, Ttmp2, trace);
+      try (TraceScope scope = Trace.startSpan("nmfStepToW", Sampler.ALWAYS)) {
+        nmfStep(K, HTfinal, ATorig, WTfinal, Wfinal, Ttmp1, Ttmp2, trace);
+      }
       if (trace)
         DebugUtil.printTable(numiter + ": W is NxK:", connector, Wfinal);
 
-      newerr = nmfDiffFrobeniusNorm(Aorig, WTfinal, Hfinal, Ttmp1, trace);
+      try (TraceScope scope = Trace.startSpan("nmfFro", Sampler.ALWAYS)) {
+        newerr = nmfDiffFrobeniusNorm(Aorig, WTfinal, Hfinal, Ttmp1, trace);
+      }
       if (trace)
         DebugUtil.printTable(numiter + ": A is NxM --- error is "+newerr+":", connector, Aorig);
 
@@ -2220,20 +2232,22 @@ public class Graphulo {
   private void nmfStep(int K, String in1, String in2, String out1, String out2, String tmp1, String tmp2, boolean trace) {
     // delete out1, out2
     deleteTables(true, out1, out2);
+    org.junit.Assert.assertTrue(Trace.isTracing());
 
     // Step 1: in1^T * in1 ==transpose==> tmp1
-    TableMult(in1, in1, null, tmp1, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
-        MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
-        null, null, null, false, false, -1, false);
+    try (TraceScope scope = Trace.startSpan("nmf1TableMult")) {
+      TableMult(in1, in1, null, tmp1, -1,
+          MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
+          MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
+          null, null, null, false, false, -1, false);
+    }
     if (trace)
       DebugUtil.printTable("tmp1 is KxK:", connector, tmp1);
 
     // Step 2: tmp1 => tmp1 inverse.
-    try {
+    try (TraceScope scope = Trace.startSpan("nmf2Inverse")) {
       connector.tableOperations().compact(tmp1, null, null,
-          Collections.singletonList(InverseMatrixIterator.iteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority() + 1,
-              K)),
+          Collections.singletonList(InverseMatrixIterator.iteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority() + 1, K)),
           true, true); // blocks
     } catch (AccumuloException | AccumuloSecurityException e) {
       log.error("problem while compacting "+tmp1+" to take the matrix inverse", e);
@@ -2246,11 +2260,12 @@ public class Graphulo {
       DebugUtil.printTable("tmp1 INVERSE is KxK:", connector, tmp1);
 
     // Step 3: in1^T * in2 => tmp2.  This can run concurrently with step 1 and 2.
-    TableMult(in1, in2, tmp2, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
-        MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
-        null, null, null, false, false, -1, false);
-//    DebugUtil.printTable("tmp1 INVERSE is KxK:", connector, tmp1);
+    try (TraceScope scope = Trace.startSpan("nmf3TableMult")) {
+      TableMult(in1, in2, tmp2, null, -1,
+          MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
+          MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
+          null, null, null, false, false, -1, false);
+    }
 
     // Step 4: tmp1^T * tmp2 => OnlyPositiveFilter => {out1, tranpsose to out2}
     // Filter out entries <= 0 after combining partial products.
@@ -2261,12 +2276,14 @@ public class Graphulo {
         .toIteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority());
 
     // Execute.
-    TableMult(tmp1, tmp2, out1, out2, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
-        sumFilterOp,
-        null, null, null, false, false, null, null,
-        null,
-        null, null, -1, false);
+    try (TraceScope scope = Trace.startSpan("nmf4TableMult")) {
+      TableMult(tmp1, tmp2, out1, out2, -1,
+          MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
+          sumFilterOp,
+          null, null, null, false, false, null, null,
+          null,
+          null, null, -1, false);
+    }
 
     // Delete temporary tables.
     deleteTables(true, tmp1, tmp2);

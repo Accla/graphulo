@@ -95,11 +95,11 @@ public class MinMaxValueFilter extends Filter {
         return l >= minValue.longValue() && l <= maxValue.longValue();
       case DOUBLE:
         double d = Double.parseDouble(new String(v.get(), StandardCharsets.UTF_8));
-        if (d >= minValue.doubleValue() && d <= maxValue.doubleValue()) // DEBUG
-          log.info("accept: "+k.toStringNoTime()+" -> "+v);
-        else {
-          log.info("REJECT: "+k.toStringNoTime()+" -> "+v);
-        }
+//        if (d >= minValue.doubleValue() && d <= maxValue.doubleValue()) // DEBUG
+//          log.info("accept: "+k.toStringNoTime()+" -> "+v);
+//        else {
+//          log.info("REJECT: "+k.toStringNoTime()+" -> "+v);
+//        }
         return d >= minValue.doubleValue() && d <= maxValue.doubleValue();
       case BIGDECIMAL:
         BigDecimal b = new BigDecimal(new String(v.get(), StandardCharsets.UTF_8));

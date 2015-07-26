@@ -219,6 +219,9 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
             rowRanges.setTargetRanges(parseRanges(optionValue));
             break;
 
+          case "trace":
+            Watch.enableTrace = Boolean.parseBoolean(optionValue);
+            break;
           default:
             log.warn("Unrecognized option: " + optionEntry);
             continue;

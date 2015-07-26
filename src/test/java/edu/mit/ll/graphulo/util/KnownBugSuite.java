@@ -57,7 +57,7 @@ public class KnownBugSuite extends Suite {
     PrintStream psOut = new PrintStream(new FileOutputStream(FileDescriptor.out));
 
     private long t = System.currentTimeMillis();
-    private static final long NOTIFY_DUR = 5000l; // Show progress no sooner than 5 seconds apart.
+    private static final long NOTIFY_DUR = 10000l; // Show progress no sooner than 10 seconds apart.
     private int testFinishedCount = 0;
 
     @Override

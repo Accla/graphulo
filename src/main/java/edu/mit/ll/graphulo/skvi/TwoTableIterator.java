@@ -90,6 +90,7 @@ public class TwoTableIterator implements SaveStateIterator {
   }
 
   private void parseOptions(Map<String, String> options, final Map<String, String> optAT, final Map<String, String> optB) {
+    log.debug("options: "+options);
     String dm = options.get("dotmode");
     if (dm == null)
       throw new IllegalArgumentException("Must specify dotmode. Given: " + options);
@@ -237,6 +238,7 @@ public class TwoTableIterator implements SaveStateIterator {
     }
 
     assert !(rowMultiplyOp != null && eWiseOp != null);
+    log.debug("rowMultiplyOp="+rowMultiplyOp+"  rowMultiplyOpOptions: "+rowMultiplyOpOptions);
     if (rowMultiplyOp != null)
       rowMultiplyOp.init(rowMultiplyOpOptions, env);
     if (eWiseOp != null)
@@ -279,7 +281,7 @@ public class TwoTableIterator implements SaveStateIterator {
           case "username":
           case "password":
           case "doClientSideIterators":
-            log.warn("ignoring option " + optionEntry);
+            // these are ok to ignore
             break;
           case "tableName":
             assert optionEntry.getValue().equals(CLONESOURCE_TABLENAME);
@@ -597,6 +599,7 @@ public class TwoTableIterator implements SaveStateIterator {
       if (this.rowMultiplyOp != null) {
         copy.rowMultiplyOp = this.rowMultiplyOp.getClass().newInstance();
         copy.rowMultiplyOpOptions = this.rowMultiplyOpOptions;
+        copy.rowMultiplyOp.init(rowMultiplyOpOptions, env);
       }
       if (this.eWiseOp != null) {
         copy.eWiseOp = this.eWiseOp.getClass().newInstance();

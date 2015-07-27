@@ -73,6 +73,7 @@ public class CartesianRowMultiply implements RowMultiplyOp {
 
 
   private void parseOptions(Map<String, String> options) {
+    log.debug("rowMultiplyOp options: "+options);
     for (Map.Entry<String, String> optionEntry : options.entrySet()) {
       String optionKey = optionEntry.getKey();
       String optionValue = optionEntry.getValue();

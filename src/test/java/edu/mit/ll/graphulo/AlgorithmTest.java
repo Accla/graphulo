@@ -287,9 +287,9 @@ public class AlgorithmTest extends AccumuloTestBase {
   @Test
   public void testNMF() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
     Connector conn = tester.getConnector();
-    final String tE, tET, tW, tWT, tH, tHT, tWH;
+    final String tE, tET, tW, tWT, tH, tHT, tWH, tR;
     {
-      String[] names = getUniqueNames(7);
+      String[] names = getUniqueNames(8);
       tE = names[0];
       tET = names[1];
       tW = names[2];
@@ -297,6 +297,7 @@ public class AlgorithmTest extends AccumuloTestBase {
       tH = names[4];
       tHT = names[5];
       tWH = names[6];
+      tR = names[7];
     }
     {
       Map<Key, Value> input = new HashMap<>();
@@ -326,7 +327,8 @@ public class AlgorithmTest extends AccumuloTestBase {
     int maxIter = 4;
     boolean trace = false;
     long t = System.currentTimeMillis();
-    double error = graphulo.NMF(tE, tET, tW, tWT, tH, tHT, 3, maxIter, true, trace);
+    int K = 3;
+    double error = graphulo.NMF(tE, tET, tW, tWT, tH, tHT, K, maxIter, true, trace);
     System.out.println("Trace is "+trace+"; NMF time "+(System.currentTimeMillis()-t));
     log.info("NMF error " + error);
 
@@ -353,6 +355,12 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
     scanner.close();
 
+//    try {
+//      Thread.sleep(5000);
+//    } catch (InterruptedException e) {
+//      e.printStackTrace();
+//    }
+
     graphulo.TableMult(tWT, tH, tWH, null, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.DOUBLE),
         MathTwoScalar.combinerSetting(Graphulo.PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.DOUBLE),
@@ -365,6 +373,11 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
     scanner.close();
 
+
+    // last test for the doHT_HHTinv method
+    graphulo.doHT_HHTinv(tH, tHT, K, tR, true, false);
+
+
     conn.tableOperations().delete(tE);
     conn.tableOperations().delete(tET);
     conn.tableOperations().delete(tW);
@@ -372,6 +385,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     conn.tableOperations().delete(tH);
     conn.tableOperations().delete(tHT);
     conn.tableOperations().delete(tWH);
+    conn.tableOperations().delete(tR);
   }
 
   @Test

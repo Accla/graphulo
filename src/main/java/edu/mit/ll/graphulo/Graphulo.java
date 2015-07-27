@@ -2406,4 +2406,59 @@ public class Graphulo {
     return MR;
   }
 
+  /**
+   * Performs HT * (H*HT)^(-1). Stores result in a new table Rtable.
+   * Used for the calculation a * HT * (H*HT)^(-1) = w,
+   * given some new rows 'a' that we want to see in factored form w.
+   *
+   * @param Htable Input
+   * @param HTtable Transpose of inpt
+   * @param K # of topics
+   * @param Rtable Output table (must not exist beforehand, though we could relax this)
+   * @param forceDelete Forcibly delete temporary tables used if they happen to exist. If false, throws an exception if they exist.
+   * @param trace Enable server-side tracing.
+   */
+  public void doHT_HHTinv(String Htable, String HTtable, int K, String Rtable, boolean forceDelete, boolean trace) {
+    checkGiven(true, "Htable, HTtable", Htable, HTtable);
+    checkGiven(false, "Rtable", Rtable);
+    Preconditions.checkArgument(K > 0, "# of topics K must be > 0: " + K);
+    deleteTables(false, Rtable);
+
+    String Ttmp1;
+    String tmpBaseName = Htable+"_NMF_";
+    Ttmp1 = tmpBaseName+"tmp1";
+    deleteTables(forceDelete, Ttmp1);
+
+    // H*HT
+    TableMult(HTtable, HTtable, Ttmp1, null, -1,
+        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
+        MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
+        null, null, null, false, false, -1, false);
+
+    log.info("AFTER H*HT");
+
+    // Inverse
+    try {
+      connector.tableOperations().compact(Ttmp1, null, null,
+          Collections.singletonList(InverseMatrixIterator.iteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority() + 1, K)),
+          true, true); // blocks
+    } catch (AccumuloSecurityException | AccumuloException e) {
+      log.error("problem while compacting "+Ttmp1+" to take the matrix inverse of H*HT", e);
+      throw new RuntimeException(e);
+    } catch (TableNotFoundException e) {
+      log.error("crazy", e);
+      throw new RuntimeException(e);
+    }
+
+    log.info("AFTER INVERSE");
+
+    // HT * inv
+    TableMult(Htable, Ttmp1, Rtable, null, -1,
+        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
+        MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
+        null, null, null, false, false, -1, false);
+
+    deleteTables(true, Ttmp1);
+  }
+
 }

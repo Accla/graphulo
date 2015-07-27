@@ -7,6 +7,7 @@ if [ -z ${ACCUMULO_HOME+x} ]; then
   echo "Not installing Graphulo JAR in Accumulo server because ACCUMULO_HOME is not set";
 else
   cp target/graphulo-*.jar "$ACCUMULO_HOME/lib/ext"
+  echo "Installed Graphulo into ACCUMULO_HOME at $ACCUMULO_HOME"
 fi
 
 # Install client code + dependencies in D4M.
@@ -17,4 +18,5 @@ else
   unzip -ouq target/graphulo-*-libext.zip -d "$D4M_HOME"
   # Replace DBinit.m in D4M matlab_src with new version.
   mv "$D4M_HOME/DBinit.m" "$D4M_HOME/matlab_src"
+  echo "Installed Graphulo into D4M_HOME at $D4M_HOME"
 fi

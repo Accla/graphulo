@@ -30,7 +30,7 @@ import java.util.Map;
  * (3) count the number of entries in ex10AEdgeStep3.
  */
 public class EdgeBFSExample extends AccumuloTestBase {
-  private static final Logger log = LogManager.getLogger(AdjBFSExample.class);
+  private static final Logger log = LogManager.getLogger(EdgeBFSExample.class);
 
   /** Corresponds to saved files in the test/java/resources/data folder. */
   public static final int SCALE = 10;

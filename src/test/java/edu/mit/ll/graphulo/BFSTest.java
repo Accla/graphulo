@@ -70,7 +70,7 @@ public class BFSTest extends AccumuloTestBase {
       input.put(new Key("v1", "", "vBig"), new Value("7".getBytes()));
       input.put(new Key("v2", "", "vBig"), new Value("7".getBytes()));
       expect.putAll(input);
-      expectTranspose.putAll(TestUtil.transposeMap(input));
+      expectTranspose.putAll(GraphuloUtil.transposeMap(input));
       input.put(new Key("vBig", "", "v0"), new Value("9".getBytes()));
       input.put(new Key("vBig", "", "v1"), new Value("9".getBytes()));
       input.put(new Key("vBig", "", "v2"), new Value("9".getBytes()));
@@ -210,7 +210,7 @@ public class BFSTest extends AccumuloTestBase {
       input.put(new Key("v1", "", "vBig"), new Value("7".getBytes()));
       input.put(new Key("v2", "", "vBig"), new Value("7".getBytes()));
       expect.putAll(input);
-      expectTranspose.putAll(TestUtil.transposeMap(input));
+      expectTranspose.putAll(GraphuloUtil.transposeMap(input));
       input.put(new Key("vBig", "", "v0"), new Value("9".getBytes()));
       input.put(new Key("vBig", "", "v1"), new Value("9".getBytes()));
       input.put(new Key("vBig", "", "v2"), new Value("9".getBytes()));
@@ -354,7 +354,7 @@ public class BFSTest extends AccumuloTestBase {
       input.put(new Key("v1", "", "vBig"), new Value("7".getBytes()));
       input.put(new Key("v2", "", "vBig"), new Value("7".getBytes()));
       expect.putAll(input);
-      expectTranspose.putAll(TestUtil.transposeMap(input));
+      expectTranspose.putAll(GraphuloUtil.transposeMap(input));
       input.put(new Key("vBig", "", "v0"), new Value("9".getBytes()));
       input.put(new Key("vBig", "", "v1"), new Value("9".getBytes()));
       input.put(new Key("vBig", "", "v2"), new Value("9".getBytes()));
@@ -451,7 +451,7 @@ public class BFSTest extends AccumuloTestBase {
       input.put(new Key("v1", "", "vBig"), new Value("7".getBytes()));
       input.put(new Key("v2", "", "vBig"), new Value("7".getBytes()));
       expect.putAll(input);
-      expectTranspose.putAll(TestUtil.transposeMap(input));
+      expectTranspose.putAll(GraphuloUtil.transposeMap(input));
       input.put(new Key("vBig", "", "v0"), new Value("9".getBytes()));
       input.put(new Key("vBig", "", "v1"), new Value("9".getBytes()));
       input.put(new Key("vBig", "", "v2"), new Value("9".getBytes()));
@@ -523,7 +523,7 @@ public class BFSTest extends AccumuloTestBase {
       input.put(new Key("vBig", "", "v1"), new Value("9".getBytes()));
       input.put(new Key("vBig", "", "v2"), new Value("9".getBytes()));
       expect.putAll(input);
-      expectTranspose.putAll(TestUtil.transposeMap(input));
+      expectTranspose.putAll(GraphuloUtil.transposeMap(input));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
@@ -598,7 +598,7 @@ public class BFSTest extends AccumuloTestBase {
       input.put(new Key("e5", "", "out|v2"), new Value("7".getBytes()));
       input.put(new Key("e5", "", "in|vBig"), new Value("7".getBytes()));
       expect.putAll(input);
-      expectTranspose.putAll(TestUtil.transposeMap(input));
+      expectTranspose.putAll(GraphuloUtil.transposeMap(input));
       input.put(new Key("e6", "", "out|vBig"), new Value("9".getBytes()));
       input.put(new Key("e6", "", "in|v0"), new Value("9".getBytes()));
       input.put(new Key("e7", "", "out|vBig"), new Value("9".getBytes()));
@@ -741,7 +741,7 @@ public class BFSTest extends AccumuloTestBase {
       input.put(new Key("e5", "", "outA|v2"), new Value("7".getBytes()));
       input.put(new Key("e5", "", "in|vBig"), new Value("7".getBytes()));
       expect.putAll(input);
-      expectTranspose.putAll(TestUtil.transposeMap(input));
+      expectTranspose.putAll(GraphuloUtil.transposeMap(input));
       input.put(new Key("e6", "", "outA|vBig"), new Value("9".getBytes()));
       input.put(new Key("e6", "", "HEYHEY|v0"), new Value("9".getBytes()));
       input.put(new Key("e7", "", "out|vBig"), new Value("9".getBytes()));

@@ -59,7 +59,7 @@ public class TableMultTest extends AccumuloTestBase {
       input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
       input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
       input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
-      input = TestUtil.transposeMap(input);
+      input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tAT, null, input);
     }
     {
@@ -68,14 +68,14 @@ public class TableMultTest extends AccumuloTestBase {
       input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
-      input = TestUtil.transposeMap(input);
+      input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tB, null, input);
     }
     SortedMap<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
     expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
     expect.put(new Key("A1", "", "B2"), new Value("21".getBytes()));
     expect.put(new Key("A2", "", "B2"), new Value("12".getBytes()));
-    SortedMap<Key, Value> expectT = TestUtil.transposeMap(expect);
+    SortedMap<Key, Value> expectT = GraphuloUtil.transposeMap(expect);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     long numpp = graphulo.TableMult(tAT, tB, tC, tCT, -1,
@@ -133,7 +133,7 @@ public class TableMultTest extends AccumuloTestBase {
       input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
       input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
       input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
-      input = TestUtil.transposeMap(input);
+      input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tAT, null, input);
     }
     {
@@ -142,7 +142,7 @@ public class TableMultTest extends AccumuloTestBase {
       input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
-      input = TestUtil.transposeMap(input);
+      input = GraphuloUtil.transposeMap(input);
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("C15"));
       TestUtil.createTestTable(conn, tB, splits, input);
@@ -198,7 +198,7 @@ public class TableMultTest extends AccumuloTestBase {
       input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
       input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
       input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
-      input = TestUtil.transposeMap(input);
+      input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tAT, null, input);
     }
     {
@@ -207,7 +207,7 @@ public class TableMultTest extends AccumuloTestBase {
       input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
-      input = TestUtil.transposeMap(input);
+      input = GraphuloUtil.transposeMap(input);
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("C15"));
       TestUtil.createTestTable(conn, tB, splits, input);
@@ -234,7 +234,7 @@ public class TableMultTest extends AccumuloTestBase {
     scanner.close();
 
     // now check more advanced column filter, write to transpose
-    expect = TestUtil.transposeMap(expect);
+    expect = GraphuloUtil.transposeMap(expect);
     graphulo.TableMult(tAT, tB, null, tCT, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG), Graphulo.PLUS_ITERATOR_BIGDECIMAL,
         GraphuloUtil.d4mRowToRanges("C2,:,"),
@@ -279,7 +279,7 @@ public class TableMultTest extends AccumuloTestBase {
       input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
       input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
       input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
-      input = TestUtil.transposeMap(input);
+      input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tAT, null, input);
     }
     {
@@ -288,7 +288,7 @@ public class TableMultTest extends AccumuloTestBase {
       input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
-      input = TestUtil.transposeMap(input);
+      input = GraphuloUtil.transposeMap(input);
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("C15"));
       TestUtil.createTestTable(conn, tB, splits, input);
@@ -315,7 +315,7 @@ public class TableMultTest extends AccumuloTestBase {
     scanner.close();
 
     // now check more advanced column filter, write to transpose
-    expect = TestUtil.transposeMap(expect);
+    expect = GraphuloUtil.transposeMap(expect);
     graphulo.TableMult(tAT, tB, null, tCT, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG), Graphulo.PLUS_ITERATOR_BIGDECIMAL,
         GraphuloUtil.d4mRowToRanges("C2,:,"),

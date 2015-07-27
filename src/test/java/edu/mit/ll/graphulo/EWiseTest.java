@@ -2,6 +2,7 @@ package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
+import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.TestUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -66,7 +67,7 @@ public class EWiseTest extends AccumuloTestBase {
     SortedMap<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
     expect.put(new Key("A1", "", "C2"), new Value("6".getBytes()));
     expect.put(new Key("A2", "", "C1"), new Value("12".getBytes()));
-    SortedMap<Key,Value> expectT = TestUtil.transposeMap(expect);
+    SortedMap<Key,Value> expectT = GraphuloUtil.transposeMap(expect);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     graphulo.SpEWiseX(tAT, tB, tC, tCT, -1, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG), null, null, null, null, 1, false);
@@ -211,7 +212,7 @@ public class EWiseTest extends AccumuloTestBase {
     expect.put(new Key("A1", "", "C3"), new Value("3".getBytes()));
     expect.put(new Key("A2", "", "C1"), new Value("7".getBytes()));
     expect.put(new Key("A2", "", "C2"), new Value("3".getBytes()));
-    SortedMap<Key,Value> expectT = TestUtil.transposeMap(expect);
+    SortedMap<Key,Value> expectT = GraphuloUtil.transposeMap(expect);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     graphulo.SpEWiseSum(tA, tB, tC, tCT, -1, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.LONG), null, null, null, null, 1, false);

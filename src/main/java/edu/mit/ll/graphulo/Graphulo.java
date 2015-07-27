@@ -2095,21 +2095,7 @@ public class Graphulo {
   /** Delete tables. If they already exist, delete and re-create them if forceDelete==true,
    * otherwise throw an IllegalStateException. */
   private void deleteTables(boolean forceDelete, String... tns) {
-    TableOperations tops = connector.tableOperations();
-    for (String tn : tns) {
-      if (!forceDelete)
-        Preconditions.checkState(!tops.exists(tn), "Temporary table already exists: %s. Set forceDelete=true to delete.", tn);
-      else if (tops.exists(tn))
-        try {
-          tops.delete(tn);
-        } catch (AccumuloException | AccumuloSecurityException e) {
-          log.error("Problem deleing temporary table " + tn, e);
-          throw new RuntimeException(e);
-        } catch (TableNotFoundException e) {
-          log.error("crazy", e);
-          throw new RuntimeException(e);
-        }
-    }
+    GraphuloUtil.deleteTables(connector, forceDelete, tns);
   }
 
   /** Ensure arugments are not null and not empty. If mustExist, ensures the arguments exist as Accumulo tables. */
@@ -2126,7 +2112,24 @@ public class Graphulo {
     }
   }
 
-  // Return |newerr-olderr| at end.
+  /**
+   * Non-negative matrix factorization.
+   * The main NMF loop stops when either (1) we reach the maximum number of iterations or
+   *    (2) when the absolute difference in error between A and W*H is less than 0.01 from one iteration to the next.
+   *
+   *
+   * @param Aorig Accumulo input table to factor
+   * @param ATorig Transpose of Accumulo input table to factor
+   * @param Wfinal Output table W. Must not exist before this method.
+   * @param WTfinal Transpose of output table W. Must not exist before this method.
+   * @param Hfinal Output table H. Must not exist before this method.
+   * @param HTfinal Transpose of output table H. Must not exist before this method.
+   * @param K Number of topics.
+   * @param maxiter Maximum number of iterations
+   * @param forceDelete Forcibly delete temporary tables used if they happen to exist. If false, throws an exception if they exist.
+   * @param trace Enable server-side tracing.
+   * @return The absolute difference in error (between A and W*H) from the last iteration to the second-to-last.
+   */
   public double NMF(String Aorig, String ATorig,
                     String Wfinal, String WTfinal, String Hfinal, String HTfinal,
                     final int K, final int maxiter,
@@ -2291,19 +2294,38 @@ public class Graphulo {
 
 
 
-  // Return |newerr-olderr| at end.
-  public double NMF_Client(String Aorig,
-                    String Wfinal, /*String WTfinal,*/ String Hfinal, /*String HTfinal,*/
-                    final int K, final int maxiter,
-                    boolean trace) {
+  /**
+   * Non-negative matrix factorization <b>at the client</b>.
+   * The main NMF loop stops when either (1) we reach the maximum number of iterations or
+   *    (2) when the absolute difference in error between A and W*H is less than 0.01 from one iteration to the next.
+   *
+   *
+   * @param Aorig Accumulo input table to factor
+   * @param transposeA Whether to take the transpose of A (false if not).
+   * @param Wfinal Output table W. Must not exist before this method. Can be null. Wfinal or Hfinal must be given.
+   * @param transposeW Whether to write the transpose of W instead of W (false if not).
+   * @param Hfinal Output table H. Must not exist before this method. Can be null. Wfinal or Hfinal must be given.
+   * @param transposeH Whether to write the transpose of H instead of H (false if not).
+   * @param K Number of topics.
+   * @param maxiter Maximum number of iterations
+   * @param trace Enable server-side tracing.
+   * @return The absolute difference in error (between A and W*H) from the last iteration to the second-to-last.
+   */
+  public double NMF_Client(String Aorig, boolean transposeA,
+                    String Wfinal, boolean transposeW, String Hfinal, boolean transposeH,
+                    final int K, final int maxiter, boolean trace) {
     checkGiven(true, "Aorig", Aorig);
-    checkGiven(false, "Wfinal, Hfinal", Wfinal, Hfinal); // WTfinal, HTfinal
+    Wfinal = emptyToNull(Wfinal);
+    Hfinal = emptyToNull(Hfinal);
+    Preconditions.checkArgument(Wfinal != null || Hfinal != null, "Either W or H must be given or the method is useless.");
     Preconditions.checkArgument(K > 0, "# of topics K must be > 0: " + K);
     deleteTables(false, Wfinal, Hfinal); // WTfinal, HTfinal
 
     // Scan A into memory
     Map<Key,Value> Aentries = new TreeMap<>(); //GraphuloUtil.scanAll(connector, Aorig);
     OneTable(Aorig, null, null, Aentries, -1, null, null, null, null, null, null, null, false); // returns nnz A
+    if (transposeA)
+      Aentries = GraphuloUtil.transposeMap(Aentries);
 
     // Replace row and col labels with integer indexes; create map from indexes to original labels
     // The Maps are used to put the original labels on W and H
@@ -2351,11 +2373,14 @@ public class Graphulo {
     } while (Math.abs(newerr - olderr) > 0.01d && numiter < maxiter);
 
     // Write out results!
-    Map<Key,Value> Wmap = MemMatrixUtil.matrixToMapWithLabels(Wmatrix, rowMap, false); // false = label row
-    Map<Key,Value> Hmap = MemMatrixUtil.matrixToMapWithLabels(Hmatrix, colMap, true); // true = label column qualifier
-    GraphuloUtil.writeEntries(connector, Wmap, Wfinal, true);
-    GraphuloUtil.writeEntries(connector, Hmap, Hfinal, true);
-
+    if (Wfinal != null) {
+      Map<Key, Value> Wmap = MemMatrixUtil.matrixToMapWithLabels(Wmatrix, rowMap, false); // false = label row
+      GraphuloUtil.writeEntries(connector, transposeW ? GraphuloUtil.transposeMap(Wmap) : Wmap, Wfinal, true);
+    }
+    if (Hfinal != null) {
+      Map<Key, Value> Hmap = MemMatrixUtil.matrixToMapWithLabels(Hmatrix, colMap, true); // true = label column qualifier
+      GraphuloUtil.writeEntries(connector, transposeH ? GraphuloUtil.transposeMap(Hmap) : Hmap, Hfinal, true);
+    }
     return Math.abs(newerr - olderr);
   }
 

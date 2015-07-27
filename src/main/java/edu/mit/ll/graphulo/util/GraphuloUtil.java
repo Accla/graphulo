@@ -41,7 +41,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -827,5 +829,49 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
         log.error("mutations rejected while trying to close BatchWriter", e);
       }
     }
+  }
+
+  /** Delete tables. If they already exist, delete and re-create them if forceDelete==true,
+   * otherwise throw an IllegalStateException. */
+  public static void deleteTables(Connector connector, boolean forceDelete, String... tns) {
+    TableOperations tops = connector.tableOperations();
+    for (String tn : tns) {
+      if (tn != null) {
+        if (!forceDelete)
+          Preconditions.checkState(!tops.exists(tn), "Temporary table already exists: %s. Set forceDelete=true to delete.", tn);
+        else if (tops.exists(tn))
+          try {
+            tops.delete(tn);
+          } catch (AccumuloException | AccumuloSecurityException e) {
+            log.error("Problem deleing temporary table " + tn, e);
+            throw new RuntimeException(e);
+          } catch (TableNotFoundException e) {
+            log.error("crazy", e);
+            throw new RuntimeException(e);
+          }
+      }
+    }
+  }
+
+  /** Switches row and column qualifier. Returns HashMap. */
+  public static <V> Map<Key,V> transposeMap(Map<Key, V> mapOrig) {
+      Map<Key, V> m = new HashMap<>(mapOrig.size());
+      return transposeMapHelp(mapOrig, m);
+  }
+
+  /** Switches row and column qualifier. Use same comparator as the given map. Returns TreeMap. */
+  public static <V> SortedMap<Key,V> transposeMap(SortedMap<Key, V> mapOrig) {
+    SortedMap<Key, V> m = new TreeMap<>(mapOrig.comparator());
+    return transposeMapHelp(mapOrig, m);
+  }
+
+  private static <M extends Map<Key,V>, V> M transposeMapHelp(Map<Key,V> orig, M neww) {
+    for (Map.Entry<Key, V> entry : orig.entrySet()) {
+      Key k0 = entry.getKey();
+      Key k = new Key(k0.getColumnQualifier(), k0.getColumnFamily(),
+          k0.getRow(), k0.getColumnVisibilityParsed(), k0.getTimestamp());
+      neww.put(k, entry.getValue());
+    }
+    return neww;
   }
 }

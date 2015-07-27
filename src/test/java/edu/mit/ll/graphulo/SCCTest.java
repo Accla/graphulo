@@ -104,7 +104,10 @@ public class SCCTest extends AccumuloTestBase {
     expectSet.add("v0,v1,v2,");
     Assert.assertEquals(expectSet, sccgraphulo.SCCQuery(tRf, "v0,"));
     Assert.assertTrue(sccgraphulo.SCCQuery(tRf, "vBig,").isEmpty());
-    Assert.assertEquals(expectSet, sccgraphulo.SCCQuery(tRf,null));
+    Assert.assertEquals(expectSet, sccgraphulo.SCCQuery(tRf, null));
+
+    conn.tableOperations().delete(tA);
+    conn.tableOperations().delete(tRf);
   }
 
 }

@@ -43,7 +43,7 @@ public class ExampleUtil {
     File colFile = getDataFile(String.valueOf(SCALE)+version+"c.txt");
 
     // deleteExistingTables
-    System.out.println("estimate "+(1 << SCALE)*16);
+    log.debug("estimated # of nodes in "+baseName+" about to insert: "+(1 << SCALE)*16);
     long cnt = tripleFileWriter.writeTripleFile_Incidence(rowFile, colFile, null, ",", baseName, true, true, (1 << SCALE) * 16); // upper bound on #edges
     log.info("Wrote "+cnt+" edges to D4M Incidence tables with base name "+baseName);
   }
@@ -54,7 +54,7 @@ public class ExampleUtil {
     D4MTripleFileWriter tripleFileWriter = new D4MTripleFileWriter(conn);
 
     // deleteExistingTables
-    System.out.println("estimate "+(1 << SCALE)*16);
+    log.debug("estimated # of nodes in " + baseName+" about to insert: " + (1 << SCALE) * 16);
     long cnt = tripleFileWriter.writeFromAdjacency_Incidence(baseName, true, true, (1 << SCALE) * 16); // upper bound on #edges
     log.info("Wrote "+cnt+" edges to D4M Incidence tables with base name "+baseName);
   }
@@ -66,6 +66,7 @@ public class ExampleUtil {
     File colFile = getDataFile(String.valueOf(SCALE)+version+"c.txt");
 
     // deleteExistingTables
+    log.debug("estimated # of nodes in " + baseName+" about to insert: "+(1 << SCALE)*16);
     long cnt = tripleFileWriter.writeTripleFile_Single(rowFile, colFile, null, ",", baseName, true, true);
     log.info("Wrote "+cnt+" edges to single-table with base name "+baseName);
   }

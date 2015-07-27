@@ -54,7 +54,7 @@ public class AlgorithmTest extends AccumuloTestBase {
       input.put(new Key("v1", "", "v4"), new Value("1".getBytes()));
       input.put(new Key("v2", "", "v3"), new Value("1".getBytes()));
       input.put(new Key("v3", "", "v4"), new Value("1".getBytes()));
-      input.putAll(TestUtil.transposeMap(input));
+      input.putAll(GraphuloUtil.transposeMap(input));
       expect.putAll(input);
       input.put(new Key("v2", "", "v5"), new Value("1".getBytes()));
       input.put(new Key("v5", "", "v2"), new Value("1".getBytes()));
@@ -135,7 +135,7 @@ public class AlgorithmTest extends AccumuloTestBase {
       input.put(new Key("e5", "", "v1"), new Value("1".getBytes()));
       input.put(new Key("e5", "", "v3"), new Value("1".getBytes()));
       expect.putAll(input);
-      expectTranspose.putAll(TestUtil.transposeMap(expect));
+      expectTranspose.putAll(GraphuloUtil.transposeMap(expect));
       input.put(new Key("e6", "", "v2"), new Value("1".getBytes()));
       input.put(new Key("e6", "", "v5"), new Value("1".getBytes()));
       SortedSet<Text> splits = new TreeSet<>();
@@ -143,7 +143,7 @@ public class AlgorithmTest extends AccumuloTestBase {
       TestUtil.createTestTable(conn, tE, splits, input);
       splits.clear();
       splits.add(new Text("v22"));
-      TestUtil.createTestTable(conn, tET, splits, TestUtil.transposeMap(input));
+      TestUtil.createTestTable(conn, tET, splits, GraphuloUtil.transposeMap(input));
     }
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
@@ -176,7 +176,7 @@ public class AlgorithmTest extends AccumuloTestBase {
       input.put(new Key("e7", "", "v2"), new Value("1".getBytes()));
       expect.putAll(input);
       GraphuloUtil.writeEntries(conn, input, tE, false);
-      Map<Key, Value> inputTranspose = TestUtil.transposeMap(input);
+      Map<Key, Value> inputTranspose = GraphuloUtil.transposeMap(input);
       expectTranspose.putAll(inputTranspose);
       GraphuloUtil.writeEntries(conn, inputTranspose, tET, false);
     }
@@ -229,7 +229,7 @@ public class AlgorithmTest extends AccumuloTestBase {
       input.put(new Key("v1", "", "v4"), new Value("1".getBytes()));
       input.put(new Key("v2", "", "v3"), new Value("1".getBytes()));
       input.put(new Key("v3", "", "v4"), new Value("1".getBytes()));
-      input.putAll(TestUtil.transposeMap(input));
+      input.putAll(GraphuloUtil.transposeMap(input));
       input.put(new Key("v2", "", "v5"), new Value("1".getBytes()));
       input.put(new Key("v5", "", "v2"), new Value("1".getBytes()));
       SortedSet<Text> splits = new TreeSet<>();
@@ -317,10 +317,10 @@ public class AlgorithmTest extends AccumuloTestBase {
       TestUtil.createTestTable(conn, tE, splits, input);
       splits.clear();
       splits.add(new Text("v22"));
-      TestUtil.createTestTable(conn, tET, splits, TestUtil.transposeMap(input));
+      TestUtil.createTestTable(conn, tET, splits, GraphuloUtil.transposeMap(input));
     }
 
-    DistributedTrace.enable("testNMF");
+//    DistributedTrace.enable("testNMF");
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     int maxIter = 4;
@@ -412,7 +412,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     int maxIter = 10;
     boolean trace = false;
     long t = System.currentTimeMillis();
-    double error = graphulo.NMF_Client(tE, tW, tH, K, maxIter, trace);
+    double error = graphulo.NMF_Client(tE, false, tW, false, tH, false,K, maxIter, trace);
     System.out.println("Trace is "+trace+"; Client NMF time "+(System.currentTimeMillis()-t));
     log.info("NMF error " + error);
 

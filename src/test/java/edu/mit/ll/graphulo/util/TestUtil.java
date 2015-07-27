@@ -18,12 +18,9 @@ import org.apache.log4j.Logger;
 import org.junit.Assert;
 
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.SortedMap;
 import java.util.SortedSet;
-import java.util.TreeMap;
 
 /**
  * Helper methods for testing.
@@ -186,28 +183,6 @@ public class TestUtil {
 //        String className = value == null ? "null" : value.getClass().getName();
 //        return className + "<" + valueString + ">";
 //    }
-
-  /** Switches row and column qualifier. Returns HashMap. */
-  public static <V> Map<Key,V> transposeMap(Map<Key, V> mapOrig) {
-      Map<Key, V> m = new HashMap<>(mapOrig.size());
-      return transposeMapHelp(mapOrig, m);
-  }
-
-  /** Switches row and column qualifier. Use same comparator as the given map. Returns TreeMap. */
-  public static <V> SortedMap<Key,V> transposeMap(SortedMap<Key, V> mapOrig) {
-    SortedMap<Key, V> m = new TreeMap<>(mapOrig.comparator());
-    return transposeMapHelp(mapOrig, m);
-  }
-
-  private static <M extends Map<Key,V>, V> M transposeMapHelp(Map<Key,V> orig, M neww) {
-    for (Map.Entry<Key, V> entry : orig.entrySet()) {
-      Key k0 = entry.getKey();
-      Key k = new Key(k0.getColumnQualifier(), k0.getColumnFamily(),
-          k0.getRow(), k0.getColumnVisibilityParsed(), k0.getTimestamp());
-      neww.put(k, entry.getValue());
-    }
-    return neww;
-  }
 
   public static void assertEqualDoubleMap(Map<Key, Value> expect, Map<Key, Value> actual) {
     for (Map.Entry<Key, Value> actualEntry : actual.entrySet()) {

@@ -79,7 +79,7 @@ public class MinMaxValueFilter extends Filter {
     }
     if (bad)
       throw new IllegalArgumentException("maxValue < minValue: "+maxValue+" < "+minValue);
-    log.info("minValue "+minValue+" maxValue"+maxValue);
+    log.debug("minValue "+minValue+" maxValue"+maxValue);
   }
 
   @Override

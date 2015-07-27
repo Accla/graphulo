@@ -3,6 +3,7 @@ package edu.mit.ll.graphulo;
 import edu.mit.ll.graphulo.skvi.TableMultIterator;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
+import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.TestUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -167,7 +168,7 @@ public class TableMultIteratorTest extends AccumuloTestBase {
       input.put(new Key("A1", "", "C1"), new Value("2".getBytes()));
       input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
       input.put(new Key("A2", "", "C1"), new Value("2".getBytes()));
-      input = TestUtil.transposeMap(input);
+      input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tableNameAT, null, input);
     }
     SortedSet<Text> splitSet = new TreeSet<>();
@@ -181,7 +182,7 @@ public class TableMultIteratorTest extends AccumuloTestBase {
       input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
-      input = TestUtil.transposeMap(input);
+      input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tableNameB, null, input);
     }
 

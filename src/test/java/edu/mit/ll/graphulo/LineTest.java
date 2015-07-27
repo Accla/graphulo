@@ -1,6 +1,7 @@
 package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
+import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.TestUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -59,19 +60,19 @@ public class LineTest extends AccumuloTestBase {
       Map<Key, Value> input = new HashMap<>();
       input.put(new Key("a", "", "b"), new Value("2".getBytes()));
       input.put(new Key("b", "", "c"), new Value("4".getBytes()));
-      input.putAll(TestUtil.transposeMap(input)); // undirected example
+      input.putAll(GraphuloUtil.transposeMap(input)); // undirected example
       SortedSet<Text> splits = new TreeSet<>();
 //      splits.add(new Text("b"));
       TestUtil.createTestTable(conn, tA, splits, input);
 
-      input = TestUtil.transposeMap(input);
+      input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tAT, null, input);
     }
 
     {
       expect.put(new Key("a|b", "", "b|c"), new Value("3.0".getBytes()));
-      expect.putAll(TestUtil.transposeMap(expect));
-      expectTranspose.putAll(TestUtil.transposeMap(expect));
+      expect.putAll(GraphuloUtil.transposeMap(expect));
+      expectTranspose.putAll(GraphuloUtil.transposeMap(expect));
     }
 
     IteratorSetting sumSetting = new IteratorSetting(6, BigDecimalCombiner.BigDecimalSummingCombiner.class);
@@ -143,13 +144,13 @@ public class LineTest extends AccumuloTestBase {
 //      splits.add(new Text("b"));
       TestUtil.createTestTable(conn, tA, splits, input);
 
-      input = TestUtil.transposeMap(input);
+      input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tAT, null, input);
     }
 
     {
       expect.put(new Key("a|b", "", "b|c"), new Value("2.0".getBytes()));
-      expectTranspose.putAll(TestUtil.transposeMap(expect));
+      expectTranspose.putAll(GraphuloUtil.transposeMap(expect));
     }
 
     IteratorSetting sumSetting = new IteratorSetting(6, BigDecimalCombiner.BigDecimalSummingCombiner.class);
@@ -248,7 +249,7 @@ public class LineTest extends AccumuloTestBase {
 //      splits.add(new Text("b"));
       TestUtil.createTestTable(conn, tA, splits, input);
 
-      input = TestUtil.transposeMap(input);
+      input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tAT, null, input);
     }
 
@@ -263,7 +264,7 @@ public class LineTest extends AccumuloTestBase {
       expect.put(new Key("a|c", "", "b|c"), 0.75);
       expect.put(new Key("b|c", "", "a|c"), 0.75);
 
-      expectTranspose.putAll(TestUtil.transposeMap(expect));
+      expectTranspose.putAll(GraphuloUtil.transposeMap(expect));
     }
 
     IteratorSetting sumSetting = new IteratorSetting(6, BigDecimalCombiner.BigDecimalSummingCombiner.class);
@@ -306,7 +307,7 @@ public class LineTest extends AccumuloTestBase {
       expect.put(new Key("b|c", "", "c|e"), 1.0);
       expect.put(new Key("b|c", "", "c|f"), 1.0);
 
-      expectTranspose.putAll(TestUtil.transposeMap(expect));
+      expectTranspose.putAll(GraphuloUtil.transposeMap(expect));
     }
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
@@ -376,12 +377,12 @@ public class LineTest extends AccumuloTestBase {
       input.put(new Key("b", "", "c"), new Value("5".getBytes()));
       input.put(new Key("b", "", "d"), new Value("6".getBytes()));
       input.put(new Key("c", "", "d"), new Value("3".getBytes()));
-      input.putAll(TestUtil.transposeMap(input)); // undirected example
+      input.putAll(GraphuloUtil.transposeMap(input)); // undirected example
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("b"));
       TestUtil.createTestTable(conn, tA, splits, input);
 
-      input = TestUtil.transposeMap(input);
+      input = GraphuloUtil.transposeMap(input);
       splits = new TreeSet<>();
       splits.add(new Text("c"));
       TestUtil.createTestTable(conn, tAT, splits, input);
@@ -394,8 +395,8 @@ public class LineTest extends AccumuloTestBase {
       expect.put(new Key("b|c", "", "b|d"), 2.5);
       expect.put(new Key("b|c", "", "c|d"), 4.0);
       expect.put(new Key("b|d", "", "c|d"), 4.5);
-      expect.putAll(TestUtil.transposeMap(expect));
-      expectTranspose.putAll(TestUtil.transposeMap(expect));
+      expect.putAll(GraphuloUtil.transposeMap(expect));
+      expectTranspose.putAll(GraphuloUtil.transposeMap(expect));
     }
 
     IteratorSetting sumSetting = new IteratorSetting(6, BigDecimalCombiner.BigDecimalSummingCombiner.class);

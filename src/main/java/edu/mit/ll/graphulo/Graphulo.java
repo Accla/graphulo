@@ -294,6 +294,8 @@ public class Graphulo {
                                    List<IteratorSetting> iteratorsAfterTwoTable,
                                    Reducer reducer, Map<String,String> reducerOpts,
                                    int numEntriesCheckpoint, boolean trace) {
+    if (multOp == null)
+      multOp = MathTwoScalar.class;
     Map<String,String> opt = new HashMap<>();
     opt.put("rowMultiplyOp", CartesianRowMultiply.class.getName());
     opt.put("rowMultiplyOp.opt.multiplyOp", multOp.getName()); // treated same as multiplyOp
@@ -348,6 +350,8 @@ public class Graphulo {
                             List<IteratorSetting> iteratorsAfterTwoTable,
                             Reducer reducer, Map<String,String> reducerOpts,
                             int numEntriesCheckpoint, boolean trace) {
+    if (multOp == null)
+      multOp = MathTwoScalar.class;
     Map<String,String> opt = new HashMap<>();
     opt.put("multiplyOp", multOp.getName());
     if (multOpOptions != null)

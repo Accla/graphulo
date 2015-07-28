@@ -32,8 +32,8 @@ public class AccumuloCombiner {
 		private static Map<Class<? extends Combiner>, CombiningType> classMap;
 
 		static {
-			nameMap = new HashMap<>();
-			classMap = new HashMap<>();
+			nameMap = new HashMap<String, CombiningType>();
+			classMap = new HashMap<Class<? extends Combiner>, CombiningType>();
 			for (CombiningType ct : CombiningType.values()) {
 				nameMap.put(ct.name().toUpperCase(), ct);
 				classMap.put(ct.cl, ct);

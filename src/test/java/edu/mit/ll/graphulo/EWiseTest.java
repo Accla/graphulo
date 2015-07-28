@@ -50,21 +50,21 @@ public class EWiseTest extends AccumuloTestBase {
       tCT = names[3];
     }
     {
-      Map<Key,Value> input = new HashMap<>();
+      Map<Key,Value> input = new HashMap<Key, Value>();
       input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
       input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
       input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
       TestUtil.createTestTable(conn, tAT, null, input);
     }
     {
-      Map<Key,Value> input = new HashMap<>();
+      Map<Key,Value> input = new HashMap<Key, Value>();
       input.put(new Key("A1", "", "C2"), new Value("3".getBytes()));
       input.put(new Key("A1", "", "C3"), new Value("3".getBytes()));
       input.put(new Key("A2", "", "C1"), new Value("3".getBytes()));
       input.put(new Key("A2", "", "C2"), new Value("3".getBytes()));
       TestUtil.createTestTable(conn, tB, null, input);
     }
-    SortedMap<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    SortedMap<Key,Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
     expect.put(new Key("A1", "", "C2"), new Value("6".getBytes()));
     expect.put(new Key("A2", "", "C1"), new Value("12".getBytes()));
     SortedMap<Key,Value> expectT = GraphuloUtil.transposeMap(expect);
@@ -74,7 +74,7 @@ public class EWiseTest extends AccumuloTestBase {
 
     Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
     {
-      SortedMap<Key,Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+      SortedMap<Key,Value> actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
       for (Map.Entry<Key,Value> entry : scanner) {
         actual.put(entry.getKey(), entry.getValue());
       }
@@ -84,7 +84,7 @@ public class EWiseTest extends AccumuloTestBase {
 
     scanner = conn.createScanner(tCT, Authorizations.EMPTY);
     {
-      SortedMap<Key,Value> actualT = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+      SortedMap<Key,Value> actualT = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
       for (Map.Entry<Key,Value> entry : scanner) {
         actualT.put(entry.getKey(), entry.getValue());
       }
@@ -112,7 +112,7 @@ public class EWiseTest extends AccumuloTestBase {
 
     Map<Key,Value> expect = new TreeMap<Key,Value>(TestUtil.COMPARE_KEY_TO_COLQ);
     {
-      Map<Key,Value> input = new HashMap<>();
+      Map<Key,Value> input = new HashMap<Key, Value>();
       input.put(new Key("v0", "", "v0"), new Value("1".getBytes()));
       input.put(new Key("v0", "", "v1"), new Value("1".getBytes()));
       input.put(new Key("v0", "", "v2"), new Value("1".getBytes()));
@@ -126,7 +126,7 @@ public class EWiseTest extends AccumuloTestBase {
       input.put(new Key("vBig", "", "v1"), new Value("1".getBytes()));
       input.put(new Key("vBig", "", "v2"), new Value("1".getBytes()));
 
-      Map<Key,Value> input2 = new HashMap<>();
+      Map<Key,Value> input2 = new HashMap<Key, Value>();
       input2.put(new Key("v0", "", "v0"), new Value("1".getBytes()));
       input2.put(new Key("v0", "", "v1"), new Value("1".getBytes()));
       input2.put(new Key("v0", "", "v2"), new Value("1".getBytes()));
@@ -140,7 +140,7 @@ public class EWiseTest extends AccumuloTestBase {
       input2.put(new Key("v1", "", "vBig"), new Value("1".getBytes()));
       input2.put(new Key("v2", "", "vBig"), new Value("1".getBytes()));
 
-      Map<Key,Value> e = new HashMap<>();
+      Map<Key,Value> e = new HashMap<Key, Value>();
       e.put(new Key("v0", "", "v1"), new Value("1".getBytes()));
       e.put(new Key("v0", "", "v2"), new Value("1".getBytes()));
       e.put(new Key("v0", "", "v0"), new Value("1".getBytes()));
@@ -163,7 +163,7 @@ public class EWiseTest extends AccumuloTestBase {
 
     Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
     {
-      SortedMap<Key,Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+      SortedMap<Key,Value> actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
       for (Map.Entry<Key,Value> entry : scanner) {
         actual.put(entry.getKey(), entry.getValue());
       }
@@ -192,21 +192,21 @@ public class EWiseTest extends AccumuloTestBase {
       tCT = names[3];
     }
     {
-      Map<Key,Value> input = new HashMap<>();
+      Map<Key,Value> input = new HashMap<Key, Value>();
       input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
       input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
       input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
       TestUtil.createTestTable(conn, tA, null, input);
     }
     {
-      Map<Key,Value> input = new HashMap<>();
+      Map<Key,Value> input = new HashMap<Key, Value>();
       input.put(new Key("A1", "", "C2"), new Value("3".getBytes()));
       input.put(new Key("A1", "", "C3"), new Value("3".getBytes()));
       input.put(new Key("A2", "", "C1"), new Value("3".getBytes()));
       input.put(new Key("A2", "", "C2"), new Value("3".getBytes()));
       TestUtil.createTestTable(conn, tB, null, input);
     }
-    SortedMap<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    SortedMap<Key,Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
     expect.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
     expect.put(new Key("A1", "", "C2"), new Value("5".getBytes()));
     expect.put(new Key("A1", "", "C3"), new Value("3".getBytes()));
@@ -219,7 +219,7 @@ public class EWiseTest extends AccumuloTestBase {
 
     Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
     {
-      SortedMap<Key,Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+      SortedMap<Key,Value> actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
       for (Map.Entry<Key,Value> entry : scanner) {
         actual.put(entry.getKey(), entry.getValue());
       }
@@ -229,7 +229,7 @@ public class EWiseTest extends AccumuloTestBase {
 
     scanner = conn.createScanner(tCT, Authorizations.EMPTY);
     {
-      SortedMap<Key,Value> actualT = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+      SortedMap<Key,Value> actualT = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
       for (Map.Entry<Key,Value> entry : scanner) {
         actualT.put(entry.getKey(), entry.getValue());
       }

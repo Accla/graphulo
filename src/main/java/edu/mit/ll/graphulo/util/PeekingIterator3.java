@@ -14,9 +14,9 @@ public class PeekingIterator3<E> implements Iterator<E> {
 
   public PeekingIterator3(Iterator<E> source) {
 //    this.source = source;
-    pThird = new PeekingIterator1<>(source);
-    pSecond = new PeekingIterator1<>(pThird);
-    pFirst = new PeekingIterator1<>(pSecond);
+    pThird = new PeekingIterator1<E>(source);
+    pSecond = new PeekingIterator1<E>(pThird);
+    pFirst = new PeekingIterator1<E>(pSecond);
   }
 
   @Override

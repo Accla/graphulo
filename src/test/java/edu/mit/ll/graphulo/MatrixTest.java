@@ -23,7 +23,7 @@ public class MatrixTest  {
   @Test
   public void testInverseIdentity() {
     double tol = 0.00001;
-    Map<Key, Value> input = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key, Value> input = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
     input.put(new Key("1", "", "1"), new Value("1".getBytes()));
 //    input.put(new Key("1", "", "2"), new Value("1".getBytes()));
 //    input.put(new Key("2", "", "1"), new Value("1".getBytes()));
@@ -54,12 +54,12 @@ public class MatrixTest  {
   @Test
   public void testInverse2x2() {
     double tol = 0.001;
-    Map<Key, Value> input = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key, Value> input = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
     input.put(new Key("1", "", "1"), new Value("4".getBytes()));
     input.put(new Key("1", "", "2"), new Value("3".getBytes()));
     input.put(new Key("2", "", "1"), new Value("1".getBytes()));
     input.put(new Key("2", "", "2"), new Value("1".getBytes()));
-    Map<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key, Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
     expect.put(new Key("1", "", "1"), new Value("1 ".getBytes()));
     expect.put(new Key("1", "", "2"), new Value("-3".getBytes()));
     expect.put(new Key("2", "", "1"), new Value("-1".getBytes()));

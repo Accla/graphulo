@@ -48,13 +48,13 @@ public class ClientSideIteratorAggregatingScanner extends ScannerOptions impleme
 
   @Override
   public Iterator<Map.Entry<Key, Value>> iterator() {
-    SortedMap<Key,Value> allEntriesMap = new TreeMap<>();
+    SortedMap<Key,Value> allEntriesMap = new TreeMap<Key, Value>();
     for (Map.Entry<Key, Value> entry : bs) {
       allEntriesMap.put(entry.getKey(), entry.getValue());
     }
     SortedKeyValueIterator<Key, Value> skvi = new MapIterator(allEntriesMap);
 
-    final TreeMap<Integer,IterInfo> tm = new TreeMap<>();
+    final TreeMap<Integer,IterInfo> tm = new TreeMap<Integer, IterInfo>();
     for (IterInfo iterInfo : serverSideIteratorList) {
       tm.put(iterInfo.getPriority(), iterInfo);
     }

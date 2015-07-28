@@ -19,7 +19,7 @@ public class BadHardListIterator implements SortedKeyValueIterator<Key, Value> {
   final static SortedMap<Key, Value> allEntriesToInject;
 
   static {
-    SortedMap<Key, Value> t = new TreeMap<>();
+    SortedMap<Key, Value> t = new TreeMap<Key, Value>();
     t.put(new Key(new Text("a1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
         new Value("1".getBytes()));
     t.put(new Key(new Text("c1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
@@ -36,7 +36,7 @@ public class BadHardListIterator implements SortedKeyValueIterator<Key, Value> {
     if (source != null)
       throw new IllegalArgumentException("HardListIterator does not take a parent source");
     // define behavior before seek as seek to start at negative infinity
-    inner = new PeekingIterator1<>(allEntriesToInject.entrySet().iterator());
+    inner = new PeekingIterator1<Map.Entry<Key, Value>>(allEntriesToInject.entrySet().iterator());
   }
 
   @Override
@@ -47,7 +47,7 @@ public class BadHardListIterator implements SortedKeyValueIterator<Key, Value> {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    newInstance.inner = new PeekingIterator1<>(allEntriesToInject.tailMap(inner.peek().getKey()).entrySet().iterator());
+    newInstance.inner = new PeekingIterator1<Map.Entry<Key, Value>>(allEntriesToInject.tailMap(inner.peek().getKey()).entrySet().iterator());
 
     return newInstance;
   }
@@ -66,11 +66,11 @@ public class BadHardListIterator implements SortedKeyValueIterator<Key, Value> {
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     // seek to first entry inside range
     if (range.isInfiniteStartKey())
-      inner = new PeekingIterator1<>(allEntriesToInject.entrySet().iterator());
+      inner = new PeekingIterator1<Map.Entry<Key, Value>>(allEntriesToInject.entrySet().iterator());
     else if (range.isStartKeyInclusive())
-      inner = new PeekingIterator1<>(allEntriesToInject.tailMap(range.getStartKey()).entrySet().iterator());
+      inner = new PeekingIterator1<Map.Entry<Key, Value>>(allEntriesToInject.tailMap(range.getStartKey()).entrySet().iterator());
     else
-      inner = new PeekingIterator1<>(allEntriesToInject.tailMap(range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME)).entrySet().iterator());
+      inner = new PeekingIterator1<Map.Entry<Key, Value>>(allEntriesToInject.tailMap(range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME)).entrySet().iterator());
   }
 
   @Override

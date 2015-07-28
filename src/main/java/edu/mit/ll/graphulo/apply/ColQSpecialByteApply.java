@@ -57,7 +57,7 @@ public class ColQSpecialByteApply implements ApplyOp {
   @Override
   public Iterator<? extends Map.Entry<Key, Value>> apply(final Key k, Value v) {
     Key newKey = addSpecialBytes(k);
-    return Iterators.singletonIterator( new AbstractMap.SimpleImmutableEntry<>(newKey,v));
+    return Iterators.singletonIterator( new AbstractMap.SimpleImmutableEntry<Key, Value>(newKey,v));
   }
 
   @Override

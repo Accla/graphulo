@@ -63,8 +63,8 @@ public class MemMatrixUtil {
   /** Replace row and col labels with integer indexes; create map from indexes to original labels */
   public static RealMatrix indexMapAndMatrix(final Map<Key,Value> orig, final SortedMap<Integer,String> rowMap, final SortedMap<Integer,String> colMap) {
     // use Map<Integer,Map<Integer,Double>> to build
-    SortedMap<Integer,SortedMap<Integer,Double>> rowcolvalmap = new TreeMap<>();
-    Map<String,Integer> rowMapRev = new HashMap<>(), colMapRev = new HashMap<>();
+    SortedMap<Integer,SortedMap<Integer,Double>> rowcolvalmap = new TreeMap<Integer, SortedMap<Integer, Double>>();
+    Map<String,Integer> rowMapRev = new HashMap<String, Integer>(), colMapRev = new HashMap<String, Integer>();
 
     Text rowText = new Text(), colText = new Text();
     for (Map.Entry<Key, Value> entry : orig.entrySet()) {
@@ -76,7 +76,7 @@ public class MemMatrixUtil {
         rowInt = rowMapRev.size()+1;
         rowMapRev.put(row, rowInt);
         rowMap.put(rowInt, row);
-        colvalmap = new TreeMap<>();
+        colvalmap = new TreeMap<Integer, Double>();
         rowcolvalmap.put(rowInt, colvalmap);
       } else
         colvalmap = rowcolvalmap.get(rowInt);
@@ -106,7 +106,7 @@ public class MemMatrixUtil {
   }
 
   public static Map<Key, Value> matrixToMapWithLabels(RealMatrix orig, final SortedMap<Integer, String> labelMap, final boolean labelColQ) {
-    final Map<Key,Value> ret = new TreeMap<>();
+    final Map<Key,Value> ret = new TreeMap<Key, Value>();
 
     orig.walkInOptimizedOrder(new DefaultRealMatrixPreservingVisitor() {
       @Override

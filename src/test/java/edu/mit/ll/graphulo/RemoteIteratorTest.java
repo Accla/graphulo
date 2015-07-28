@@ -61,11 +61,11 @@ public class RemoteIteratorTest extends AccumuloTestBase {
       tR = names[1];
       tRT = names[2];
     }
-    Map<Key,Value> expectR = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-      expectRT = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-    HashSet<String> setUniqueColQsExpect = new HashSet<>(), setUniqueColQsActual;
+    Map<Key,Value> expectR = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+      expectRT = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
+    HashSet<String> setUniqueColQsExpect = new HashSet<String>(), setUniqueColQsActual;
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
       setUniqueColQsExpect.add("C1");
       input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
@@ -78,7 +78,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
       input.put(new Key("A00", "", "C1"), new Value("21".getBytes()));
       input.put(new Key("ZZZ", "", "C1"), new Value("22".getBytes()));
 
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("A15"));
       TestUtil.createTestTable(conn, tA, splits, input);
     }
@@ -87,7 +87,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
 
     BatchScanner bs = conn.createBatchScanner(tA, Authorizations.EMPTY, 2);
     bs.setRanges(Collections.singleton(new Range("A1",true,"B",true)));
-    Map<String,String> opt = new HashMap<>();
+    Map<String,String> opt = new HashMap<String, String>();
     opt.put("zookeeperHost", conn.getInstance().getZooKeepers());
     opt.put("instanceName", conn.getInstance().getInstanceName());
     opt.put("tableName", tR);
@@ -109,7 +109,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     bs.close();
 
     Scanner scan = conn.createScanner(tR, Authorizations.EMPTY);
-    Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+    Map<Key, Value> actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
     for (Map.Entry<Key, Value> entry : scan) {
       actual.put(entry.getKey(), entry.getValue());
     }
@@ -117,7 +117,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     scan.close();
 
     scan = conn.createScanner(tRT, Authorizations.EMPTY);
-    actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+    actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
     for (Map.Entry<Key, Value> entry : scan) {
       actual.put(entry.getKey(), entry.getValue());
     }
@@ -140,7 +140,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
       tableName2 = names[1];
     }
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("ccc", "", "cq"), new Value("7".getBytes()));
       input.put(new Key("ddd", "", "cq"), new Value("7".getBytes()));
       input.put(new Key("pogo", "", "cq"), new Value("7".getBytes()));
@@ -152,37 +152,37 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     }
     TestUtil.createTestTable(conn, tableName2);
 
-    List<SortedMap<Key, Value>> expectList = new ArrayList<>();
+    List<SortedMap<Key, Value>> expectList = new ArrayList<SortedMap<Key, Value>>();
     {
-      SortedMap<Key, Value> smap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+      SortedMap<Key, Value> smap = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
       smap.put(new Key("ccc", "", "cq"), new Value("7".getBytes()));
       expectList.add(smap);
     }
     {
-      SortedMap<Key, Value> smap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+      SortedMap<Key, Value> smap = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
       smap.put(new Key("ddd", "", "cq"), new Value("7".getBytes()));
       smap.put(new Key("ddd", "", "cq2"), new Value("8".getBytes()));
       expectList.add(smap);
     }
     {
-      SortedMap<Key, Value> smap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+      SortedMap<Key, Value> smap = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
       smap.put(new Key("ggg", "", "cq2"), new Value("8".getBytes()));
       expectList.add(smap);
     }
     {
-      SortedMap<Key, Value> smap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+      SortedMap<Key, Value> smap = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
       smap.put(new Key("pogo", "", "cq"), new Value("7".getBytes()));
       smap.put(new Key("pogo", "", "cq2"), new Value("8".getBytes()));
       expectList.add(smap);
     }
     {
-      SortedMap<Key, Value> smap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+      SortedMap<Key, Value> smap = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
       smap.put(new Key("xyz", "", "cq2"), new Value("8".getBytes()));
       expectList.add(smap);
     }
 
     Scanner scanner = conn.createScanner(tableName2, Authorizations.EMPTY);
-    Map<String, String> itprops = new HashMap<>();
+    Map<String, String> itprops = new HashMap<String, String>();
     itprops.put("instanceName", conn.getInstance().getInstanceName());
     itprops.put("tableName", tableName);
     itprops.put("zookeeperHost", conn.getInstance().getZooKeepers());
@@ -195,7 +195,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
 //    log.info("Results of scan on table " + tableName2 + " remote to " + tableName + ':');
     Iterator<SortedMap<Key, Value>> expectIter = expectList.iterator();
     for (Map.Entry<Key, Value> entry : scanner) {
-      SortedMap<Key, Value> actualMap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+      SortedMap<Key, Value> actualMap = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
       actualMap.putAll(WholeRowIterator.decodeRow(entry.getKey(), entry.getValue()));
       Assert.assertTrue(expectIter.hasNext());
       SortedMap<Key, Value> expectMap = expectIter.next();
@@ -218,7 +218,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
       tableName2 = names[1];
     }
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("ccc", "", "cq"), new Value("7".getBytes()));
       input.put(new Key("ddd", "", "cq"), new Value("7".getBytes()));
       input.put(new Key("pogo", "", "cq"), new Value("7".getBytes()));
@@ -230,27 +230,27 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     }
     TestUtil.createTestTable(conn, tableName2);
 
-    List<SortedMap<Key, Value>> expectList = new ArrayList<>();
+    List<SortedMap<Key, Value>> expectList = new ArrayList<SortedMap<Key, Value>>();
     {
-      SortedMap<Key, Value> smap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+      SortedMap<Key, Value> smap = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
       smap.put(new Key("ddd", "", "cq"), new Value("7".getBytes()));
       smap.put(new Key("ddd", "", "cq2"), new Value("8".getBytes()));
       expectList.add(smap);
     }
     {
-      SortedMap<Key, Value> smap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+      SortedMap<Key, Value> smap = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
       smap.put(new Key("ggg", "", "cq2"), new Value("8".getBytes()));
       expectList.add(smap);
     }
     {
-      SortedMap<Key, Value> smap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+      SortedMap<Key, Value> smap = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
       smap.put(new Key("pogo", "", "cq"), new Value("7".getBytes()));
       smap.put(new Key("pogo", "", "cq2"), new Value("8".getBytes()));
       expectList.add(smap);
     }
 
     Scanner scanner = conn.createScanner(tableName2, Authorizations.EMPTY);
-    Map<String, String> itprops = new HashMap<>();
+    Map<String, String> itprops = new HashMap<String, String>();
     itprops.put("instanceName", conn.getInstance().getInstanceName());
     itprops.put("tableName", tableName);
     itprops.put("zookeeperHost", conn.getInstance().getZooKeepers());
@@ -265,7 +265,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     scanner.setRange(range);
     Iterator<SortedMap<Key, Value>> expectIter = expectList.iterator();
     for (Map.Entry<Key, Value> entry : scanner) {
-      SortedMap<Key, Value> actualMap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+      SortedMap<Key, Value> actualMap = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
       actualMap.putAll(WholeRowIterator.decodeRow(entry.getKey(), entry.getValue()));
       Assert.assertTrue(expectIter.hasNext());
       SortedMap<Key, Value> expectMap = expectIter.next();
@@ -281,7 +281,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     scanner.addScanIterator(itset);
     expectIter = expectList.iterator();
     for (Map.Entry<Key, Value> entry : scanner) {
-      SortedMap<Key, Value> actualMap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+      SortedMap<Key, Value> actualMap = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
       actualMap.putAll(WholeRowIterator.decodeRow(entry.getKey(), entry.getValue()));
       Assert.assertTrue(expectIter.hasNext());
       SortedMap<Key, Value> expectMap = expectIter.next();
@@ -307,7 +307,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
       tableName2 = names[1];
     }
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("ccc", "", "cq"), new Value("7".getBytes()));
       input.put(new Key("ddd", "", "cq"), new Value("7".getBytes()));
       input.put(new Key("pogo", "", "cq"), new Value("7".getBytes()));
@@ -319,12 +319,12 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     }
     TestUtil.createTestTable(conn, tableName2);
 
-    SortedMap<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    SortedMap<Key, Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
     expect.put(new Key("ddd", "", "cq"), new Value("7".getBytes()));
     expect.put(new Key("pogo", "", "cq"), new Value("7".getBytes()));
 
     Scanner scanner = conn.createScanner(tableName2, Authorizations.EMPTY);
-    Map<String, String> itprops = new HashMap<>();
+    Map<String, String> itprops = new HashMap<String, String>();
     itprops.put("instanceName", conn.getInstance().getInstanceName());
     itprops.put("tableName", tableName);
     itprops.put("zookeeperHost", conn.getInstance().getZooKeepers());
@@ -335,7 +335,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     IteratorSetting itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.skvi.RemoteSourceIterator", itprops);
     scanner.addScanIterator(itset);
 
-    SortedMap<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    SortedMap<Key, Value> actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
     Range range = new Range("ddd", "xxx");
     scanner.setRange(range);
     for (Map.Entry<Key, Value> entry : scanner) {
@@ -349,7 +349,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.skvi.RemoteSourceIterator", itprops);
     scanner.addScanIterator(itset);
 
-    actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
     scanner.setRange(range);
     for (Map.Entry<Key, Value> entry : scanner) {
       actual.put(entry.getKey(), entry.getValue());
@@ -362,7 +362,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.skvi.RemoteSourceIterator", itprops);
     scanner.addScanIterator(itset);
 
-    actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
     scanner.setRange(range);
     for (Map.Entry<Key, Value> entry : scanner) {
       actual.put(entry.getKey(), entry.getValue());
@@ -382,7 +382,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.skvi.RemoteSourceIterator", itprops);
     scanner.addScanIterator(itset);
 
-    actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
     scanner.setRange(range);
     for (Map.Entry<Key, Value> entry : scanner) {
       actual.put(entry.getKey(), entry.getValue());
@@ -408,14 +408,14 @@ public class RemoteIteratorTest extends AccumuloTestBase {
       tableName2 = names[1];
     }
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("ccc", "", "cq"), new Value("7".getBytes()));
       input.put(new Key("ddd", "", "cq"), new Value("7".getBytes()));
       input.put(new Key("pogo", "", "cq"), new Value("7".getBytes()));
       TestUtil.createTestTable(conn, tableName, null, input);
     }
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("ddd", "", "cq2"), new Value("8".getBytes()));
       input.put(new Key("ggg", "", "cq2"), new Value("8".getBytes()));
       input.put(new Key("pogo", "", "cq2"), new Value("8".getBytes()));
@@ -423,7 +423,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
       TestUtil.createTestTable(conn, tableName2, null, input);
     }
 
-    SortedMap<Key, Value> expectMap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    SortedMap<Key, Value> expectMap = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
     expectMap.put(new Key("ccc", "", "cq"), new Value("7".getBytes()));
     expectMap.put(new Key("ddd", "", "cq"), new Value("7".getBytes()));
     expectMap.put(new Key("ddd", "", "cq2"), new Value("8".getBytes()));
@@ -433,7 +433,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     expectMap.put(new Key("xyz", "", "cq2"), new Value("8".getBytes()));
 
     Scanner scanner = conn.createScanner(tableName2, Authorizations.EMPTY);
-    Map<String, String> itprops = new HashMap<>();
+    Map<String, String> itprops = new HashMap<String, String>();
     itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator + "instanceName", conn.getInstance().getInstanceName());
     itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator + "tableName", tableName);
     itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator + "zookeeperHost", conn.getInstance().getZooKeepers());
@@ -443,7 +443,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     //itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator + "doWholeRow", "true"); // *
     IteratorSetting itset = new IteratorSetting(5, RemoteMergeIterator.class, itprops); //"edu.mit.ll.graphulo.skvi.RemoteSourceIterator", itprops);
     scanner.addScanIterator(itset);
-    SortedMap<Key, Value> actualMap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    SortedMap<Key, Value> actualMap = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
     for (Map.Entry<Key, Value> entry : scanner) {
       actualMap.put(entry.getKey(), entry.getValue());
     }

@@ -40,7 +40,7 @@ public class RowToDiagonalApply implements ApplyOp {
   public Iterator<? extends Map.Entry<Key, Value>> apply(Key k, Value v) {
     Text row = k.getRow();
     Key knew = new Key(row, EMPTY_TEXT, row, System.currentTimeMillis());
-    return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(knew, v));
+    return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<Key, Value>(knew, v));
   }
 
   @Override

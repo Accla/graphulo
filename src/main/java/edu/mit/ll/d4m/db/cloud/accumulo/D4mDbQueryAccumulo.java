@@ -1,10 +1,14 @@
 package edu.mit.ll.d4m.db.cloud.accumulo;
 
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
+import edu.mit.ll.cloud.connection.ConnectionProperties;
+import edu.mit.ll.d4m.db.cloud.D4mConfig;
+import edu.mit.ll.d4m.db.cloud.D4mDbResultSet;
+import edu.mit.ll.d4m.db.cloud.D4mDbRow;
+import edu.mit.ll.d4m.db.cloud.D4mException;
+import edu.mit.ll.d4m.db.cloud.D4mParentQuery;
+import edu.mit.ll.d4m.db.cloud.util.CompareUtil;
+import edu.mit.ll.d4m.db.cloud.util.D4mDataObj;
+import edu.mit.ll.d4m.db.cloud.util.RegExpUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -19,15 +23,16 @@ import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
-import edu.mit.ll.cloud.connection.ConnectionProperties;
-import edu.mit.ll.d4m.db.cloud.D4mConfig;
-import edu.mit.ll.d4m.db.cloud.D4mDbResultSet;
-import edu.mit.ll.d4m.db.cloud.D4mDbRow;
-import edu.mit.ll.d4m.db.cloud.D4mException;
-import edu.mit.ll.d4m.db.cloud.D4mParentQuery;
-import edu.mit.ll.d4m.db.cloud.util.CompareUtil;
-import edu.mit.ll.d4m.db.cloud.util.D4mDataObj;
-import edu.mit.ll.d4m.db.cloud.util.RegExpUtil;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
@@ -323,7 +328,13 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		this.colsQuery = cols;
 		try {
 			this.testResultSet = doMatlabQuery(rows, cols);
-		} catch (AccumuloSecurityException|TableNotFoundException|AccumuloException e) {
+		} catch (AccumuloSecurityException e) {
+			e.printStackTrace();
+			throw new D4mException(e);
+		} catch (TableNotFoundException e) {
+			e.printStackTrace();
+			throw new D4mException(e);
+		} catch (AccumuloException e) {
 			e.printStackTrace();
 			throw new D4mException(e);
 		} catch (NullPointerException e) {
@@ -893,7 +904,11 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 				//scanner.setColumnQualifierRegex(colRegex);
 				scanner.fetchColumnFamily(new Text(this.family));
 
-			} catch (AccumuloException | TableNotFoundException | AccumuloSecurityException e) {
+			} catch (AccumuloException e) {
+				e.printStackTrace();
+			} catch (TableNotFoundException e) {
+				e.printStackTrace();
+			} catch (AccumuloSecurityException e) {
 				e.printStackTrace();
 			}
 			//catch (IOException e) {
@@ -992,7 +1007,11 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 				bscanner.fetchColumnFamily(new Text(this.family));
 
 				this.scannerIter = bscanner.iterator();
-			} catch (AccumuloException | TableNotFoundException | AccumuloSecurityException e) {
+			} catch (AccumuloException e) {
+				e.printStackTrace();
+			} catch (TableNotFoundException e) {
+				e.printStackTrace();
+			} catch (AccumuloSecurityException e) {
 				e.printStackTrace();
 			}
 
@@ -1034,7 +1053,13 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 
 			iterateOverEntries(this.scannerIter);
 
-		} catch (AccumuloException | RuntimeException | TableNotFoundException | AccumuloSecurityException e) {
+		} catch (AccumuloException e) {
+			e.printStackTrace();
+		} catch (RuntimeException e) {
+			e.printStackTrace();
+		} catch (TableNotFoundException e) {
+			e.printStackTrace();
+		} catch (AccumuloSecurityException e) {
 			e.printStackTrace();
 		} finally {
 			setNewRowKeyInMap(null, this.rowInfo);

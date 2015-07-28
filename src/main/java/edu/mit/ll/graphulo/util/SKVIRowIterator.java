@@ -37,7 +37,7 @@ public class SKVIRowIterator implements Iterator<Map.Entry<Key,Value>> {
 
   @Override
   public Map.Entry<Key, Value> next() {
-    Map.Entry<Key,Value> ret = new AbstractMap.SimpleImmutableEntry<>(
+    Map.Entry<Key,Value> ret = new AbstractMap.SimpleImmutableEntry<Key, Value>(
         new Key(skvi.getTopKey()), new Value(skvi.getTopValue())); // maybe can eliminate Value copy
 
     try { // preps next entry

@@ -57,7 +57,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
   private boolean doWholeRow = false,
       doClientSideIterators = false;
   private DynamicIteratorSetting dynamicIteratorSetting;
-  private SortedSet<Range> rowRanges = new TreeSet<>(Collections.singleton(new Range()));
+  private SortedSet<Range> rowRanges = new TreeSet<Range>(Collections.singleton(new Range()));
   /**
    * The range given by seek. Clip to this range.
    */
@@ -81,7 +81,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
 
 
   private void parseOptions(Map<String, String> map) {
-    Map<String,String> diterMap = new HashMap<>();
+    Map<String,String> diterMap = new HashMap<String, String>();
     for (Map.Entry<String, String> optionEntry : map.entrySet()) {
       String optionKey = optionEntry.getKey();
       String optionValue = optionEntry.getValue();
@@ -90,41 +90,40 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
       if (optionKey.startsWith("diter.")) {
         diterMap.put(optionKey.substring("diter.".length()), optionValue);
       } else {
-        switch (optionKey) {
-          case "zookeeperHost":
-            zookeeperHost = optionValue;
-            break;
-          case "timeout":
-            timeout = Integer.parseInt(optionValue);
-            break;
-          case "instanceName":
-            instanceName = optionValue;
-            break;
-          case "tableName":
-            tableName = optionValue;
-            break;
-          case "username":
-            username = optionValue;
-            break;
-          case "password":
-            auth = new PasswordToken(optionValue);
-            break;
+        // can replace with switch in Java 1.7
+        if (optionKey.equals("zookeeperHost")) {
+          zookeeperHost = optionValue;
 
-          case "doWholeRow":
-            doWholeRow = Boolean.parseBoolean(optionValue);
-            break;
-          case "rowRanges":
-            rowRanges = parseRanges(optionValue);
-            break;
-          case "colFilter":
-            colFilter = optionValue; //GraphuloUtil.d4mRowToTexts(optionValue);
-            break;
-          case "doClientSideIterators":
-            doClientSideIterators = Boolean.parseBoolean(optionValue);
-            break;
-          default:
-            log.warn("Unrecognized option: " + optionEntry);
-            continue;
+        } else if (optionKey.equals("timeout")) {
+          timeout = Integer.parseInt(optionValue);
+
+        } else if (optionKey.equals("instanceName")) {
+          instanceName = optionValue;
+
+        } else if (optionKey.equals("tableName")) {
+          tableName = optionValue;
+
+        } else if (optionKey.equals("username")) {
+          username = optionValue;
+
+        } else if (optionKey.equals("password")) {
+          auth = new PasswordToken(optionValue);
+
+        } else if (optionKey.equals("doWholeRow")) {
+          doWholeRow = Boolean.parseBoolean(optionValue);
+
+        } else if (optionKey.equals("rowRanges")) {
+          rowRanges = parseRanges(optionValue);
+
+        } else if (optionKey.equals("colFilter")) {
+          colFilter = optionValue; //GraphuloUtil.d4mRowToTexts(optionValue);
+
+        } else if (optionKey.equals("doClientSideIterators")) {
+          doClientSideIterators = Boolean.parseBoolean(optionValue);
+
+        } else {
+          log.warn("Unrecognized option: " + optionEntry);
+          continue;
         }
       }
       log.trace("Option OK: " + optionEntry);
@@ -150,7 +149,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
   static SortedSet<Range> parseRanges(String s) {
     Collection<Range> rngs = GraphuloUtil.d4mRowToRanges(s);
     rngs = Range.mergeOverlapping(rngs);
-    return new TreeSet<>(rngs);
+    return new TreeSet<Range>(rngs);
   }
 
   @Override
@@ -173,7 +172,10 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
     Connector connector;
     try {
       connector = instance.getConnector(username, auth);
-    } catch (AccumuloException | AccumuloSecurityException e) {
+    } catch (AccumuloException e) {
+      log.error("failed to connect to Accumulo instance " + instanceName, e);
+      throw new RuntimeException(e);
+    } catch (AccumuloSecurityException e) {
       log.error("failed to connect to Accumulo instance " + instanceName, e);
       throw new RuntimeException(e);
     }
@@ -228,7 +230,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
      Range comparison: infinite start first, then inclusive start, then exclusive start
      {@link org.apache.accumulo.core.data.Range#compareTo(Range)} */
     seekRange = range;
-    rowRangeIterator = getFirstRangeStarting(new PeekingIterator1<>(rowRanges.iterator()), range); //rowRanges.tailSet(range).iterator();
+    rowRangeIterator = getFirstRangeStarting(new PeekingIterator1<Range>(rowRanges.iterator()), range); //rowRanges.tailSet(range).iterator();
     remoteIterator = PeekingIterator1.emptyIterator();
     next();
   }
@@ -267,7 +269,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
       if (range == null) // empty intersection - no more ranges by design
         return;
       scanner.setRange(range);
-      remoteIterator = new PeekingIterator1<>(scanner.iterator());
+      remoteIterator = new PeekingIterator1<Map.Entry<Key, Value>>(scanner.iterator());
     }
     // either no ranges left and we finished the current scan OR remoteIterator.hasNext()==true
 //    if (hasTop())

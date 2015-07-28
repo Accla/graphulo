@@ -33,7 +33,9 @@ public class TestUtil {
         if (conn.tableOperations().exists(tableName)) {
             try {
                 conn.tableOperations().delete(tableName);
-            } catch (AccumuloException | AccumuloSecurityException e) {
+            } catch (AccumuloException e) {
+                throw new RuntimeException("cannot delete table "+tableName, e);
+            } catch (AccumuloSecurityException e) {
                 throw new RuntimeException("cannot delete table "+tableName, e);
             } catch (TableNotFoundException e) {
                 throw new RuntimeException("crazy timing bug", e);
@@ -41,7 +43,9 @@ public class TestUtil {
         }
         try {
             conn.tableOperations().create(tableName);
-        } catch (AccumuloException | AccumuloSecurityException e) {
+        } catch (AccumuloException e) {
+            throw new RuntimeException("cannot create table " + tableName, e);
+        } catch (AccumuloSecurityException e) {
             throw new RuntimeException("cannot create table " + tableName, e);
         } catch (TableExistsException e) {
             throw new RuntimeException("crazy timing bug", e);
@@ -56,7 +60,9 @@ public class TestUtil {
                 conn.tableOperations().addSplits(tableName, splits);
             } catch (TableNotFoundException e) {
                 throw new RuntimeException("crazy timing bug", e);
-            } catch (AccumuloException | AccumuloSecurityException e) {
+            } catch (AccumuloException e) {
+                throw new RuntimeException("failed to create table splits on "+tableName, e);
+            } catch (AccumuloSecurityException e) {
                 throw new RuntimeException("failed to create table splits on "+tableName, e);
             }
     }

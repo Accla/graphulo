@@ -57,12 +57,12 @@ public class TwoTableIterator implements SaveStateIterator {
   private static final Logger log = LogManager.getLogger(TwoTableIterator.class);
 
   private RowMultiplyOp rowMultiplyOp = null;
-  private Map<String, String> rowMultiplyOpOptions = new HashMap<>();
+  private Map<String, String> rowMultiplyOpOptions = new HashMap<String, String>();
   private DOTMODE dotmode;
   private boolean emitNoMatchA = false, emitNoMatchB = false;
 //  private MultiplyOp multiplyOp = null;
   private EWiseOp eWiseOp = null;
-  private Map<String, String> multiplyOpOptions = new HashMap<>();
+  private Map<String, String> multiplyOpOptions = new HashMap<String, String>();
 
   private SortedKeyValueIterator<Key, Value> remoteAT, remoteB;
   private PeekingIterator2<? extends Map.Entry<Key, Value>> bottomIter;
@@ -101,31 +101,28 @@ public class TwoTableIterator implements SaveStateIterator {
       String optionValue = optionEntry.getValue();
       if (optionKey.startsWith(PREFIX_AT + '.')) {
         String keyAfterPrefix = optionKey.substring(PREFIX_AT.length() + 1);
-        switch (keyAfterPrefix) {
-          case "emitNoMatch":
-            emitNoMatchA = Boolean.parseBoolean(optionValue);
-            break;
-          case "doWholeRow":
-            if (Boolean.parseBoolean(optionValue))
-              log.warn("Forcing doWholeRow option on table A to FALSE. Given: " + optionValue);
-            continue;
-          default:
-            optAT.put(keyAfterPrefix, optionValue);
-            break;
+        // can replace with switch in Java 1.7
+        if (keyAfterPrefix.equals("emitNoMatch")) {
+          emitNoMatchA = Boolean.parseBoolean(optionValue);
+        } else if (keyAfterPrefix.equals("doWholeRow")) {
+          if (Boolean.parseBoolean(optionValue))
+            log.warn("Forcing doWholeRow option on table A to FALSE. Given: " + optionValue);
+        } else {
+          optAT.put(keyAfterPrefix, optionValue);
         }
+
       } else if (optionKey.startsWith(PREFIX_B + '.')) {
         String keyAfterPrefix = optionKey.substring(PREFIX_B.length() + 1);
-        switch (keyAfterPrefix) {
-          case "emitNoMatch":
-            emitNoMatchB = Boolean.parseBoolean(optionValue);
-            break;
-          case "doWholeRow":
-            if (Boolean.parseBoolean(optionValue))
-              log.warn("Forcing doWholeRow option on table A to FALSE. Given: " + optionValue);
-            continue;
-          default:
-            optB.put(keyAfterPrefix, optionValue);
-            break;
+        // can replace with switch in Java 1.7
+        if (keyAfterPrefix.equals("emitNoMatch")) {
+          emitNoMatchB = Boolean.parseBoolean(optionValue);
+
+        } else if (keyAfterPrefix.equals("doWholeRow")) {
+          if (Boolean.parseBoolean(optionValue))
+            log.warn("Forcing doWholeRow option on table A to FALSE. Given: " + optionValue);
+        } else {
+          optB.put(keyAfterPrefix, optionValue);
+
         }
       } else if (optionKey.startsWith("rowMultiplyOp.opt.")) {
         String keyAfterPrefix = optionKey.substring("rowMultiplyOp.opt.".length());
@@ -143,34 +140,33 @@ public class TwoTableIterator implements SaveStateIterator {
             break;
         }
       } else {
-        switch (optionKey) {
-          case "rowMultiplyOp":
-            if (dotmode == DOTMODE.ROW)
-              rowMultiplyOp = GraphuloUtil.subclassNewInstance(optionValue, RowMultiplyOp.class);
-            else
-              log.warn(dotmode+" mode: Ignoring rowMultiplyOp " + optionValue);
-            break;
-          case "multiplyOp":
-            switch (dotmode) {
-              case ROW:
-                rowMultiplyOpOptions.put("multiplyOp", optionValue);
-                break;
-              case EWISE:
-                eWiseOp = GraphuloUtil.subclassNewInstance(optionValue, EWiseOp.class);
-                break;
-              case NONE:
-                log.warn("NONE mode: Ignoring multiplyOp " + optionValue);
-                break;
-            }
-            break;
-          case "dotmode":
-            break;
-          case "trace":
-            Watch.enableTrace = Boolean.parseBoolean(optionValue);
-            break;
-          default:
-            log.warn("Unrecognized option: " + optionEntry);
-            break;
+        // can replace with switch in Java 1.7
+        if (optionKey.equals("rowMultiplyOp")) {
+          if (dotmode == DOTMODE.ROW)
+            rowMultiplyOp = GraphuloUtil.subclassNewInstance(optionValue, RowMultiplyOp.class);
+          else
+            log.warn(dotmode + " mode: Ignoring rowMultiplyOp " + optionValue);
+
+        } else if (optionKey.equals("multiplyOp")) {
+          switch (dotmode) {
+            case ROW:
+              rowMultiplyOpOptions.put("multiplyOp", optionValue);
+              break;
+            case EWISE:
+              eWiseOp = GraphuloUtil.subclassNewInstance(optionValue, EWiseOp.class);
+              break;
+            case NONE:
+              log.warn("NONE mode: Ignoring multiplyOp " + optionValue);
+              break;
+          }
+
+        } else if (optionKey.equals("dotmode")) {
+        } else if (optionKey.equals("trace")) {
+          Watch.enableTrace = Boolean.parseBoolean(optionValue);
+
+        } else {
+          log.warn("Unrecognized option: " + optionEntry);
+
         }
       }
     }
@@ -193,7 +189,7 @@ public class TwoTableIterator implements SaveStateIterator {
   @Override
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
     // parse options, pass correct options to RemoteSourceIterator init()
-    Map<String, String> optAT = new HashMap<>(), optB = new HashMap<>();
+    Map<String, String> optAT = new HashMap<String, String>(), optB = new HashMap<String, String>();
     parseOptions(options, optAT, optB);
     // The tableName option is the key signal for use of RemoteSourceIterator.
     boolean dorAT = optAT.containsKey("tableName") && !optAT.get("tableName").isEmpty(),
@@ -265,7 +261,7 @@ public class TwoTableIterator implements SaveStateIterator {
   private SortedKeyValueIterator<Key, Value> setupRemoteSourceOptionsSKVI(
       SortedKeyValueIterator<Key, Value> ret, Map<String, String> opts, IteratorEnvironment env) throws IOException {
     boolean doWholeRow = false;
-    Map<String,String> diterMap = new HashMap<>();
+    Map<String,String> diterMap = new HashMap<String, String>();
     for (Map.Entry<String, String> optionEntry : opts.entrySet()) {
       String optionKey = optionEntry.getKey();
       String optionValue = optionEntry.getValue();
@@ -274,32 +270,26 @@ public class TwoTableIterator implements SaveStateIterator {
       if (optionKey.startsWith("diter.")) {
         diterMap.put(optionKey.substring("diter.".length()), optionValue);
       } else {
-        switch (optionKey) {
-          case "zookeeperHost":
-          case "timeout":
-          case "instanceName":
-          case "username":
-          case "password":
-          case "doClientSideIterators":
-            // these are ok to ignore
-            break;
-          case "tableName":
-            assert optionEntry.getValue().equals(CLONESOURCE_TABLENAME);
-            break;
-          case "doWholeRow":
-            doWholeRow = Boolean.parseBoolean(optionEntry.getValue());
-            break;
-          case "rowRanges":
-            SortedKeyValueIterator<Key, Value> filter = new SeekFilterIterator();
-            filter.init(ret, Collections.singletonMap("rowRanges", optionEntry.getValue()), env);
-            ret = filter;
-            break;
-          case "colFilter":
-            ret = GraphuloUtil.applyGeneralColumnFilter(optionEntry.getValue(), ret, env);
-            break;
-          default:
-            log.warn("Unrecognized option: " + optionEntry);
-            continue;
+        // can replace with switch in Java 1.7
+        if (optionKey.equals("zookeeperHost") || optionKey.equals("timeout") || optionKey.equals("instanceName") || optionKey.equals("username") || optionKey.equals("password") || optionKey.equals("doClientSideIterators")) {// these are ok to ignore
+
+        } else if (optionKey.equals("tableName")) {
+          assert optionEntry.getValue().equals(CLONESOURCE_TABLENAME);
+
+        } else if (optionKey.equals("doWholeRow")) {
+          doWholeRow = Boolean.parseBoolean(optionEntry.getValue());
+
+        } else if (optionKey.equals("rowRanges")) {
+          SortedKeyValueIterator<Key, Value> filter = new SeekFilterIterator();
+          filter.init(ret, Collections.singletonMap("rowRanges", optionEntry.getValue()), env);
+          ret = filter;
+
+        } else if (optionKey.equals("colFilter")) {
+          ret = GraphuloUtil.applyGeneralColumnFilter(optionEntry.getValue(), ret, env);
+
+        } else {
+          log.warn("Unrecognized option: " + optionEntry);
+          continue;
         }
       }
       log.trace("Option OK: " + optionEntry);
@@ -435,24 +425,22 @@ public class TwoTableIterator implements SaveStateIterator {
           cmp = remoteAT.getTopKey().compareTo(remoteB.getTopKey(), pk);
 
         if (cmp < 0) {
-          if (emitNoMatchA) {
-            switch (dotmode) {
-              case ROW:
-                emitted = GraphuloUtil.keyCopy(remoteAT.getTopKey(), PartialKey.ROW);
-                bottomIter = new PeekingIterator2<>(rowMultiplyOp.multiplyRow(remoteAT, null));
-                continue TOPLOOP;
-              case EWISE:
-                emitted = remoteAT.getTopKey();
-                bottomIter = new PeekingIterator2<>(
-                    eWiseOp.multiply(remoteAT.getTopKey().getRowData(), remoteAT.getTopKey().getColumnFamilyData(),
-                        remoteAT.getTopKey().getColumnQualifierData(), remoteAT.getTopValue(), null));
-                remoteAT.next();
-                continue TOPLOOP;
-              case NONE:
-                bottomIter = new PeekingIterator2<>(Iterators.singletonIterator(GraphuloUtil.copyTopEntry(remoteAT)));
-                remoteAT.next();
-                return;
-            }
+          if (emitNoMatchA) switch (dotmode) {
+            case ROW:
+              emitted = GraphuloUtil.keyCopy(remoteAT.getTopKey(), PartialKey.ROW);
+              bottomIter = new PeekingIterator2<Map.Entry<Key, Value>>(rowMultiplyOp.multiplyRow(remoteAT, null));
+              continue TOPLOOP;
+            case EWISE:
+              emitted = remoteAT.getTopKey();
+              bottomIter = new PeekingIterator2<Map.Entry<Key, Value>>(
+                  eWiseOp.multiply(remoteAT.getTopKey().getRowData(), remoteAT.getTopKey().getColumnFamilyData(),
+                      remoteAT.getTopKey().getColumnQualifierData(), remoteAT.getTopValue(), null));
+              remoteAT.next();
+              continue TOPLOOP;
+            case NONE:
+              bottomIter = new PeekingIterator2<Map.Entry<Key, Value>>(Iterators.singletonIterator(GraphuloUtil.copyTopEntry(remoteAT)));
+              remoteAT.next();
+              return;
           }
           boolean success = skipUntil(remoteAT, remoteB.getTopKey(), pk, seekRange, seekColumnFamilies, seekInclusive, watch, Watch.PerfSpan.ATnext);
           if (!success) {
@@ -465,17 +453,17 @@ public class TwoTableIterator implements SaveStateIterator {
             switch (dotmode) {
               case ROW:
                 emitted = GraphuloUtil.keyCopy(remoteB.getTopKey(), PartialKey.ROW);
-                bottomIter = new PeekingIterator2<>(rowMultiplyOp.multiplyRow(null, remoteB));
+                bottomIter = new PeekingIterator2<Map.Entry<Key, Value>>(rowMultiplyOp.multiplyRow(null, remoteB));
                 continue TOPLOOP;
               case EWISE:
                 emitted = remoteB.getTopKey();
-                bottomIter = new PeekingIterator2<>(
+                bottomIter = new PeekingIterator2<Map.Entry<Key, Value>>(
                     eWiseOp.multiply(remoteB.getTopKey().getRowData(), remoteB.getTopKey().getColumnFamilyData(),
                         remoteB.getTopKey().getColumnQualifierData(), null, remoteB.getTopValue()));
                 remoteB.next();
                 continue TOPLOOP;
               case NONE:
-                bottomIter = new PeekingIterator2<>(Iterators.singletonIterator(GraphuloUtil.copyTopEntry(remoteB)));
+                bottomIter = new PeekingIterator2<Map.Entry<Key, Value>>(Iterators.singletonIterator(GraphuloUtil.copyTopEntry(remoteB)));
                 remoteB.next();
                 return;
             }
@@ -491,12 +479,12 @@ public class TwoTableIterator implements SaveStateIterator {
           switch (dotmode) {
             case ROW: {
               emitted = GraphuloUtil.keyCopy(remoteAT.getTopKey(), PartialKey.ROW);
-              bottomIter = new PeekingIterator2<>(rowMultiplyOp.multiplyRow(remoteAT, remoteB));
+              bottomIter = new PeekingIterator2<Map.Entry<Key, Value>>(rowMultiplyOp.multiplyRow(remoteAT, remoteB));
               continue TOPLOOP;
             }
             case EWISE: {
               emitted = remoteAT.getTopKey();
-              bottomIter = new PeekingIterator2<>(
+              bottomIter = new PeekingIterator2<Map.Entry<Key, Value>>(
                   eWiseOp.multiply(remoteAT.getTopKey().getRowData(), remoteAT.getTopKey().getColumnFamilyData(),
                       remoteAT.getTopKey().getColumnQualifierData(), remoteAT.getTopValue(), remoteB.getTopValue()));
               remoteAT.next();
@@ -609,7 +597,13 @@ public class TwoTableIterator implements SaveStateIterator {
       copy.remoteAT = remoteAT.deepCopy(env);
       copy.remoteB = remoteB.deepCopy(env);
       return copy;
-    } catch (IOException | InstantiationException | IllegalAccessException e) {
+    } catch (IOException e) {
+      log.error("", e);
+      throw new RuntimeException("",e);
+    } catch (InstantiationException e) {
+      log.error("", e);
+      throw new RuntimeException("",e);
+    } catch (IllegalAccessException e) {
       log.error("", e);
       throw new RuntimeException("",e);
     }

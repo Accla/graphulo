@@ -22,22 +22,22 @@ public class EdgeBFSReducer extends ReducerSerializable<HashSet<String>> {
   public static final String IN_COLUMN_PREFIX = "inColumnPrefixes";
   private byte[][] inColumnPrefixes;
 
-  private HashSet<String> setNodesReached = new HashSet<>();
+  private HashSet<String> setNodesReached = new HashSet<String>();
 
   private void parseOptions(Map<String, String> options) {
     for (Map.Entry<String, String> optionEntry : options.entrySet()) {
       String optionKey = optionEntry.getKey();
       String optionValue = optionEntry.getValue();
-      switch (optionKey) {
-        case IN_COLUMN_PREFIX:
-          log.debug("inColumnPrefixes: "+optionValue);
-          String[] prefixes = GraphuloUtil.splitD4mString(optionValue);
-          inColumnPrefixes = new byte[prefixes.length][];
-          for (int i = 0; i < prefixes.length; i++)
-            inColumnPrefixes[i] = prefixes[i].getBytes();
-          break;
-        default:
-          log.warn("Unrecognized option: " + optionEntry);
+      // can replace with switch in Java 1.7
+      if (optionKey.equals(IN_COLUMN_PREFIX)) {
+        log.debug("inColumnPrefixes: " + optionValue);
+        String[] prefixes = GraphuloUtil.splitD4mString(optionValue);
+        inColumnPrefixes = new byte[prefixes.length][];
+        for (int i = 0; i < prefixes.length; i++)
+          inColumnPrefixes[i] = prefixes[i].getBytes();
+
+      } else {
+        log.warn("Unrecognized option: " + optionEntry);
       }
     }
     if (inColumnPrefixes == null)

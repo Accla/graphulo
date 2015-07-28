@@ -44,22 +44,21 @@ public class LineRowMultiply implements RowMultiplyOp {
     for (Map.Entry<String, String> optionEntry : options.entrySet()) {
       String optionKey = optionEntry.getKey();
       String optionValue = optionEntry.getValue();
-        switch (optionKey) {
-          case ISDIRECTED:
-            isDirected = Boolean.parseBoolean(optionValue);
-            break;
-          case SEPARATOR:
-//            if (optionValue.length() != 1)
+      // can replace with switch in Java 1.7
+      if (optionKey.equals(ISDIRECTED)) {
+        isDirected = Boolean.parseBoolean(optionValue);
+
+      } else if (optionKey.equals(SEPARATOR)) {//            if (optionValue.length() != 1)
 //              throw new IllegalArgumentException("bad "+ "separator" +": "+optionValue);
-            separator = optionValue.getBytes();
-            break;
-          case INCLUDE_EXTRA_CYCLES:
-            includeExtraCycles = Boolean.parseBoolean(optionValue);
-            break;
-          default:
-            log.warn("Unrecognized option: " + optionEntry);
-            break;
-        }
+        separator = optionValue.getBytes();
+
+      } else if (optionKey.equals(INCLUDE_EXTRA_CYCLES)) {
+        includeExtraCycles = Boolean.parseBoolean(optionValue);
+
+      } else {
+        log.warn("Unrecognized option: " + optionEntry);
+
+      }
     }
   }
 
@@ -211,7 +210,7 @@ public class LineRowMultiply implements RowMultiplyOp {
           doCat(Mrow, BcolQ, newcol),
           GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis());
       // reuse object instead of new one each time?
-      return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(k, winPerEdgeValue));
+      return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<Key, Value>(k, winPerEdgeValue));
     }
   }
 }

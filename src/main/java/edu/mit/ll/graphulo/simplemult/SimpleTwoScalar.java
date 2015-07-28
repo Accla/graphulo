@@ -19,7 +19,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.AbstractMap;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Collection;
 import java.util.Collections;
@@ -78,19 +77,17 @@ public abstract class SimpleTwoScalar extends Combiner implements ApplyOp, Multi
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
     for (Map.Entry<String, String> entry : options.entrySet()) {
       String k = entry.getKey(), v = entry.getValue();
-      switch (k) {
-        case FIXED_VALUE:
-          fixedValue = new Value(v.getBytes());
-          break;
-        case REVERSE:
-          reverse = Boolean.parseBoolean(v);
-          break;
-        case ALL_OPTION:
-        case COLUMNS_OPTION:
-          break;
-        default:
-          log.warn("Unrecognized option: "+k+" -> "+v);
-          break;
+      // can replace with switch in Java 1.7
+      if (k.equals(FIXED_VALUE)) {
+        fixedValue = new Value(v.getBytes());
+
+      } else if (k.equals(REVERSE)) {
+        reverse = Boolean.parseBoolean(v);
+
+      } else if (k.equals(ALL_OPTION) || k.equals(COLUMNS_OPTION)) {
+      } else {
+        log.warn("Unrecognized option: " + k + " -> " + v);
+
       }
     }
   }
@@ -99,17 +96,16 @@ public abstract class SimpleTwoScalar extends Combiner implements ApplyOp, Multi
    * Marked final for safety. */
   @Override
   public final void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
-    Map<String,String> notCombinerOpts = new HashMap<>(), combinerOpts = new HashMap<>();
+    Map<String,String> notCombinerOpts = new HashMap<String, String>(), combinerOpts = new HashMap<String, String>();
     for (Map.Entry<String, String> entry : options.entrySet()) {
       String k = entry.getKey(), v = entry.getValue();
-      switch (k) {
-        case ALL_OPTION:
-        case COLUMNS_OPTION:
-          combinerOpts.put(k,v);
-          break;
-        default:
-          notCombinerOpts.put(k, v);
-          break;
+      // can replace with switch in Java 1.7
+      if (k.equals(ALL_OPTION) || k.equals(COLUMNS_OPTION)) {
+        combinerOpts.put(k, v);
+
+      } else {
+        notCombinerOpts.put(k, v);
+
       }
     }
     init(notCombinerOpts, env);             // Call the ApplyOp init.
@@ -124,7 +120,7 @@ public abstract class SimpleTwoScalar extends Combiner implements ApplyOp, Multi
   @Override
   public final Iterator<? extends Entry<Key, Value>> apply(Key k, Value v1) {
     Value v2 = reverse ? multiply(v1, fixedValue) : multiply(fixedValue, v1);
-    return v2 == null ? Collections.<Map.Entry<Key,Value>>emptyIterator() : Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(k, v2));
+    return v2 == null ? Collections.<Map.Entry<Key,Value>>emptyIterator() : Iterators.singletonIterator(new SimpleImmutableEntry<Key, Value>(k, v2));
   }
 
   @Override
@@ -134,7 +130,7 @@ public abstract class SimpleTwoScalar extends Combiner implements ApplyOp, Multi
     Key k = new Key(ATcolQ.getBackingArray(), ATcolF.getBackingArray(),
         BcolQ.getBackingArray(), GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis());
     Value v = reverse ? multiply(Bval, ATval) : multiply(ATval, Bval);
-    return v == null ? Collections.<Entry<Key,Value>>emptyIterator() : Iterators.singletonIterator((Entry<Key, Value>) new SimpleImmutableEntry<>(k, v));
+    return v == null ? Collections.<Entry<Key,Value>>emptyIterator() : Iterators.singletonIterator((Entry<Key, Value>) new SimpleImmutableEntry<Key, Value>(k, v));
   }
 
   private static final byte[] EMPTY_BYTES = new byte[0];
@@ -145,18 +141,18 @@ public abstract class SimpleTwoScalar extends Combiner implements ApplyOp, Multi
     // Decision is to emit the non-matching entries untouched by the operation.  This is a *SIMPLETwoScalar* operator.
     assert Aval != null || Bval != null;
     if (Aval == null)
-      return Iterators.singletonIterator((Entry<Key, Value>) new SimpleImmutableEntry<>(
+      return Iterators.singletonIterator((Entry<Key, Value>) new SimpleImmutableEntry<Key, Value>(
           new Key(Mrow.getBackingArray(), McolF.getBackingArray(), McolQ.getBackingArray(), EMPTY_BYTES, System.currentTimeMillis()),
           Bval));
     if (Bval == null)
-      return Iterators.singletonIterator((Entry<Key, Value>) new SimpleImmutableEntry<>(
+      return Iterators.singletonIterator((Entry<Key, Value>) new SimpleImmutableEntry<Key, Value>(
           new Key(Mrow.getBackingArray(), McolF.getBackingArray(), McolQ.getBackingArray(), EMPTY_BYTES, System.currentTimeMillis()),
           Aval));
 
     Key k = new Key(Mrow.getBackingArray(), McolF.getBackingArray(),
         McolQ.getBackingArray(), GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis());
     Value v = reverse ? multiply(Bval, Aval) : multiply(Aval, Bval);
-    return v == null ? Collections.<Entry<Key,Value>>emptyIterator() : Iterators.singletonIterator((Entry<Key, Value>) new SimpleImmutableEntry<>(k, v));
+    return v == null ? Collections.<Entry<Key,Value>>emptyIterator() : Iterators.singletonIterator((Entry<Key, Value>) new SimpleImmutableEntry<Key, Value>(k, v));
   }
 
   /** Applies {@link #multiply(Value, Value)} to every pair of consecutive Values with matching

@@ -97,8 +97,10 @@ public class AccumuloTableOperations {
 			ArrayList<TabletServerStatus> tserverStatusList = getTabletServers();
 			List<TabletStats> tabletStatsList = getTabletStatsList(tserverStatusList,  tableNames);
 			retval = getNumberOfEntries_help(tabletStatsList);
-		} catch (D4mException | TException e) {
-			log.warn(e);
+		} catch (D4mException e) {
+			log.warn("",e);
+		} catch (TException e) {
+			log.warn("",e);
 		}
 
 		// Connect to each tserver and get numEntries from each tableName
@@ -128,16 +130,18 @@ public class AccumuloTableOperations {
 		try {
 			ArrayList<TabletServerStatus> tserverStatusList = getTabletServers();
 			retval = getTabletStatsList(tserverStatusList,  tableNames);
-		} catch ( D4mException | TException e)  {
-			log.warn(e);    
-		}
+    } catch (D4mException e) {
+      log.warn("",e);
+    } catch (TException e) {
+      log.warn("",e);
+    }
 		// Connect to each tserver and get numEntries from each tableName
 		//    Get the TabletStat
 		return retval;
 	}
 
 	private ArrayList<TabletServerStatus> getTabletServers() throws TException {
-		ArrayList<TabletServerStatus> list = new ArrayList<>();// list of TServer info
+		ArrayList<TabletServerStatus> list = new ArrayList<TabletServerStatus>();// list of TServer info
 		MasterClientService.Client client=null;
 		//		MasterClientService.Iface client=null;
 		try {
@@ -156,7 +160,7 @@ public class AccumuloTableOperations {
 		return list;
 	}
 	private List<TabletStats> getTabletStatsList(List<TabletServerStatus> tserverNames, List<String> tableNames) throws D4mException {
-		List<TabletStats> tabStatsList= new ArrayList<>();
+		List<TabletStats> tabStatsList= new ArrayList<TabletStats>();
 		int cnt=0;
 		for(TabletServerStatus tss: tserverNames) {
 			cnt++;
@@ -176,7 +180,7 @@ public class AccumuloTableOperations {
 		MasterClientService.Iface masterClient= null;
 		TabletClientService.Iface tabClient = null;
 		//AuthInfo authInfo  = getAuthInfo();
-		List<TabletStats> tabStatsList = new ArrayList<>();
+		List<TabletStats> tabStatsList = new ArrayList<TabletStats>();
 		try {
 			masterClient = this.connection.getMasterClient();
 			tabClient = this.connection.getTabletClient(tserverName);
@@ -245,7 +249,7 @@ public class AccumuloTableOperations {
 	 * Split table at partitions
 	 */
 	public void splitTable(String tableName, String[] partitions) {
-		TreeSet<Text> tset = new TreeSet<>();
+		TreeSet<Text> tset = new TreeSet<Text>();
 		for(String pt : partitions) {
 			tset.add(new Text(pt));
 		}
@@ -260,16 +264,20 @@ public class AccumuloTableOperations {
 
 	
 	public List<String> getSplits(String tableName) {
-		List<String> list = new ArrayList<>();
+		List<String> list = new ArrayList<String>();
 		try {
 			Collection<Text> splitsColl = this.connection.getSplits(tableName);
 			for(Text t: splitsColl) {
 				String s = t.toString();
 				list.add(s);
 			}
-		} catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
-			e.printStackTrace();
-		}
+    } catch (TableNotFoundException e) {
+      log.warn("",e);
+    } catch (AccumuloException e) {
+      log.warn("",e);
+    } catch (AccumuloSecurityException e) {
+      log.warn("",e);
+    }
 
 		return list;
 	}
@@ -373,7 +381,7 @@ public class AccumuloTableOperations {
 			//LongCombiner.setEncodingType(itSet, BigDecimalEncoder.class);
 			TypedValueCombiner.setLossyness(itSet, true); // silently ignore bad values
 
-			List<IteratorSetting.Column> combineColumns = new LinkedList<>();
+			List<IteratorSetting.Column> combineColumns = new LinkedList<IteratorSetting.Column>();
 			for (String column : columnStrArr)
 				combineColumns.add(new IteratorSetting.Column(columnFamily, column));
 			Combiner.setColumns(itSet, combineColumns);
@@ -489,7 +497,7 @@ public class AccumuloTableOperations {
    */
 	public List<String> getSplitsNumInEachTablet(String tableName)
 			throws Exception {
-		List<String> list = new ArrayList<>();
+		List<String> list = new ArrayList<String>();
 		AccumuloConnection ac = new AccumuloConnection(this.connProp);
 		org.apache.accumulo.core.client.Scanner scanner;
 		try {
@@ -541,7 +549,7 @@ public class AccumuloTableOperations {
 	
 	public List<String> getTabletLocationsForSplits(String tableName,
 			List<String> splits) throws D4mException {
-		List<String>  results = new ArrayList<>();
+		List<String>  results = new ArrayList<String>();
 
 		try {
 			for (String splitName : splits) {

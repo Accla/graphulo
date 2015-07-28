@@ -51,10 +51,10 @@ public class SCCTest extends AccumuloTestBase {
       tA = names[0];
       tRf = names[1];
     }
-    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ), actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key,Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ), actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
 
     {
-      Map<Key,Value> input = new HashMap<>();
+      Map<Key,Value> input = new HashMap<Key, Value>();
       input.put(new Key("v0", "", "v1"), new Value("1".getBytes()));
       input.put(new Key("v1", "", "v2"), new Value("1".getBytes()));
       input.put(new Key("v2", "", "v0"), new Value("1".getBytes()));
@@ -62,7 +62,7 @@ public class SCCTest extends AccumuloTestBase {
       input.put(new Key("vBig", "", "v1"), new Value("1".getBytes()));
       input.put(new Key("vBig", "", "v2"), new Value("1".getBytes()));
 
-      Map<Key,Value> e = new HashMap<>();
+      Map<Key,Value> e = new HashMap<Key, Value>();
       e.put(new Key("v0", "", "v1"), new Value("1".getBytes()));
       e.put(new Key("v0", "", "v2"), new Value("1".getBytes()));
       e.put(new Key("v0", "", "v0"), new Value("1".getBytes()));
@@ -91,7 +91,7 @@ public class SCCTest extends AccumuloTestBase {
     Assert.assertEquals(expect, actual);
 
     // Test interpreting SCC table
-    SortedSet<String> expectSet = new TreeSet<>(new Comparator<String>() {
+    SortedSet<String> expectSet = new TreeSet<String>(new Comparator<String>() {
       @Override
       public int compare(String o1, String o2) {
         Collection<Text> t1 = GraphuloUtil.d4mRowToTexts(o1),

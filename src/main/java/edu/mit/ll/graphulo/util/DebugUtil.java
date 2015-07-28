@@ -36,8 +36,8 @@ public class DebugUtil {
 
 
   public static void printMapFull(Iterator<Map.Entry<Key, Value>> iter) {
-    SortedSet<String> columnSet = new TreeSet<>();
-    SortedMap<String,SortedMap<String,Value>> rowToColumnMap = new TreeMap<>();
+    SortedSet<String> columnSet = new TreeSet<String>();
+    SortedMap<String,SortedMap<String,Value>> rowToColumnMap = new TreeMap<String, SortedMap<String, Value>>();
 
     {
       String curRow = null;
@@ -52,7 +52,7 @@ public class DebugUtil {
         columnSet.add(col);
         if (!row.equals(curRow)) {
           curRow = k.getRow().toString();
-          curRowMap = new TreeMap<>();
+          curRowMap = new TreeMap<String, Value>();
           rowToColumnMap.put(curRow, curRowMap);
         }
         curRowMap.put(col, entry.getValue());

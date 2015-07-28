@@ -35,7 +35,7 @@ public class MapIterator implements SortedKeyValueIterator<Key, Value> {
     if (source != null)
       log.warn("MapIterator ignores/replaces parent source passed in init(): " + source);
     // define behavior before seek as seek to start at negative infinity
-    inner = new PeekingIterator1<>(allEntriesToInject.entrySet().iterator());
+    inner = new PeekingIterator1<Map.Entry<Key, Value>>(allEntriesToInject.entrySet().iterator());
   }
 
   @Override
@@ -46,7 +46,7 @@ public class MapIterator implements SortedKeyValueIterator<Key, Value> {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    newInstance.inner = new PeekingIterator1<>(allEntriesToInject.tailMap(inner.peek().getKey()).entrySet().iterator());
+    newInstance.inner = new PeekingIterator1<Map.Entry<Key, Value>>(allEntriesToInject.tailMap(inner.peek().getKey()).entrySet().iterator());
     return newInstance;
   }
 
@@ -68,11 +68,11 @@ public class MapIterator implements SortedKeyValueIterator<Key, Value> {
     seekRng = range;
     // seek to first entry inside range
     if (range.isInfiniteStartKey())
-      inner = new PeekingIterator1<>(allEntriesToInject.entrySet().iterator());
+      inner = new PeekingIterator1<Map.Entry<Key, Value>>(allEntriesToInject.entrySet().iterator());
     else if (range.isStartKeyInclusive())
-      inner = new PeekingIterator1<>(allEntriesToInject.tailMap(range.getStartKey()).entrySet().iterator());
+      inner = new PeekingIterator1<Map.Entry<Key, Value>>(allEntriesToInject.tailMap(range.getStartKey()).entrySet().iterator());
     else
-      inner = new PeekingIterator1<>(allEntriesToInject.tailMap(range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME)).entrySet().iterator());
+      inner = new PeekingIterator1<Map.Entry<Key, Value>>(allEntriesToInject.tailMap(range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME)).entrySet().iterator());
   }
 
   @Override

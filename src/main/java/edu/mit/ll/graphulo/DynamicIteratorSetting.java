@@ -26,7 +26,7 @@ import java.util.Map;
  * @see edu.mit.ll.graphulo.skvi.DynamicIterator
  */
 public class DynamicIteratorSetting {
-  private Deque<IteratorSetting> iteratorSettingList = new LinkedList<>();
+  private Deque<IteratorSetting> iteratorSettingList = new LinkedList<IteratorSetting>();
 
   public DynamicIteratorSetting prepend(IteratorSetting setting) {
     if (setting.getIteratorClass().equals(DynamicIterator.class.getName())) {
@@ -63,7 +63,7 @@ public class DynamicIteratorSetting {
   /** Add the prefix to every setting option. */
   public Map<String,String> buildSettingMap(String pre) {
     if (pre == null) pre = "";
-    Map<String,String> map = new HashMap<>();
+    Map<String,String> map = new HashMap<String, String>();
     int prio = 1;
     for (IteratorSetting setting : iteratorSettingList) {
       String prefix = pre+prio+"."+setting.getName()+".";
@@ -95,7 +95,7 @@ public class DynamicIteratorSetting {
   }
 
   public List<IteratorSetting> getIteratorSettingList() {
-    return new ArrayList<>(iteratorSettingList);
+    return new ArrayList<IteratorSetting>(iteratorSettingList);
   }
 
   /** Prefix is "".
@@ -114,12 +114,12 @@ public class DynamicIteratorSetting {
    */
   public static DynamicIteratorSetting fromMap(String pre, Map<String,String> mapOrig) {
     if (pre == null) pre = "";
-    Map<String,String> mapCopy = new LinkedHashMap<>(mapOrig);
+    Map<String,String> mapCopy = new LinkedHashMap<String, String>(mapOrig);
     DynamicIteratorSetting dis = new DynamicIteratorSetting();
     for (int prio = 1; true; prio++) {
       String prioPrefix = prio+".";
       String clazz = null, name = null, clazzStr = null, optPrefix = null;
-      Map<String,String> opt = new HashMap<>();
+      Map<String,String> opt = new HashMap<String, String>();
 
       for (Iterator<Map.Entry<String, String>> iterator = mapCopy.entrySet().iterator(); iterator.hasNext(); ) {
         Map.Entry<String, String> entry = iterator.next();
@@ -170,7 +170,7 @@ public class DynamicIteratorSetting {
           (SortedKeyValueIterator<Key,Value>)GraphuloUtil.subclassNewInstance(
               setting.getIteratorClass(), SortedKeyValueIterator.class);
       Map<String,String> optOrig = setting.getOptions();            // the options are unmodifiable....
-      Map<String,String> optCopy = new HashMap<>(optOrig.size());   // make a defensive copy so that the init function can modify them if it wants
+      Map<String,String> optCopy = new HashMap<String, String>(optOrig.size());   // make a defensive copy so that the init function can modify them if it wants
       optCopy.putAll(optOrig);
       iter.init(source, optCopy, env);
       source = iter;

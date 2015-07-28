@@ -42,11 +42,11 @@ public class InjectTest extends AccumuloTestBase {
 
     // create table, add table split, write data
     final String tableName = getUniqueNames(1)[0];
-    Map<Key, Value> input = new HashMap<>();
+    Map<Key, Value> input = new HashMap<Key, Value>();
     input.put(new Key("aTablet1", "", "cq"), new Value("7".getBytes()));
     input.put(new Key("kTablet2", "", "cq"), new Value("7".getBytes()));
     input.put(new Key("zTablet2", "", "cq"), new Value("7".getBytes()));
-    SortedSet<Text> splitset = new TreeSet<>();
+    SortedSet<Text> splitset = new TreeSet<Text>();
     splitset.add(new Text("f"));
     TestUtil.createTestTable(conn, tableName, splitset, input);
 
@@ -54,7 +54,7 @@ public class InjectTest extends AccumuloTestBase {
     conn.tableOperations().attachIterator(tableName, itset, EnumSet.of(IteratorUtil.IteratorScope.scan));
 
     // expected data back
-    Map<Key, Value> expect = new HashMap<>(input);
+    Map<Key, Value> expect = new HashMap<Key, Value>(input);
 
     // read back both tablets in parallel
     BatchScanner scan = conn.createBatchScanner(tableName, Authorizations.EMPTY, 2);
@@ -62,7 +62,7 @@ public class InjectTest extends AccumuloTestBase {
     Range rng = new Range();
     scan.setRanges(Collections.singleton(rng));
     log.debug("Results of scan on table " + tableName + ':');
-    Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+    Map<Key, Value> actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
     for (Map.Entry<Key, Value> entry : scan) {
       Key k = entry.getKey();
       Value v = entry.getValue();
@@ -85,12 +85,12 @@ public class InjectTest extends AccumuloTestBase {
 
     // create table, add table split, write data
     final String tableName = getUniqueNames(1)[0];
-    SortedSet<Text> splitset = new TreeSet<>();
+    SortedSet<Text> splitset = new TreeSet<Text>();
     splitset.add(new Text("f"));
     TestUtil.createTestTable(conn, tableName, splitset);
 
     // expected data back
-    Map<Key, Value> expect = new HashMap<>(HardListIterator.allEntriesToInject);
+    Map<Key, Value> expect = new HashMap<Key, Value>(HardListIterator.allEntriesToInject);
 
     // attach InjectIterator
     IteratorSetting itset = new IteratorSetting(15, InjectIterator.class);
@@ -104,7 +104,7 @@ public class InjectTest extends AccumuloTestBase {
     Range rng = new Range();
     scan.setRanges(Collections.singleton(rng));
     log.debug("Results of scan on table " + tableName + ':');
-    Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+    Map<Key, Value> actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
     for (Map.Entry<Key, Value> entry : scan) {
       Key k = entry.getKey();
       Value v = entry.getValue();
@@ -128,12 +128,12 @@ public class InjectTest extends AccumuloTestBase {
 
     // create table, add table split, write data
     final String tableName = getUniqueNames(1)[0];
-    SortedSet<Text> splitset = new TreeSet<>();
+    SortedSet<Text> splitset = new TreeSet<Text>();
     splitset.add(new Text("f"));
     TestUtil.createTestTable(conn, tableName, splitset);
 
     // expected data back
-    Map<Key, Value> expect = new HashMap<>(HardListIterator.allEntriesToInject);
+    Map<Key, Value> expect = new HashMap<Key, Value>(HardListIterator.allEntriesToInject);
 
     // attach InjectIterator
     IteratorSetting itset = new IteratorSetting(15, InjectIterator.class);
@@ -146,7 +146,7 @@ public class InjectTest extends AccumuloTestBase {
 //        Key startKey = new Key(new Text("d"), cf, cq);
 
     log.debug("Results of scan on table " + tableName + ':');
-    Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+    Map<Key, Value> actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
     for (Map.Entry<Key, Value> entry : scan) {
       Key k = entry.getKey();
       Value v = entry.getValue();
@@ -170,16 +170,16 @@ public class InjectTest extends AccumuloTestBase {
 
     // create table, add table split, write data
     final String tableName = getUniqueNames(1)[0];
-    Map<Key, Value> input = new HashMap<>();
+    Map<Key, Value> input = new HashMap<Key, Value>();
     input.put(new Key("aTablet1", "", "cq"), new Value("7".getBytes()));
     input.put(new Key("kTablet2", "", "cq"), new Value("7".getBytes()));
     input.put(new Key("zTablet2", "", "cq"), new Value("7".getBytes()));
-    SortedSet<Text> splitset = new TreeSet<>();
+    SortedSet<Text> splitset = new TreeSet<Text>();
     splitset.add(new Text("f"));
     TestUtil.createTestTable(conn, tableName, splitset, input);
 
     // expected data back
-    Map<Key, Value> expect = new HashMap<>(input);
+    Map<Key, Value> expect = new HashMap<Key, Value>(input);
     expect.putAll(HardListIterator.allEntriesToInject);
 
     // attach InjectIterator
@@ -194,7 +194,7 @@ public class InjectTest extends AccumuloTestBase {
     Range rng = new Range();
     scan.setRanges(Collections.singleton(rng));
     log.debug("Results of scan on table " + tableName + ':');
-    Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+    Map<Key, Value> actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
     for (Map.Entry<Key, Value> entry : scan) {
       Key k = entry.getKey();
       Value v = entry.getValue();
@@ -218,21 +218,21 @@ public class InjectTest extends AccumuloTestBase {
 
     // create table, add table split, write data
     final String tableName = getUniqueNames(1)[0];
-    Map<Key, Value> input = new HashMap<>();
+    Map<Key, Value> input = new HashMap<Key, Value>();
     input.put(new Key("aTablet1", "", "cq"), new Value("7".getBytes()));
     input.put(new Key("kTablet2", "", "cq"), new Value("7".getBytes()));
     input.put(new Key("zTablet2", "", "cq"), new Value("7".getBytes()));
-    SortedSet<Text> splitset = new TreeSet<>();
+    SortedSet<Text> splitset = new TreeSet<Text>();
     splitset.add(new Text("f"));
     TestUtil.createTestTable(conn, tableName, splitset, input);
 
     // expected data back
-    Map<Key, Value> expect = new HashMap<>(input);
+    Map<Key, Value> expect = new HashMap<Key, Value>(input);
     expect.putAll(HardListIterator.allEntriesToInject);
 
     // attach InjectIterator, flush and compact. Compaction blocks.
     IteratorSetting itset = new IteratorSetting(15, InjectIterator.class);
-    List<IteratorSetting> itlist = new ArrayList<>();
+    List<IteratorSetting> itlist = new ArrayList<IteratorSetting>();
     itlist.add(itset);
     itset = new IteratorSetting(16, DebugIterator.class);
     itlist.add(itset);
@@ -255,7 +255,7 @@ public class InjectTest extends AccumuloTestBase {
     Range rng = new Range();
     scan.setRanges(Collections.singleton(rng));
     log.debug("Results of scan on table " + tableName + ':');
-    Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+    Map<Key, Value> actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
     for (Map.Entry<Key, Value> entry : scan) {
       Key k = entry.getKey();
       Value v = entry.getValue();
@@ -279,12 +279,12 @@ public class InjectTest extends AccumuloTestBase {
 
     // create table, add table split, write data
     final String tableName = getUniqueNames(1)[0];
-    SortedSet<Text> splitset = new TreeSet<>();
+    SortedSet<Text> splitset = new TreeSet<Text>();
     splitset.add(new Text("f"));
     TestUtil.createTestTable(conn, tableName, splitset);
 
     // expected data back
-    Map<Key, Value> expect = new HashMap<>(HardListIterator.allEntriesToInject);
+    Map<Key, Value> expect = new HashMap<Key, Value>(HardListIterator.allEntriesToInject);
 
     // attach InjectIterator, flush and compact. Compaction blocks.
     IteratorSetting itset = new IteratorSetting(15, InjectIterator.class);
@@ -300,7 +300,7 @@ public class InjectTest extends AccumuloTestBase {
     Range rng = new Range();
     scan.setRanges(Collections.singleton(rng));
     log.debug("Results of scan on table " + tableName + ':');
-    Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+    Map<Key, Value> actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
     for (Map.Entry<Key, Value> entry : scan) {
       Key k = entry.getKey();
       Value v = entry.getValue();

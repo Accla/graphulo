@@ -23,11 +23,14 @@ public class RealAccumuloTester extends ExternalResource implements IAccumuloTes
     }
 
     public Connector getConnector() {
-        Connector c = null;
+        Connector c;
 
         try {
             c = instance.getConnector(username, auth);
-        } catch (AccumuloException | AccumuloSecurityException e) {
+        } catch (AccumuloException e) {
+            log.error("failed to connect to Accumulo instance "+instance.getInstanceName(),e);
+            throw new RuntimeException(e);
+        } catch (AccumuloSecurityException e) {
             log.error("failed to connect to Accumulo instance "+instance.getInstanceName(),e);
             throw new RuntimeException(e);
         }

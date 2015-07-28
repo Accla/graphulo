@@ -36,14 +36,14 @@ public class CountTest extends AccumuloTestBase {
     }
 
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
       input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
       input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
       input.put(new Key("v0", "", "vBig"), new Value("7".getBytes()));
       input.put(new Key("v1", "", "vBig"), new Value("7".getBytes()));
       input.put(new Key("v2", "", "vBig"), new Value("7".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
     }
@@ -72,14 +72,14 @@ public class CountTest extends AccumuloTestBase {
     }
 
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
       input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
       input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
       input.put(new Key("v0", "", "vBig"), new Value("7".getBytes()));
       input.put(new Key("v1", "", "vBig"), new Value("7".getBytes()));
       input.put(new Key("v2", "", "vBig"), new Value("7".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
     }
@@ -102,14 +102,14 @@ public class CountTest extends AccumuloTestBase {
     }
 
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
       input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
       input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
       input.put(new Key("v0", "", "vBig"), new Value("7".getBytes()));
       input.put(new Key("v1", "", "vBig"), new Value("7".getBytes()));
       input.put(new Key("v2", "", "vBig"), new Value("7".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
     }
@@ -140,14 +140,14 @@ public class CountTest extends AccumuloTestBase {
     }
 
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
       input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
       input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
       input.put(new Key("v0", "", "vBig"), new Value("7".getBytes()));
       input.put(new Key("v1", "", "vBig"), new Value("7".getBytes()));
       input.put(new Key("v2", "", "vBig"), new Value("7".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
     }
@@ -156,7 +156,7 @@ public class CountTest extends AccumuloTestBase {
     BatchScanner scanner = conn.createBatchScanner(tA, Authorizations.EMPTY, 2);
     scanner.setRanges(Collections.singleton(new Range()));
 
-    Map<String, String> opt = new HashMap<>();
+    Map<String, String> opt = new HashMap<String, String>();
     String instance = conn.getInstance().getInstanceName();
     String zookeepers = conn.getInstance().getZooKeepers();
     String user = conn.whoami();

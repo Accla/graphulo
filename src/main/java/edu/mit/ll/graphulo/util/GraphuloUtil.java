@@ -89,7 +89,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
    * @return Map Prefix -> (Map entryWithoutPrefix -> value)
    */
   public static Map<String, Map<String, String>> splitMapPrefix(Map<String, String> options) {
-    Map<String, Map<String, String>> prefixMap = new HashMap<>();
+    Map<String, Map<String, String>> prefixMap = new HashMap<String, Map<String, String>>();
     for (Map.Entry<String, String> entry : options.entrySet()) {
       String key = entry.getKey();
       int periodIdx = key.indexOf(".");
@@ -101,9 +101,8 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
           ? key : key.substring(periodIdx + 1); // ok if empty
 
       Map<String, String> mapInside = prefixMap.get(prefix);
-      if (mapInside == null) {
-        mapInside = new HashMap<>();
-      }
+      if (mapInside == null)
+        mapInside = new HashMap<String, String>();
       mapInside.put(afterPrefix, entry.getValue());
       prefixMap.put(prefix, mapInside);
     }
@@ -111,7 +110,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
   }
 
   public static Map<String, String> preprendPrefixToKey(String prefix, Map<String, String> options) {
-    Map<String, String> res = new HashMap<>(options.size());
+    Map<String, String> res = new HashMap<String, String>(options.size());
     for (Map.Entry<String, String> entry : options.entrySet()) {
       res.put(prefix + entry.getKey(), entry.getValue());
     }
@@ -120,7 +119,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
 
   private static final SortedSet<Range> SETINFRNG;
   static {
-    SortedSet<Range> tmp = new TreeSet<>();
+    SortedSet<Range> tmp = new TreeSet<Range>();
     tmp.add(new Range());
     SETINFRNG = Collections.unmodifiableSortedSet(tmp);
   }
@@ -146,13 +145,13 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
    */
   public static SortedSet<Range> d4mRowToRanges(String rowStr, boolean singletonsArePrefix) {
     if (rowStr == null || rowStr.isEmpty())
-      return new TreeSet<>();
+      return new TreeSet<Range>();
     // could write my own version that does not do regex, but probably not worth optimizing
     String[] rowStrSplit = splitD4mString(rowStr);
     //if (rowStrSplit.length == 1)
     List<String> rowStrList = Arrays.asList(rowStrSplit);
-    PeekingIterator3<String> pi = new PeekingIterator3<>(rowStrList.iterator());
-    SortedSet<Range> rngset = new TreeSet<>();
+    PeekingIterator3<String> pi = new PeekingIterator3<String>(rowStrList.iterator());
+    SortedSet<Range> rngset = new TreeSet<Range>();
 
     if (pi.peekFirst().equals(":")) { // (-Inf,
       if (pi.peekSecond() == null) {
@@ -276,7 +275,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
     if (rowStr == null || rowStr.isEmpty())
       return Collections.emptySet();
     String[] rowStrSplit = splitD4mString(rowStr);
-    Collection<Text> ts = new HashSet<>(rowStrSplit.length);
+    Collection<Text> ts = new HashSet<Text>(rowStrSplit.length);
     for (String row : rowStrSplit) {
       if (row.equals(":"))
         throw new IllegalArgumentException("rowStr cannot contain the label \":\" ---- " + rowStr);
@@ -300,7 +299,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
   }
 
   public static Collection<Range> textsToRanges(Collection<Text> texts) {
-    Collection<Range> ranges = new HashSet<>();
+    Collection<Range> ranges = new HashSet<Range>();
     for (Text text : texts) {
       ranges.add(new Range(text));
     }
@@ -323,7 +322,10 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
           enumSet.add(scope);
       }
       tops.attachIterator(table, itset, enumSet);
-    } catch (AccumuloSecurityException | AccumuloException e) {
+    } catch (AccumuloSecurityException e) {
+      log.error("error trying to add "+itset+" to " + table, e);
+      throw new RuntimeException(e);
+    } catch (AccumuloException e) {
       log.error("error trying to add "+itset+" to " + table, e);
       throw new RuntimeException(e);
     } catch (TableNotFoundException e) {
@@ -415,7 +417,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
 //          System.err.println("!ok "+GraphuloUtil.d4mRowToRanges(colFilter));
         } else { // multiple ranges
 //          System.err.println("ok "+GraphuloUtil.d4mRowToRanges(colFilter));
-          Map<String,String> map = new HashMap<>();
+          Map<String,String> map = new HashMap<String, String>();
           map.put(D4mColumnRangeFilter.COLRANGES,colFilter);
           s = new IteratorSetting(priority, D4mColumnRangeFilter.class, map);
         }
@@ -461,7 +463,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
 //          System.err.println("!ok "+GraphuloUtil.d4mRowToRanges(colFilter));
         } else { // multiple ranges
 //          System.err.println("ok "+GraphuloUtil.d4mRowToRanges(colFilter));
-          Map<String,String> map = new HashMap<>();
+          Map<String,String> map = new HashMap<String, String>();
           map.put(D4mColumnRangeFilter.COLRANGES,colFilter);
           s = new IteratorSetting(1, D4mColumnRangeFilter.class, map);
         }
@@ -492,7 +494,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
 
     int pos1 = colFilter.indexOf(':');
     if (pos1 == -1) { // no ranges - collection of singleton texts
-      Set<Column> colset = new HashSet<>();
+      Set<Column> colset = new HashSet<Column>();
       for (Text text : GraphuloUtil.d4mRowToTexts(colFilter)) {
         colset.add(new Column(EMPTY_BYTES, text.getBytes(), EMPTY_BYTES));
       }
@@ -504,7 +506,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
 
       if (ranges.size() == 1) { // single range - use ColumnSliceFilter
         Range r = ranges.first();
-        Map<String,String> map = new HashMap<>();
+        Map<String,String> map = new HashMap<String, String>();
 
         String start = r.isInfiniteStartKey() ? null : r.getStartKey().getRow().toString(),
             end = r.isInfiniteStopKey() ? null : r.getEndKey().getRow().toString();
@@ -522,7 +524,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
         return filter;
 
       } else { // multiple ranges
-        Map<String,String> map = new HashMap<>();
+        Map<String,String> map = new HashMap<String, String>();
         map.put(D4mColumnRangeFilter.COLRANGES,colFilter);
 
         SortedKeyValueIterator<Key,Value> filter = new D4mColumnRangeFilter();
@@ -550,7 +552,9 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
     }
     try {
       return cm.newInstance();
-    } catch (InstantiationException | IllegalAccessException e) {
+    } catch (InstantiationException e) {
+      throw new IllegalArgumentException("can't instantiate new instance of " + cm.getName(), e);
+    } catch (IllegalAccessException e) {
       throw new IllegalArgumentException("can't instantiate new instance of " + cm.getName(), e);
     }
   }
@@ -580,7 +584,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
 //        throw new UnsupportedOperationException("No way to append the suffixes "+suffixes+
 //            " to a D4M String containing a Range: "+str);
       // add prefix to v0 Ranges. Goto full Range Objects because ':' is complicated.
-      SortedSet<Range> tmp = GraphuloUtil.d4mRowToRanges(str), tmp2 = new TreeSet<>();
+      SortedSet<Range> tmp = GraphuloUtil.d4mRowToRanges(str), tmp2 = new TreeSet<Range>();
       for (String startPre : GraphuloUtil.splitD4mString(prefixes))
         for (Range range : tmp)
           tmp2.add(GraphuloUtil.prependPrefixToRange(startPre, range));
@@ -791,7 +795,10 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
     if (createIfNotExist && !connector.tableOperations().exists(table))
       try {
         connector.tableOperations().create(table);
-      } catch (AccumuloException | AccumuloSecurityException e) {
+      } catch (AccumuloException e) {
+        log.error("trouble creating "+table, e);
+        throw new RuntimeException(e);
+      } catch (AccumuloSecurityException e) {
         log.error("trouble creating "+table, e);
         throw new RuntimeException(e);
       } catch (TableExistsException e) {
@@ -842,7 +849,10 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
         else if (tops.exists(tn))
           try {
             tops.delete(tn);
-          } catch (AccumuloException | AccumuloSecurityException e) {
+          } catch (AccumuloException e) {
+            log.error("Problem deleing temporary table " + tn, e);
+            throw new RuntimeException(e);
+          } catch (AccumuloSecurityException e) {
             log.error("Problem deleing temporary table " + tn, e);
             throw new RuntimeException(e);
           } catch (TableNotFoundException e) {
@@ -855,13 +865,13 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
 
   /** Switches row and column qualifier. Returns HashMap. */
   public static <V> Map<Key,V> transposeMap(Map<Key, V> mapOrig) {
-      Map<Key, V> m = new HashMap<>(mapOrig.size());
+      Map<Key, V> m = new HashMap<Key, V>(mapOrig.size());
       return transposeMapHelp(mapOrig, m);
   }
 
   /** Switches row and column qualifier. Use same comparator as the given map. Returns TreeMap. */
   public static <V> SortedMap<Key,V> transposeMap(SortedMap<Key, V> mapOrig) {
-    SortedMap<Key, V> m = new TreeMap<>(mapOrig.comparator());
+    SortedMap<Key, V> m = new TreeMap<Key, V>(mapOrig.comparator());
     return transposeMapHelp(mapOrig, m);
   }
 

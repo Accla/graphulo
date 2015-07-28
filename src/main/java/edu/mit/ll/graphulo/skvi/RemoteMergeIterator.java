@@ -19,7 +19,7 @@ public class RemoteMergeIterator extends BranchIterator {
     public SortedKeyValueIterator<Key, Value> initBranchIterator(Map<String, String> options, IteratorEnvironment env) throws IOException {
         SortedKeyValueIterator<Key, Value> remoteIterator = new RemoteSourceIterator();
         // parse options, pass correct options to RemoteSourceIterator init()
-        Map<String, String> remoteOptions = new HashMap<>(options.size());
+        Map<String, String> remoteOptions = new HashMap<String, String>(options.size());
         for (Map.Entry<String, String> entry : options.entrySet()) {
             String k = entry.getKey();
             if (k.startsWith(PREFIX_RemoteIterator))

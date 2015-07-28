@@ -51,17 +51,17 @@ public class LineTest extends AccumuloTestBase {
       tR = names[2];
       tRT = names[3];
     }
-    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        expectTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actualTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key,Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        expectTranspose = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actualTranspose = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
 
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("a", "", "b"), new Value("2".getBytes()));
       input.put(new Key("b", "", "c"), new Value("4".getBytes()));
       input.putAll(GraphuloUtil.transposeMap(input)); // undirected example
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
 //      splits.add(new Text("b"));
       TestUtil.createTestTable(conn, tA, splits, input);
 
@@ -131,16 +131,16 @@ public class LineTest extends AccumuloTestBase {
       tR = names[2];
       tRT = names[3];
     }
-    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        expectTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actualTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key,Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        expectTranspose = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actualTranspose = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
 
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("a", "", "b"), new Value("2".getBytes()));
       input.put(new Key("b", "", "c"), new Value("4".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
 //      splits.add(new Text("b"));
       TestUtil.createTestTable(conn, tA, splits, input);
 
@@ -232,20 +232,20 @@ public class LineTest extends AccumuloTestBase {
       tR = names[2];
       tRT = names[3];
     }
-    Map<Key,Double> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        expectTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actualTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key,Double> expect = new TreeMap<Key, Double>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actual = new TreeMap<Key, Double>(TestUtil.COMPARE_KEY_TO_COLQ),
+        expectTranspose = new TreeMap<Key, Double>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actualTranspose = new TreeMap<Key, Double>(TestUtil.COMPARE_KEY_TO_COLQ);
 
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("a", "", "c"), new Value("2".getBytes()));
       input.put(new Key("b", "", "c"), new Value("4".getBytes()));
       input.put(new Key("c", "", "d"), new Value("6".getBytes()));
       input.put(new Key("c", "", "e"), new Value("8".getBytes()));
       input.put(new Key("c", "", "f"), new Value("10".getBytes()));
 
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
 //      splits.add(new Text("b"));
       TestUtil.createTestTable(conn, tA, splits, input);
 
@@ -365,25 +365,25 @@ public class LineTest extends AccumuloTestBase {
       tR = names[2];
       tRT = names[3];
     }
-    Map<Key,Double> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        expectTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actualTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key,Double> expect = new TreeMap<Key, Double>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actual = new TreeMap<Key, Double>(TestUtil.COMPARE_KEY_TO_COLQ),
+        expectTranspose = new TreeMap<Key, Double>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actualTranspose = new TreeMap<Key, Double>(TestUtil.COMPARE_KEY_TO_COLQ);
 
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("a", "", "b"), new Value("4".getBytes()));
       input.put(new Key("a", "", "e"), new Value("10".getBytes()));
       input.put(new Key("b", "", "c"), new Value("5".getBytes()));
       input.put(new Key("b", "", "d"), new Value("6".getBytes()));
       input.put(new Key("c", "", "d"), new Value("3".getBytes()));
       input.putAll(GraphuloUtil.transposeMap(input)); // undirected example
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("b"));
       TestUtil.createTestTable(conn, tA, splits, input);
 
       input = GraphuloUtil.transposeMap(input);
-      splits = new TreeSet<>();
+      splits = new TreeSet<Text>();
       splits.add(new Text("c"));
       TestUtil.createTestTable(conn, tAT, splits, input);
     }

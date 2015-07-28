@@ -31,7 +31,7 @@ public class SingleTransposeIterator implements SortedKeyValueIterator<Key,Value
       DEGCOL = "degCol";
 
   private char edgeSep = '|';
-  private SortedSet<Range> startNodes = new TreeSet<>();
+  private SortedSet<Range> startNodes = new TreeSet<Range>();
   private boolean negOneInDeg = false; // dangerous option
   private Text degCol = new Text("");
 
@@ -42,23 +42,23 @@ public class SingleTransposeIterator implements SortedKeyValueIterator<Key,Value
   private void parseOptions(Map<String,String> options) {
     for (Map.Entry<String, String> entry : options.entrySet()) {
       String entryKey = entry.getKey(), entryValue = entry.getValue();
-      switch (entryKey) {
-        case EDGESEP:
-          if (entryValue.length() != 1)
-            throw new IllegalArgumentException("bad "+ EDGESEP +": "+entryValue);
-          edgeSep = entryValue.charAt(0);
-          break;
-        case STARTNODES:
-          startNodes = GraphuloUtil.d4mRowToRanges(entryValue);
-          break;
-        case NEG_ONE_IN_DEG:
-          negOneInDeg = Boolean.parseBoolean(entryValue);
-          break;
-        case DEGCOL:
-          degCol = new Text(entryValue);
-          break;
-        default:
-          log.warn("Unrecognized option: " + entry);
+      // can replace with switch in Java 1.7
+      if (entryKey.equals(EDGESEP)) {
+        if (entryValue.length() != 1)
+          throw new IllegalArgumentException("bad " + EDGESEP + ": " + entryValue);
+        edgeSep = entryValue.charAt(0);
+
+      } else if (entryKey.equals(STARTNODES)) {
+        startNodes = GraphuloUtil.d4mRowToRanges(entryValue);
+
+      } else if (entryKey.equals(NEG_ONE_IN_DEG)) {
+        negOneInDeg = Boolean.parseBoolean(entryValue);
+
+      } else if (entryKey.equals(DEGCOL)) {
+        degCol = new Text(entryValue);
+
+      } else {
+        log.warn("Unrecognized option: " + entry);
       }
     }
 

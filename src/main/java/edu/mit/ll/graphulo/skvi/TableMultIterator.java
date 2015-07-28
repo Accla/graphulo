@@ -27,23 +27,22 @@ public class TableMultIterator extends BranchIterator {
   @Override
   public SortedKeyValueIterator<Key, Value> initBranchAfterIterator(final SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
     // parse options
-    Map<String, String> optDM = new HashMap<>(), optC = new HashMap<>();
+    Map<String, String> optDM = new HashMap<String, String>(), optC = new HashMap<String, String>();
     {
       Map<String, Map<String, String>> prefixMap = GraphuloUtil.splitMapPrefix(options);
       for (Map.Entry<String, Map<String, String>> prefixEntry : prefixMap.entrySet()) {
         final String prefix = prefixEntry.getKey();
         Map<String, String> entryMap = prefixEntry.getValue();
 
-        switch (prefix) {
-          case TwoTableIterator.PREFIX_AT:
-          case TwoTableIterator.PREFIX_B:
-            optDM.putAll(GraphuloUtil.preprendPrefixToKey(prefix + '.', entryMap));
-            break;
-          case PREFIX_C:
-            optC.putAll(entryMap);
-            break;
-          default:
-            for (Map.Entry<String, String> entry : entryMap.entrySet()) {
+        // can replace with switch in Java 1.7
+        if (prefix.equals(TwoTableIterator.PREFIX_AT) || prefix.equals(TwoTableIterator.PREFIX_B)) {
+          optDM.putAll(GraphuloUtil.preprendPrefixToKey(prefix + '.', entryMap));
+
+        } else if (prefix.equals(PREFIX_C)) {
+          optC.putAll(entryMap);
+
+        } else {
+          for (Map.Entry<String, String> entry : entryMap.entrySet()) {
 //              switch (entry.getKey()) {
 //                case "dotmode":
 //                case "multiplyOp":
@@ -53,12 +52,12 @@ public class TableMultIterator extends BranchIterator {
 //                  log.warn("Unrecognized option: " + prefix + '.' + entry);
 //                  break;
 //              }
-              if (prefix.isEmpty())
-                optDM.put(entry.getKey(), entry.getValue());
-              else
-                optDM.put(prefix + '.'+entry.getKey(), entry.getValue());
-            }
-            break;
+            if (prefix.isEmpty())
+              optDM.put(entry.getKey(), entry.getValue());
+            else
+              optDM.put(prefix + '.' + entry.getKey(), entry.getValue());
+          }
+
         }
       }
     }

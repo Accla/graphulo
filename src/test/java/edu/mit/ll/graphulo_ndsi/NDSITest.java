@@ -41,10 +41,10 @@ public class NDSITest extends AccumuloTestBase {
       tA = names[0];
       tR = names[1];
     }
-    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key,Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
 //    {
-//      Map<Key, Value> input = new HashMap<>();
+//      Map<Key, Value> input = new HashMap<Key, Value>();
 //      input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
 //      input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
 //      input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));

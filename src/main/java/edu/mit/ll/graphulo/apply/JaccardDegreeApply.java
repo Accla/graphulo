@@ -47,7 +47,7 @@ public class JaccardDegreeApply implements ApplyOp {
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
     remoteDegTable = new RemoteSourceIterator();
     remoteDegTable.init(null, options, env);
-    degMap = new HashMap<>();
+    degMap = new HashMap<String, Double>();
     scanDegreeTable();
   }
 
@@ -69,7 +69,7 @@ public class JaccardDegreeApply implements ApplyOp {
     // Period indicates already processed Double value. No period indicates unprocessed Long value.
     String vstr = v.toString();
     if (vstr.contains("."))
-      return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(k, v));
+      return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<Key, Value>(k, v));
 
     String row = k.getRow().toString(), col = k.getColumnQualifier().toString();
     Double rowDeg = degMap.get(row), colDeg = degMap.get(col);
@@ -78,7 +78,7 @@ public class JaccardDegreeApply implements ApplyOp {
     if (colDeg == null)
       throw new IllegalStateException("Cannot find colDeg in degree table:" +col);
     double Jij = Long.parseLong(vstr);
-    return Iterators.singletonIterator( new AbstractMap.SimpleImmutableEntry<>(k,
+    return Iterators.singletonIterator( new AbstractMap.SimpleImmutableEntry<Key, Value>(k,
         new Value(Double.toString(Jij / (rowDeg+colDeg-Jij)).getBytes())
     ));
   }

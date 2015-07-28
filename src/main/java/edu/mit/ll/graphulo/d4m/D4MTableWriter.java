@@ -58,7 +58,7 @@ public class D4MTableWriter implements AutoCloseable {
     public Text colDegT = DEFAULT_DEGCOL;
     public Text cf = EMPTYCF;
     /** The number of bytes until we flush data to the server. */
-    public long batchBytes = 2_000_000L;
+    public long batchBytes = 2000000L;
     public boolean deleteExistingTables = false;
 
     public D4MTableConfig() {}
@@ -111,7 +111,9 @@ public class D4MTableWriter implements AutoCloseable {
     IteratorSetting cfg = null;
     try {
       cfg = c.tableOperations().getIteratorSetting(tableName, ITER_SUMALL_NAME, IteratorUtil.IteratorScope.scan);
-    } catch (AccumuloSecurityException | AccumuloException ignored) {
+    } catch (AccumuloSecurityException ignored) {
+
+    } catch (AccumuloException ignored) {
 
     } catch (TableNotFoundException e) {
       log.warn(tableName + " does not exist", e);
@@ -128,7 +130,9 @@ public class D4MTableWriter implements AutoCloseable {
       try {
         //c.tableOperations().checkIteratorConflicts(tableName, cfg, EnumSet.allOf(IteratorUtil.IteratorScope.class));
         c.tableOperations().attachIterator(tableName, cfg);
-      } catch (AccumuloSecurityException | AccumuloException e) {
+      } catch (AccumuloSecurityException e) {
+        log.warn("error trying to add "+ITER_SUMALL_NAME+" iterator to " + tableName, e);
+      } catch (AccumuloException e) {
         log.warn("error trying to add "+ITER_SUMALL_NAME+" iterator to " + tableName, e);
       } catch (TableNotFoundException e) {
         log.warn(tableName + " does not exist", e);
@@ -148,7 +152,10 @@ public class D4MTableWriter implements AutoCloseable {
       }
       to.create(tableName);
       return true;
-    } catch (AccumuloException | AccumuloSecurityException e) {
+    } catch (AccumuloException e) {
+      log.warn("error creating table "+tableName,e);
+      return false;
+    } catch (AccumuloSecurityException e) {
       log.warn("error creating table "+tableName,e);
       return false;
     } catch (TableExistsException e) {
@@ -229,7 +236,9 @@ public class D4MTableWriter implements AutoCloseable {
       if (tconf.useEdgeTableDegT) BtableEdgeDegT         = mtbw.getBatchWriter(TNtableEdgeDegT);
     } catch (TableNotFoundException e) {
       log.error("crazy. Tables should have been created.", e);
-    } catch (AccumuloSecurityException | AccumuloException e) {
+    } catch (AccumuloSecurityException e) {
+      log.warn("error creating one of the batch writers for D4MTableWriter base " + TNtable, e);
+    } catch (AccumuloException e) {
       log.warn("error creating one of the batch writers for D4MTableWriter base " + TNtable, e);
     }
     state = State.Open;

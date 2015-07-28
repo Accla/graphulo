@@ -40,13 +40,14 @@ public class RandomTopicApply implements ApplyOp {
   private void parseOptions(Map<String,String> options) {
     for (Map.Entry<String, String> entry : options.entrySet()) {
       String v = entry.getValue();
-      switch (entry.getKey()) {
-        case KNUM:
-          knum = Integer.parseInt(v);
-          break;
-        default:
-          log.warn("Unrecognized option: " + entry);
-          break;
+      // can replace with switch in Java 1.7
+      String s = entry.getKey();
+      if (s.equals(KNUM)) {
+        knum = Integer.parseInt(v);
+
+      } else {
+        log.warn("Unrecognized option: " + entry);
+
       }
     }
     if (knum <= 0)
@@ -64,7 +65,7 @@ public class RandomTopicApply implements ApplyOp {
   @Override
   public Iterator<? extends Map.Entry<Key, Value>> apply(Key k, Value v) {
     Text row = k.getRow();
-    SortedMap<Key,Value> map = new TreeMap<>();
+    SortedMap<Key,Value> map = new TreeMap<Key, Value>();
     for (int i = 1; i <= knum; i++) {
       Key knew = new Key(row, EMPTY_TEXT, new Text(Integer.toString(i)), System.currentTimeMillis());
 

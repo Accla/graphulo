@@ -43,16 +43,17 @@ public class KeyRetainOnlyApply implements ApplyOp {
   private void parseOptions(Map<String,String> options) {
     for (Map.Entry<String, String> entry : options.entrySet()) {
       String v = entry.getValue();
-      switch (entry.getKey()) {
-        case PARTIAL_KEY:
-          if (v.isEmpty())
-            pk = null;
-          else
-            pk = PartialKey.valueOf(v);
-          break;
-        default:
-          log.warn("Unrecognized option: " + entry);
-          break;
+      // can replace with switch in Java 1.7
+      String s = entry.getKey();
+      if (s.equals(PARTIAL_KEY)) {
+        if (v.isEmpty())
+          pk = null;
+        else
+          pk = PartialKey.valueOf(v);
+
+      } else {
+        log.warn("Unrecognized option: " + entry);
+
       }
     }
   }
@@ -69,7 +70,7 @@ public class KeyRetainOnlyApply implements ApplyOp {
       knew = seekStartKey;
     else
       knew = GraphuloUtil.keyCopy(k, pk);
-    return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(knew, v));
+    return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<Key, Value>(knew, v));
   }
 
   @Override

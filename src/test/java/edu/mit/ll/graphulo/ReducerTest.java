@@ -28,7 +28,7 @@ public class ReducerTest {
     r.update(new Key("","","out|v1"), new Value());
     r.update(new Key("","","in|v3"), new Value());
     r.update(new Key("","","in|v3"), new Value());
-    HashSet<String> e = new HashSet<>();
+    HashSet<String> e = new HashSet<String>();
     e.add("v2");
     e.add("v3");
     Assert.assertEquals(e, r.getSerializableForClient());
@@ -49,13 +49,13 @@ public class ReducerTest {
     r.update(new Key("v1|v3", "", "", 2), new Value());
     r.update(new Key("v2|v2", "", "", 2), new Value());
     r.update(new Key("v2|v4", "", "", 2), new Value());
-    HashSet<String> e = new HashSet<>();
+    HashSet<String> e = new HashSet<String>();
     e.add("v2");
     e.add("v3");
     e.add("v4");
     Assert.assertEquals(e, r.getSerializableForClient());
     SingleBFSReducer r2 = new SingleBFSReducer();
-    Map<String,String> map = new HashMap<>();
+    Map<String,String> map = new HashMap<String, String>();
     map.put(SingleBFSReducer.EDGE_SEP, "|");
 //    map.put(SingleTransposeIterator.EDGESEP, "");
 //    map.put(SingleTransposeIterator.NEG_ONE_IN_DEG, Boolean.toString(false /*copyOutDegrees*/));

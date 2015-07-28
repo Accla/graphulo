@@ -21,7 +21,7 @@ public class D4mColumnRangeFilter extends Filter {
 
   public static final String COLRANGES = "colRanges";
 
-  private SortedSet<Range> colRanges = new TreeSet<>(Collections.singleton(new Range()));
+  private SortedSet<Range> colRanges = new TreeSet<Range>(Collections.singleton(new Range()));
 
   @Override
   public boolean accept(Key key, Value value) {

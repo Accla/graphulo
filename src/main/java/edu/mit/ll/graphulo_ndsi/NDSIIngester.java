@@ -46,7 +46,10 @@ public class NDSIIngester {
     if (deleteIfExists && connector.tableOperations().exists(Atable))
       try {
         connector.tableOperations().delete(Atable);
-      } catch (AccumuloException | AccumuloSecurityException e) {
+      } catch (AccumuloException e) {
+        log.warn("trouble deleting table "+Atable, e);
+        throw new RuntimeException(e);
+      } catch (AccumuloSecurityException e) {
         log.warn("trouble deleting table "+Atable, e);
         throw new RuntimeException(e);
       } catch (TableNotFoundException e) {
@@ -55,7 +58,10 @@ public class NDSIIngester {
     if (!connector.tableOperations().exists(Atable))
       try {
         connector.tableOperations().create(Atable);
-      } catch (AccumuloException | AccumuloSecurityException e) {
+      } catch (AccumuloException e) {
+        log.warn("trouble creating table " + Atable, e);
+        throw new RuntimeException(e);
+      } catch (AccumuloSecurityException e) {
         log.warn("trouble creating table " + Atable, e);
         throw new RuntimeException(e);
       } catch (TableExistsException e) {
@@ -66,7 +72,9 @@ public class NDSIIngester {
     String line = null;
     long entriesProcessed = 0;
 
-    try (BufferedReader fo = new BufferedReader(new FileReader(file))) {
+    BufferedReader fo = null;
+    try {
+      fo = new BufferedReader(new FileReader(file));
       BatchWriterConfig config = new BatchWriterConfig();
       bw = connector.createBatchWriter(Atable, config);
 
@@ -82,6 +90,8 @@ public class NDSIIngester {
     } catch (MutationsRejectedException e) {
       log.warn("Mutation rejected on line "+line, e);
     } finally {
+      if (fo != null)
+        fo.close();
       if (bw != null)
         try {
           bw.close();

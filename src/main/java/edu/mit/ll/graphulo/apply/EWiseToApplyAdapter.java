@@ -47,7 +47,7 @@ public class EWiseToApplyAdapter implements ApplyOp {
     if (options.containsKey(FIX_SIDE))
       fixSide = FixSide.valueOf(options.get(FIX_SIDE));
 
-    Map<String,String> otherOpts = new HashMap<>();
+    Map<String,String> otherOpts = new HashMap<String, String>();
     for (Map.Entry<String, String> entry : options.entrySet()) {
       String k = entry.getKey();
       if (!k.equals(EWISEOP) && !k.equals(FIX_SIDE) && !k.equals(FIXED_VALUE))

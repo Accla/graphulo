@@ -55,9 +55,11 @@ public class D4MTripleFileWriter {
     Text row = new Text(), col = new Text(), valText = null;
     Value val = D4MTableWriter.VALONE;
 
-    Scanner valScanner = null;
-    try (Scanner rowScanner = new Scanner( rowFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(rowFile)) : new FileInputStream(rowFile) );
-         Scanner colScanner = new Scanner( colFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(colFile)) : new FileInputStream(colFile) )) {
+    Scanner valScanner = null, rowScanner = null, colScanner = null;
+    try {
+      // can replace with try-with-resources in Java 1.7
+      rowScanner = new Scanner( rowFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(rowFile)) : new FileInputStream(rowFile) );
+      colScanner = new Scanner( colFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(colFile)) : new FileInputStream(colFile) );
       rowScanner.useDelimiter(delimiter);
       colScanner.useDelimiter(delimiter);
       if (valFile != null) {
@@ -79,7 +81,10 @@ public class D4MTripleFileWriter {
       config.deleteExistingTables = deleteExistingTables;
 
       origStartTime = startTime = System.currentTimeMillis();
-      try (D4MTableWriter tw = new D4MTableWriter(config)) {
+      // can replace with try-with-resources in Java 1.7
+      D4MTableWriter tw = null;
+      try  {
+        tw = new D4MTableWriter(config);
         while (rowScanner.hasNext()) {
           if (!colScanner.hasNext() || (valScanner != null && !valScanner.hasNext())) {
             throw new IllegalArgumentException("row, col and val files do not have the same number of elements. " +
@@ -105,6 +110,9 @@ public class D4MTripleFileWriter {
             }
           }
         }
+      } finally {
+        if (tw != null)
+          tw.close();
       }
     } catch (IOException e) {
       log.warn("",e);
@@ -112,6 +120,10 @@ public class D4MTripleFileWriter {
     } finally {
       if (valScanner != null)
         valScanner.close();
+      if (rowScanner != null)
+        rowScanner.close();
+      if (colScanner != null)
+        colScanner.close();
     }
     return count;
   }
@@ -135,9 +147,11 @@ public class D4MTripleFileWriter {
     Text row = new Text(), col = new Text(), valText = null;
     Value val = D4MTableWriter.VALONE;
 
-    Scanner valScanner = null;
-    try (Scanner rowScanner = new Scanner( rowFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(rowFile)) : new FileInputStream(rowFile) );
-         Scanner colScanner = new Scanner( colFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(colFile)) : new FileInputStream(colFile) )) {
+    Scanner valScanner = null, rowScanner = null, colScanner = null;
+    try {
+      // can replace with try-with-resources in Java 1.7
+      rowScanner = new Scanner( rowFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(rowFile)) : new FileInputStream(rowFile) );
+      colScanner = new Scanner( colFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(colFile)) : new FileInputStream(colFile) );
       rowScanner.useDelimiter(delimiter);
       colScanner.useDelimiter(delimiter);
       if (valFile != null) {
@@ -161,7 +175,10 @@ public class D4MTripleFileWriter {
       config.deleteExistingTables = deleteExistingTables;
 
       origStartTime = startTime = System.currentTimeMillis();
-      try (D4MTableWriter tw = new D4MTableWriter(config)) {
+      // can replace with try-with-resources in Java 1.7
+      D4MTableWriter tw = null;
+      try  {
+        tw = new D4MTableWriter(config);
         while (rowScanner.hasNext()) {
           if (!colScanner.hasNext() || (valScanner != null && !valScanner.hasNext())) {
             throw new IllegalArgumentException("row, col and val files do not have the same number of elements. " +
@@ -191,6 +208,9 @@ public class D4MTripleFileWriter {
             }
           }
         }
+      } finally {
+        if (tw != null)
+          tw.close();
       }
     } catch (IOException e) {
       log.warn("",e);
@@ -198,6 +218,10 @@ public class D4MTripleFileWriter {
     } finally {
       if (valScanner != null)
         valScanner.close();
+      if (rowScanner != null)
+        rowScanner.close();
+      if (colScanner != null)
+        colScanner.close();
     }
     return count;
   }
@@ -233,7 +257,10 @@ public class D4MTripleFileWriter {
     config.degreeUseValue = true;
 
     origStartTime = startTime = System.currentTimeMillis();
-    try (D4MTableWriter tw = new D4MTableWriter(config)) {
+    // can replace with try-with-resources in Java 1.7
+    D4MTableWriter tw = null;
+    try  {
+      tw = new D4MTableWriter(config);
 
       Text outNode = new Text(), inNode = new Text();
       for (Map.Entry<Key, Value> entry : bs) {
@@ -258,6 +285,8 @@ public class D4MTripleFileWriter {
         }
       }
     } finally {
+      if (tw != null)
+        tw.close();
       bs.close();
     }
     return count;
@@ -279,10 +308,11 @@ public class D4MTripleFileWriter {
     long count = 0, startTime, origStartTime;
     Text text = new Text(), valText = null;
     Value val = D4MTableWriter.VALONE;
-
-    Scanner valScanner = null;
-    try (Scanner rowScanner = new Scanner( rowFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(rowFile)) : new FileInputStream(rowFile) );
-         Scanner colScanner = new Scanner( colFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(colFile)) : new FileInputStream(colFile) )) {
+    Scanner valScanner = null, rowScanner = null, colScanner = null;
+    try {
+      // can replace with try-with-resources in Java 1.7
+      rowScanner = new Scanner( rowFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(rowFile)) : new FileInputStream(rowFile) );
+      colScanner = new Scanner( colFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(colFile)) : new FileInputStream(colFile) );
       rowScanner.useDelimiter(delimiter);
       colScanner.useDelimiter(delimiter);
       if (valFile != null) {
@@ -361,15 +391,25 @@ public class D4MTripleFileWriter {
     } catch (IOException e) {
       log.warn("",e);
       throw new RuntimeException(e);
-    } catch (TableExistsException | TableNotFoundException e) {
+    } catch (TableExistsException e) {
       log.error("crazy",e);
       throw new RuntimeException(e);
-    } catch (AccumuloSecurityException | AccumuloException e) {
+    } catch (TableNotFoundException e) {
+      log.error("crazy",e);
+      throw new RuntimeException(e);
+    } catch (AccumuloSecurityException e) {
+      log.warn(" ", e);
+      throw new RuntimeException(e);
+    } catch (AccumuloException e) {
       log.warn(" ", e);
       throw new RuntimeException(e);
     } finally {
       if (valScanner != null)
         valScanner.close();
+      if (rowScanner != null)
+        rowScanner.close();
+      if (colScanner != null)
+        colScanner.close();
     }
     return count;
   }

@@ -67,7 +67,7 @@ public class UtilTest {
     Key k1 = new Key("row1", "colF1", "colQ1");
     Key k2 = new Key("row2", "colF1", "colQ1");
     Key k3 = new Key("row3", "colF1", "colQ1");
-    SortedMap<Key, Integer> map = new TreeMap<>(new ColFamilyQualifierComparator());
+    SortedMap<Key, Integer> map = new TreeMap<Key, Integer>(new ColFamilyQualifierComparator());
     map.put(k1, 1);
     map.put(k2, 2);
     int v = map.get(k3);
@@ -76,14 +76,14 @@ public class UtilTest {
 
   @Test
   public void testSplitMapPrefix() {
-    Map<String, String> map = new HashMap<>();
+    Map<String, String> map = new HashMap<String, String>();
     map.put("A.bla", "123");
     map.put("A.bla2", "345");
     map.put("B.ok", "789");
     map.put("plain", "vanilla");
 
-    Map<String, Map<String, String>> expect = new HashMap<>();
-    Map<String, String> m1 = new HashMap<>();
+    Map<String, Map<String, String>> expect = new HashMap<String, Map<String, String>>();
+    Map<String, String> m1 = new HashMap<String, String>();
     m1.put("bla", "123");
     m1.put("bla2", "345");
     expect.put("A", m1);
@@ -96,14 +96,14 @@ public class UtilTest {
 
   @Test
   public void testPeekingIterator2() {
-    List<Integer> list = new ArrayList<>();
+    List<Integer> list = new ArrayList<Integer>();
     list.add(1);
     list.add(2);
     list.add(3);
     list.add(4);
     Iterator<Integer> iFirst = list.iterator(), iSecond = list.iterator();
     iSecond.next();
-    PeekingIterator2<Integer> pe = new PeekingIterator2<>(list.iterator());
+    PeekingIterator2<Integer> pe = new PeekingIterator2<Integer>(list.iterator());
     while (pe.hasNext()) {
       Assert.assertTrue(iFirst.hasNext());
       Assert.assertEquals(iFirst.next(), pe.peekFirst());
@@ -161,7 +161,7 @@ public class UtilTest {
     }
     {
       rowStr = "a\0:\0b\0c\0";
-      expect = new HashSet<>();
+      expect = new HashSet<Range>();
       expect.add(new Range("a", true, "b", true));
       Key k = new Key("c");
       expect.add(new Range(k, true, k.followingKey(PartialKey.ROW), false));
@@ -170,7 +170,7 @@ public class UtilTest {
     }
     {
       rowStr = "a\0:\0b\0c\0:\0";
-      expect = new HashSet<>();
+      expect = new HashSet<Range>();
       expect.add(new Range("a", true, "b", true));
       expect.add(new Range("c", true, null, false));
       actual = GraphuloUtil.d4mRowToRanges(rowStr);
@@ -178,7 +178,7 @@ public class UtilTest {
     }
     {
       rowStr = "a\0:\0b\0g\0c\0:\0";
-      expect = new HashSet<>();
+      expect = new HashSet<Range>();
       expect.add(new Range("a", true, "b", true));
       // THIS OVERLAPS WITH RANGE [c,+inf)
       Key k = new Key("g");
@@ -258,7 +258,7 @@ public class UtilTest {
     }
     {
       ex = "a,:,b,c,";
-      in = new HashSet<>();
+      in = new HashSet<Range>();
       in.add(new Range("a", true, "b", true));
       Key k = new Key("c");
       in.add(new Range(k, true, k.followingKey(PartialKey.ROW), false));
@@ -268,7 +268,7 @@ public class UtilTest {
     }
     {
       ex = "a,:,b,c,:,";
-      in = new HashSet<>();
+      in = new HashSet<Range>();
       in.add(new Range("a", true, "b", true));
       in.add(new Range("c", true, null, false));
       ac = GraphuloUtil.rangesToD4MString(in, sep);
@@ -277,7 +277,7 @@ public class UtilTest {
     }
     {
       ex = "a,:,b,g,x,:,";
-      in = new HashSet<>();
+      in = new HashSet<Range>();
       in.add(new Range("a", true, "b", true));
       Key k = new Key("g");
       in.add(new Range(k, true, k.followingKey(PartialKey.ROW), false));
@@ -288,7 +288,7 @@ public class UtilTest {
     }
     {
       ex = "a,:,b,c,:,";
-      in = new HashSet<>();
+      in = new HashSet<Range>();
       in.add(new Range("a", true, "b", true));
       Key k = new Key("g");
       in.add(new Range(k, true, k.followingKey(PartialKey.ROW), false));
@@ -307,7 +307,7 @@ public class UtilTest {
     r = new Range("b");
     Assert.assertEquals(r, Iterators.getOnlyElement(rs.iteratorWithRangeMask(r)));
 
-    targetRanges = new TreeSet<>();
+    targetRanges = new TreeSet<Range>();
     targetRanges.add(new Range("b"));
     targetRanges.add(new Range("g"));
     rs.setTargetRanges(targetRanges);
@@ -360,8 +360,8 @@ public class UtilTest {
     Collection<Text> vktexts = GraphuloUtil.d4mRowToTexts(v0);
     String expect = "out|v1,out|v3,out|v0,";
     String actual = Graphulo.prependStartPrefix(startPrefix, vktexts);
-    Set<String> expectSet = new HashSet<>(Arrays.asList(GraphuloUtil.splitD4mString(expect))),
-        actualSet = new HashSet<>(Arrays.asList(GraphuloUtil.splitD4mString(actual)));
+    Set<String> expectSet = new HashSet<String>(Arrays.asList(GraphuloUtil.splitD4mString(expect))),
+        actualSet = new HashSet<String>(Arrays.asList(GraphuloUtil.splitD4mString(actual)));
     Assert.assertEquals(expectSet, actualSet);
 
     expect = "out|,:,out},";
@@ -372,8 +372,8 @@ public class UtilTest {
     vktexts = GraphuloUtil.d4mRowToTexts(v0);
     expect = "out|v1,out|v3,out|v0,in|v1,in|v3,in|v0,";
     actual = Graphulo.prependStartPrefix(startPrefix, vktexts);
-    expectSet = new HashSet<>(Arrays.asList(GraphuloUtil.splitD4mString(expect)));
-    actualSet = new HashSet<>(Arrays.asList(GraphuloUtil.splitD4mString(actual)));
+    expectSet = new HashSet<String>(Arrays.asList(GraphuloUtil.splitD4mString(expect)));
+    actualSet = new HashSet<String>(Arrays.asList(GraphuloUtil.splitD4mString(actual)));
     Assert.assertEquals(expectSet, actualSet);
 
     expect = "out|,:,out},in|,:,in},";
@@ -384,8 +384,8 @@ public class UtilTest {
     vktexts = GraphuloUtil.d4mRowToTexts(v0);
     expect = "out|v1,out|v3,out|v0,in|v1,in|v3,in|v0,v1,v3,v0,";
     actual = Graphulo.prependStartPrefix(startPrefix, vktexts);
-    expectSet = new HashSet<>(Arrays.asList(GraphuloUtil.splitD4mString(expect)));
-    actualSet = new HashSet<>(Arrays.asList(GraphuloUtil.splitD4mString(actual)));
+    expectSet = new HashSet<String>(Arrays.asList(GraphuloUtil.splitD4mString(expect)));
+    actualSet = new HashSet<String>(Arrays.asList(GraphuloUtil.splitD4mString(actual)));
     Assert.assertEquals(expectSet, actualSet);
   }
 
@@ -471,7 +471,7 @@ public class UtilTest {
 
   @Test
   public void testMakeRangesD4mString() {
-    Collection<Text> c = new ArrayList<>();
+    Collection<Text> c = new ArrayList<Text>();
     c.add(new Text("v1|"));
     c.add(new Text("v5|"));
     Assert.assertEquals("v1|,:,v1|" + GraphuloUtil.LAST_ONE_BYTE_CHAR + ",v5|,:,v5|" + GraphuloUtil.LAST_ONE_BYTE_CHAR+",",
@@ -512,7 +512,7 @@ public class UtilTest {
     dis.append(new IteratorSetting(1, MinMaxValueFilter.class, Collections.singletonMap("negate", Boolean.toString(true))));
 
     IteratorSetting setting1 = dis.toIteratorSetting(5);
-    Map<String,String> mapCopy = new HashMap<>(setting1.getOptions());
+    Map<String,String> mapCopy = new HashMap<String, String>(setting1.getOptions());
     Assert.assertEquals(setting1,
         DynamicIteratorSetting.fromMap(mapCopy).toIteratorSetting(5));
 

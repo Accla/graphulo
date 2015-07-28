@@ -60,7 +60,9 @@ public class MatlabGraphulo extends Graphulo {
   public void CancelCompact(String table) {
     try {
       connector.tableOperations().cancelCompaction(table);
-    } catch (AccumuloException | AccumuloSecurityException e) {
+    } catch (AccumuloException e) {
+      log.error("error trying to cancel compaction for " + table, e);
+    } catch (AccumuloSecurityException e) {
       log.error("error trying to cancel compaction for " + table, e);
     } catch (TableNotFoundException e) {
       log.error("", e);
@@ -72,7 +74,9 @@ public class MatlabGraphulo extends Graphulo {
     System.out.println("Compacting " + table + "...");
     try {
       connector.tableOperations().compact(table, null, null, true, true);
-    } catch (AccumuloException | AccumuloSecurityException e) {
+    } catch (AccumuloException e) {
+      log.error("error trying to compact " + table, e);
+    } catch (AccumuloSecurityException e) {
       log.error("error trying to compact " + table, e);
     } catch (TableNotFoundException e) {
       log.error("", e);

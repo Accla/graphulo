@@ -39,8 +39,8 @@ public class SmallLargeRowFilter implements SortedKeyValueIterator<Key, Value>, 
   private SortedKeyValueIterator<Key, Value> source;
 
   // a cache of keys
-  private ArrayList<Key> keys = new ArrayList<>();
-  private ArrayList<Value> values = new ArrayList<>();
+  private ArrayList<Key> keys = new ArrayList<Key>();
+  private ArrayList<Value> values = new ArrayList<Value>();
 
   private int currentPosition;
 
@@ -191,11 +191,11 @@ public class SmallLargeRowFilter implements SortedKeyValueIterator<Key, Value>, 
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
 
     if (inclusive && !columnFamilies.contains(EMPTY)) {
-      columnFamilies = new HashSet<>(columnFamilies);
+      columnFamilies = new HashSet<ByteSequence>(columnFamilies);
       columnFamilies.add(EMPTY);
       dropEmptyColFams = true;
     } else if (!inclusive && columnFamilies.contains(EMPTY)) {
-      columnFamilies = new HashSet<>(columnFamilies);
+      columnFamilies = new HashSet<ByteSequence>(columnFamilies);
       columnFamilies.remove(EMPTY);
       dropEmptyColFams = true;
     } else {

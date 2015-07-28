@@ -46,22 +46,23 @@ public class Histogram2DTransformer implements ApplyOp {
   public void init(Map<String, String> options, IteratorEnvironment iteratorEnvironment) throws IOException {
     for (Map.Entry<String, String> entry : options.entrySet()) {
       String v = entry.getValue();
-      switch (entry.getKey()) {
-        case MIN_X:
-          minX = Long.parseLong(v);
-          break;
-        case MIN_Y:
-          minY = Long.parseLong(v);
-          break;
-        case BINSIZE_X:
-          binsizeX = Double.parseDouble(v);
-          break;
-        case BINSIZE_Y:
-          binsizeY = Double.parseDouble(v);
-          break;
-        default:
-          log.warn("Unrecognized option: " + entry);
-          break;
+      // can replace with switch in Java 1.7
+      String s = entry.getKey();
+      if (s.equals(MIN_X)) {
+        minX = Long.parseLong(v);
+
+      } else if (s.equals(MIN_Y)) {
+        minY = Long.parseLong(v);
+
+      } else if (s.equals(BINSIZE_X)) {
+        binsizeX = Double.parseDouble(v);
+
+      } else if (s.equals(BINSIZE_Y)) {
+        binsizeY = Double.parseDouble(v);
+
+      } else {
+        log.warn("Unrecognized option: " + entry);
+
       }
     }
   }
@@ -77,7 +78,7 @@ public class Histogram2DTransformer implements ApplyOp {
     Text newRowText = new Text(Long.toString(newRow));
     Text newColText = new Text(Long.toString(newCol));
     Key newKey = new Key(newRowText, key.getColumnFamily(), newColText, System.currentTimeMillis());
-    return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(newKey, value));
+    return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<Key, Value>(newKey, value));
   }
 
   @Override

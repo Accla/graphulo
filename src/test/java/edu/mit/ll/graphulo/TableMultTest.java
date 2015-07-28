@@ -55,7 +55,7 @@ public class TableMultTest extends AccumuloTestBase {
       tCT = names[3];
     }
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
       input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
       input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
@@ -63,7 +63,7 @@ public class TableMultTest extends AccumuloTestBase {
       TestUtil.createTestTable(conn, tAT, null, input);
     }
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("B1", "", "C2"), new Value("3".getBytes()));
       input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
@@ -71,7 +71,7 @@ public class TableMultTest extends AccumuloTestBase {
       input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tB, null, input);
     }
-    SortedMap<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    SortedMap<Key, Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
     expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
     expect.put(new Key("A1", "", "B2"), new Value("21".getBytes()));
     expect.put(new Key("A2", "", "B2"), new Value("12".getBytes()));
@@ -86,7 +86,7 @@ public class TableMultTest extends AccumuloTestBase {
 
     Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
     {
-      SortedMap<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+      SortedMap<Key, Value> actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
       for (Map.Entry<Key, Value> entry : scanner) {
         actual.put(entry.getKey(), entry.getValue());
       }
@@ -96,7 +96,7 @@ public class TableMultTest extends AccumuloTestBase {
 
     scanner = conn.createScanner(tCT, Authorizations.EMPTY);
     {
-      SortedMap<Key, Value> actualT = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+      SortedMap<Key, Value> actualT = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
       for (Map.Entry<Key, Value> entry : scanner) {
         actualT.put(entry.getKey(), entry.getValue());
       }
@@ -129,7 +129,7 @@ public class TableMultTest extends AccumuloTestBase {
       tC = names[2];
     }
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
       input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
       input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
@@ -137,20 +137,20 @@ public class TableMultTest extends AccumuloTestBase {
       TestUtil.createTestTable(conn, tAT, null, input);
     }
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("B1", "", "C2"), new Value("3".getBytes()));
       input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
       input = GraphuloUtil.transposeMap(input);
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("C15"));
       TestUtil.createTestTable(conn, tB, splits, input);
     }
 
     TestUtil.createTestTable(conn, tC);
 
-    Map<Key, Value> expect = new HashMap<>();
+    Map<Key, Value> expect = new HashMap<Key, Value>();
     expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
     expect.put(new Key("A1", "", "B2"), new Value("6".getBytes()));
     expect = Collections.unmodifiableMap(expect);
@@ -163,7 +163,7 @@ public class TableMultTest extends AccumuloTestBase {
     Assert.assertEquals(2, numpp);
 
     Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
-    Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+    Map<Key, Value> actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
     for (Map.Entry<Key, Value> entry : scanner) {
       actual.put(entry.getKey(), entry.getValue());
     }
@@ -194,7 +194,7 @@ public class TableMultTest extends AccumuloTestBase {
       tCT = names[3];
     }
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
       input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
       input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
@@ -202,19 +202,19 @@ public class TableMultTest extends AccumuloTestBase {
       TestUtil.createTestTable(conn, tAT, null, input);
     }
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("B1", "", "C2"), new Value("3".getBytes()));
       input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
       input = GraphuloUtil.transposeMap(input);
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("C15"));
       TestUtil.createTestTable(conn, tB, splits, input);
     }
     TestUtil.createTestTable(conn, tC);
 
-    Map<Key, Value> expect = new HashMap<>();
+    Map<Key, Value> expect = new HashMap<Key, Value>();
     expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
@@ -226,7 +226,7 @@ public class TableMultTest extends AccumuloTestBase {
     Assert.assertEquals(1, numpp);
 
     Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
-    Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+    Map<Key, Value> actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
     for (Map.Entry<Key, Value> entry : scanner) {
       actual.put(entry.getKey(), entry.getValue());
     }
@@ -240,7 +240,7 @@ public class TableMultTest extends AccumuloTestBase {
         GraphuloUtil.d4mRowToRanges("C2,:,"),
         "A1,:,A15,", "B1,:,B15,F,", false, false, 1, false);
     scanner = conn.createScanner(tCT, Authorizations.EMPTY);
-    actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+    actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
     for (Map.Entry<Key, Value> entry : scanner) {
       actual.put(entry.getKey(), entry.getValue());
     }
@@ -275,7 +275,7 @@ public class TableMultTest extends AccumuloTestBase {
       tCT = names[3];
     }
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
       input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
       input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
@@ -283,19 +283,19 @@ public class TableMultTest extends AccumuloTestBase {
       TestUtil.createTestTable(conn, tAT, null, input);
     }
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("B1", "", "C2"), new Value("3".getBytes()));
       input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
       input = GraphuloUtil.transposeMap(input);
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("C15"));
       TestUtil.createTestTable(conn, tB, splits, input);
     }
     TestUtil.createTestTable(conn, tC);
 
-    Map<Key, Value> expect = new HashMap<>();
+    Map<Key, Value> expect = new HashMap<Key, Value>();
     expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
     expect.put(new Key("A1", "", "A1"), new Value("4".getBytes()));
 
@@ -306,7 +306,7 @@ public class TableMultTest extends AccumuloTestBase {
         "A1,", "B1,", true, false, 1, false);
 
     Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
-    Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+    Map<Key, Value> actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
     for (Map.Entry<Key, Value> entry : scanner) {
       actual.put(entry.getKey(), entry.getValue());
     }
@@ -321,7 +321,7 @@ public class TableMultTest extends AccumuloTestBase {
         GraphuloUtil.d4mRowToRanges("C2,:,"),
         "A1,:,A15,", "B1,:,B15,F,", true, false, 1, false);
     scanner = conn.createScanner(tCT, Authorizations.EMPTY);
-    actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+    actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
     for (Map.Entry<Key, Value> entry : scanner) {
       actual.put(entry.getKey(), entry.getValue());
     }

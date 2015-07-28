@@ -30,7 +30,7 @@ public class CartesianIterator implements Iterator<Map.Entry<Key, Value>> {
                            MultiplyOp multiplyOp, boolean switched) {
     BrowMap = mapBreset;
     this.switched = switched;
-    this.itAonce = new PeekingIterator1<>(itAonce);
+    this.itAonce = new PeekingIterator1<Map.Entry<Key, Value>>(itAonce);
     this.itBreset = BrowMap.entrySet().iterator();
     this.multiplyOp = multiplyOp;
     if (itBreset.hasNext())

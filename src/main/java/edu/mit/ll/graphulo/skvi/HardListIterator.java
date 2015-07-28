@@ -15,7 +15,7 @@ public class HardListIterator extends MapIterator {
   public final static SortedMap<Key, Value> allEntriesToInject;
 
   static {
-    SortedMap<Key, Value> t = new TreeMap<>();
+    SortedMap<Key, Value> t = new TreeMap<Key, Value>();
     t.put(new Key(new Text("a1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
         new Value("1".getBytes()));
     t.put(new Key(new Text("c1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),

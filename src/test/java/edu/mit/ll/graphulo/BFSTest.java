@@ -56,13 +56,13 @@ public class BFSTest extends AccumuloTestBase {
       tR = names[2];
       tRT = names[3];
     }
-    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-      actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-      expectTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-      actualTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key,Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+      actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+      expectTranspose = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+      actualTranspose = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
 
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
       input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
       input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
@@ -74,17 +74,17 @@ public class BFSTest extends AccumuloTestBase {
       input.put(new Key("vBig", "", "v0"), new Value("9".getBytes()));
       input.put(new Key("vBig", "", "v1"), new Value("9".getBytes()));
       input.put(new Key("vBig", "", "v2"), new Value("9".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
     }
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("v0", "", "2"), new Value("1".getBytes()));
       input.put(new Key("v1", "", "2"), new Value("1".getBytes()));
       input.put(new Key("v2", "", "2"), new Value("1".getBytes()));
       input.put(new Key("vBig", "", "3"), new Value("1".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tADeg, splits, input);
     }
@@ -135,11 +135,11 @@ public class BFSTest extends AccumuloTestBase {
       tA = names[0];
       tADeg = names[1];
     }
-    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key,Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
 
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
       input.put(new Key("v0", "", "vBig"), new Value("7".getBytes()));
       expect.putAll(input);
@@ -150,17 +150,17 @@ public class BFSTest extends AccumuloTestBase {
       input.put(new Key("vBig", "", "v0"), new Value("9".getBytes()));
       input.put(new Key("vBig", "", "v1"), new Value("9".getBytes()));
       input.put(new Key("vBig", "", "v2"), new Value("9".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
     }
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("v0", "", "2"), new Value("1".getBytes()));
       input.put(new Key("v1", "", "2"), new Value("1".getBytes()));
       input.put(new Key("v2", "", "2"), new Value("1".getBytes()));
       input.put(new Key("vBig", "", "3"), new Value("1".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tADeg, splits, input);
     }
@@ -196,13 +196,13 @@ public class BFSTest extends AccumuloTestBase {
       tR = names[2];
       tRT = names[3];
     }
-    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        expectTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actualTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key,Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        expectTranspose = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actualTranspose = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
 
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
       input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
       input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
@@ -214,17 +214,17 @@ public class BFSTest extends AccumuloTestBase {
       input.put(new Key("vBig", "", "v0"), new Value("9".getBytes()));
       input.put(new Key("vBig", "", "v1"), new Value("9".getBytes()));
       input.put(new Key("vBig", "", "v2"), new Value("9".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
     }
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("v2", "", "deg"), new Value("2".getBytes()));
       input.put(new Key("v0", "", "deg"), new Value("2".getBytes()));
       input.put(new Key("v1", "", "deg"), new Value("2".getBytes()));
       input.put(new Key("vBig", "", "deg"), new Value("3".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tADeg, splits, input);
     }
@@ -260,12 +260,12 @@ public class BFSTest extends AccumuloTestBase {
     conn.tableOperations().delete(tR);
     conn.tableOperations().delete(tRT);
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("v0", "", "d|2"), new Value("1".getBytes()));
       input.put(new Key("v1", "", "d|2"), new Value("1".getBytes()));
       input.put(new Key("v2", "", "d|2"), new Value("1".getBytes()));
       input.put(new Key("vBig", "", "d|3"), new Value("1".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tADeg, splits, input);
     }
@@ -340,13 +340,13 @@ public class BFSTest extends AccumuloTestBase {
       tR = names[2];
       tRT = names[3];
     }
-    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-            actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-            expectTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-            actualTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key,Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+            actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+            expectTranspose = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+            actualTranspose = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
 
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
       input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
       input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
@@ -358,7 +358,7 @@ public class BFSTest extends AccumuloTestBase {
       input.put(new Key("vBig", "", "v0"), new Value("9".getBytes()));
       input.put(new Key("vBig", "", "v1"), new Value("9".getBytes()));
       input.put(new Key("vBig", "", "v2"), new Value("9".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
     }
@@ -437,13 +437,13 @@ public class BFSTest extends AccumuloTestBase {
       tR = names[2];
       tRT = names[3];
     }
-    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        expectTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actualTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key,Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        expectTranspose = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actualTranspose = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
 
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
       input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
       input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
@@ -455,7 +455,7 @@ public class BFSTest extends AccumuloTestBase {
       input.put(new Key("vBig", "", "v0"), new Value("9".getBytes()));
       input.put(new Key("vBig", "", "v1"), new Value("9".getBytes()));
       input.put(new Key("vBig", "", "v2"), new Value("9".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
     }
@@ -506,13 +506,13 @@ public class BFSTest extends AccumuloTestBase {
       tR = names[2];
       tRT = names[3];
     }
-    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        expectTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actualTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key,Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        expectTranspose = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actualTranspose = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
 
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
       input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
       input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
@@ -524,7 +524,7 @@ public class BFSTest extends AccumuloTestBase {
       input.put(new Key("vBig", "", "v2"), new Value("9".getBytes()));
       expect.putAll(input);
       expectTranspose.putAll(GraphuloUtil.transposeMap(input));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
     }
@@ -578,13 +578,13 @@ public class BFSTest extends AccumuloTestBase {
       tR = names[2];
       tRT = names[3];
     }
-    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        expectTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actualTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key,Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        expectTranspose = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actualTranspose = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
 
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("e0", "", "out|v0"), new Value("5".getBytes()));
       input.put(new Key("e0", "", "in|v1"), new Value("5".getBytes()));
       input.put(new Key("e1", "", "out|v1"), new Value("2".getBytes()));
@@ -605,17 +605,17 @@ public class BFSTest extends AccumuloTestBase {
       input.put(new Key("e7", "", "in|v1"), new Value("9".getBytes()));
       input.put(new Key("e8", "", "out|vBig"), new Value("9".getBytes()));
       input.put(new Key("e8", "", "in|v2"), new Value("9".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("e33"));
       TestUtil.createTestTable(conn, tE, splits, input);
     }
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("v0", "", "2"), new Value("1".getBytes()));
       input.put(new Key("v1", "", "2"), new Value("1".getBytes()));
       input.put(new Key("v2", "", "2"), new Value("1".getBytes()));
       input.put(new Key("vBig", "", "3"), new Value("1".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tETDeg, splits, input);
     }
@@ -721,13 +721,13 @@ public class BFSTest extends AccumuloTestBase {
       tR = names[2];
       tRT = names[3];
     }
-    Map<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        expectTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actualTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key, Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        expectTranspose = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actualTranspose = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
 
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("e0", "", "outA|v0"), new Value("5".getBytes()));
       input.put(new Key("e0", "", "in|v1"), new Value("5".getBytes()));
       input.put(new Key("e1", "", "out|v1"), new Value("2".getBytes()));
@@ -748,17 +748,17 @@ public class BFSTest extends AccumuloTestBase {
       input.put(new Key("e7", "", "in|v1"), new Value("9".getBytes()));
       input.put(new Key("e8", "", "out|vBig"), new Value("9".getBytes()));
       input.put(new Key("e8", "", "in|v2"), new Value("9".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("e33"));
       TestUtil.createTestTable(conn, tE, splits, input);
     }
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("v0", "", "2"), new Value("1".getBytes()));
       input.put(new Key("v1", "", "2"), new Value("1".getBytes()));
       input.put(new Key("v2", "", "2"), new Value("1".getBytes()));
       input.put(new Key("vBig", "", "3"), new Value("1".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tETDeg, splits, input);
     }
@@ -813,12 +813,12 @@ public class BFSTest extends AccumuloTestBase {
       tS = names[0];
       tR = names[1];
     }
-    Map<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        degex = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        degin = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key, Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        degex = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        degin = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("v0|v1", "", "edge"), new Value("5".getBytes()));
       input.put(new Key("v1|v0", "", "edge"), new Value("5".getBytes()));
       input.put(new Key("v1|v2", "", "edge"), new Value("2".getBytes()));
@@ -837,7 +837,7 @@ public class BFSTest extends AccumuloTestBase {
       input.put(new Key("v9", "", "deg"), new Value("1".getBytes()));
       input.put(new Key("vBig", "", "deg"), new Value("4".getBytes()));
 
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tS, splits, input);
 
@@ -1016,19 +1016,19 @@ public class BFSTest extends AccumuloTestBase {
       tEDegWeightEdge = names[6];
     }
     Map<Key,Value>
-//        expectOut = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-//        actualOut = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-//        expectIn = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-//        actualIn = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-//        expectOutIn = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-//        actualOutIn = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        expectEdgeDeg = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actualEdgeDeg = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        expectEdgeDegWeight = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actualEdgeDegWeight = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+//        expectOut = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+//        actualOut = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+//        expectIn = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+//        actualIn = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+//        expectOutIn = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+//        actualOutIn = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        expectEdgeDeg = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actualEdgeDeg = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        expectEdgeDegWeight = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actualEdgeDegWeight = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
 
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("e0", "", "out|v0"), new Value("5".getBytes()));
       input.put(new Key("e0", "", "in|v1"), new Value("5".getBytes()));
       input.put(new Key("e1", "", "out|v1"), new Value("2".getBytes()));
@@ -1047,7 +1047,7 @@ public class BFSTest extends AccumuloTestBase {
       input.put(new Key("e7", "", "in|v1"), new Value("9".getBytes()));
       input.put(new Key("e8", "", "out|vBig"), new Value("9".getBytes()));
       input.put(new Key("e8", "", "in|v2"), new Value("9".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("e33"));
       TestUtil.createTestTable(conn, tE, splits, input);
 //      splits.clear();

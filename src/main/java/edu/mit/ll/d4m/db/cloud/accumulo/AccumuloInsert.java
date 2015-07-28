@@ -47,12 +47,15 @@ public class AccumuloInsert extends D4mInsertBase {
 		//    make connection
 		try {
 			makeAndAddMutations();
-		} catch (MutationsRejectedException | TableNotFoundException e) {
+		} catch (MutationsRejectedException e) {
+			log.error(e);
+            throw(e);
+		} catch (TableNotFoundException e) {
 			log.error(e);
             throw(e);
 		}
 
-  }
+	}
 
 	private void makeAndAddMutations() throws TableNotFoundException, MutationsRejectedException {
 		//		AccumuloConnection connection = new AccumuloConnection(super.connProps);

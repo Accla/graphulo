@@ -10,13 +10,13 @@ import java.util.Iterator;
  */
 public class PeekingIterator2<E> implements Iterator<E> {
 //  private final Iterator<E> source;
-  private PeekingIterator1<E> pSecond, pFirst;
+  private PeekingIterator1<? extends E> pSecond, pFirst;
 //  private E top;
 
-  public PeekingIterator2(Iterator<E> source) {
+  public PeekingIterator2(Iterator<? extends E> source) {
 //    this.source = source;
-    pSecond = new PeekingIterator1<>(source);
-    pFirst = new PeekingIterator1<>(pSecond);
+    pSecond = new PeekingIterator1<E>(source);
+    pFirst = new PeekingIterator1<E>(pSecond);
   }
 
   @Override
@@ -44,7 +44,7 @@ public class PeekingIterator2<E> implements Iterator<E> {
 
 
   private static final PeekingIterator2<?> EMPTY_ITERATOR
-      = new PeekingIterator2<>(Collections.emptyIterator());
+      = new PeekingIterator2<Object>(Collections.emptyIterator());
 
   @SuppressWarnings("unchecked")
   public static <T> PeekingIterator2<T> emptyIterator() {

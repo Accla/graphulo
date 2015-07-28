@@ -79,7 +79,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     @Override
     public byte[] getForClient() { return null; }
   }
-  private Map<String,String> reducerOptions = new HashMap<>();
+  private Map<String,String> reducerOptions = new HashMap<String, String>();
 
   /**
    * Created in init().
@@ -140,7 +140,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   static final IteratorOptions iteratorOptions;
 
   static {
-    Map<String, String> optDesc = new LinkedHashMap<>();
+    Map<String, String> optDesc = new LinkedHashMap<String, String>();
     optDesc.put("zookeeperHost", "address and port");
     optDesc.put("timeout", "Zookeeper timeout between 1000 and 300000 (default 1000)");
     optDesc.put("instanceName", "");
@@ -180,51 +180,47 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
         String keyAfterPrefix = optionKey.substring("reducer.opt.".length());
         reducerOptions.put(keyAfterPrefix, optionValue);
       } else {
-        switch (optionKey) {
-          case "zookeeperHost":
-            zookeeperHost = optionValue;
-            break;
-          case "timeout":
-            timeout = Integer.parseInt(optionValue);
-            break;
-          case "instanceName":
-            instanceName = optionValue;
-            break;
-          case "tableName":
-            tableName = optionValue;
-            if (tableName.isEmpty())
-              tableName = null;
-            break;
-          case "tableNameTranspose":
-            tableNameTranspose = optionValue;
-            if (tableNameTranspose.isEmpty())
-              tableNameTranspose = null;
-            break;
-          case "username":
-            username = optionValue;
-            break;
-          case "password":
-            auth = new PasswordToken(optionValue);
-            break;
+        // can replace with switch in Java 1.7
+        if (optionKey.equals("zookeeperHost")) {
+          zookeeperHost = optionValue;
 
-          case "reducer":
-            reducer = GraphuloUtil.subclassNewInstance(optionValue, Reducer.class);
-            break;
+        } else if (optionKey.equals("timeout")) {
+          timeout = Integer.parseInt(optionValue);
 
-          case "numEntriesCheckpoint":
-            numEntriesCheckpoint = Integer.parseInt(optionValue);
-            break;
+        } else if (optionKey.equals("instanceName")) {
+          instanceName = optionValue;
 
-          case "rowRanges":
-            rowRanges.setTargetRanges(parseRanges(optionValue));
-            break;
+        } else if (optionKey.equals("tableName")) {
+          tableName = optionValue;
+          if (tableName.isEmpty())
+            tableName = null;
 
-          case "trace":
-            Watch.enableTrace = Boolean.parseBoolean(optionValue);
-            break;
-          default:
-            log.warn("Unrecognized option: " + optionEntry);
-            continue;
+        } else if (optionKey.equals("tableNameTranspose")) {
+          tableNameTranspose = optionValue;
+          if (tableNameTranspose.isEmpty())
+            tableNameTranspose = null;
+
+        } else if (optionKey.equals("username")) {
+          username = optionValue;
+
+        } else if (optionKey.equals("password")) {
+          auth = new PasswordToken(optionValue);
+
+        } else if (optionKey.equals("reducer")) {
+          reducer = GraphuloUtil.subclassNewInstance(optionValue, Reducer.class);
+
+        } else if (optionKey.equals("numEntriesCheckpoint")) {
+          numEntriesCheckpoint = Integer.parseInt(optionValue);
+
+        } else if (optionKey.equals("rowRanges")) {
+          rowRanges.setTargetRanges(parseRanges(optionValue));
+
+        } else if (optionKey.equals("trace")) {
+          Watch.enableTrace = Boolean.parseBoolean(optionValue);
+
+        } else {
+          log.warn("Unrecognized option: " + optionEntry);
+          continue;
         }
         log.trace("Option OK: " + optionEntry);
       }
@@ -249,7 +245,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
    */
   static SortedSet<Range> parseRanges(String s) {
     SortedSet<Range> rngs = GraphuloUtil.d4mRowToRanges(s);
-    return new TreeSet<>(Range.mergeOverlapping(rngs));
+    return new TreeSet<Range>(Range.mergeOverlapping(rngs));
   }
 
   @Override
@@ -290,7 +286,10 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     Connector connector;
     try {
       connector = instance.getConnector(username, auth);
-    } catch (AccumuloException | AccumuloSecurityException e) {
+    } catch (AccumuloException e) {
+      log.error("failed to connect to Accumulo instance " + instanceName, e);
+      throw new RuntimeException(e);
+    } catch (AccumuloSecurityException e) {
       log.error("failed to connect to Accumulo instance " + instanceName, e);
       throw new RuntimeException(e);
     }
@@ -311,7 +310,10 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     } catch (TableNotFoundException e) {
       log.error(tableName + " or " + tableNameTranspose + " does not exist in instance " + instanceName, e);
       throw new RuntimeException(e);
-    } catch (AccumuloSecurityException | AccumuloException e) {
+    } catch (AccumuloSecurityException e) {
+      log.error("problem creating BatchWriters for " + tableName + " and " + tableNameTranspose);
+      throw new RuntimeException(e);
+    } catch (AccumuloException e) {
       log.error("problem creating BatchWriters for " + tableName + " and " + tableNameTranspose);
       throw new RuntimeException(e);
     }
@@ -440,7 +442,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
       if (numRejects >= REJECT_FAILURE_THRESHOLD) { // declare global failure after 10 rejects
         // last entry emitted declares failure
-        rowRangeIterator = new PeekingIterator1<>(Iterators.<Range>emptyIterator());
+        rowRangeIterator = new PeekingIterator1<Range>(Iterators.<Range>emptyIterator());
         reducer = new NOOP_REDUCER();
         return true;
       }
@@ -537,10 +539,12 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     copy.reducerOptions.putAll(reducerOptions);
       try {
         copy.reducer = reducer.getClass().newInstance();
-      } catch (InstantiationException | IllegalAccessException e) {
+      } catch (InstantiationException e) {
+        throw new RuntimeException(e);
+      } catch (IllegalAccessException e) {
         throw new RuntimeException(e);
       }
-      try {
+    try {
         copy.reducer.init(reducerOptions, iteratorEnvironment);
       } catch (IOException e) {
         throw new RuntimeException(e);

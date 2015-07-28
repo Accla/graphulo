@@ -59,7 +59,7 @@ public class TableMultIteratorTest extends AccumuloTestBase {
 
     final String tableNameA = names[0];
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("C1", "", "A1"), new Value("2".getBytes()));
       input.put(new Key("C2", "", "A1"), new Value("2".getBytes()));
       input.put(new Key("C1", "", "A2"), new Value("2".getBytes()));
@@ -68,7 +68,7 @@ public class TableMultIteratorTest extends AccumuloTestBase {
 
     final String tableNameBT = names[1];
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("C2", "", "B1"), new Value("3".getBytes()));
       input.put(new Key("C3", "", "B1"), new Value("3".getBytes()));
       input.put(new Key("C1", "", "B2"), new Value("3".getBytes()));
@@ -80,7 +80,7 @@ public class TableMultIteratorTest extends AccumuloTestBase {
     TestUtil.createTestTable(conn, tableNameC, null);
 
     Scanner scanner = conn.createScanner(tableNameC, Authorizations.EMPTY);
-    Map<String, String> itprops = new HashMap<>();
+    Map<String, String> itprops = new HashMap<String, String>();
     itprops.put("AT.instanceName", conn.getInstance().getInstanceName());
     itprops.put("AT.tableName", tableNameA);
     itprops.put("AT.zookeeperHost", conn.getInstance().getZooKeepers());
@@ -102,12 +102,12 @@ public class TableMultIteratorTest extends AccumuloTestBase {
 //        listset.add(new IteratorSetting(26, DebugInfoIterator.class, Collections.<String, String>emptyMap()));
 //        conn.tableOperations().compact(tableNameC, null, null, listset, true, true); // block
 
-    Map<Key, Value> expect = new HashMap<>();
+    Map<Key, Value> expect = new HashMap<Key, Value>();
     expect.put(new Key("A1", "", "B2"), new Value("6".getBytes()));
     expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
     expect.put(new Key("A1", "", "B2"), new Value("6".getBytes()));
     expect.put(new Key("A2", "", "B2"), new Value("6".getBytes()));
-    Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+    Map<Key, Value> actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
 
     log.debug("Results of scan on table " + tableNameC + " with A=" + tableNameA + " and BT=" + tableNameBT + ':');
     for (Map.Entry<Key, Value> entry : scanner) {
@@ -122,7 +122,7 @@ public class TableMultIteratorTest extends AccumuloTestBase {
 //    conn.tableOperations().delete(tableNameC);
 //    TestUtil.createTestTable(conn, tableNameC, null);
     scanner = conn.createScanner(tableNameC, Authorizations.EMPTY);
-    expect = new HashMap<>();
+    expect = new HashMap<Key, Value>();
     expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
     actual.clear();
 
@@ -164,20 +164,20 @@ public class TableMultIteratorTest extends AccumuloTestBase {
 
     final String tableNameAT = tablePrefix + "AT";
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("A1", "", "C1"), new Value("2".getBytes()));
       input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
       input.put(new Key("A2", "", "C1"), new Value("2".getBytes()));
       input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tableNameAT, null, input);
     }
-    SortedSet<Text> splitSet = new TreeSet<>();
+    SortedSet<Text> splitSet = new TreeSet<Text>();
     splitSet.add(new Text("A15"));
     //conn.tableOperations().addSplits(tableNameAT, splitSet);
 
     final String tableNameB = tablePrefix + "B";
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("B1", "", "C2"), new Value("3".getBytes()));
       input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
       input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
@@ -188,10 +188,10 @@ public class TableMultIteratorTest extends AccumuloTestBase {
 
     final String tableNameC = tablePrefix + "C";
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("A1", "", "B1"), new Value("1".getBytes()));
       TestUtil.createTestTable(conn, tableNameC, splitSet, input);
-      Map<String, String> optSum = new HashMap<>();
+      Map<String, String> optSum = new HashMap<String, String>();
       optSum.put("all", "true");
       conn.tableOperations().attachIterator(tableNameC,
           new IteratorSetting(1, BigDecimalCombiner.BigDecimalSummingCombiner.class, optSum));
@@ -203,7 +203,7 @@ public class TableMultIteratorTest extends AccumuloTestBase {
     // test reading entries directly
 
     {
-      Map<String, String> itprops = new HashMap<>();
+      Map<String, String> itprops = new HashMap<String, String>();
       itprops.put("AT.instanceName", conn.getInstance().getInstanceName());
       itprops.put("AT.tableName", tableNameAT);
       itprops.put("AT.zookeeperHost", conn.getInstance().getZooKeepers());
@@ -218,13 +218,13 @@ public class TableMultIteratorTest extends AccumuloTestBase {
       IteratorSetting itset = new IteratorSetting(15, TableMultIterator.class, itprops);
       scannerB.addScanIterator(itset);
 
-      Map<Key, Integer> expect = new HashMap<>();
+      Map<Key, Integer> expect = new HashMap<Key, Integer>();
       expect.put(new Key("A1", "", "B1"), 6);
       expect.put(new Key("A1", "", "B2"), 12);
       expect.put(new Key("A2", "", "B2"), 6);
       //scannerB.addScanIterator(new IteratorSetting(16, DebugInfoIterator.class, Collections.<String,String>emptyMap()));
       {
-        Map<Key, Integer> actual = new HashMap<>();
+        Map<Key, Integer> actual = new HashMap<Key, Integer>();
         log.info("Scanning tableB " + tableNameB + ":");
         for (Map.Entry<Key, Value> entry : scannerB) {
           log.info(entry);
@@ -242,7 +242,7 @@ public class TableMultIteratorTest extends AccumuloTestBase {
 
     // Test use of a filter on B.
     {
-      Map<String, String> itprops = new HashMap<>();
+      Map<String, String> itprops = new HashMap<String, String>();
       itprops.put("AT.instanceName", conn.getInstance().getInstanceName());
       itprops.put("AT.tableName", tableNameAT);
       itprops.put("AT.zookeeperHost", conn.getInstance().getZooKeepers());
@@ -265,14 +265,14 @@ public class TableMultIteratorTest extends AccumuloTestBase {
       IteratorSetting itset = new IteratorSetting(15, TableMultIterator.class, itprops);
       scannerB.addScanIterator(itset);
 
-      Map<Key, Integer> expect = new HashMap<>();
+      Map<Key, Integer> expect = new HashMap<Key, Integer>();
       expect.put(new Key("A1", "", "B1"), 6);
 //      expect.put(new Key("A1", "", "B2"), 12);
 //      expect.put(new Key("A2", "", "B2"), 6);
       //scannerB.addScanIterator(new IteratorSetting(16, DebugInfoIterator.class, Collections.<String,String>emptyMap()));
 
       {
-        Map<Key, Integer> actual = new HashMap<>();
+        Map<Key, Integer> actual = new HashMap<Key, Integer>();
         log.info("Scanning tableB " + tableNameB + ":");
         for (Map.Entry<Key, Value> entry : scannerB) {
           log.info(entry);
@@ -291,7 +291,7 @@ public class TableMultIteratorTest extends AccumuloTestBase {
 
     // test writing to C with monitoring
     {
-      Map<String, String> itprops = new HashMap<>();
+      Map<String, String> itprops = new HashMap<String, String>();
       itprops.put("AT.instanceName", conn.getInstance().getInstanceName());
       itprops.put("AT.tableName", tableNameAT);
       itprops.put("AT.zookeeperHost", conn.getInstance().getZooKeepers());
@@ -311,7 +311,7 @@ public class TableMultIteratorTest extends AccumuloTestBase {
       }
       scannerB.close();
 
-      Map<Key, Value> expect = new HashMap<>();
+      Map<Key, Value> expect = new HashMap<Key, Value>();
       expect.put(new Key("A1", "", "B1"), new Value("7".getBytes()));
       expect.put(new Key("A1", "", "B2"), new Value("12".getBytes()));
       expect.put(new Key("A2", "", "B2"), new Value("6".getBytes()));
@@ -319,7 +319,7 @@ public class TableMultIteratorTest extends AccumuloTestBase {
       Scanner scannerC = conn.createScanner(tableNameC, Authorizations.EMPTY);
       //scannerC.addScanIterator(new IteratorSetting(16, DebugInfoIterator.class, Collections.<String,String>emptyMap()));
       {
-        Map<Key, Value> actual = new HashMap<>();
+        Map<Key, Value> actual = new HashMap<Key, Value>();
         log.info("Scanning tableC " + tableNameC + ":");
         for (Map.Entry<Key, Value> entry : scannerC) {
           log.info(entry);

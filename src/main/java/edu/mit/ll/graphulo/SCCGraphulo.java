@@ -74,7 +74,7 @@ public class SCCGraphulo extends Graphulo {
     String tRf = Rtable;
 
     // FOR TESTING PORPOISES
-    Map<Key,Value> printer = new HashMap<>();
+    Map<Key,Value> printer = new HashMap<Key, Value>();
 
     AdjBFS(tA, null, 1, tR, tAT, null, -1, null, "", true, 0, Integer.MAX_VALUE, null, trace);
     for (int k = 1; k < rowCount; k++) {
@@ -174,7 +174,7 @@ public class SCCGraphulo extends Graphulo {
   public Set<String> SCCQuery(String tA, String vertex) throws TableNotFoundException {
     if (vertex == null) {
       StringBuilder midstr = new StringBuilder();
-      Set<String> vertset = new HashSet<>();
+      Set<String> vertset = new HashSet<String>();
       Scanner scanner = connector.createScanner(tA, Authorizations.EMPTY);
       Text tmp = new Text();
       for (Map.Entry<Key,Value> entry : scanner) {
@@ -190,7 +190,7 @@ public class SCCGraphulo extends Graphulo {
       return vertset;
     }
 
-    Set<String> vertset = new HashSet<>();
+    Set<String> vertset = new HashSet<String>();
     String bfs = AdjBFS(tA, vertex, 1, null, null, null, -1, null, "", true, 0, Integer.MAX_VALUE, Graphulo.PLUS_ITERATOR_BIGDECIMAL, false);
     if (!bfs.isEmpty())
       vertset.add(bfs);

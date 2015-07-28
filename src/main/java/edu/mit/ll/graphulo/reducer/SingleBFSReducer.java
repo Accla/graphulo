@@ -26,7 +26,7 @@ public class SingleBFSReducer extends ReducerSerializable<HashSet<String>> {
 //  private boolean copyDeg = true;
 //  private String degCol = "";
 
-  private HashSet<String> setNodesReached = new HashSet<>();
+  private HashSet<String> setNodesReached = new HashSet<String>();
 //  private HashMap<String,Integer> setNodesReachedCount = new HashMap<>();
 
   private void parseOptions(Map<String, String> options) {
@@ -34,21 +34,21 @@ public class SingleBFSReducer extends ReducerSerializable<HashSet<String>> {
     for (Map.Entry<String, String> optionEntry : options.entrySet()) {
       String optionKey = optionEntry.getKey();
       String optionValue = optionEntry.getValue();
-      switch (optionKey) {
-        case EDGE_SEP:
-          if (optionValue.length() != 1)
-            throw new IllegalArgumentException("bad "+ EDGE_SEP +": "+optionValue);
-          edgeSep = optionValue.charAt(0);
-          gotFieldSep = true;
-          break;
+      // can replace with switch in Java 1.7
+      if (optionKey.equals(EDGE_SEP)) {
+        if (optionValue.length() != 1)
+          throw new IllegalArgumentException("bad " + EDGE_SEP + ": " + optionValue);
+        edgeSep = optionValue.charAt(0);
+        gotFieldSep = true;
+
 //        case NEG_ONE_IN_DEG:
 //          copyDeg = Boolean.parseBoolean(optionValue);
 //          break;
 //        case DEGCOL:
 //          degCol = optionValue;
 //          break;
-        default:
-          log.warn("Unrecognized option: " + optionEntry);
+      } else {
+        log.warn("Unrecognized option: " + optionEntry);
       }
     }
     if (!gotFieldSep)

@@ -40,7 +40,10 @@ public class MiniAccumuloTester extends ExternalResource implements IAccumuloTes
     Connector c = null;
     try {
       c = instance.getConnector(USER, new PasswordToken(PASSWORD));
-    } catch (AccumuloException | AccumuloSecurityException e) {
+    } catch (AccumuloException e) {
+      log.error("failed to connect to MiniAccumulo instance", e);
+      throw new RuntimeException(e);
+    } catch (AccumuloSecurityException e) {
       log.error("failed to connect to MiniAccumulo instance", e);
       throw new RuntimeException(e);
     }
@@ -96,7 +99,10 @@ public class MiniAccumuloTester extends ExternalResource implements IAccumuloTes
       instance = null;
       try {
         miniaccumulo.stop();
-      } catch (IOException | InterruptedException e) {
+      } catch (IOException e) {
+        System.err.print("Error stopping MiniAccumuloCluster: ");
+        e.printStackTrace();
+      } catch (InterruptedException e) {
         System.err.print("Error stopping MiniAccumuloCluster: ");
         e.printStackTrace();
       }
@@ -112,7 +118,10 @@ public class MiniAccumuloTester extends ExternalResource implements IAccumuloTes
     if (miniaccumulo != null) {
       try {
         miniaccumulo.stop();
-      } catch (IOException | InterruptedException e) {
+      } catch (IOException e) {
+        System.err.print("Error stopping MiniAccumuloCluster in finalize: ");
+        e.printStackTrace();
+      } catch (InterruptedException e) {
         System.err.print("Error stopping MiniAccumuloCluster in finalize: ");
         e.printStackTrace();
       }

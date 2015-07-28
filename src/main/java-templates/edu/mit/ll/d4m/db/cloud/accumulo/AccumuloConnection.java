@@ -84,8 +84,10 @@ public class AccumuloConnection {
 	public void createTable(String tableName) {
 		try {
 			connector.tableOperations().create(tableName);
-		} catch (AccumuloException | AccumuloSecurityException e) {		
-			log.warn("",e);
+		} catch (AccumuloException e) {
+      log.warn("", e);
+    } catch (AccumuloSecurityException e) {
+      log.warn("", e);
 		} catch (TableExistsException e) {
 			log.warn("Table "+ tableName+"  exist.",e);
 		}
@@ -112,11 +114,15 @@ public class AccumuloConnection {
 		return connector.createBatchScanner(tableName, this.auth, numberOfThreads);
 	}
 
-	public void deleteTable (String tableName)  {
+	public void deleteTable (String tableName) {
 		try {
 			connector.tableOperations().delete(tableName);
-		} catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
-			log.warn("",e);
+		} catch (AccumuloException e) {
+			log.warn("", e);
+		} catch (AccumuloSecurityException e) {
+			log.warn("", e);
+		} catch (TableNotFoundException e) {
+			log.warn("", e);
 		}
 	}
 
@@ -128,9 +134,13 @@ public class AccumuloConnection {
 	public void addSplit(String tableName, SortedSet<Text> partitions) {
 		try {
 			connector.tableOperations().addSplits(tableName, partitions);
-		} catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
-			log.warn("",e);
-		}
+    } catch (AccumuloException e) {
+      log.warn("", e);
+    } catch (AccumuloSecurityException e) {
+      log.warn("", e);
+    } catch (TableNotFoundException e) {
+      log.warn("", e);
+    }
 	}
 	public Instance getInstance() {	
 		return connector.getInstance();
@@ -164,10 +174,16 @@ public class AccumuloConnection {
 		TableOperations tops = this.connector.tableOperations();
 		try {
 			tops.attachIterator(tableName, iterSet); // adds on all scopes: majc, minc, scan 
-		} catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
-			log.warn("",e);
-			throw new D4mException(e);
-		}
+    } catch (AccumuloException e) {
+      log.warn("", e);
+      throw new D4mException(e);
+    } catch (AccumuloSecurityException e) {
+      log.warn("", e);
+      throw new D4mException(e);
+    } catch (TableNotFoundException e) {
+      log.warn("", e);
+      throw new D4mException(e);
+    }
 	}
 
 	public Map<String,EnumSet<IteratorUtil.IteratorScope>> listIterators(String tableName) throws D4mException
@@ -175,10 +191,16 @@ public class AccumuloConnection {
 		TableOperations tops = this.connector.tableOperations();
 		try {
 			return tops.listIterators(tableName);
-		} catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
-			log.warn("",e);
-			throw new D4mException(e);
-		}
+    } catch (AccumuloException e) {
+      log.warn("", e);
+      throw new D4mException(e);
+    } catch (AccumuloSecurityException e) {
+      log.warn("", e);
+      throw new D4mException(e);
+    } catch (TableNotFoundException e) {
+      log.warn("", e);
+      throw new D4mException(e);
+    }
 	}
 
 	public IteratorSetting getIteratorSetting(String tableName, String name, IteratorUtil.IteratorScope scope) throws D4mException
@@ -186,11 +208,16 @@ public class AccumuloConnection {
 		TableOperations tops = this.connector.tableOperations();
 		try {
 			return tops.getIteratorSetting(tableName, name, scope);
-		} catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
-			log.warn("",e);
-			//e.printStackTrace();
-			throw new D4mException(e);
-		}
+    } catch (AccumuloException e) {
+      log.warn("", e);
+      throw new D4mException(e);
+    } catch (AccumuloSecurityException e) {
+      log.warn("", e);
+      throw new D4mException(e);
+    } catch (TableNotFoundException e) {
+      log.warn("", e);
+      throw new D4mException(e);
+    }
 	}
 
 	public void removeIterator(String tableName, String name, EnumSet<IteratorUtil.IteratorScope> scopes) throws D4mException
@@ -198,10 +225,16 @@ public class AccumuloConnection {
 		TableOperations tops = this.connector.tableOperations();
 		try {
 			tops.removeIterator(tableName, name, scopes);
-		} catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
-			log.warn("",e);
-			throw new D4mException(e);
-		}
+    } catch (AccumuloException e) {
+      log.warn("", e);
+      throw new D4mException(e);
+    } catch (AccumuloSecurityException e) {
+      log.warn("", e);
+      throw new D4mException(e);
+    } catch (TableNotFoundException e) {
+      log.warn("", e);
+      throw new D4mException(e);
+    }
   }
 
 	public void checkIteratorConflicts(String tableName, IteratorSetting cfg, EnumSet<IteratorScope> scopes) throws D4mException 
@@ -209,10 +242,13 @@ public class AccumuloConnection {
 		TableOperations tops = this.connector.tableOperations();
 		try {
 			tops.checkIteratorConflicts(tableName, cfg, scopes);
-		} catch (AccumuloException | TableNotFoundException e) {
-			log.warn("",e);
-			throw new D4mException(e);
-		}
+    } catch (AccumuloException e) {
+      log.warn("", e);
+      throw new D4mException(e);
+    } catch (TableNotFoundException e) {
+      log.warn("", e);
+      throw new D4mException(e);
+    }
 
   }
 
@@ -220,10 +256,16 @@ public class AccumuloConnection {
 		TableOperations tops = this.connector.tableOperations();
 		try {
 			tops.merge(tableName, startRow == null ? null : new Text(startRow), endRow == null ? null : new Text(endRow));
-		} catch (AccumuloException | TableNotFoundException | AccumuloSecurityException e) {
-			log.warn("",e);
-			throw new D4mException(e);
-		}
+    } catch (AccumuloException e) {
+      log.warn("", e);
+      throw new D4mException(e);
+    } catch (AccumuloSecurityException e) {
+      log.warn("", e);
+      throw new D4mException(e);
+    } catch (TableNotFoundException e) {
+      log.warn("", e);
+      throw new D4mException(e);
+    }
   }
 
 	public  TCredentials getCredentials() throws D4mException {
@@ -284,10 +326,13 @@ public class AccumuloConnection {
           ${accumulo.VERSION.1.7}tc.locateTablet(cc, new Text(splitName), false, false); // 1.7
 			tabletName = loc.tablet_location;
 			log.debug("TableName="+tableName+", TABLET_NAME = "+tabletName);
-		} catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
-			log.warn("",e);
-			e.printStackTrace();
-		}
+    } catch (AccumuloException e) {
+      log.warn("", e);
+    } catch (AccumuloSecurityException e) {
+      log.warn("", e);
+    } catch (TableNotFoundException e) {
+      log.warn("", e);
+    }
 
 
     return tabletName;

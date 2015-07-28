@@ -123,7 +123,7 @@ public class MathTwoScalar extends SimpleTwoScalar {
   }
 
   public static Map<String,String> optionMap(ScalarOp op, ScalarType type) {
-    Map<String,String> map = new HashMap<>();
+    Map<String,String> map = new HashMap<String, String>();
     map.put(SCALAR_OP, op.name());
     map.put(SCALAR_TYPE, type.name());
     return map;
@@ -135,17 +135,18 @@ public class MathTwoScalar extends SimpleTwoScalar {
 
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env)  {
-    Map<String,String> extraOpts = new HashMap<>();
+    Map<String,String> extraOpts = new HashMap<String, String>();
     for (Map.Entry<String, String> entry : options.entrySet()) {
       String k = entry.getKey(), v = entry.getValue();
-      switch (k) {
-        case SCALAR_TYPE:
-          scalarType = ScalarType.valueOf(options.get(SCALAR_TYPE));
-          break;
-        case SCALAR_OP: scalarOp = ScalarOp.valueOf(v); break;
-        default:
-          extraOpts.put(k, v);
-          break;
+      // can replace with switch in Java 1.7
+      if (k.equals(SCALAR_TYPE)) {
+        scalarType = ScalarType.valueOf(options.get(SCALAR_TYPE));
+
+      } else if (k.equals(SCALAR_OP)) {
+        scalarOp = ScalarOp.valueOf(v);
+      } else {
+        extraOpts.put(k, v);
+
       }
     }
     try {

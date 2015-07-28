@@ -82,7 +82,7 @@ public class EdgeBFSMultiply implements MultiplyOp, Iterator<Map.Entry<Key,Value
     emitValueSecond = null;
 //    if (emitKeyFirst == null)
 //      emitValueFirst = null;
-    return new AbstractMap.SimpleImmutableEntry<>(emitK, emitV);
+    return new AbstractMap.SimpleImmutableEntry<Key, Value>(emitK, emitV);
   }
 
   @Override

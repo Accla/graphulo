@@ -30,7 +30,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 /**
- * Created by dhutchis on 6/22/15.
+ * Created by dhutchis on 6/22/15. 
  */
 public class RowMultiplyTest extends AccumuloTestBase {
   private static final Logger log = LogManager.getLogger(RowMultiplyTest.class);
@@ -51,11 +51,11 @@ public class RowMultiplyTest extends AccumuloTestBase {
       tA = names[0];
       tADeg = names[1];
     }
-    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key,Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
 
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
       input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
       input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
@@ -66,22 +66,22 @@ public class RowMultiplyTest extends AccumuloTestBase {
       input.put(new Key("vBig", "", "v0"), new Value("9".getBytes()));
       input.put(new Key("vBig", "", "v1"), new Value("9".getBytes()));
       input.put(new Key("vBig", "", "v2"), new Value("9".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
     }
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("v0", "", "2"), new Value("1".getBytes()));
       input.put(new Key("v1", "", "2"), new Value("1".getBytes()));
       input.put(new Key("v2", "", "2"), new Value("1".getBytes()));
 //      input.put(new Key("vBig", "", "3"), new Value("1".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tADeg, splits, input);
     }
 
-    Map<String, String> opt = new HashMap<>();
+    Map<String, String> opt = new HashMap<String, String>();
     String instance = conn.getInstance().getInstanceName();
     String zookeepers = conn.getInstance().getZooKeepers();
     String user = conn.whoami();

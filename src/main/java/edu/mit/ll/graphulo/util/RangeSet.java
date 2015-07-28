@@ -11,21 +11,21 @@ import java.util.*;
  * Results is iteration returning [b,g], (j,k].
  */
 public class RangeSet {
-  private static final SortedSet<Range> INF_RANGE_SET = Collections.unmodifiableSortedSet(new TreeSet<>(Collections.singleton(new Range())));
+  private static final SortedSet<Range> INF_RANGE_SET = Collections.unmodifiableSortedSet(new TreeSet<Range>(Collections.singleton(new Range())));
 
   private SortedSet<Range> targetRanges = INF_RANGE_SET;
 
   /** Set the target ranges that we will iterator over, before applying a "seek range mask".
    * Merges overlapping ranges together.  Infinite range by default. */
   public void setTargetRanges(Collection<Range> ranges) {
-    targetRanges = new TreeSet<>(Range.mergeOverlapping(new TreeSet<>(ranges)));
+    targetRanges = new TreeSet<Range>(Range.mergeOverlapping(new TreeSet<Range>(ranges)));
   }
 
   /** Iterate over target ranges in order, masked by seekRange.
    * Only iterates over target ranges that intersect the seekRange. */
   public PeekingIterator1<Range> iteratorWithRangeMask(Range seekRange) {
     if (seekRange.isInfiniteStartKey() && seekRange.isInfiniteStopKey())
-      return new PeekingIterator1<>(targetRanges.iterator());
+      return new PeekingIterator1<Range>(targetRanges.iterator());
     else if (seekRange.isInfiniteStartKey())
       return new RangeSetIter(targetRanges.iterator(), seekRange);
     else {
@@ -39,7 +39,7 @@ public class RangeSet {
    * Advance to the first subset range whose end key >= the seek start key.
    */
   public static PeekingIterator1<Range> getFirstRangeStarting(Range seekRange, SortedSet<Range> rowRanges) {
-    PeekingIterator1<Range> iter = new PeekingIterator1<>(rowRanges.iterator());
+    PeekingIterator1<Range> iter = new PeekingIterator1<Range>(rowRanges.iterator());
     Key seekRangeStart = seekRange.getStartKey();
     if (seekRangeStart != null)
       while (iter.hasNext() && !iter.peek().isInfiniteStopKey()

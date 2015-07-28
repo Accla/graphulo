@@ -29,14 +29,14 @@ public class SelectorRowMultiply implements RowMultiplyOp {
     for (Map.Entry<String, String> optionEntry : options.entrySet()) {
       String optionKey = optionEntry.getKey();
       String optionValue = optionEntry.getValue();
-        switch (optionKey) {
-          case ASELECTSBROW:
-            ASelectsBRow = Boolean.parseBoolean(optionValue);
-            break;
-          default:
-            log.warn("Unrecognized option: " + optionEntry);
-            break;
-        }
+      // can replace with switch in Java 1.7
+      if (optionKey.equals(ASELECTSBROW)) {
+        ASelectsBRow = Boolean.parseBoolean(optionValue);
+
+      } else {
+        log.warn("Unrecognized option: " + optionEntry);
+
+      }
       }
   }
 

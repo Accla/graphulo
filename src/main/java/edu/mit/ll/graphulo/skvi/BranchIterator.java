@@ -53,7 +53,7 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key, Valu
 
     if (options.containsKey("trace")) {
         Watch.enableTrace = Boolean.parseBoolean(options.get("trace"));
-      options = new HashMap<>(options);
+      options = new HashMap<String, String>(options);
       options.remove("trace");
     }
 
@@ -62,7 +62,7 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key, Valu
     if (branchIterator == null) {
       botIterator = source;
     } else {
-      List<SortedKeyValueIterator<Key, Value>> list = new ArrayList<>(2);
+      List<SortedKeyValueIterator<Key, Value>> list = new ArrayList<SortedKeyValueIterator<Key, Value>>(2);
       list.add(branchIterator);
       list.add(source);
       botIterator = new MultiIterator(list, false);
@@ -124,7 +124,9 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key, Valu
     BranchIterator copy;
     try {
       copy = this.getClass().newInstance();
-    } catch (InstantiationException | IllegalAccessException e) {
+    } catch (InstantiationException e) {
+      throw new RuntimeException("cannot construct deepCopy", e);
+    } catch (IllegalAccessException e) {
       throw new RuntimeException("cannot construct deepCopy", e);
     }
     copy.botIterator = botIterator.deepCopy(env);

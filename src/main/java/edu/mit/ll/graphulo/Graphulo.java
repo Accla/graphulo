@@ -104,7 +104,9 @@ public class Graphulo {
     try {
       if (!connector.securityOperations().authenticateUser(connector.whoami(), password))
         throw new IllegalArgumentException("instance " + connector.getInstance().getInstanceName() + ": bad username " + connector.whoami() + " with password " + new String(password.getPassword()));
-    } catch (AccumuloException | AccumuloSecurityException e) {
+    } catch (AccumuloException e) {
+      throw new IllegalArgumentException("instance " + connector.getInstance().getInstanceName() + ": error with username " + connector.whoami() + " with password " + new String(password.getPassword()), e);
+    } catch (AccumuloSecurityException e) {
       throw new IllegalArgumentException("instance " + connector.getInstance().getInstanceName() + ": error with username " + connector.whoami() + " with password " + new String(password.getPassword()), e);
     }
   }
@@ -296,7 +298,7 @@ public class Graphulo {
                                    int numEntriesCheckpoint, boolean trace) {
     if (multOp == null)
       multOp = MathTwoScalar.class;
-    Map<String,String> opt = new HashMap<>();
+    Map<String,String> opt = new HashMap<String, String>();
     opt.put("rowMultiplyOp", CartesianRowMultiply.class.getName());
     opt.put("rowMultiplyOp.opt.multiplyOp", multOp.getName()); // treated same as multiplyOp
     if (multOpOptions != null)
@@ -326,7 +328,7 @@ public class Graphulo {
       Reducer reducer, Map<String,String> reducerOpts,
       int numEntriesCheckpoint, boolean trace
   ) {
-    Map<String,String> opt = new HashMap<>();
+    Map<String,String> opt = new HashMap<String, String>();
     opt.put("rowMultiplyOp", SelectorRowMultiply.class.getName());
     opt.put("rowMultiplyOp.opt."+SelectorRowMultiply.ASELECTSBROW, Boolean.toString(ASelectsBRow));
 
@@ -352,7 +354,7 @@ public class Graphulo {
                             int numEntriesCheckpoint, boolean trace) {
     if (multOp == null)
       multOp = MathTwoScalar.class;
-    Map<String,String> opt = new HashMap<>();
+    Map<String,String> opt = new HashMap<String, String>();
     opt.put("multiplyOp", multOp.getName());
     if (multOpOptions != null)
       for (Map.Entry<String, String> entry : multOpOptions.entrySet()) {
@@ -378,7 +380,7 @@ public class Graphulo {
                            List<IteratorSetting> iteratorsAfterTwoTable,
                            Reducer reducer, Map<String,String> reducerOpts,
                            int numEntriesCheckpoint, boolean trace) {
-    Map<String,String> opt = new HashMap<>();
+    Map<String,String> opt = new HashMap<String, String>();
 
     return TwoTable(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority,
         TwoTableIterator.DOTMODE.NONE, opt, plusOp,
@@ -420,7 +422,7 @@ public class Graphulo {
     if (BScanIteratorPriority <= 0)
       BScanIteratorPriority = 7; // default priority
     if (reducerOpts == null && reducer != null)
-      reducerOpts = new HashMap<>();
+      reducerOpts = new HashMap<String, String>();
 
     Ctable = emptyToNull(Ctable);
     CTtable = emptyToNull(CTtable);
@@ -446,7 +448,10 @@ public class Graphulo {
     if (Ctable != null && !tops.exists(Ctable))
       try {
         tops.create(Ctable);
-      } catch (AccumuloException | AccumuloSecurityException e) {
+      } catch (AccumuloException e) {
+        log.error("error trying to create Ctable " + Ctable, e);
+        throw new RuntimeException(e);
+      } catch (AccumuloSecurityException e) {
         log.error("error trying to create Ctable " + Ctable, e);
         throw new RuntimeException(e);
       } catch (TableExistsException e) {
@@ -457,7 +462,10 @@ public class Graphulo {
     if (CTtable != null && !tops.exists(CTtable))
       try {
         tops.create(CTtable);
-      } catch (AccumuloException | AccumuloSecurityException e) {
+      } catch (AccumuloException e) {
+        log.error("error trying to create CTtable " + Ctable, e);
+        throw new RuntimeException(e);
+      } catch (AccumuloSecurityException e) {
         log.error("error trying to create CTtable " + Ctable, e);
         throw new RuntimeException(e);
       } catch (TableExistsException e) {
@@ -544,7 +552,9 @@ public class Graphulo {
         else {
           tops.setProperty(Btable, "table.scan.max.memory", "1B");
         }
-      } catch (AccumuloException | AccumuloSecurityException e) {
+      } catch (AccumuloException e) {
+        log.warn("error trying to get and set property table.scan.max.memory for " + Btable, e);
+      } catch (AccumuloSecurityException e) {
         log.warn("error trying to get and set property table.scan.max.memory for " + Btable, e);
       } catch (TableNotFoundException e) {
         log.error("crazy", e);
@@ -569,7 +579,9 @@ public class Graphulo {
       if (prevPropTableScanMaxMem != null) {
         try {
           tops.setProperty(Btable, "table.scan.max.memory", prevPropTableScanMaxMem);
-        } catch (AccumuloException | AccumuloSecurityException e) {
+        } catch (AccumuloException e) {
+          log.error("cannot reset table.scan.max.memory property for " + Btable + " to " + prevPropTableScanMaxMem, e);
+        } catch (AccumuloSecurityException e) {
           log.error("cannot reset table.scan.max.memory property for " + Btable + " to " + prevPropTableScanMaxMem, e);
         }
       }
@@ -654,7 +666,7 @@ public class Graphulo {
     if (AScanIteratorPriority <= 0)
       AScanIteratorPriority = 27; // default priority
     if (reducerOpts == null)
-      reducerOpts = new HashMap<>();
+      reducerOpts = new HashMap<String, String>();
 
     Rtable = emptyToNull(Rtable);
     RTtable = emptyToNull(RTtable);
@@ -691,7 +703,10 @@ public class Graphulo {
     if (Rtable != null && !tops.exists(Rtable))
       try {
         tops.create(Rtable);
-      } catch (AccumuloException | AccumuloSecurityException e) {
+      } catch (AccumuloException e) {
+        log.error("error trying to create Rtable " + Rtable, e);
+        throw new RuntimeException(e);
+      } catch (AccumuloSecurityException e) {
         log.error("error trying to create Rtable " + Rtable, e);
         throw new RuntimeException(e);
       } catch (TableExistsException e) {
@@ -702,7 +717,10 @@ public class Graphulo {
     if (RTtable != null && !tops.exists(RTtable))
       try {
         tops.create(RTtable);
-      } catch (AccumuloException | AccumuloSecurityException e) {
+      } catch (AccumuloException e) {
+        log.error("error trying to create RTtable " + Rtable, e);
+        throw new RuntimeException(e);
+      } catch (AccumuloSecurityException e) {
         log.error("error trying to create RTtable " + Rtable, e);
         throw new RuntimeException(e);
       } catch (TableExistsException e) {
@@ -862,7 +880,7 @@ public class Graphulo {
 
     if (v0 == null || v0.isEmpty())
       v0 = ":"+GraphuloUtil.DEFAULT_SEP_D4M_STRING;
-    Collection<Text> vktexts = new HashSet<>(); //v0 == null ? null : GraphuloUtil.d4mRowToTexts(v0);
+    Collection<Text> vktexts = new HashSet<Text>(); //v0 == null ? null : GraphuloUtil.d4mRowToTexts(v0);
     char sep = v0.charAt(v0.length() - 1);
 
     BatchScanner bs, bsDegree = null;
@@ -875,7 +893,7 @@ public class Graphulo {
       throw new RuntimeException(e);
     }
 
-    List<IteratorSetting> iteratorSettingList = new ArrayList<>();
+    List<IteratorSetting> iteratorSettingList = new ArrayList<IteratorSetting>();
 
     IteratorSetting itsetDegreeFilter = null;
     if (needDegreeFiltering && ADegtable == null)
@@ -1030,7 +1048,10 @@ public class Graphulo {
             deg = LongCombiner.STRING_ENCODER.decode(entry.getValue().get());
           if (deg < minDegree || deg > maxDegree)
             bad = true;
-        } catch (NumberFormatException | ValueFormatException e) {
+        } catch (NumberFormatException e) {
+          log.warn("Trouble parsing degree entry as long; assuming bad degree: " + entry.getKey() + " -> " + entry.getValue(), e);
+          bad = true;
+        } catch (ValueFormatException e) {
           log.warn("Trouble parsing degree entry as long; assuming bad degree: " + entry.getKey() + " -> " + entry.getValue(), e);
           bad = true;
         }
@@ -1106,7 +1127,7 @@ public class Graphulo {
       log.warn("Sum iterator setting is >=20. Are you sure you want the priority after the default Versioning iterator priority? " + plusOp);
     if (v0 == null || v0.isEmpty())
       v0 = ":\t";
-    Collection<Text> vktexts = new HashSet<>();
+    Collection<Text> vktexts = new HashSet<Text>();
     char sep = v0.charAt(v0.length() - 1);
 
     if (startPrefixes == null || startPrefixes.isEmpty())
@@ -1132,7 +1153,10 @@ public class Graphulo {
     if (Rtable != null && !tops.exists(Rtable))
       try {
         tops.create(Rtable);
-      } catch (AccumuloException | AccumuloSecurityException e) {
+      } catch (AccumuloException e) {
+        log.error("error trying to create R table " + Rtable, e);
+        throw new RuntimeException(e);
+      } catch (AccumuloSecurityException e) {
         log.error("error trying to create R table " + Rtable, e);
         throw new RuntimeException(e);
       } catch (TableExistsException e) {
@@ -1142,7 +1166,10 @@ public class Graphulo {
     if (RTtable != null && !tops.exists(RTtable))
       try {
         tops.create(RTtable);
-      } catch (AccumuloException | AccumuloSecurityException e) {
+      } catch (AccumuloException e) {
+        log.error("error trying to create R table transpose " + RTtable, e);
+        throw new RuntimeException(e);
+      } catch (AccumuloSecurityException e) {
         log.error("error trying to create R table transpose " + RTtable, e);
         throw new RuntimeException(e);
       } catch (TableExistsException e) {
@@ -1424,14 +1451,14 @@ public class Graphulo {
       log.warn("Sum iterator setting is >=20. Are you sure you want the priority after the default Versioning iterator priority? " + plusOp);
     if (v0 == null || v0.isEmpty())
       v0 = ":\t";
-    Collection<Text> vktexts = new HashSet<>(); //v0 == null ? null : GraphuloUtil.d4mRowToTexts(v0);
+    Collection<Text> vktexts = new HashSet<Text>(); //v0 == null ? null : GraphuloUtil.d4mRowToTexts(v0);
     /** If no degree filtering and v0 is a range, then does not include v0 nodes. */
     Collection<Text> mostAllOutNodes = null;
     Collection<Text> allInNodes = null;
     if (computeInDegrees || outputUnion)
-      allInNodes = new HashSet<>();
+      allInNodes = new HashSet<Text>();
     if (computeInDegrees)
-      mostAllOutNodes = new HashSet<>();
+      mostAllOutNodes = new HashSet<Text>();
     char sep = v0.charAt(v0.length() - 1);
 
     TableOperations tops = connector.tableOperations();
@@ -1440,7 +1467,10 @@ public class Graphulo {
     if (Rtable != null && !tops.exists(Rtable))
       try {
         tops.create(Rtable);
-      } catch (AccumuloException | AccumuloSecurityException e) {
+      } catch (AccumuloException e) {
+        log.error("error trying to create R table " + Rtable, e);
+        throw new RuntimeException(e);
+      } catch (AccumuloSecurityException e) {
         log.error("error trying to create R table " + Rtable, e);
         throw new RuntimeException(e);
       } catch (TableExistsException e) {
@@ -1448,7 +1478,7 @@ public class Graphulo {
         throw new RuntimeException(e);
       }
 
-    Map<String, String> optSingleReducer = new HashMap<>(), optSTI = new HashMap<>();
+    Map<String, String> optSingleReducer = new HashMap<String, String>(), optSTI = new HashMap<String, String>();
     optSTI.put(SingleTransposeIterator.EDGESEP, edgeSepStr);
     optSTI.put(SingleTransposeIterator.NEG_ONE_IN_DEG, Boolean.toString(false)); // not a good option
     optSTI.put(SingleTransposeIterator.DEGCOL, degColumn);
@@ -1586,7 +1616,7 @@ public class Graphulo {
     // This is likely not a bottleneck.
     List<Range> rangeList;
     {
-      Collection<Range> rs = new TreeSet<>();
+      Collection<Range> rs = new TreeSet<Range>();
       for (Text node : questionNodes) {
         rs.add(Range.prefix(node));
       }
@@ -1656,7 +1686,7 @@ public class Graphulo {
                         int BScanIteratorPriority, boolean isDirected, boolean includeExtraCycles, IteratorSetting plusOp,
                         Collection<Range> rowFilter, String colFilterAT, String colFilterB,
                         int numEntriesCheckpoint, boolean trace, String separator) {
-    Map<String,String> opt = new HashMap<>();
+    Map<String,String> opt = new HashMap<String, String>();
     opt.put("rowMultiplyOp", LineRowMultiply.class.getName());
     opt.put("rowMultiplyOp.opt."+LineRowMultiply.SEPARATOR, separator);
     opt.put("rowMultiplyOp.opt."+LineRowMultiply.ISDIRECTED, Boolean.toString(isDirected));
@@ -1799,7 +1829,16 @@ public class Graphulo {
 
       return nnzAfter;
 
-    } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
+    } catch (AccumuloException e) {
+      log.error("Exception in kTrussAdj", e);
+      throw new RuntimeException(e);
+    } catch (AccumuloSecurityException e) {
+      log.error("Exception in kTrussAdj", e);
+      throw new RuntimeException(e);
+    } catch (TableExistsException e) {
+      log.error("Exception in kTrussAdj", e);
+      throw new RuntimeException(e);
+    } catch (TableNotFoundException e) {
       log.error("Exception in kTrussAdj", e);
       throw new RuntimeException(e);
     }
@@ -1944,7 +1983,16 @@ public class Graphulo {
 
       return nnzAfter;
 
-    } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
+    } catch (AccumuloException e) {
+      log.error("Exception in kTrussAdj", e);
+      throw new RuntimeException(e);
+    } catch (AccumuloSecurityException e) {
+      log.error("Exception in kTrussAdj", e);
+      throw new RuntimeException(e);
+    } catch (TableExistsException e) {
+      log.error("Exception in kTrussAdj", e);
+      throw new RuntimeException(e);
+    } catch (TableNotFoundException e) {
       log.error("Exception in kTrussAdj", e);
       throw new RuntimeException(e);
     }
@@ -2012,10 +2060,16 @@ public class Graphulo {
       if (!tops.exists(Degtable))
         tops.create(Degtable);
       bs = connector.createBatchScanner(table, Authorizations.EMPTY, 2); // todo: 2 threads arbitrary
-    } catch (TableNotFoundException | TableExistsException e) {
+    } catch (TableNotFoundException e) {
       log.error("crazy", e);
       throw new RuntimeException(e);
-    } catch (AccumuloException | AccumuloSecurityException e) {
+    } catch (TableExistsException e) {
+      log.error("crazy", e);
+      throw new RuntimeException(e);
+    } catch (AccumuloException e) {
+      log.error("problem creating degree table "+Degtable, e);
+      throw new RuntimeException(e);
+    } catch (AccumuloSecurityException e) {
       log.error("problem creating degree table "+Degtable, e);
       throw new RuntimeException(e);
     }
@@ -2057,7 +2111,7 @@ public class Graphulo {
    */
   private Map<String,String> basicRemoteOpts(String prefix, String remoteTable, String remoteTableTranspose) {
     if (prefix == null) prefix = "";
-    Map<String,String> opt = new HashMap<>();
+    Map<String,String> opt = new HashMap<String, String>();
     String instance = connector.getInstance().getInstanceName();
     String zookeepers = connector.getInstance().getZooKeepers();
     String user = connector.whoami();
@@ -2164,8 +2218,15 @@ public class Graphulo {
         .append(new IteratorSetting(1, VersioningIterator.class))       // only count a row once
         .append(RandomTopicApply.iteratorSetting(1, K))
         .getIteratorSettingList();
-    try (TraceScope scope = Trace.startSpan("nmfCreateRandW", Sampler.ALWAYS)) {
+
+    // can replace with try-with-resources in Java 1.7\
+    TraceScope scope = null;
+    try {
+      scope = Trace.startSpan("nmfCreateRandW", Sampler.ALWAYS);
       long NK = OneTable(Aorig, Wfinal, WTfinal, null, -1, null, null, null, null, null, itCreateTopicList, null, trace);
+    } finally {
+      if (scope != null)
+        scope.close();
     }
     if (trace)
       DebugUtil.printTable("0: W is NxK:", connector, Wfinal);
@@ -2184,20 +2245,35 @@ public class Graphulo {
       numiter++;
       olderr = newerr;
 
-      try (TraceScope scope = Trace.startSpan("nmfStepToH", Sampler.ALWAYS)) {
+      scope = null;
+try {
+  scope = Trace.startSpan("nmfStepToH", Sampler.ALWAYS);
         nmfStep(K, Wfinal, Aorig, Hfinal, HTfinal, Ttmp1, Ttmp2, trace);
-      }
+      } finally {
+  if (scope != null)
+    scope.close();
+}
       if (trace)
         DebugUtil.printTable(numiter + ": H is KxM:", connector, Hfinal);
-      try (TraceScope scope = Trace.startSpan("nmfStepToW", Sampler.ALWAYS)) {
+      scope = null;
+try {
+  scope = Trace.startSpan("nmfStepToW", Sampler.ALWAYS);
         nmfStep(K, HTfinal, ATorig, WTfinal, Wfinal, Ttmp1, Ttmp2, trace);
-      }
+      } finally {
+  if (scope != null)
+    scope.close();
+}
       if (trace)
         DebugUtil.printTable(numiter + ": W is NxK:", connector, Wfinal);
 
-      try (TraceScope scope = Trace.startSpan("nmfFro", Sampler.ALWAYS)) {
+      scope = null;
+try {
+  scope = Trace.startSpan("nmfFro", Sampler.ALWAYS);
         newerr = nmfDiffFrobeniusNorm(Aorig, WTfinal, Hfinal, Ttmp1, trace);
-      }
+      } finally {
+  if (scope != null)
+    scope.close();
+}
       if (trace)
         DebugUtil.printTable(numiter + ": A is NxM --- error is "+newerr+":", connector, Aorig);
 
@@ -2251,37 +2327,55 @@ public class Graphulo {
     org.junit.Assert.assertTrue(Trace.isTracing());
 
     // Step 1: in1^T * in1 ==transpose==> tmp1
-    try (TraceScope scope = Trace.startSpan("nmf1TableMult")) {
+    TraceScope scope = null;
+try {
+  scope = Trace.startSpan("nmf1TableMult");
       TableMult(in1, in1, null, tmp1, -1,
           MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
           MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
           null, null, null, false, false, -1, false);
-    }
+    } finally {
+  if (scope != null)
+    scope.close();
+}
     if (trace)
       DebugUtil.printTable("tmp1 is KxK:", connector, tmp1);
 
     // Step 2: tmp1 => tmp1 inverse.
-    try (TraceScope scope = Trace.startSpan("nmf2Inverse")) {
+    scope = null;
+try {
+  scope = Trace.startSpan("nmf2Inverse");
       connector.tableOperations().compact(tmp1, null, null,
           Collections.singletonList(InverseMatrixIterator.iteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority() + 1, K)),
           true, true); // blocks
-    } catch (AccumuloException | AccumuloSecurityException e) {
+    } catch (AccumuloException e) {
+      log.error("problem while compacting "+tmp1+" to take the matrix inverse", e);
+      throw new RuntimeException(e);
+    } catch (AccumuloSecurityException e) {
       log.error("problem while compacting "+tmp1+" to take the matrix inverse", e);
       throw new RuntimeException(e);
     } catch (TableNotFoundException e) {
       log.error("crazy", e);
       throw new RuntimeException(e);
+    } finally {
+      if (scope != null)
+        scope.close();
     }
     if (trace)
       DebugUtil.printTable("tmp1 INVERSE is KxK:", connector, tmp1);
 
     // Step 3: in1^T * in2 => tmp2.  This can run concurrently with step 1 and 2.
-    try (TraceScope scope = Trace.startSpan("nmf3TableMult")) {
+    scope = null;
+try {
+  scope = Trace.startSpan("nmf3TableMult");
       TableMult(in1, in2, tmp2, null, -1,
           MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
           MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
           null, null, null, false, false, -1, false);
-    }
+    } finally {
+  if (scope != null)
+    scope.close();
+}
 
     // Step 4: tmp1^T * tmp2 => OnlyPositiveFilter => {out1, tranpsose to out2}
     // Filter out entries <= 0 after combining partial products.
@@ -2292,14 +2386,19 @@ public class Graphulo {
         .toIteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority());
 
     // Execute.
-    try (TraceScope scope = Trace.startSpan("nmf4TableMult")) {
+    scope = null;
+try {
+  scope = Trace.startSpan("nmf4TableMult");
       TableMult(tmp1, tmp2, out1, out2, -1,
           MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
           sumFilterOp,
           null, null, null, false, false, null, null,
           null,
           null, null, -1, false);
-    }
+    } finally {
+  if (scope != null)
+    scope.close();
+}
 
     // Delete temporary tables.
     deleteTables(true, tmp1, tmp2);
@@ -2335,14 +2434,14 @@ public class Graphulo {
     deleteTables(false, Wfinal, Hfinal); // WTfinal, HTfinal
 
     // Scan A into memory
-    Map<Key,Value> Aentries = new TreeMap<>(); //GraphuloUtil.scanAll(connector, Aorig);
+    Map<Key,Value> Aentries = new TreeMap<Key, Value>(); //GraphuloUtil.scanAll(connector, Aorig);
     OneTable(Aorig, null, null, Aentries, -1, null, null, null, null, null, null, null, false); // returns nnz A
     if (transposeA)
       Aentries = GraphuloUtil.transposeMap(Aentries);
 
     // Replace row and col labels with integer indexes; create map from indexes to original labels
     // The Maps are used to put the original labels on W and H
-    SortedMap<Integer,String> rowMap = new TreeMap<>(), colMap = new TreeMap<>();
+    SortedMap<Integer,String> rowMap = new TreeMap<Integer, String>(), colMap = new TreeMap<Integer, String>();
     RealMatrix Amatrix = MemMatrixUtil.indexMapAndMatrix(Aentries, rowMap, colMap);
     RealMatrix ATmatrix = Amatrix.transpose();
 
@@ -2455,7 +2554,10 @@ public class Graphulo {
       connector.tableOperations().compact(Ttmp1, null, null,
           Collections.singletonList(InverseMatrixIterator.iteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority() + 1, K)),
           true, true); // blocks
-    } catch (AccumuloSecurityException | AccumuloException e) {
+    } catch (AccumuloSecurityException e) {
+      log.error("problem while compacting "+Ttmp1+" to take the matrix inverse of H*HT", e);
+      throw new RuntimeException(e);
+    } catch (AccumuloException e) {
       log.error("problem while compacting "+Ttmp1+" to take the matrix inverse of H*HT", e);
       throw new RuntimeException(e);
     } catch (TableNotFoundException e) {

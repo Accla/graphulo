@@ -40,7 +40,7 @@ public class CartesianRowMultiply implements RowMultiplyOp {
       throw new IllegalStateException(skvi + " should hasTop()");
     Text thisRow = skvi.getTopKey().getRow();
     Text curRow = new Text(thisRow);
-    SortedMap<Key, Value> map = new TreeMap<>();
+    SortedMap<Key, Value> map = new TreeMap<Key, Value>();
     do {
       map.put(skvi.getTopKey(), new Value(skvi.getTopValue()));
       watch.start(watchtype);
@@ -66,7 +66,7 @@ public class CartesianRowMultiply implements RowMultiplyOp {
   public static final String ALSODOAA="alsoDoAA", ALSODOBB="alsoDoBB";
 
   private MultiplyOp multiplyOp;
-  private Map<String, String> multiplyOpOptions = new HashMap<>();
+  private Map<String, String> multiplyOpOptions = new HashMap<String, String>();
   private ROWMODE rowmode = ROWMODE.ONEROWB;
   private boolean isRowStartMultiplyOp = false;
   private boolean alsoDoAA = false, alsoDoBB = false;
@@ -81,23 +81,23 @@ public class CartesianRowMultiply implements RowMultiplyOp {
         String keyAfterPrefix = optionKey.substring("multiplyOp.opt.".length());
         multiplyOpOptions.put(keyAfterPrefix, optionValue);
       } else {
-        switch (optionKey) {
-          case "rowmode":
-            rowmode = ROWMODE.valueOf(optionValue);
-            break;
-          case "multiplyOp":
-            multiplyOp = GraphuloUtil.subclassNewInstance(optionValue, MultiplyOp.class);
-            isRowStartMultiplyOp = multiplyOp instanceof RowStartMultiplyOp;
-            break;
-          case ALSODOBB:
-            alsoDoBB = Boolean.parseBoolean(optionValue);
-            break;
-          case ALSODOAA:
-            alsoDoAA = Boolean.parseBoolean(optionValue);
-            break;
-          default:
-            log.warn("Unrecognized option: " + optionEntry);
-            break;
+        // can replace with switch in Java 1.7
+        if (optionKey.equals("rowmode")) {
+          rowmode = ROWMODE.valueOf(optionValue);
+
+        } else if (optionKey.equals("multiplyOp")) {
+          multiplyOp = GraphuloUtil.subclassNewInstance(optionValue, MultiplyOp.class);
+          isRowStartMultiplyOp = multiplyOp instanceof RowStartMultiplyOp;
+
+        } else if (optionKey.equals(ALSODOBB)) {
+          alsoDoBB = Boolean.parseBoolean(optionValue);
+
+        } else if (optionKey.equals(ALSODOAA)) {
+          alsoDoAA = Boolean.parseBoolean(optionValue);
+
+        } else {
+          log.warn("Unrecognized option: " + optionEntry);
+
         }
       }
     }

@@ -28,7 +28,7 @@ public class Watch<K extends Enum<K>> {
       new ThreadLocal<Watch<PerfSpan>>() {
         @Override
         protected Watch<PerfSpan> initialValue() {
-          return new Watch<>(PerfSpan.class);
+          return new Watch<PerfSpan>(PerfSpan.class);
         }
       };
 
@@ -86,8 +86,9 @@ public class Watch<K extends Enum<K>> {
   private EnumMap<K, Stats> totalStats;
 
   public Watch(Class<K> s) {
-    startTime = new EnumMap<>(s);
-    totalStats = new EnumMap<>(s);
+    startTime = new
+        EnumMap<K, Long>(s);
+    totalStats = new EnumMap<K, Stats>(s);
   }
 
   public synchronized void start(K timer) {

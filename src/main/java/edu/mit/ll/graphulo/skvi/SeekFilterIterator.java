@@ -49,7 +49,7 @@ public class SeekFilterIterator implements SortedKeyValueIterator<Key, Value>, O
   static final IteratorOptions iteratorOptions;
 
   static {
-    Map<String, String> optDesc = new LinkedHashMap<>();
+    Map<String, String> optDesc = new LinkedHashMap<String, String>();
     optDesc.put("rowRanges", "Row ranges to scan for remote Accumulo table, Matlab syntax. (default ':,' all)");
     iteratorOptions = new IteratorOptions("SeekFilterIterator",
         "Intersects seek ranges with the option given, passing the reduced range to the parent.",
@@ -75,13 +75,14 @@ public class SeekFilterIterator implements SortedKeyValueIterator<Key, Value>, O
     for (Map.Entry<String, String> entry : map.entrySet()) {
       if (entry.getValue().isEmpty())
         continue;
-      switch (entry.getKey()) {
-        case "rowRanges":
-          rowRanges.setTargetRanges(RemoteWriteIterator.parseRanges(entry.getValue()));
-          break;
-        default:
-          log.warn("Unrecognized option: " + entry);
-          continue;
+      // can replace with switch in Java 1.7
+      String s = entry.getKey();
+      if (s.equals("rowRanges")) {
+        rowRanges.setTargetRanges(RemoteWriteIterator.parseRanges(entry.getValue()));
+
+      } else {
+        log.warn("Unrecognized option: " + entry);
+        continue;
       }
       log.trace("Option OK: " + entry);
     }

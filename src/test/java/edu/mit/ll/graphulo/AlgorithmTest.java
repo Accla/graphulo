@@ -45,10 +45,10 @@ public class AlgorithmTest extends AccumuloTestBase {
       tR = names[1];
     }
 
-    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key,Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("v1", "", "v2"), new Value("1".getBytes()));
       input.put(new Key("v1", "", "v3"), new Value("1".getBytes()));
       input.put(new Key("v1", "", "v4"), new Value("1".getBytes()));
@@ -58,7 +58,7 @@ public class AlgorithmTest extends AccumuloTestBase {
       expect.putAll(input);
       input.put(new Key("v2", "", "v5"), new Value("1".getBytes()));
       input.put(new Key("v5", "", "v2"), new Value("1".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
     }
@@ -79,7 +79,7 @@ public class AlgorithmTest extends AccumuloTestBase {
 
     // Now test 4-truss
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("v2", "", "v4"), new Value("1".getBytes()));
       input.put(new Key("v4", "", "v2"), new Value("1".getBytes()));
       expect.putAll(input);
@@ -118,12 +118,12 @@ public class AlgorithmTest extends AccumuloTestBase {
       tRT = names[3];
     }
 
-    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        expectTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actualTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key,Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        expectTranspose = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actualTranspose = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("e1", "", "v1"), new Value("1".getBytes()));
       input.put(new Key("e1", "", "v2"), new Value("1".getBytes()));
       input.put(new Key("e2", "", "v2"), new Value("1".getBytes()));
@@ -138,7 +138,7 @@ public class AlgorithmTest extends AccumuloTestBase {
       expectTranspose.putAll(GraphuloUtil.transposeMap(expect));
       input.put(new Key("e6", "", "v2"), new Value("1".getBytes()));
       input.put(new Key("e6", "", "v5"), new Value("1".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("e22"));
       TestUtil.createTestTable(conn, tE, splits, input);
       splits.clear();
@@ -171,7 +171,7 @@ public class AlgorithmTest extends AccumuloTestBase {
 
     // Now test 4-truss
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("e7", "", "v4"), new Value("1".getBytes()));
       input.put(new Key("e7", "", "v2"), new Value("1".getBytes()));
       expect.putAll(input);
@@ -220,10 +220,10 @@ public class AlgorithmTest extends AccumuloTestBase {
       tR = names[2];
     }
 
-    Map<Key,Double> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
-        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key,Double> expect = new TreeMap<Key, Double>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actual = new TreeMap<Key, Double>(TestUtil.COMPARE_KEY_TO_COLQ);
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("v1", "", "v2"), new Value("1".getBytes()));
       input.put(new Key("v1", "", "v3"), new Value("1".getBytes()));
       input.put(new Key("v1", "", "v4"), new Value("1".getBytes()));
@@ -232,7 +232,7 @@ public class AlgorithmTest extends AccumuloTestBase {
       input.putAll(GraphuloUtil.transposeMap(input));
       input.put(new Key("v2", "", "v5"), new Value("1".getBytes()));
       input.put(new Key("v5", "", "v2"), new Value("1".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
 
@@ -300,7 +300,7 @@ public class AlgorithmTest extends AccumuloTestBase {
       tR = names[7];
     }
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("e1", "", "v1"), new Value("1".getBytes()));
       input.put(new Key("e1", "", "v2"), new Value("1".getBytes()));
       input.put(new Key("e2", "", "v2"), new Value("1".getBytes()));
@@ -313,7 +313,7 @@ public class AlgorithmTest extends AccumuloTestBase {
       input.put(new Key("e5", "", "v3"), new Value("1".getBytes()));
       input.put(new Key("e6", "", "v2"), new Value("1".getBytes()));
       input.put(new Key("e6", "", "v5"), new Value("1".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("e22"));
       TestUtil.createTestTable(conn, tE, splits, input);
       splits.clear();
@@ -400,7 +400,7 @@ public class AlgorithmTest extends AccumuloTestBase {
 //      tWH = names[6];
     }
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("e1", "", "v1"), new Value("1".getBytes()));
       input.put(new Key("e1", "", "v2"), new Value("1".getBytes()));
       input.put(new Key("e2", "", "v2"), new Value("1".getBytes()));
@@ -413,7 +413,7 @@ public class AlgorithmTest extends AccumuloTestBase {
       input.put(new Key("e5", "", "v3"), new Value("1".getBytes()));
       input.put(new Key("e6", "", "v2"), new Value("1".getBytes()));
       input.put(new Key("e6", "", "v5"), new Value("1".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("e22"));
       TestUtil.createTestTable(conn, tE, splits, input);
 //      splits.clear();

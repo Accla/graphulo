@@ -28,7 +28,7 @@ public class ApplyIterator implements SortedKeyValueIterator<Key, Value> {
 
   private SortedKeyValueIterator<Key, Value> source;
   private ApplyOp applyOp;
-  private Map<String,String> applyOpOptions = new HashMap<>();
+  private Map<String,String> applyOpOptions = new HashMap<String, String>();
 
   private PeekingIterator1<? extends Map.Entry<Key,Value>> topIterator;
 
@@ -39,12 +39,12 @@ public class ApplyIterator implements SortedKeyValueIterator<Key, Value> {
         String keyAfterPrefix = optionKey.substring((APPLYOP+OPT_SUFFIX).length());
         applyOpOptions.put(keyAfterPrefix, optionValue);
       } else {
-        switch (optionKey) {
-          case APPLYOP:
-            applyOp = GraphuloUtil.subclassNewInstance(optionValue, ApplyOp.class);
-            break;
-          default:
-            log.warn("Unrecognized option: " + optionEntry);
+        // can replace with switch in Java 1.7
+        if (optionKey.equals(APPLYOP)) {
+          applyOp = GraphuloUtil.subclassNewInstance(optionValue, ApplyOp.class);
+
+        } else {
+          log.warn("Unrecognized option: " + optionEntry);
         }
       }
     }
@@ -64,7 +64,7 @@ public class ApplyIterator implements SortedKeyValueIterator<Key, Value> {
     source.seek(range, columnFamilies, inclusive);
     applyOp.seekApplyOp(range, columnFamilies, inclusive);
     if (source.hasTop()) {
-      topIterator = new PeekingIterator1<>(applyOp.apply(source.getTopKey(), source.getTopValue()));
+      topIterator = new PeekingIterator1<Map.Entry<Key, Value>>(applyOp.apply(source.getTopKey(), source.getTopValue()));
       prepNext(false);
     } else {
       topIterator = PeekingIterator1.emptyIterator();
@@ -79,7 +79,7 @@ public class ApplyIterator implements SortedKeyValueIterator<Key, Value> {
       source.next();
       if (!source.hasTop())
         return;
-      topIterator = new PeekingIterator1<>(applyOp.apply(source.getTopKey(), source.getTopValue()));
+      topIterator = new PeekingIterator1<Map.Entry<Key, Value>>(applyOp.apply(source.getTopKey(), source.getTopValue()));
     }
   }
 
@@ -108,7 +108,10 @@ public class ApplyIterator implements SortedKeyValueIterator<Key, Value> {
     ApplyIterator copy = new ApplyIterator();
     try {
       copy.applyOp = applyOp.getClass().newInstance();
-    } catch (InstantiationException | IllegalAccessException e) {
+    } catch (InstantiationException e) {
+      log.error("", e);
+      throw new RuntimeException("",e);
+    } catch (IllegalAccessException e) {
       log.error("", e);
       throw new RuntimeException("",e);
     }

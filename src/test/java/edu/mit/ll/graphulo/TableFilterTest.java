@@ -30,9 +30,9 @@ public class TableFilterTest extends AccumuloTestBase {
       String[] names = getUniqueNames(1);
       tA = names[0];
     }
-    Map<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key, Value> expect = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ);
     {
-      Map<Key, Value> input = new HashMap<>();
+      Map<Key, Value> input = new HashMap<Key, Value>();
       input.put(new Key("r", "", "C1"), new Value("5".getBytes()));
       input.put(new Key("r", "", "C2"), new Value("2".getBytes()));
       input.put(new Key("r", "", "C3"), new Value("4".getBytes()));
@@ -43,7 +43,7 @@ public class TableFilterTest extends AccumuloTestBase {
       input.put(new Key("h", "", "C2"), new Value("4".getBytes()));
       expect.put(new Key("h", "", "C2"), new Value("4".getBytes()));
       input.put(new Key("a", "", "C1"), new Value("4".getBytes()));
-      SortedSet<Text> splits = new TreeSet<>();
+      SortedSet<Text> splits = new TreeSet<Text>();
       splits.add(new Text("b"));
       TestUtil.createTestTable(conn, tA, splits, input);
     }
@@ -54,7 +54,7 @@ public class TableFilterTest extends AccumuloTestBase {
     SmallLargeRowFilter.setMaxColumns(is, 3);
     SmallLargeRowFilter.setMinColumns(is, 2);
     bs.addScanIterator(is);
-    Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+    Map<Key, Value> actual = new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
     for (Map.Entry<Key, Value> entry : bs) {
       actual.put(entry.getKey(), entry.getValue());
     }

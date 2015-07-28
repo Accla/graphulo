@@ -42,7 +42,7 @@ public class MultiplyToEWiseAdapter implements EWiseOp {
     if (options.containsKey(SWITCHARGS))
       switchArgs = Boolean.parseBoolean(options.get(SWITCHARGS));
 
-    Map<String,String> otherOpts = new HashMap<>();
+    Map<String,String> otherOpts = new HashMap<String, String>();
     for (Map.Entry<String, String> entry : options.entrySet()) {
       String k = entry.getKey();
       if (!k.equals(MULTIPLYOP) && !k.equals(SWITCHARGS))

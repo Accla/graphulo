@@ -34,16 +34,16 @@ public class ConstantTwoScalar extends SimpleTwoScalar {
 
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
-    Map<String,String> extraOpts = new HashMap<>();
+    Map<String,String> extraOpts = new HashMap<String, String>();
     for (Map.Entry<String, String> entry : options.entrySet()) {
       String k = entry.getKey(), v = entry.getValue();
-      switch (k) {
-        case CONSTANT:
-          constant = new Value(v.getBytes());
-          break;
-        default:
-          extraOpts.put(k, v);
-          break;
+      // can replace with switch in Java 1.7
+      if (k.equals(CONSTANT)) {
+        constant = new Value(v.getBytes());
+
+      } else {
+        extraOpts.put(k, v);
+
       }
     }
     super.init(extraOpts, env);

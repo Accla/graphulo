@@ -4,7 +4,6 @@
 package edu.mit.ll.d4m.db.cloud.test;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 
 import edu.mit.ll.cloud.connection.ConnectionProperties;

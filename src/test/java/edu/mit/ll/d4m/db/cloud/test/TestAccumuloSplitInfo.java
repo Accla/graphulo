@@ -3,19 +3,14 @@
  */
 package edu.mit.ll.d4m.db.cloud.test;
 
-import static org.junit.Assert.*;
-
-import java.util.List;
-
+import edu.mit.ll.cloud.connection.ConnectionProperties;
+import edu.mit.ll.d4m.db.cloud.D4mDbTableOperations;
+import edu.mit.ll.d4m.db.cloud.accumulo.AccumuloTableOperations;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import edu.mit.ll.cloud.connection.ConnectionProperties;
-import edu.mit.ll.d4m.db.cloud.D4mConfig;
-import edu.mit.ll.d4m.db.cloud.D4mDbTableOperations;
-import edu.mit.ll.d4m.db.cloud.D4mException;
-import edu.mit.ll.d4m.db.cloud.accumulo.AccumuloTableOperations;
+import java.util.List;
 
 /**
  * Test split functions for Accumulo
@@ -71,9 +66,6 @@ public class TestAccumuloSplitInfo {
 			for(int i = 0; i < splitsList.size() ; i++) {
 				System.out.println(""+splitsList.get(i)+","+numSplitsList.get(i)+","+tabletServerNamesSplitsList.get(i));
 			}
-		} catch (D4mException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch(Exception e) {
 			e.printStackTrace();
 		}

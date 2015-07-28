@@ -3,15 +3,7 @@
  */
 package edu.mit.ll.d4m.db.cloud.test;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
 import java.util.ArrayList;
-import java.util.Properties;
-
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
 
 import edu.mit.ll.d4m.db.cloud.accumulo.D4mDbQueryAccumulo;
 import edu.mit.ll.d4m.db.cloud.D4mDbResultSet;

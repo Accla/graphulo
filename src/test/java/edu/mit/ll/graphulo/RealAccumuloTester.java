@@ -1,7 +1,6 @@
 package edu.mit.ll.graphulo;
 
 import org.apache.accumulo.core.client.*;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;

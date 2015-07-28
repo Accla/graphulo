@@ -167,7 +167,7 @@ public class CartesianRowMultiply implements RowMultiplyOp {
         Iterator<Map.Entry<Key,Value>> itAB = new CartesianIterator(ArowMap.entrySet().iterator(), BrowMap, multiplyOp, false);
         if (alsoDoAA && alsoDoBB) {
           Iterator<Map.Entry<Key,Value>> itAA = new CartesianIterator(ArowMap.entrySet().iterator(), ArowMap, multiplyOp, false),
-            itBB = new CartesianIterator(BrowMap.entrySet().iterator(), BrowMap, multiplyOp, false);;
+            itBB = new CartesianIterator(BrowMap.entrySet().iterator(), BrowMap, multiplyOp, false);
           return Iterators.concat(itAB, itAA, itBB);
         } else if (alsoDoAA) {
           Iterator<Map.Entry<Key,Value>> itAA = new CartesianIterator(ArowMap.entrySet().iterator(), ArowMap, multiplyOp, false);

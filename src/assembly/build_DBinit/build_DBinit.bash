@@ -6,7 +6,7 @@ b="$2" #"${project.build.directory}/${DBinit.path.libextFolder}" #libext/ for DO
 c="$3" #"${DBinit.path.mpath}" #input file path : build_DBinit.m
 d="$4" #"${project.build.directory}/${DBinit.path.outputFile}" #output file path: DBinit.m
 e="$5" #"${project.build.directory}/${DBinit.path.libextZip}" #location of libext zip archive to add result to
-deps="`ls -1 $b`"
+deps="`ls -1 ${b}`"
 echo "" > "$d"
 while read -u 10 p; do
 	if echo "$p" | grep -q "DO_REPLACE_JAR_NAME"; then

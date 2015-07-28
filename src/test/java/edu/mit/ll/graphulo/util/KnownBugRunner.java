@@ -3,7 +3,7 @@ package edu.mit.ll.graphulo.util;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Ignore;
-import org.junit.internal.AssumptionViolatedException;
+import org.junit.AssumptionViolatedException;
 import org.junit.rules.RunRules;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;

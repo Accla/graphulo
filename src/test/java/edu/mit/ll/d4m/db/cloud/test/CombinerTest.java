@@ -20,11 +20,8 @@ import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.Assert;
 
 import org.apache.commons.configuration.Configuration;
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.PropertiesConfiguration;
 
 
 import edu.mit.ll.d4m.db.cloud.accumulo.AccumuloConnection;

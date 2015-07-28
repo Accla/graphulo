@@ -1,32 +1,38 @@
 package edu.mit.ll.d4m.db.cloud.test;
 
-import static org.junit.Assert.*;
-
-import java.io.*;
-import java.util.*;
-
 import edu.mit.ll.cloud.connection.ConnectionProperties;
-import edu.mit.ll.d4m.db.cloud.D4mConfig;
 import edu.mit.ll.d4m.db.cloud.D4mDbTableOperations;
-import edu.mit.ll.d4m.db.cloud.D4mException;
 import edu.mit.ll.d4m.db.cloud.accumulo.AccumuloTableOperations;
-import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.accumulo.server.util.FileUtil;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * Temporary class for testing code.
@@ -150,9 +156,9 @@ public class SomeTest {
         Text cf = new Text("");
         Text cq = new Text("cq");
         Value v = new Value("7".getBytes());
-        for (int i=0; i<rows.length; i++) {
-            Mutation m = new Mutation(rows[i]);
-            m.put(cf,cq,v);
+        for (Text row : rows) {
+            Mutation m = new Mutation(row);
+            m.put(cf, cq, v);
             writer.addMutation(m);
         }
         writer.flush();

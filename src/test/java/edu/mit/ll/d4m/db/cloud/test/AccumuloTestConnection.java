@@ -1,7 +1,6 @@
 package edu.mit.ll.d4m.db.cloud.test;
 
 import edu.mit.ll.cloud.connection.ConnectionProperties;
-import edu.mit.ll.d4m.db.cloud.D4mConfig;
 import edu.mit.ll.d4m.db.cloud.accumulo.AccumuloConnection;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;

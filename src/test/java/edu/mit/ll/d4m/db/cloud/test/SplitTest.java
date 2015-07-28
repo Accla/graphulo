@@ -10,7 +10,6 @@ import org.junit.Test;
 
 import edu.mit.ll.d4m.db.cloud.accumulo.AccumuloConnection;
 import edu.mit.ll.cloud.connection.ConnectionProperties;
-import edu.mit.ll.d4m.db.cloud.D4mConfig;
 import edu.mit.ll.d4m.db.cloud.D4mDataSearch;
 import edu.mit.ll.d4m.db.cloud.D4mDbInsert;
 import edu.mit.ll.d4m.db.cloud.D4mDbTableOperations;

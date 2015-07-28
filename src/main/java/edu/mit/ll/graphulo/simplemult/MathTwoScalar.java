@@ -33,7 +33,7 @@ public class MathTwoScalar extends SimpleTwoScalar {
   public enum ScalarType /*implements Encoder*/ {
     LONG(/*new SummingCombiner.StringEncoder()*/),
     DOUBLE(/*new DoubleEncoder()*/),
-    BIGDECIMAL(/*new BigDecimalCombiner.BigDecimalEncoder()*/);
+    BIGDECIMAL(/*new BigDecimalCombiner.BigDecimalEncoder()*/)
 
 
     // Core Developer note: I tried to make the encoding and decoding generic,

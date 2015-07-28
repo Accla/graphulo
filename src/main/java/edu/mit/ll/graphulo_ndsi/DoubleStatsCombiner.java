@@ -62,13 +62,6 @@ public class DoubleStatsCombiner extends Combiner {
     return io;
   }
 
-  @Override
-  public boolean validateOptions(Map<String,String> options) {
-    if (!super.validateOptions(options))
-      return false;
-    return true;
-  }
-
   public static IteratorSetting iteratorSetting(int priority, List<IteratorSetting.Column> columns) {
     IteratorSetting itset = new IteratorSetting(priority, DoubleStatsCombiner.class);
     if (columns == null || columns.isEmpty())

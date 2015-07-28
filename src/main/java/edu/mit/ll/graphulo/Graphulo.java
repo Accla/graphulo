@@ -865,9 +865,11 @@ public class Graphulo {
     Collection<Text> vktexts = new HashSet<>(); //v0 == null ? null : GraphuloUtil.d4mRowToTexts(v0);
     char sep = v0.charAt(v0.length() - 1);
 
-    BatchScanner bs;
+    BatchScanner bs, bsDegree = null;
     try {
       bs = connector.createBatchScanner(Atable, Authorizations.EMPTY, 50); // TODO P2: set number of batch scan threads
+      if (needDegreeFiltering & ADegtable != null)
+        bsDegree = connector.createBatchScanner(ADegtable, Authorizations.EMPTY, 4); // TODO P2: set number of batch scan threads
     } catch (TableNotFoundException e) {
       log.error("crazy", e);
       throw new RuntimeException(e);
@@ -895,8 +897,8 @@ public class Graphulo {
         if (needDegreeFiltering && ADegtable != null) { // use degree table
           long t1 = System.currentTimeMillis(), dur;
           vktexts = thisk == 1
-              ? filterTextsDegreeTable(ADegtable, degColumnText, degInColQ, minDegree, maxDegree, vktexts, GraphuloUtil.d4mRowToRanges(v0))
-              : filterTextsDegreeTable(ADegtable, degColumnText, degInColQ, minDegree, maxDegree, vktexts);
+              ? filterTextsDegreeTable(bsDegree, degColumnText, degInColQ, minDegree, maxDegree, vktexts, GraphuloUtil.d4mRowToRanges(v0))
+              : filterTextsDegreeTable(bsDegree, degColumnText, degInColQ, minDegree, maxDegree, vktexts);
           dur = System.currentTimeMillis() - t1;
           degTime += dur;
           if (trace) {
@@ -952,6 +954,8 @@ public class Graphulo {
       }
     } finally {
       bs.close();
+      if (bsDegree != null)
+        bsDegree.close();
     }
 
     return GraphuloUtil.textsToD4mString(vktexts, sep);
@@ -964,21 +968,23 @@ public class Graphulo {
    * Does nothing if texts is null or the empty collection.
    * Todo: Add a local cache parameter for known good nodes and known bad nodes, so that we don't have to look them up.
    *
+   * Re-uses a BatchScanner, which must be created for the degree table prior to this method. Does not close the BatchScanner.
+   *
    * @param degColumnText   Name of the degree column qualifier. Blank/null means fetch the empty ("") column.
    * @param degInColQ False means degree in value. True means degree in column qualifier and that degColumnText is a prefix before the numeric portion of the column qualifier degree.
    * @return The same texts object, with nodes that fail the degree filter removed.
    */
-  private Collection<Text> filterTextsDegreeTable(String ADegtable, Text degColumnText, boolean degInColQ,
+  private Collection<Text> filterTextsDegreeTable(BatchScanner bs, Text degColumnText, boolean degInColQ,
                                                   int minDegree, int maxDegree,
                                                   Collection<Text> texts) {
     if (texts == null || texts.isEmpty())
       return texts;
-    return filterTextsDegreeTable(ADegtable, degColumnText, degInColQ,
+    return filterTextsDegreeTable(bs, degColumnText, degInColQ,
         minDegree, maxDegree, texts, GraphuloUtil.textsToRanges(texts));
   }
 
   /** Used when thisk==1, on first call to BFS. */
-  private Collection<Text> filterTextsDegreeTable(String ADegtable, Text degColumnText, boolean degInColQ,
+  private Collection<Text> filterTextsDegreeTable(BatchScanner bs, Text degColumnText, boolean degInColQ,
                                                   int minDegree, int maxDegree,
                                                   Collection<Text> texts, Collection<Range> ranges) {
     if (ranges == null || ranges.isEmpty())
@@ -991,15 +997,8 @@ public class Graphulo {
     if (degColumnText.getLength() == 0)
       degColumnText = null;
     TableOperations tops = connector.tableOperations();
-    assert ADegtable != null && !ADegtable.isEmpty() && (minDegree > 1 || maxDegree < Integer.MAX_VALUE)
-        && maxDegree >= minDegree && tops.exists(ADegtable);
-    BatchScanner bs;
-    try {
-      bs = connector.createBatchScanner(ADegtable, Authorizations.EMPTY, 4); // TODO P2: set number of batch scan threads
-    } catch (TableNotFoundException e) {
-      log.error("crazy", e);
-      throw new RuntimeException(e);
-    }
+    assert (minDegree > 1 || maxDegree < Integer.MAX_VALUE) && maxDegree >= minDegree;
+
     bs.setRanges(ranges);
     if (!degInColQ)
       bs.fetchColumn(EMPTY_TEXT, degColumnText == null ? EMPTY_TEXT : degColumnText);
@@ -1045,7 +1044,9 @@ public class Graphulo {
         }
       }
     } finally {
-      bs.close();
+      bs.setRanges(Collections.singletonList(new Range()));
+      bs.clearColumns();
+      bs.clearScanIterators();
     }
     return texts;
   }
@@ -1172,9 +1173,11 @@ public class Graphulo {
         GraphuloUtil.applyIteratorSoft(plusOp, tops, RTtable);
     }
 
-    BatchScanner bs;
+    BatchScanner bs, bsDegree = null;
     try {
       bs = connector.createBatchScanner(Etable, Authorizations.EMPTY, 2); // TODO P2: set number of batch scan threads
+      if (needDegreeFiltering)
+        bsDegree = connector.createBatchScanner(ETDegtable, Authorizations.EMPTY, 4); // TODO P2: set number of batch scan threads
     } catch (TableNotFoundException e) {
       log.error("crazy", e);
       throw new RuntimeException(e);
@@ -1197,8 +1200,8 @@ public class Graphulo {
         if (needDegreeFiltering) { // use degree table
           long t1 = System.currentTimeMillis(), dur;
           vktexts = thisk == 1
-              ? filterTextsDegreeTable(ETDegtable, degColumnText, degInColQ, minDegree, maxDegree, vktexts, GraphuloUtil.d4mRowToRanges(v0))
-              : filterTextsDegreeTable(ETDegtable, degColumnText, degInColQ, minDegree, maxDegree, vktexts);
+              ? filterTextsDegreeTable(bsDegree, degColumnText, degInColQ, minDegree, maxDegree, vktexts, GraphuloUtil.d4mRowToRanges(v0))
+              : filterTextsDegreeTable(bsDegree, degColumnText, degInColQ, minDegree, maxDegree, vktexts);
           dur = System.currentTimeMillis() - t1;
           degTime += dur;
           if (trace) {
@@ -1253,6 +1256,8 @@ public class Graphulo {
       }
     } finally {
       bs.close();
+      if (bsDegree != null)
+        bsDegree.close();
     }
     return GraphuloUtil.textsToD4mString(vktexts, sep);
 
@@ -1449,9 +1454,11 @@ public class Graphulo {
     optSTI.put(SingleTransposeIterator.DEGCOL, degColumn);
     optSingleReducer.put(SingleBFSReducer.EDGE_SEP, edgeSepStr);
 
-    BatchScanner bs;
+    BatchScanner bs, bsDegree = null;
     try {
       bs = connector.createBatchScanner(Stable, Authorizations.EMPTY, 50); // TODO P2: set number of batch scan threads
+      if (needDegreeFiltering)
+        bsDegree = connector.createBatchScanner(SDegtable, Authorizations.EMPTY, 4); // TODO P2: set number of batch scan threads
     } catch (TableNotFoundException e) {
       log.error("crazy", e);
       throw new RuntimeException(e);
@@ -1473,8 +1480,8 @@ public class Graphulo {
         if (needDegreeFiltering /*&& SDegtable != null*/) { // use degree table
           long t1 = System.currentTimeMillis(), dur;
           vktexts = thisk == 1
-              ? filterTextsDegreeTable(SDegtable, degColumnText, degInColQ, minDegree, maxDegree, vktexts, GraphuloUtil.d4mRowToRanges(v0))
-              : filterTextsDegreeTable(SDegtable, degColumnText, degInColQ, minDegree, maxDegree, vktexts);
+              ? filterTextsDegreeTable(bsDegree, degColumnText, degInColQ, minDegree, maxDegree, vktexts, GraphuloUtil.d4mRowToRanges(v0))
+              : filterTextsDegreeTable(bsDegree, degColumnText, degInColQ, minDegree, maxDegree, vktexts);
           dur = System.currentTimeMillis() - t1;
           degTime += dur;
           if (trace) {
@@ -1543,6 +1550,8 @@ public class Graphulo {
 
     } finally {
       bs.close();
+      if (bsDegree != null)
+        bsDegree.close();
     }
 
     // take union if necessary

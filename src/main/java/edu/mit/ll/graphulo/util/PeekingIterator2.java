@@ -10,10 +10,10 @@ import java.util.Iterator;
  */
 public class PeekingIterator2<E> implements Iterator<E> {
 //  private final Iterator<E> source;
-  private PeekingIterator1<E> pSecond, pFirst;
+  private PeekingIterator1<? extends E> pSecond, pFirst;
 //  private E top;
 
-  public PeekingIterator2(Iterator<E> source) {
+  public PeekingIterator2(Iterator<? extends E> source) {
 //    this.source = source;
     pSecond = new PeekingIterator1<>(source);
     pFirst = new PeekingIterator1<>(pSecond);

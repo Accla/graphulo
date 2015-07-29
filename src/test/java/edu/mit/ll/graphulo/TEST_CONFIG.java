@@ -10,6 +10,7 @@ import org.junit.runners.Suite;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 
 @RunWith(KnownBugSuite.class)
@@ -45,16 +46,17 @@ public class TEST_CONFIG {
     if (s == null)
       s = "mini";
     if (s.startsWith("txe1-")) {
-      String instance  = s.substring(5);
-      File file = new File("/home/gridsan/groups/databases/"+instance+"/accumulo_user_password.txt");
+      String instance = s.substring(5);
+      File file = new File("/home/gridsan/groups/databases/" + instance + "/accumulo_user_password.txt");
       PasswordToken token;
       // can replace with try-with-resources in Java 1.7
 
       BufferedReader is = null;
-try {
+      try {
+        is = new BufferedReader(new FileReader(file));
         token = new PasswordToken(is.readLine());
       } catch (FileNotFoundException e) {
-        log.error("Cannot find accumulo_user_password.txt for instance "+instance, e);
+        log.error("Cannot find accumulo_user_password.txt for instance " + instance, e);
         throw new RuntimeException(e);
       } catch (IOException e) {
         log.error("Problem reading accumulo_user_password.txt for instance " + instance, e);
@@ -66,8 +68,8 @@ try {
           } catch (IOException e) {
             log.error("Problem closing reader for accumulo_user_password.txt", e);
           }
-}
-      AccumuloTester = new RealAccumuloTester(instance, instance+".cloud.llgrid.txe1.mit.edu:2181", 5000, "AccumuloUser", token);
+      }
+      AccumuloTester = new RealAccumuloTester(instance, instance + ".cloud.llgrid.txe1.mit.edu:2181", 5000, "AccumuloUser", token);
 
     } else {
       // can replace with switch in Java 1.7

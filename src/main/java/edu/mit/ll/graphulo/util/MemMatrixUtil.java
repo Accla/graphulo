@@ -105,12 +105,15 @@ public class MemMatrixUtil {
     return m;
   }
 
-  public static Map<Key, Value> matrixToMapWithLabels(RealMatrix orig, final SortedMap<Integer, String> labelMap, final boolean labelColQ) {
+  public static Map<Key, Value> matrixToMapWithLabels(RealMatrix orig, final SortedMap<Integer, String> labelMap, final boolean labelColQ,
+                                                      final double zeroTolerance) {
     final Map<Key,Value> ret = new TreeMap<>();
 
     orig.walkInOptimizedOrder(new DefaultRealMatrixPreservingVisitor() {
       @Override
       public void visit(int row, int column, double value) {
+        if (value >= -zeroTolerance && value <= zeroTolerance)
+          return;
         row++; column++;
         Text rowText, cqText;
         // labelColQ==false ==> rowText is label looked up, cq is integer as string

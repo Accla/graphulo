@@ -114,6 +114,11 @@ public class Graphulo {
     // Works on a table-level basis...
   }
 
+  @Override
+  public String toString() {
+    return "Graphulo: User "+connector.whoami()+" connected to "+connector.getInstance();
+  }
+
   private static final Text EMPTY_TEXT = new Text();
 
 
@@ -2104,7 +2109,8 @@ public class Graphulo {
   public double NMF(String Aorig, String ATorig,
                     String Wfinal, String WTfinal, String Hfinal, String HTfinal,
                     final int K, final int maxiter,
-                    boolean forceDelete, boolean trace) {
+                    boolean forceDelete, double cutoffThreshold, boolean trace) {
+    cutoffThreshold += Double.MIN_NORMAL;
     checkGiven(true, "Aorig, ATorig", Aorig, ATorig);
     checkGiven(false, "Wfinal, WTfinal, Hfinal, HTfinal", Wfinal, WTfinal, Hfinal, HTfinal);
     Preconditions.checkArgument(K > 0, "# of topics K must be > 0: "+K);
@@ -2143,12 +2149,12 @@ public class Graphulo {
       olderr = newerr;
 
       try (TraceScope scope = Trace.startSpan("nmfStepToH", Sampler.ALWAYS)) {
-        nmfStep(K, Wfinal, Aorig, Hfinal, HTfinal, Ttmp1, Ttmp2, trace);
+        nmfStep(K, Wfinal, Aorig, Hfinal, HTfinal, Ttmp1, Ttmp2, cutoffThreshold, trace);
       }
       if (trace)
         DebugUtil.printTable(numiter + ": H is KxM:", connector, Hfinal);
       try (TraceScope scope = Trace.startSpan("nmfStepToW", Sampler.ALWAYS)) {
-        nmfStep(K, HTfinal, ATorig, WTfinal, Wfinal, Ttmp1, Ttmp2, trace);
+        nmfStep(K, HTfinal, ATorig, WTfinal, Wfinal, Ttmp1, Ttmp2, cutoffThreshold, trace);
       }
       if (trace)
         DebugUtil.printTable(numiter + ": W is NxK:", connector, Wfinal);
@@ -2203,7 +2209,8 @@ public class Graphulo {
     return Math.sqrt(Double.parseDouble(new String(sumReducer.getForClient())));
   }
 
-  private void nmfStep(int K, String in1, String in2, String out1, String out2, String tmp1, String tmp2, boolean trace) {
+  private void nmfStep(int K, String in1, String in2, String out1, String out2, String tmp1, String tmp2,
+                       double cutoffThreshold, boolean trace) {
     // delete out1, out2
     deleteTables(true, out1, out2);
     org.junit.Assert.assertTrue(Trace.isTracing());
@@ -2246,7 +2253,7 @@ public class Graphulo {
     IteratorSetting sumFilterOp =
         new DynamicIteratorSetting()
         .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.DOUBLE))
-        .append(MinMaxFilter.iteratorSetting(1, ScalarType.DOUBLE, Double.MIN_NORMAL, Double.MAX_VALUE))
+        .append(MinMaxFilter.iteratorSetting(1, ScalarType.DOUBLE, cutoffThreshold, Double.MAX_VALUE))
         .toIteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority());
 
     // Execute.
@@ -2284,7 +2291,7 @@ public class Graphulo {
    */
   public double NMF_Client(String Aorig, boolean transposeA,
                     String Wfinal, boolean transposeW, String Hfinal, boolean transposeH,
-                    final int K, final int maxiter, boolean trace) {
+                    final int K, final int maxiter, double cutoffThreshold, boolean trace) {
     checkGiven(true, "Aorig", Aorig);
     Wfinal = emptyToNull(Wfinal);
     Hfinal = emptyToNull(Hfinal);
@@ -2325,13 +2332,13 @@ public class Graphulo {
       // H = ONLYPOS( (WT*W)^-1 * (WT*A) )
       //nmfStep(K, Wfinal, Aorig, Hfinal, HTfinal, Ttmp1, Ttmp2, trace);
       // assign to Hmatrix
-      Hmatrix = nmfStep_Client(WTmatrix, Wmatrix, Amatrix);
+      Hmatrix = nmfStep_Client(WTmatrix, Wmatrix, Amatrix, cutoffThreshold);
       HTmatrix = Hmatrix.transpose();
 //      if (trace)
 //        DebugUtil.printTable(numiter + ": H is KxM:", connector, Hfinal);
 
       // WT = ONLYPOS( (H*HT)^-1 * (H*AT) )
-      WTmatrix = nmfStep_Client(Hmatrix, HTmatrix, ATmatrix);
+      WTmatrix = nmfStep_Client(Hmatrix, HTmatrix, ATmatrix, cutoffThreshold);
       Wmatrix = WTmatrix.transpose();
 //      if (trace)
 //        DebugUtil.printTable(numiter + ": W is NxK:", connector, Wfinal);
@@ -2345,17 +2352,19 @@ public class Graphulo {
 
     // Write out results!
     if (Wfinal != null) {
-      Map<Key, Value> Wmap = MemMatrixUtil.matrixToMapWithLabels(Wmatrix, rowMap, false); // false = label row
+      Map<Key, Value> Wmap = MemMatrixUtil.matrixToMapWithLabels(Wmatrix, rowMap, false, 0.0001); // false = label row
       GraphuloUtil.writeEntries(connector, transposeW ? GraphuloUtil.transposeMap(Wmap) : Wmap, Wfinal, true);
     }
     if (Hfinal != null) {
-      Map<Key, Value> Hmap = MemMatrixUtil.matrixToMapWithLabels(Hmatrix, colMap, true); // true = label column qualifier
+      Map<Key, Value> Hmap = MemMatrixUtil.matrixToMapWithLabels(Hmatrix, colMap, true, 0.0001); // true = label column qualifier
       GraphuloUtil.writeEntries(connector, transposeH ? GraphuloUtil.transposeMap(Hmap) : Hmap, Hfinal, true);
     }
     return Math.abs(newerr - olderr);
   }
 
-  private RealMatrix nmfStep_Client(RealMatrix M1, RealMatrix M2, RealMatrix MA) {
+  /**
+   * @param threshold Entries below this are set to 0. */
+  private RealMatrix nmfStep_Client(RealMatrix M1, RealMatrix M2, RealMatrix MA, final double threshold) {
     RealMatrix MR = MemMatrixUtil.doInverse(M1.multiply(M2)).multiply(M1.multiply(MA));
     // only keep positive entries
     MR.walkInOptimizedOrder(new RealMatrixChangingVisitor() {
@@ -2366,7 +2375,7 @@ public class Graphulo {
 
       @Override
       public double visit(int row, int column, double value) {
-        return value > 0 ? value : 0;
+        return value > threshold ? value : 0;
       }
 
       @Override

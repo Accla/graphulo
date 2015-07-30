@@ -46,6 +46,7 @@ public class NMFExample extends AccumuloTestBase {
     boolean trace = false;                              // Disable debug printing.
     int K = 3;                                          // 3 topics
     int maxiter = 3;                                    // 3 iterations of NMF maximum
+    double cutoffThreshold = 0.0;                       // Threshold to cut off entries with value less than this
 
 
     // In your code, you would connect to an Accumulo instance by writing something similar to:
@@ -70,7 +71,8 @@ public class NMFExample extends AccumuloTestBase {
 
     // Non-negative matrix factorization.
     // This call blocks until the NMF completes.
-    double nmfError = graphulo.NMF(Etable, ETtable, Wtable, WTtable, Htable, HTtable, K, maxiter, true, trace);
+    double nmfError = graphulo.NMF(Etable, ETtable, Wtable, WTtable, Htable, HTtable, K, maxiter, true,
+        cutoffThreshold, trace);
     System.out.println("Final NMF absolute difference in error: " + nmfError);
 
     DistributedTrace.enable("NMFExample");  // remove this for no tracing

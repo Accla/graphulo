@@ -328,7 +328,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     boolean trace = false;
     long t = System.currentTimeMillis();
     int K = 3;
-    double error = graphulo.NMF(tE, tET, tW, tWT, tH, tHT, K, maxIter, true, trace);
+    double error = graphulo.NMF(tE, tET, tW, tWT, tH, tHT, K, maxIter, true, 0, trace);
     System.out.println("Trace is "+trace+"; NMF time "+(System.currentTimeMillis()-t));
     log.info("NMF error " + error);
 
@@ -426,7 +426,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     int maxIter = 10;
     boolean trace = false;
     long t = System.currentTimeMillis();
-    double error = graphulo.NMF_Client(tE, false, tW, false, tH, false,K, maxIter, trace);
+    double error = graphulo.NMF_Client(tE, false, tW, false, tH, false,K, maxIter, 0, trace);
     System.out.println("Trace is "+trace+"; Client NMF time "+(System.currentTimeMillis()-t));
     log.info("NMF error " + error);
 

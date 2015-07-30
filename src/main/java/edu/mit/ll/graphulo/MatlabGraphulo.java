@@ -79,4 +79,22 @@ public class MatlabGraphulo extends Graphulo {
     }
   }
 
+  /** Flush a table, writing entries in memory to disk. */
+  public void Flush(String table) {
+    System.out.println("Flushing " + table + "...");
+    try {
+      connector.tableOperations().flush(table, null, null, true);
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      log.error("error trying to compact " + table, e);
+    } catch (TableNotFoundException e) {
+      log.error("", e);
+    }
+  }
+
+  public boolean Exists(String table) {
+    return connector.tableOperations().exists(table);
+  }
+
+  
+
 }

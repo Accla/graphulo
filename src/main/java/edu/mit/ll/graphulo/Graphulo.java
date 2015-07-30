@@ -1000,7 +1000,7 @@ public class Graphulo {
       bs.addScanIterator(itset);
     }
 
-    bs.addScanIterator(MinMaxFilter.iteratorSetting(2, ScalarType.LONG, minDegree, maxDegree,
+    bs.addScanIterator(MinMaxFilter.iteratorSetting(50, ScalarType.LONG, minDegree, maxDegree,
         degInColQ, degColumnText == null ? null : degColumnText.toString()));
 
     try {

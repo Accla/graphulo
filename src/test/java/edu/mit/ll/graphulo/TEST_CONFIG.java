@@ -66,6 +66,8 @@ public class TEST_CONFIG {
           AccumuloTester = new RealAccumuloTester("instance", "localhost:2181", 5000, "root", new PasswordToken("secret"));
           break;
         case "local-1.7.0":
+          // G = edu.mit.ll.graphulo.MatlabGraphulo('instance-1.7.0','localhost:2181','root','secret')
+          // DB = DBserver('localhost:2181','Accumulo','instance-1.7.0','root','secret')
           AccumuloTester = new RealAccumuloTester("instance-1.7.0", "localhost:2181", 5000, "root", new PasswordToken("secret"));
           break;
         case "mini":

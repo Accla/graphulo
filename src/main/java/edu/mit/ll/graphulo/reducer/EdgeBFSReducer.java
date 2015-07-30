@@ -59,7 +59,7 @@ public class EdgeBFSReducer extends ReducerSerializable<HashSet<String>> {
     // Binary search could speed this but almost always low number of inColumnPrefixes.
     for (byte[] inColumnPrefix : inColumnPrefixes) {
       String nodeAfter = GraphuloUtil.stringAfter(inColumnPrefix, cqBytes);
-      log.debug((nodeAfter==null? "NO : " : "YES: ")+new String(cqBytes));
+//      log.debug((nodeAfter==null? "NO : " : "YES: ")+new String(cqBytes));
       if (nodeAfter != null)
         return nodeAfter;
     }
@@ -68,7 +68,7 @@ public class EdgeBFSReducer extends ReducerSerializable<HashSet<String>> {
 
   @Override
   public void update(Key k, Value v) {
-    String nodeAfter = findNodeAfter(k.getColumnQualifier().getBytes());
+    String nodeAfter = findNodeAfter(k.getColumnQualifierData().getBackingArray());
     if (nodeAfter != null)
       setNodesReached.add(nodeAfter);
 //    log.debug("received colQ "+k.getColumnQualifier().toString()+" : now "+setNodesReached.toString());

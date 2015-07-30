@@ -21,7 +21,7 @@ import edu.mit.ll.graphulo.simplemult.MathTwoScalar.ScalarOp;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar.ScalarType;
 import edu.mit.ll.graphulo.skvi.CountAllIterator;
 import edu.mit.ll.graphulo.skvi.InverseMatrixIterator;
-import edu.mit.ll.graphulo.skvi.MinMaxValueFilter;
+import edu.mit.ll.graphulo.skvi.MinMaxFilter;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
 import edu.mit.ll.graphulo.skvi.SeekFilterIterator;
 import edu.mit.ll.graphulo.skvi.SingleTransposeIterator;
@@ -51,7 +51,6 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.LongCombiner;
-import org.apache.accumulo.core.iterators.ValueFormatException;
 import org.apache.accumulo.core.iterators.user.ColumnSliceFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.security.Authorizations;
@@ -896,9 +895,8 @@ public class Graphulo {
 
         if (needDegreeFiltering && ADegtable != null) { // use degree table
           long t1 = System.currentTimeMillis(), dur;
-          vktexts = thisk == 1
-              ? filterTextsDegreeTable(bsDegree, degColumnText, degInColQ, minDegree, maxDegree, vktexts, GraphuloUtil.d4mRowToRanges(v0))
-              : filterTextsDegreeTable(bsDegree, degColumnText, degInColQ, minDegree, maxDegree, vktexts);
+          vktexts = filterTextsDegreeTable(bsDegree, degColumnText, degInColQ, minDegree, maxDegree,
+                    thisk == 1 ? GraphuloUtil.d4mRowToRanges(v0) : GraphuloUtil.textsToRanges(vktexts));
           dur = System.currentTimeMillis() - t1;
           degTime += dur;
           if (trace) {
@@ -974,29 +972,16 @@ public class Graphulo {
    * @param degInColQ False means degree in value. True means degree in column qualifier and that degColumnText is a prefix before the numeric portion of the column qualifier degree.
    * @return The same texts object, with nodes that fail the degree filter removed.
    */
+  // Ranges passed differently on thisk == 1
   private Collection<Text> filterTextsDegreeTable(BatchScanner bs, Text degColumnText, boolean degInColQ,
                                                   int minDegree, int maxDegree,
-                                                  Collection<Text> texts) {
-    if (texts == null || texts.isEmpty())
-      return texts;
-    return filterTextsDegreeTable(bs, degColumnText, degInColQ,
-        minDegree, maxDegree, texts, GraphuloUtil.textsToRanges(texts));
-  }
-
-  /** Used when thisk==1, on first call to BFS. */
-  private Collection<Text> filterTextsDegreeTable(BatchScanner bs, Text degColumnText, boolean degInColQ,
-                                                  int minDegree, int maxDegree,
-                                                  Collection<Text> texts, Collection<Range> ranges) {
+                                                  Collection<Range> ranges) {
+    Collection<Text> texts = new HashSet<>();
     if (ranges == null || ranges.isEmpty())
       return texts;
-    boolean addToTexts = false;
-    if (texts == null)
-      throw new IllegalArgumentException("texts is null");
-    if (texts.isEmpty())
-      addToTexts = true;
     if (degColumnText.getLength() == 0)
       degColumnText = null;
-    TableOperations tops = connector.tableOperations();
+//    TableOperations tops = connector.tableOperations();
     assert (minDegree > 1 || maxDegree < Integer.MAX_VALUE) && maxDegree >= minDegree;
 
     bs.setRanges(ranges);
@@ -1010,38 +995,13 @@ public class Graphulo {
       bs.addScanIterator(itset);
     }
 
-    try {
-      Text badRow = new Text();
-      for (Map.Entry<Key, Value> entry : bs) {
-        boolean bad = false;
-//      log.debug("Deg Entry: " + entry.getKey() + " -> " + entry.getValue());
-        try {
-          long deg;
-          if (degInColQ) {
-            if (degColumnText != null) {
-              String degString = GraphuloUtil.stringAfter(degColumnText.getBytes(), entry.getKey().getColumnQualifierData().getBackingArray());
-              if (degString == null) // should never occur since we use a column filter
-                continue;
-              else
-                deg = Long.parseLong(degString);
-            } else
-              deg = LongCombiner.STRING_ENCODER.decode(entry.getKey().getColumnQualifierData().getBackingArray());
-          } else
-            deg = LongCombiner.STRING_ENCODER.decode(entry.getValue().get());
-          if (deg < minDegree || deg > maxDegree)
-            bad = true;
-        } catch (NumberFormatException | ValueFormatException e) {
-          log.warn("Trouble parsing degree entry as long; assuming bad degree: " + entry.getKey() + " -> " + entry.getValue(), e);
-          bad = true;
-        }
+    bs.addScanIterator(MinMaxFilter.iteratorSetting(2, ScalarType.LONG, minDegree, maxDegree,
+        degInColQ, degColumnText == null ? null : degColumnText.toString()));
 
-        if (!addToTexts && bad) {
-          boolean remove = texts.remove(entry.getKey().getRow(badRow));
-          if (!remove)
-            log.warn("Unrecognized entry with bad degree; cannot remove: " + entry.getKey() + " -> " + entry.getValue());
-        } else if (addToTexts && !bad) {
-          texts.add(entry.getKey().getRow()); // need new Text object
-        }
+    try {
+      for (Map.Entry<Key, Value> entry : bs) {
+//      log.debug("Deg Entry: " + entry.getKey() + " -> " + entry.getValue());
+        texts.add(entry.getKey().getRow()); // need new Text object
       }
     } finally {
       bs.setRanges(Collections.singletonList(new Range()));
@@ -1199,9 +1159,8 @@ public class Graphulo {
 
         if (needDegreeFiltering) { // use degree table
           long t1 = System.currentTimeMillis(), dur;
-          vktexts = thisk == 1
-              ? filterTextsDegreeTable(bsDegree, degColumnText, degInColQ, minDegree, maxDegree, vktexts, GraphuloUtil.d4mRowToRanges(v0))
-              : filterTextsDegreeTable(bsDegree, degColumnText, degInColQ, minDegree, maxDegree, vktexts);
+          vktexts = filterTextsDegreeTable(bsDegree, degColumnText, degInColQ, minDegree, maxDegree,
+              thisk == 1 ? GraphuloUtil.d4mRowToRanges(v0) : GraphuloUtil.textsToRanges(vktexts));
           dur = System.currentTimeMillis() - t1;
           degTime += dur;
           if (trace) {
@@ -1479,9 +1438,8 @@ public class Graphulo {
         Collection<Range> rowFilter;
         if (needDegreeFiltering /*&& SDegtable != null*/) { // use degree table
           long t1 = System.currentTimeMillis(), dur;
-          vktexts = thisk == 1
-              ? filterTextsDegreeTable(bsDegree, degColumnText, degInColQ, minDegree, maxDegree, vktexts, GraphuloUtil.d4mRowToRanges(v0))
-              : filterTextsDegreeTable(bsDegree, degColumnText, degInColQ, minDegree, maxDegree, vktexts);
+          vktexts = filterTextsDegreeTable(bsDegree, degColumnText, degInColQ, minDegree, maxDegree,
+              thisk == 1 ? GraphuloUtil.d4mRowToRanges(v0) : GraphuloUtil.textsToRanges(vktexts));
           dur = System.currentTimeMillis() - t1;
           degTime += dur;
           if (trace) {
@@ -1765,7 +1723,7 @@ public class Graphulo {
       // Filter out entries with < k-2
       IteratorSetting sumAndFilter = new DynamicIteratorSetting()
         .append(PLUS_ITERATOR_LONG)
-        .append(MinMaxValueFilter.iteratorSetting(10, ScalarType.LONG, k-2, null))
+        .append(MinMaxFilter.iteratorSetting(10, ScalarType.LONG, k - 2, null))
         .toIteratorSetting(PLUS_ITERATOR_LONG.getPriority());
       // No Diagonal filter
       List<IteratorSetting> noDiagFilter = Collections.singletonList(
@@ -1890,11 +1848,11 @@ public class Graphulo {
       // E*A -> sum -> ==2 -> Abs0 -> OnlyRow -> sum -> kTrussFilter -> TT_RowSelector
       IteratorSetting itsBeforeR = new DynamicIteratorSetting()
           .append(PLUS_ITERATOR_LONG)
-          .append(MinMaxValueFilter.iteratorSetting(1, ScalarType.LONG, 2, 2))
+          .append(MinMaxFilter.iteratorSetting(1, ScalarType.LONG, 2, 2))
           .append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes())))
           .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))
           .append(PLUS_ITERATOR_LONG)
-          .append(MinMaxValueFilter.iteratorSetting(10, ScalarType.LONG, k-2, null))
+          .append(MinMaxFilter.iteratorSetting(10, ScalarType.LONG, k - 2, null))
           .toIteratorSetting(PLUS_ITERATOR_LONG.getPriority());
 
       do {
@@ -2288,7 +2246,7 @@ public class Graphulo {
     IteratorSetting sumFilterOp =
         new DynamicIteratorSetting()
         .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.DOUBLE))
-        .append(MinMaxValueFilter.iteratorSetting(1, ScalarType.DOUBLE, Double.MIN_NORMAL, Double.MAX_VALUE))
+        .append(MinMaxFilter.iteratorSetting(1, ScalarType.DOUBLE, Double.MIN_NORMAL, Double.MAX_VALUE))
         .toIteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority());
 
     // Execute.

@@ -6,8 +6,8 @@ set -u #unset variable reference causes script fail
 if [ -z ${ACCUMULO_HOME+x} ]; then
   echo "Not installing Graphulo JAR in Accumulo server because ACCUMULO_HOME is not set";
 else
-  cp target/graphulo-*.jar "$ACCUMULO_HOME/lib/ext"
-  echo "Installed Graphulo into ACCUMULO_HOME at $ACCUMULO_HOME"
+  cp target/graphulo-*-alldeps.jar "$ACCUMULO_HOME/lib/ext"
+  echo "Installed Graphulo alldeps jar into ACCUMULO_HOME at $ACCUMULO_HOME"
 fi
 
 # Install client code + dependencies in D4M.

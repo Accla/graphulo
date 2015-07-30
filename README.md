@@ -42,7 +42,8 @@ src/
       data/...        Data folder - contains pre-created graphs.
 
 target/
-  graphulo-${version}.jar         Binaries.
+  graphulo-${version}.jar         Graphulo binaries, enough for client usage.
+  graphulo-${version}-alldeps.zip Graphulo + all referenced binaries, for easy server installation.
   graphulo-${version}-libext.zip  ZIP of the JARs of all dependencies.
   site/apidocs/...                Javadoc.
   graphulo-${version}-dist.zip    Distribution ZIP. Contains all source and binaries.
@@ -71,12 +72,18 @@ shippable.yml         Enables continuous integration testing.
 Prerequisite: Install [Maven](https://maven.apache.org/download.cgi).
 
 Run `mvn package -DskipTests=true` to compile and build graphulo.
-Compilation runs against 1.7 by default.
-The main distribution files are a JAR containing graphulo code, 
-and a libext ZIP file containing dependencies for both projects.
-The JAR and ZIP are created inside the `target/` directory.
+This creates three primary Graphulo artifacts inside the `target/` sub-directory:
 
-The maven script will build everything on Unix-like systems.
+1. `graphulo-${version}.jar`         Graphulo binaries, enough for client usage.
+Include this on the classpath of Java client applications that call Graphulo functions. 
+2. `graphulo-${version}-alldeps.zip` Graphulo + all referenced binaries, for easy server installation.
+Include this in the `lib/ext/` directory of Accumulo server installations 
+in order to provide the Graphulo code and every class referenced by Graphulo,
+so that the Accumulo instance has everything it could possibly need to instantiate Graphulo code.
+3. `graphulo-${version}-libext.zip`  ZIP of the JARs of all dependencies.
+Unzip this in a D4M installation directory to make Graphulo available in D4M.  
+
+The maven script will build everything on Unix-like systems (including Mac).
 On Windows systems, `DBinit.m` may not be built (used in D4M installation). 
 See the message in the build after running `mvn package`.
 
@@ -121,20 +128,29 @@ and counts the number of resulting entries.
 ### Deploy to Accumulo and D4M
 Execute `./deploy.sh`. This script will do the following:
 
-1. ACCUMULO DEPLOY: Copy the Graphulo JAR into `$ACCUMULO_HOME/lib/ext`, the external library folder of your Accumulo installation,
+1. ACCUMULO DEPLOY: Copy the `alldeps` Graphulo JAR into `$ACCUMULO_HOME/lib/ext`, the external library folder of your Accumulo installation,
 so that Accumulo can use Graphulo's server-side iterators.
-2. D4M DEPLOY: Copy the Graphulo JAR into `$D4M_HOME/lib`, unpack dependencies into `$D4M_HOME/libext`
+2. D4M DEPLOY: Copy the client Graphulo JAR into `$D4M_HOME/lib`, unpack dependencies into `$D4M_HOME/libext`
 and update `$D4M_HOME/matlab_src/DBinit.m`.
 
 Feel free to delete or edit parts of the script for deploying to your environment.
 
 ### Distribute
-Execute `mvn install` to build the distribution zip file `target/graphulo-${version}-dist.zip`.
-This zip contains all source code, javadoc and compiled binaries.
+Execute `mvn install -DskipTests` to create a *fourth artifact*:
+the distribution zip file `target/graphulo-${version}-dist.zip`.
+This zip contains all source code and javadoc.
+Binaries may be built with `mvn package -DskipTests`, 
+and the new distribution may even be used to create further distributions using `mvn install`.
 
-`mvn install` will also install `target/graphulo-${version}.jar` into your local maven repository,
+`mvn install` will also install the three main Graphulo artifacts (plus the POM) 
+into your local maven repository (typically the directory `~/.m2/repository/edu/mit/ll/graphulo/`),
 which enables using Graphulo as a Maven dependency in a derivative client project. 
+As a summary, these are:
 
+1. `graphulo-${version}.jar` 
+2. `graphulo-${version}-alldeps.zip` 
+3. `graphulo-${version}-libext.zip`
+4. `graphulo-${version}.pom`
 
 ### How to use Graphulo in Java client code
 Include Graphulo's JAR in the Java classpath when running client code.  

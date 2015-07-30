@@ -214,6 +214,45 @@
         </executions>
       </plugin>
 
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>2.4.1</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <shadedClassifierName>alldeps</shadedClassifierName>
+              <minimizeJar>true</minimizeJar>
+              <!--<artifactSet>-->
+                <!--<includes>-->
+                  <!--<include>org.apache.commons:commons-math3</include>-->
+                <!--</includes>-->
+                <!--&lt;!&ndash;<excludes>&ndash;&gt;-->
+                  <!--&lt;!&ndash;<exclude>*:maven-core</exclude>&ndash;&gt;-->
+                <!--&lt;!&ndash;</excludes>&ndash;&gt;-->
+              <!--</artifactSet>-->
+              <!--<filters>-->
+                <!--<filter>-->
+                  <!--<artifact>org.apache.commons:commons-math3</artifact>-->
+                  <!--<includes>-->
+                    <!--<include>org/apache/commons/math3/linear/**</include>-->
+                  <!--</includes>-->
+                  <!--&lt;!&ndash;<excludes>&ndash;&gt;-->
+                    <!--&lt;!&ndash;<exclude>org/junit/experimental/**</exclude>&ndash;&gt;-->
+                  <!--&lt;!&ndash;</excludes>&ndash;&gt;-->
+                <!--</filter>-->
+              <!--</filters>-->
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+
       <!-- Ensure this is the last step before the linux-specific profile for the message to be seen by non-linux users. -->
       <plugin>
         <artifactId>maven-antrun-plugin</artifactId>
@@ -322,6 +361,14 @@
         <version>chargebee-1.0</version>
         <scope>runtime</scope>
       </dependency>
+
+      <!-- Accumulo server-side dependencies-->
+      <!--<dependency>-->
+        <!--<groupId>org.apache.commons</groupId>-->
+        <!--<artifactId>commons-math3</artifactId>-->
+        <!--<version>3.1.1</version>-->
+        <!--<scope>runtime</scope>-->
+      <!--</dependency>-->
     </dependencies>
 
 </project>

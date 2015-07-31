@@ -1,6 +1,6 @@
 package edu.mit.ll.graphulo;
 
-import edu.mit.ll.graphulo.reducer.GatherColQReducer;
+import edu.mit.ll.graphulo.reducer.GatherReducer;
 import edu.mit.ll.graphulo.skvi.RemoteMergeIterator;
 import edu.mit.ll.graphulo.skvi.RemoteSourceIterator;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
@@ -94,12 +94,13 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     opt.put("tableNameTranspose", tRT);
     opt.put("username", conn.whoami());
     opt.put("password", new String(tester.getPassword().getPassword()));
-    opt.put("reducer", GatherColQReducer.class.getName());
+    opt.put("reducer", GatherReducer.class.getName());
+    opt.put("reducer.opt."+GatherReducer.KEYPART, GatherReducer.KeyPart.COLQ.name());
     IteratorSetting is = new IteratorSetting(12,RemoteWriteIterator.class, opt);
     bs.addScanIterator(is);
 
-    GatherColQReducer reducer = new GatherColQReducer();
-    reducer.init(Collections.<String,String>emptyMap(), null);
+    GatherReducer reducer = new GatherReducer();
+    reducer.init(GatherReducer.reducerOptions(GatherReducer.KeyPart.COLQ), null);
     for (Map.Entry<Key, Value> entry : bs) {
       RemoteWriteIterator.decodeValue(entry.getValue(), reducer);
 //      setUniqueColQsActual.addAll((HashSet<String>) SerializationUtils.deserialize(entry.getValue().get()));

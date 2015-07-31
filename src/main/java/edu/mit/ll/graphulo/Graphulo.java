@@ -7,7 +7,7 @@ import edu.mit.ll.graphulo.apply.KeyRetainOnlyApply;
 import edu.mit.ll.graphulo.apply.RandomTopicApply;
 import edu.mit.ll.graphulo.ewise.EWiseOp;
 import edu.mit.ll.graphulo.reducer.EdgeBFSReducer;
-import edu.mit.ll.graphulo.reducer.GatherColQReducer;
+import edu.mit.ll.graphulo.reducer.GatherReducer;
 import edu.mit.ll.graphulo.reducer.Reducer;
 import edu.mit.ll.graphulo.reducer.SingleBFSReducer;
 import edu.mit.ll.graphulo.rowmult.CartesianRowMultiply;
@@ -927,12 +927,13 @@ public class Graphulo {
             iteratorSettingList.add(itsetDegreeFilter);
         }
 
-        GatherColQReducer reducer = new GatherColQReducer();
-        reducer.init(Collections.<String, String>emptyMap(), null);
+        GatherReducer reducer = new GatherReducer();
+        Map<String,String> reducerOpts = GatherReducer.reducerOptions(GatherReducer.KeyPart.COLQ);
+        reducer.init(reducerOpts, null);
 
         long t2 = System.currentTimeMillis(), dur;
         OneTable(Atable, Rtable, RTtable, clientResultMap, AScanIteratorPriority,
-            reducer, Collections.<String, String>emptyMap(), plusOp,
+            reducer, reducerOpts, plusOp,
             rowFilter, null, // no column filter
             iteratorSettingList, bs,
             trace);

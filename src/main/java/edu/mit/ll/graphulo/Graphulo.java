@@ -23,6 +23,7 @@ import edu.mit.ll.graphulo.skvi.CountAllIterator;
 import edu.mit.ll.graphulo.skvi.InverseMatrixIterator;
 import edu.mit.ll.graphulo.skvi.MinMaxFilter;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
+import edu.mit.ll.graphulo.skvi.SamplingFilter;
 import edu.mit.ll.graphulo.skvi.SeekFilterIterator;
 import edu.mit.ll.graphulo.skvi.SingleTransposeIterator;
 import edu.mit.ll.graphulo.skvi.SmallLargeRowFilter;
@@ -2439,6 +2440,15 @@ public class Graphulo {
         null, null, null, false, false, -1, false);
 
     deleteTables(true, Ttmp1);
+  }
+
+
+  /** Copy a table to another, sampling entries uniformly with given probability.
+   * @return  # of entries written to result table (after sampling)
+   */
+  public long SampleCopy(String Atable, String Rtable, double probability, boolean trace) {
+    return OneTable(Atable, Rtable, null, null, 21, null, null, null, null, null,
+        Collections.singletonList(SamplingFilter.iteratorSetting(1, probability)), null, trace);
   }
 
 }

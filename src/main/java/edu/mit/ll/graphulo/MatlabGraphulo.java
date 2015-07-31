@@ -56,6 +56,18 @@ public class MatlabGraphulo extends Graphulo {
         rowFilterRanges, colFilterAT, colFilterB, false, false, null, null, null, null, null, numEntriesCheckpoint, trace);
   }
 
+  public long TableMult(String ATtable, String Btable, String Ctable, String CTtable,
+                        String rowFilter, String colFilterAT, String colFilterB,
+                        int numEntriesCheckpoint, boolean trace) {
+    Collection<Range> rowFilterRanges =
+        rowFilter != null && !rowFilter.isEmpty() ? GraphuloUtil.d4mRowToRanges(rowFilter) : null;
+
+
+    return TableMult(ATtable, Btable, Ctable, CTtable, -1,
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG), Graphulo.PLUS_ITERATOR_BIGDECIMAL,
+        rowFilterRanges, colFilterAT, colFilterB, false, false, null, null, null, null, null, numEntriesCheckpoint, trace);
+  }
+
 
   public void CancelCompact(String table) {
     try {
@@ -95,6 +107,6 @@ public class MatlabGraphulo extends Graphulo {
     return connector.tableOperations().exists(table);
   }
 
-  
+
 
 }

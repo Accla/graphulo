@@ -2446,9 +2446,13 @@ public class Graphulo {
   /** Copy a table to another, sampling entries uniformly with given probability.
    * @return  # of entries written to result table (after sampling)
    */
-  public long SampleCopy(String Atable, String Rtable, double probability, boolean trace) {
-    return OneTable(Atable, Rtable, null, null, 21, null, null, null, null, null,
-        Collections.singletonList(SamplingFilter.iteratorSetting(1, probability)), null, trace);
+  public long SampleCopy(String Atable, String Rtable, String RTtable, double probability, boolean trace) {
+    if (probability <= 0)
+      throw new IllegalArgumentException("Probability <= 0 means the created tables are empty: "+probability);
+    return OneTable(Atable, Rtable, RTtable, null, 21, null, null, null, null, null,
+        probability >= 1 ? Collections.<IteratorSetting>emptyList() :
+            Collections.singletonList(SamplingFilter.iteratorSetting(1, probability)),
+        null, trace);
   }
 
 }

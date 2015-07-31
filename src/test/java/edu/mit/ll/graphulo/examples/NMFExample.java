@@ -25,8 +25,9 @@ import java.util.Map;
 /**
  * Example demonstrating
  * (1) ingest the incidence matrix representation of a graph into the D4M Schema tables ex10AEdge, ex10AEdgeT, ex10AEdgeDegT;
- * (2) create new Accumulo tables ex10AEdgeW, -WT, -H, and -HT as output from Non-negative Matrix Factorization;
- * (3) multiply the factor tables W and H into a new table ex10AEdgeApprox that approximates the original incidence matrix.
+ * (2) sample the graph uniformly with a given probability;
+ * (3) create new Accumulo tables ex10AEdgeW, -WT, -H, and -HT as output from Non-negative Matrix Factorization;
+ * (4) multiply the factor tables W and H into a new table ex10AEdgeApprox that approximates the original incidence matrix.
  */
 public class NMFExample extends AccumuloTestBase {
   private static final Logger log = LogManager.getLogger(NMFExample.class);
@@ -37,8 +38,10 @@ public class NMFExample extends AccumuloTestBase {
   @Test
   public void exampleNMF() throws FileNotFoundException, TableNotFoundException, AccumuloSecurityException, AccumuloException {
     String Atable = "ex" + SCALE + "A";                 // Table base name.
-    String Etable = "ex" + SCALE + "AEdge";             // Incidence table A.
-    String ETtable = "ex" + SCALE + "AEdgeT";           // Tranpose of incidence table.
+    String Etable = "ex" + SCALE + "AEdge";             // Incidence table.
+    String ETtable = "ex" + SCALE + "AEdgeT";           // Transpose of incidence table.
+    String EtableSample = "ex" + SCALE + "AEdgeSample";   // Sampled-down version of incidence table.
+    String ETtableSample = "ex" + SCALE + "AEdgeTSample"; // Sampled-down version of transpose of incidence table.
     String Wtable = "ex" + SCALE + "AEdgeW";            // Output table W.
     String WTtable = "ex" + SCALE + "AEdgeWT";          // Transpose of output table W.
     String Htable = "ex" + SCALE + "AEdgeH";            // Output table H.
@@ -69,9 +72,14 @@ public class NMFExample extends AccumuloTestBase {
     // Create Graphulo executor. Supply the password for your Accumulo user account.
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
 
+    // Sample the graph with 1% uniform sampling and materialize the result in a sampled table
+    double probability = 0.01;
+    long nnzSample = graphulo.SampleCopy(Etable, EtableSample, ETtableSample, probability, trace);
+    System.out.println("Sample finished; #entries in sample is "+nnzSample);
+
     // Non-negative matrix factorization.
     // This call blocks until the NMF completes.
-    double nmfError = graphulo.NMF(Etable, ETtable, Wtable, WTtable, Htable, HTtable, K, maxiter, true,
+    double nmfError = graphulo.NMF(EtableSample, ETtableSample, Wtable, WTtable, Htable, HTtable, K, maxiter, true,
         cutoffThreshold, trace);
     System.out.println("Final NMF absolute difference in error: " + nmfError);
 

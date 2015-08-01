@@ -354,6 +354,12 @@
         <artifactId>accumulo-minicluster</artifactId>
         <version>${accumulo.version}</version>
       </dependency>
+      <!-- Replaces Accumulo dependency on Apache Commons 3.2, which does not use Java Generics. -->
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-collections4</artifactId>
+        <version>4.0</version>
+      </dependency>
       <!-- Used by some JSON functions, in D4M Matlab. -->
       <dependency>
         <groupId>org.json</groupId>

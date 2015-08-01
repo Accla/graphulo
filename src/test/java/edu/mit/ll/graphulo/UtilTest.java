@@ -4,6 +4,7 @@ import com.google.common.collect.Iterators;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import edu.mit.ll.graphulo.skvi.MinMaxFilter;
 import edu.mit.ll.graphulo.skvi.TriangularFilter;
+import edu.mit.ll.graphulo.util.DoubletonIterator;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.PeekingIterator2;
 import edu.mit.ll.graphulo.util.RangeSet;
@@ -522,7 +523,7 @@ public class UtilTest {
     IteratorSetting setting2 = dis2.toIteratorSetting(5);
     Assert.assertEquals(setting2,
         DynamicIteratorSetting.fromMap(setting2.getOptions()).toIteratorSetting(5));
-    log.info("DynamicIteratorSetting2: "+setting2);
+    log.info("DynamicIteratorSetting2: " + setting2);
   }
 
   @Test
@@ -576,6 +577,29 @@ public class UtilTest {
     r = new Range("a",true,"b",true);
     pre = "";
     Assert.assertEquals(r, GraphuloUtil.prependPrefixToRange(pre, r));
+  }
+
+  @Test
+  public void testDoubletonIterator() {
+    DoubletonIterator<Integer> it = new DoubletonIterator<>();
+    it.reuseAndReset(7, 8);
+    Assert.assertTrue(it.hasNext());
+    Assert.assertEquals(7, it.next().intValue());
+    Assert.assertTrue(it.hasNext());
+    Assert.assertEquals(8, it.next().intValue());
+    Assert.assertFalse(it.hasNext());
+    it.reset();
+    Assert.assertTrue(it.hasNext());
+    Assert.assertEquals(7, it.next().intValue());
+    Assert.assertTrue(it.hasNext());
+    Assert.assertEquals(8, it.next().intValue());
+    Assert.assertFalse(it.hasNext());
+    it.reuseAndReset(5, 6);
+    Assert.assertTrue(it.hasNext());
+    Assert.assertEquals(5, it.next().intValue());
+    Assert.assertTrue(it.hasNext());
+    Assert.assertEquals(6, it.next().intValue());
+    Assert.assertFalse(it.hasNext());
   }
 
 }

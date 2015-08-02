@@ -49,7 +49,7 @@ public class NMFExample extends AccumuloTestBase {
     boolean trace = false;                              // Disable debug printing.
     int K = 3;                                          // 3 topics
     int maxiter = 3;                                    // 3 iterations of NMF maximum
-    double cutoffThreshold = 0.0;                       // Threshold to cut off entries with value less than this
+    double cutoffThreshold = 0.00001;                       // Threshold to cut off entries with value less than this
 
 
     // In your code, you would connect to an Accumulo instance by writing something similar to:
@@ -72,8 +72,8 @@ public class NMFExample extends AccumuloTestBase {
     // Create Graphulo executor. Supply the password for your Accumulo user account.
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
 
-    // Sample the graph with 1% uniform sampling and materialize the result in a sampled table
-    double probability = 0.01;
+    // Sample the graph with 10% uniform sampling and materialize the result in a sampled table
+    double probability = 0.1;
     long nnzSample = graphulo.SampleCopy(Etable, EtableSample, ETtableSample, probability, trace);
     System.out.println("Sample finished; #entries in sample is "+nnzSample);
 

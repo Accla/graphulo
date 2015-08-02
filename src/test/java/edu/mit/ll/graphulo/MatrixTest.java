@@ -37,7 +37,7 @@ public class MatrixTest  {
     Assert.assertEquals(0, matrix.getEntry(1, 0), tol);
     Assert.assertEquals(1, matrix.getEntry(1, 1), tol);
 
-    matrix = MemMatrixUtil.doInverse(matrix);
+    matrix = MemMatrixUtil.doInverse(matrix, -1);
     Assert.assertEquals(2, matrix.getRowDimension());
     Assert.assertEquals(2, matrix.getColumnDimension());
     Assert.assertEquals(1, matrix.getEntry(0, 0), tol);
@@ -73,7 +73,7 @@ public class MatrixTest  {
     Assert.assertEquals(1, matrix.getEntry(1, 0), tol);
     Assert.assertEquals(1, matrix.getEntry(1, 1), tol);
 
-    matrix = MemMatrixUtil.doInverse(matrix);
+    matrix = MemMatrixUtil.doInverse(matrix, -1);
     Assert.assertEquals(2, matrix.getRowDimension());
     Assert.assertEquals(2, matrix.getColumnDimension());
     Assert.assertEquals(1 , matrix.getEntry(0, 0), tol);

@@ -1,7 +1,6 @@
 package edu.mit.ll.graphulo.skvi;
 
 import com.google.common.base.Preconditions;
-import edu.mit.ll.graphulo.util.DebugUtil;
 import edu.mit.ll.graphulo.util.MemMatrixUtil;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.mock.IteratorAdapter;
@@ -27,22 +26,26 @@ import java.util.TreeMap;
 public class InverseMatrixIterator implements SortedKeyValueIterator<Key,Value> {
   private static final Logger log = LogManager.getLogger(MapIterator.class);
 
-  public static final String MATRIX_SIZE = "matrixSize";
+  public static final String MATRIX_SIZE = "matrixSize", NUMITERATIONS = "numIterations";
 
-  public static IteratorSetting iteratorSetting(int priority, int matrixSize) {
+  public static IteratorSetting iteratorSetting(int priority, int matrixSize, int numIterations) {
     IteratorSetting itset = new IteratorSetting(priority, InverseMatrixIterator.class);
     itset.addOption(MATRIX_SIZE, Integer.toString(matrixSize));
+    itset.addOption(NUMITERATIONS, Integer.toString(numIterations));
     return itset;
   }
 
   private SortedKeyValueIterator<Key,Value> source, mapIterator;
   private int matrixSize;
+  private int numIterations;
 
   @Override
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
     this.source = source;
     Preconditions.checkArgument(options.containsKey(MATRIX_SIZE));
     matrixSize = Integer.parseInt(options.get(MATRIX_SIZE));
+    Preconditions.checkArgument(options.containsKey(NUMITERATIONS));
+    numIterations = Integer.parseInt(options.get(NUMITERATIONS));
   }
 
   @Override
@@ -58,10 +61,10 @@ public class InverseMatrixIterator implements SortedKeyValueIterator<Key,Value> 
 
     IteratorAdapter ia = new IteratorAdapter(source);
     SortedMap<Key, Value> map = MemMatrixUtil.matrixToMap(new TreeMap<Key, Value>(),
-        MemMatrixUtil.doInverse(MemMatrixUtil.buildMatrix(ia, matrixSize)));
+        MemMatrixUtil.doInverse(MemMatrixUtil.buildMatrix(ia, matrixSize), numIterations));
 
 
-    DebugUtil.printMapFull(map.entrySet().iterator());
+//    DebugUtil.printMapFull(map.entrySet().iterator());
     mapIterator = new MapIterator(map);
     mapIterator.init(null, null, null);
     mapIterator.seek(range, columnFamilies, inclusive);

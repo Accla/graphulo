@@ -24,8 +24,24 @@ import java.util.TreeMap;
 public class MemMatrixUtil {
   private static final Logger log = LogManager.getLogger(MemMatrixUtil.class);
 
-  public static RealMatrix doInverse(RealMatrix matrix) {
-    return new LUDecomposition(matrix).getSolver().getInverse();
+  /** numIterations >= 0 means use Newton's method with the given numIterations.
+   * numIterations < 0 means use an exact LU decomposition to solve for the inverse. */
+  public static RealMatrix doInverse(RealMatrix matrix, int numIterations) {
+    long t = System.currentTimeMillis();
+    RealMatrix X;
+    if (numIterations >= 0) {
+      int numRows = matrix.getRowDimension();
+      RealMatrix transpose = matrix.transpose();
+      X = transpose.scalarMultiply(1.0 / (matrix.getNorm() * transpose.getNorm()));
+      for (int i = 0; i < numIterations; i++) { // max iterations arbitrary
+        X = X.multiply(MatrixUtils.createRealIdentityMatrix(numRows).scalarMultiply(2)
+            .subtract(matrix.multiply(X)));
+      }
+    } else {
+      X = new LUDecomposition(matrix).getSolver().getInverse();
+    }
+    System.out.println("Inverse time for "+numIterations+" iterations: "+(System.currentTimeMillis()-t));
+    return X;
   }
 
   public static RealMatrix buildMatrix(Iterator<Map.Entry<Key, Value>> iter, int dimension) {

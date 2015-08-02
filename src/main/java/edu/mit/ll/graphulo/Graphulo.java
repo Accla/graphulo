@@ -21,6 +21,7 @@ import edu.mit.ll.graphulo.simplemult.MathTwoScalar.ScalarOp;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar.ScalarType;
 import edu.mit.ll.graphulo.skvi.CountAllIterator;
 import edu.mit.ll.graphulo.skvi.InverseMatrixIterator;
+import edu.mit.ll.graphulo.skvi.LruCacheIterator;
 import edu.mit.ll.graphulo.skvi.MinMaxFilter;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
 import edu.mit.ll.graphulo.skvi.SamplingFilter;
@@ -51,6 +52,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.user.ColumnSliceFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
@@ -67,6 +69,7 @@ import org.apache.log4j.Logger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -2181,7 +2184,7 @@ public class Graphulo {
     TableMult(WTfinal, Hfinal, WHtmp, null, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
         MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
-        null, null, null, false, false, -1, false);
+        null, null, null, false, false, null, null, PRESUMITER, null, null, -1, false);
     if (trace)
       DebugUtil.printTable("WH is NxM:", connector, WHtmp);
 
@@ -2211,18 +2214,25 @@ public class Graphulo {
     return Math.sqrt(Double.parseDouble(new String(sumReducer.getForClient())));
   }
 
+  final int PRESUMCACHESIZE = 10000;
+  final List<IteratorSetting> PRESUMITER = Collections.singletonList(LruCacheIterator.combinerSetting(
+      1, null, PRESUMCACHESIZE, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.DOUBLE)
+  ));
+
   private void nmfStep(int K, String in1, String in2, String out1, String out2, String tmp1, String tmp2,
                        double cutoffThreshold, boolean trace) {
     // delete out1, out2
     deleteTables(true, out1, out2);
     org.junit.Assert.assertTrue(Trace.isTracing());
 
+    IteratorSetting plusCombiner = MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE);
+
     // Step 1: in1^T * in1 ==transpose==> tmp1
     try (TraceScope scope = Trace.startSpan("nmf1TableMult")) {
       TableMult(in1, in1, null, tmp1, -1,
           MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
-          MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
-          null, null, null, false, false, -1, false);
+          plusCombiner,
+          null, null, null, false, false, null, null, PRESUMITER, null, null, -1, false);
     }
     if (trace)
       DebugUtil.printTable("tmp1 is KxK:", connector, tmp1);
@@ -2230,10 +2240,19 @@ public class Graphulo {
     // Step 2: tmp1 => tmp1 inverse.
     try (TraceScope scope = Trace.startSpan("nmf2Inverse")) {
       connector.tableOperations().compact(tmp1, null, null,
-          Collections.singletonList(InverseMatrixIterator.iteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority() + 1, K)),
+          Collections.singletonList(InverseMatrixIterator.iteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority() + 1, K, 100)),
           true, true); // blocks
     } catch (AccumuloException | AccumuloSecurityException e) {
       log.error("problem while compacting "+tmp1+" to take the matrix inverse", e);
+      throw new RuntimeException(e);
+    } catch (TableNotFoundException e) {
+      log.error("crazy", e);
+      throw new RuntimeException(e);
+    }
+    try {
+      connector.tableOperations().removeIterator(tmp1, plusCombiner.getName(), EnumSet.allOf(IteratorUtil.IteratorScope.class));
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      log.error("problem while removeing " + plusCombiner + " from "+tmp1, e);
       throw new RuntimeException(e);
     } catch (TableNotFoundException e) {
       log.error("crazy", e);
@@ -2246,11 +2265,11 @@ public class Graphulo {
     try (TraceScope scope = Trace.startSpan("nmf3TableMult")) {
       TableMult(in1, in2, tmp2, null, -1,
           MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
-          MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
-          null, null, null, false, false, -1, false);
+          plusCombiner,
+          null, null, null, false, false, null, null, PRESUMITER, null, null, -1, false);
     }
 
-    // Step 4: tmp1^T * tmp2 => OnlyPositiveFilter => {out1, tranpsose to out2}
+    // Step 4: tmp1^T * tmp2 => OnlyPositiveFilter => {out1, transpose to out2}
     // Filter out entries <= 0 after combining partial products.
     IteratorSetting sumFilterOp =
         new DynamicIteratorSetting()
@@ -2264,7 +2283,7 @@ public class Graphulo {
           MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
           sumFilterOp,
           null, null, null, false, false, null, null,
-          null,
+          PRESUMITER,
           null, null, -1, false);
     }
 
@@ -2367,7 +2386,7 @@ public class Graphulo {
   /**
    * @param threshold Entries below this are set to 0. */
   private RealMatrix nmfStep_Client(RealMatrix M1, RealMatrix M2, RealMatrix MA, final double threshold) {
-    RealMatrix MR = MemMatrixUtil.doInverse(M1.multiply(M2)).multiply(M1.multiply(MA));
+    RealMatrix MR = MemMatrixUtil.doInverse(M1.multiply(M2), 100).multiply(M1.multiply(MA));
     // only keep positive entries
     MR.walkInOptimizedOrder(new RealMatrixChangingVisitor() {
       @Override
@@ -2417,12 +2436,12 @@ public class Graphulo {
         MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
         null, null, null, false, false, -1, false);
 
-    log.info("AFTER H*HT");
+    log.debug("AFTER H*HT");
 
     // Inverse
     try {
       connector.tableOperations().compact(Ttmp1, null, null,
-          Collections.singletonList(InverseMatrixIterator.iteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority() + 1, K)),
+          Collections.singletonList(InverseMatrixIterator.iteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority() + 1, K, 100)),
           true, true); // blocks
     } catch (AccumuloSecurityException | AccumuloException e) {
       log.error("problem while compacting "+Ttmp1+" to take the matrix inverse of H*HT", e);
@@ -2432,7 +2451,7 @@ public class Graphulo {
       throw new RuntimeException(e);
     }
 
-    log.info("AFTER INVERSE");
+    log.debug("AFTER INVERSE");
 
     // HT * inv
     TableMult(Htable, Ttmp1, Rtable, null, -1,

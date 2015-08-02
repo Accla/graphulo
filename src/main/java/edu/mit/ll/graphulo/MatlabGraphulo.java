@@ -1,9 +1,11 @@
 package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
+import edu.mit.ll.graphulo.skvi.LruCacheIterator;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -13,6 +15,8 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.xml.DOMConfigurator;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Contains convenience functions for calling Graphulo functions from Matlab.
@@ -47,25 +51,30 @@ public class MatlabGraphulo extends Graphulo {
   public long TableMult(String ATtable, String Btable, String Ctable,
                         String rowFilter, String colFilterAT, String colFilterB,
                         int numEntriesCheckpoint, boolean trace) {
-    Collection<Range> rowFilterRanges =
-      rowFilter != null && !rowFilter.isEmpty() ? GraphuloUtil.d4mRowToRanges(rowFilter) : null;
-
-
-    return TableMult(ATtable, Btable, Ctable, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG), Graphulo.PLUS_ITERATOR_BIGDECIMAL,
-        rowFilterRanges, colFilterAT, colFilterB, false, false, null, null, null, null, null, numEntriesCheckpoint, trace);
+    return TableMult(ATtable, Btable, Ctable, null,
+        rowFilter, colFilterAT, colFilterB, numEntriesCheckpoint, trace);
   }
 
   public long TableMult(String ATtable, String Btable, String Ctable, String CTtable,
                         String rowFilter, String colFilterAT, String colFilterB,
                         int numEntriesCheckpoint, boolean trace) {
+    return TableMult(ATtable, Btable, Ctable, null,
+        rowFilter, colFilterAT, colFilterB, -1, numEntriesCheckpoint, trace);
+  }
+
+  public long TableMult(String ATtable, String Btable, String Ctable, String CTtable,
+                        String rowFilter, String colFilterAT, String colFilterB,
+                        int presumCacheSize,
+                        int numEntriesCheckpoint, boolean trace) {
     Collection<Range> rowFilterRanges =
         rowFilter != null && !rowFilter.isEmpty() ? GraphuloUtil.d4mRowToRanges(rowFilter) : null;
-
+    List<IteratorSetting> itAfterTT = Collections.singletonList(LruCacheIterator.combinerSetting(
+        1, null, presumCacheSize, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.LONG)
+    ));
 
     return TableMult(ATtable, Btable, Ctable, CTtable, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG), Graphulo.PLUS_ITERATOR_BIGDECIMAL,
-        rowFilterRanges, colFilterAT, colFilterB, false, false, null, null, null, null, null, numEntriesCheckpoint, trace);
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG), Graphulo.PLUS_ITERATOR_LONG,
+        rowFilterRanges, colFilterAT, colFilterB, false, false, null, null, itAfterTT, null, null, numEntriesCheckpoint, trace);
   }
 
 

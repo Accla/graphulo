@@ -55,7 +55,7 @@ public class NDSIGraphulo extends Graphulo {
     // could reuse batchscanner if called many times
     return OneTable(Atable, Rtable, null, null, -1, null, null, itsetStats,
         GraphuloUtil.d4mRowToRanges(rowFilter), colFilter, Collections.singletonList(itsetHistogram),
-        null, false);
+        null);
   }
 
 }

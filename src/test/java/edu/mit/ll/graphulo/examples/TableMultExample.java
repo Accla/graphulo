@@ -105,7 +105,7 @@ public class TableMultExample extends AccumuloTestBase {
     graphulo.TableMult(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority, multOp, multOpOptions, plusOp,
         rowFilter, colFilterAT, colFilterB, alsoDoAA, alsoDoBB,
         iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
-        reducer, reducerOpts, numEntriesCheckpoint, trace);
+        reducer, reducerOpts, numEntriesCheckpoint);
 
     // Result is in Ctable. Do whatever you like with it.
     BatchScanner bs = conn.createBatchScanner(Ctable, Authorizations.EMPTY, 2);

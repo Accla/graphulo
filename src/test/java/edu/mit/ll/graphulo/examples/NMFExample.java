@@ -2,6 +2,7 @@ package edu.mit.ll.graphulo.examples;
 
 import edu.mit.ll.graphulo.Graphulo;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
+import edu.mit.ll.graphulo.skvi.SamplingFilter;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -48,8 +49,8 @@ public class NMFExample extends AccumuloTestBase {
     String HTtable = "ex" + SCALE + "AEdgeHT";          // Transpose of output table HT.
     boolean trace = false;                              // Disable debug printing.
     int K = 3;                                          // 3 topics
-    int maxiter = 3;                                    // 3 iterations of NMF maximum
-    double cutoffThreshold = 0.00001;                       // Threshold to cut off entries with value less than this
+    int maxiter = 2;                                    // 3 iterations of NMF maximum
+    double cutoffThreshold = 0.0001;                       // Threshold to cut off entries with value less than this
 
 
     // In your code, you would connect to an Accumulo instance by writing something similar to:
@@ -74,13 +75,15 @@ public class NMFExample extends AccumuloTestBase {
 
     // Sample the graph with 10% uniform sampling and materialize the result in a sampled table
     double probability = 0.1;
-    long nnzSample = graphulo.SampleCopy(Etable, EtableSample, ETtableSample, probability, trace);
+//    long nnzSample = graphulo.SampleCopy(Etable, EtableSample+"tmp", null, probability, trace);
+    long nnzSample = graphulo.OneTable(Etable, EtableSample, ETtableSample, null, -1, null, null, null, GraphuloUtil.d4mRowToRanges("2,:,50,"), "2,:,50,",
+        Collections.singletonList(SamplingFilter.iteratorSetting(1, probability)), null);
     System.out.println("Sample finished; #entries in sample is "+nnzSample);
 
     // Non-negative matrix factorization.
     // This call blocks until the NMF completes.
     double nmfError = graphulo.NMF(EtableSample, ETtableSample, Wtable, WTtable, Htable, HTtable, K, maxiter, true,
-        cutoffThreshold, trace);
+        cutoffThreshold);
     System.out.println("Final NMF absolute difference in error: " + nmfError);
 
     DistributedTrace.enable("NMFExample");  // remove this for no tracing
@@ -92,7 +95,7 @@ public class NMFExample extends AccumuloTestBase {
     graphulo.TableMult(WTtable, Htable, APtable, null, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.DOUBLE),
         MathTwoScalar.combinerSetting(Graphulo.PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.DOUBLE),
-        null, null, null, false, false, -1, trace);
+        null, null, null, false, false, -1);
 
     DistributedTrace.disable();
 

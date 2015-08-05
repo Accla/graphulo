@@ -84,7 +84,7 @@ public class AdjBFSExample extends AccumuloTestBase {
     // Adjacency Table Breadth First Search.
     // This call blocks until the BFS completes.
     String vReached = graphulo.AdjBFS(Atable, v0, numSteps, Rtable, RTtable, clientResultMap, AScanIteratorPriority,
-        ADegtable, degColumn, degInColQ, minDegree, maxDegree, plusOp, trace);
+        ADegtable, degColumn, degInColQ, minDegree, maxDegree, plusOp);
     log.info("First few nodes reachable in exactly "+numSteps+" steps: " +
             vReached.substring(0,Math.min(20,vReached.length())));
 

@@ -51,11 +51,11 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key, Valu
     IteratorUtil.IteratorScope scope = env.getIteratorScope();
     log.debug(this.getClass() + ": init on scope " + scope + (scope == IteratorUtil.IteratorScope.majc ? " fullScan=" + env.isFullMajorCompaction() : ""));
 
-    if (options.containsKey("trace")) {
-        Watch.enableTrace = Boolean.parseBoolean(options.get("trace"));
-      options = new HashMap<>(options);
-      options.remove("trace");
-    }
+//    if (options.containsKey("trace")) {
+//        Watch.enableTrace = Boolean.parseBoolean(options.get("trace"));
+//      options = new HashMap<>(options);
+//      options.remove("trace");
+//    }
 
 
     SortedKeyValueIterator<Key, Value> branchIterator = initBranchIterator(options, env);
@@ -72,7 +72,7 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key, Valu
       throw new IllegalStateException("--some subclass returned a null bottom iterator in branchAfter--");
 
     System.out.println("Reset Watch at init of BranchIterator");
-    Watch.getInstance().resetAll();
+//    Watch.getInstance().resetAll();
   }
 
   @Override
@@ -83,30 +83,30 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key, Valu
   @Override
   public void next() throws IOException {
 //    System.out.println(this.getClass().getName()+" getTop: "+getTopKey()+" -> "+getTopValue());
-    Watch<Watch.PerfSpan> watch = Watch.getInstance();
-    watch.start(Watch.PerfSpan.All);
-    try {
+//    Watch<Watch.PerfSpan> watch = Watch.getInstance();
+//    watch.start(Watch.PerfSpan.All);
+//    try {
       botIterator.next();
-    } finally {
-      watch.stop(Watch.PerfSpan.All);
-      if (!botIterator.hasTop()) {
-        watch.print();
-      }
-    }
+//    } finally {
+//      watch.stop(Watch.PerfSpan.All);
+//      if (!botIterator.hasTop()) {
+//        watch.print();
+//      }
+//    }
   }
 
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     System.out.println(this.getClass().getName()+" seek: "+range);
-    Watch<Watch.PerfSpan> watch = Watch.getInstance();
-    watch.start(Watch.PerfSpan.All);
-    try {
+//    Watch<Watch.PerfSpan> watch = Watch.getInstance();
+//    watch.start(Watch.PerfSpan.All);
+//    try {
       botIterator.seek(range, columnFamilies, inclusive);
-    } finally {
-      watch.stop(Watch.PerfSpan.All);
-      if (!botIterator.hasTop())
-        watch.print();
-    }
+//    } finally {
+//      watch.stop(Watch.PerfSpan.All);
+//      if (!botIterator.hasTop())
+//        watch.print();
+//    }
   }
 
   @Override

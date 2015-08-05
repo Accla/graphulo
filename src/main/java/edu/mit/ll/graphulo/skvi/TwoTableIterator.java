@@ -165,9 +165,9 @@ public class TwoTableIterator implements SaveStateIterator {
             break;
           case "dotmode":
             break;
-          case "trace":
-            Watch.enableTrace = Boolean.parseBoolean(optionValue);
-            break;
+//          case "trace":
+//            Watch.enableTrace = Boolean.parseBoolean(optionValue);
+//            break;
           default:
             log.warn("Unrecognized option: " + optionEntry);
             break;
@@ -353,20 +353,20 @@ public class TwoTableIterator implements SaveStateIterator {
     System.out.println("DM adj range: " + range);
 
     // Weird results if we start in the middle of a row. Not handling.
-    Watch<Watch.PerfSpan> watch = Watch.getInstance();
-    watch.start(Watch.PerfSpan.ATnext);
-    try {
+//    Watch<Watch.PerfSpan> watch = Watch.getInstance();
+//    watch.start(Watch.PerfSpan.ATnext);
+//    try {
       remoteAT.seek(seekRange, columnFamilies, inclusive);
-    } finally {
-      watch.stop(Watch.PerfSpan.ATnext);
-    }
+//    } finally {
+//      watch.stop(Watch.PerfSpan.ATnext);
+//    }
 
-    watch.start(Watch.PerfSpan.Bnext);
-    try {
+//    watch.start(Watch.PerfSpan.Bnext);
+//    try {
       remoteB.seek(seekRange, columnFamilies, inclusive);
-    } finally {
-      watch.stop(Watch.PerfSpan.Bnext);
-    }
+//    } finally {
+//      watch.stop(Watch.PerfSpan.Bnext);
+//    }
 
 //    log.debug("remoteAT.hasTop()="+remoteAT.hasTop()+" remoteB.hasTop()="+remoteB.hasTop());
     prepNextRowMatch(/*false*/);
@@ -415,7 +415,7 @@ public class TwoTableIterator implements SaveStateIterator {
     }
 
 
-    Watch<Watch.PerfSpan> watch = Watch.getInstance();
+    Watch<Watch.PerfSpan> watch = null; //Watch.getInstance();
     TOPLOOP:
     do {
       if ((!remoteAT.hasTop() && !remoteB.hasTop())
@@ -530,12 +530,12 @@ public class TwoTableIterator implements SaveStateIterator {
     for (cnt = 0;
          cnt < MAX_NEXT_ATTEMPT && skvi.hasTop() && keyToSkipTo.compareTo(skvi.getTopKey(), pk) > 0;
          cnt++) {
-      watch.start(watchtype);
-      try {
+//      watch.start(watchtype);
+//      try {
         skvi.next();
-      } finally {
-        watch.stop(watchtype);
-      }
+//      } finally {
+//        watch.stop(watchtype);
+//      }
     }
     if (skvi.hasTop() && keyToSkipTo.compareTo(skvi.getTopKey(), pk) > 0) {
       // set target range to beginning of pk
@@ -547,7 +547,7 @@ public class TwoTableIterator implements SaveStateIterator {
       skvi.seek(skipToRange, columnFamilies, inclusive);
     }
 
-    watch.increment(Watch.PerfSpan.RowSkipNum, cnt);
+//    watch.increment(Watch.PerfSpan.RowSkipNum, cnt);
     return skvi.hasTop();
   }
 

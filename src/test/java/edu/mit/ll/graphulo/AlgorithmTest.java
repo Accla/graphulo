@@ -64,7 +64,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      long nnzkTruss = graphulo.kTrussAdj(tA, tR, 3, null, true, true);
+      long nnzkTruss = graphulo.kTrussAdj(tA, tR, 3, null, true);
       log.info("3Truss has " + nnzkTruss + " nnz");
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -87,7 +87,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      long nnzkTruss = graphulo.kTrussAdj(tA, tR, 4, null, true, true);
+      long nnzkTruss = graphulo.kTrussAdj(tA, tR, 4, null, true);
       log.info("4Truss has " + nnzkTruss + " nnz");
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -147,7 +147,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      long nnzkTruss = graphulo.kTrussEdge(tE, tET, tR, tRT, 3, null, true, true);
+      long nnzkTruss = graphulo.kTrussEdge(tE, tET, tR, tRT, 3, null, true);
       log.info("3Truss has " + nnzkTruss + " nnz");
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -182,7 +182,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      long nnzkTruss = graphulo.kTrussEdge(tE, tET, tR, tRT, 3, null, true, true);
+      long nnzkTruss = graphulo.kTrussEdge(tE, tET, tR, tRT, 3, null, true);
       log.info("4Truss has " + nnzkTruss + " nnz");
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -255,7 +255,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    long npp = graphulo.Jaccard(tA, tADeg, tR, null, true);
+    long npp = graphulo.Jaccard(tA, tADeg, tR, null);
     log.info("Jaccard table has "+npp+" #partial products sent to "+tR);
 
     // Just for fun, let's compact and ensure idempotence.
@@ -325,11 +325,10 @@ public class AlgorithmTest extends AccumuloTestBase {
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     int maxIter = 4;
-    boolean trace = false;
     long t = System.currentTimeMillis();
     int K = 3;
-    double error = graphulo.NMF(tE, tET, tW, tWT, tH, tHT, K, maxIter, true, 0.0001, trace);
-    System.out.println("Trace is "+trace+"; NMF time "+(System.currentTimeMillis()-t));
+    double error = graphulo.NMF(tE, tET, tW, tWT, tH, tHT, K, maxIter, true, 0.0001);
+    System.out.println("Trace is "+ org.apache.htrace.Trace.isTracing()+"; NMF time "+(System.currentTimeMillis()-t));
     log.info("NMF error " + error);
 
     DistributedTrace.disable();
@@ -364,7 +363,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     graphulo.TableMult(tWT, tH, tWH, null, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.DOUBLE),
         MathTwoScalar.combinerSetting(Graphulo.PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.DOUBLE),
-        null, null, null, false, false, -1, false);
+        null, null, null, false, false, -1);
 
     System.out.println("WH:");
     scanner = conn.createScanner(tWH, Authorizations.EMPTY);
@@ -375,7 +374,7 @@ public class AlgorithmTest extends AccumuloTestBase {
 
 
     // last test for the doHT_HHTinv method
-    graphulo.doHT_HHTinv(tH, tHT, K, tR, true, false);
+    graphulo.doHT_HHTinv(tH, tHT, K, tR, true);
 
 
     conn.tableOperations().delete(tE);
@@ -426,7 +425,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     int maxIter = 10;
     boolean trace = false;
     long t = System.currentTimeMillis();
-    double error = graphulo.NMF_Client(tE, false, tW, false, tH, false,K, maxIter, 0.0001, trace);
+    double error = graphulo.NMF_Client(tE, false, tW, false, tH, false,K, maxIter, 0.0001);
     System.out.println("Trace is "+trace+"; Client NMF time "+(System.currentTimeMillis()-t));
     log.info("NMF error " + error);
 

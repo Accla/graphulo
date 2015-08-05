@@ -43,12 +43,12 @@ public class CartesianRowMultiply implements RowMultiplyOp {
     SortedMap<Key, Value> map = new TreeMap<>();
     do {
       map.put(skvi.getTopKey(), new Value(skvi.getTopValue()));
-      watch.start(watchtype);
-      try {
+//      watch.start(watchtype);
+//      try {
         skvi.next();
-      } finally {
-        watch.stop(watchtype);
-      }
+//      } finally {
+//        watch.stop(watchtype);
+//      }
     } while (skvi.hasTop() && skvi.getTopKey().getRow(curRow).equals(thisRow));
     return map;
   }
@@ -126,7 +126,7 @@ public class CartesianRowMultiply implements RowMultiplyOp {
   @Override
   public Iterator<Map.Entry<Key,Value>> multiplyRow(SortedKeyValueIterator<Key, Value> skviA, SortedKeyValueIterator<Key, Value> skviB) throws IOException {
     assert skviA != null || skviB != null;
-    Watch<Watch.PerfSpan> watch = Watch.getInstance();
+    Watch<Watch.PerfSpan> watch = null;//Watch.getInstance();
 
     if (skviB == null) {
       if (alsoDoAA) {

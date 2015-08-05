@@ -77,12 +77,12 @@ public class JaccardExample extends AccumuloTestBase {
         Graphulo.PLUS_ITERATOR_BIGDECIMAL.getPriority(), new Value("1".getBytes()));
 
     String nodesReached = graphulo.AdjBFS(Atable, v0, 1, AtableSub, AtableSub, null, -1,
-        ADegtable, "out", false, 1, 75, itset, trace);
+        ADegtable, "out", false, 1, 75, itset);
     log.info("Nodes reached from v0: "+nodesReached);
     log.info("Does AtableSub exist? "+conn.tableOperations().exists(AtableSub));
 
     String filterRowCol = null; // no filtering beyond what we already did with the AdjBFS
-    long npp = graphulo.Jaccard(AtableSub, ADegtable, Rtable, filterRowCol, trace);
+    long npp = graphulo.Jaccard(AtableSub, ADegtable, Rtable, filterRowCol);
     log.info("Number of partial products sent to result table: " + npp);
 
     // Result is in output table. Do whatever you like with it.

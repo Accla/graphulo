@@ -77,7 +77,7 @@ public class LineRowMultiply implements RowMultiplyOp {
 
   @Override
   public Iterator<Map.Entry<Key, Value>> multiplyRow(SortedKeyValueIterator<Key, Value> skviAT, SortedKeyValueIterator<Key, Value> skviA) throws IOException {
-    Watch<Watch.PerfSpan> watch = Watch.getInstance();
+    Watch<Watch.PerfSpan> watch = null; //Watch.getInstance();
 
     if (isDirected) { // TWOROW
       SortedMap<Key, Value> mapAT = CartesianRowMultiply.readRow(skviAT, watch, Watch.PerfSpan.ATnext);

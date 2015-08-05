@@ -219,9 +219,9 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
             rowRanges.setTargetRanges(parseRanges(optionValue));
             break;
 
-          case "trace":
-            Watch.enableTrace = Boolean.parseBoolean(optionValue);
-            break;
+//          case "trace":
+//            Watch.enableTrace = Boolean.parseBoolean(optionValue);
+//            break;
           default:
             log.warn("Unrecognized option: " + optionEntry);
             continue;
@@ -262,8 +262,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     if (source == null)
       throw new IllegalArgumentException("source must be specified");
 
-    Watch<Watch.PerfSpan> watch = Watch.getInstance();
-    watch.resetAll();
+//    Watch<Watch.PerfSpan> watch = Watch.getInstance();
+//    watch.resetAll();
     System.out.println("reset watch at RemoteWriteIterator init");
 
     parseOptions(map);
@@ -374,8 +374,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
       // send reducer entries, if any present
       // flush anything written
       if (entriesWritten > 0) {
-        Watch<Watch.PerfSpan> watch = Watch.getInstance();
-        watch.start(Watch.PerfSpan.WriteFlush);
+//        Watch<Watch.PerfSpan> watch = Watch.getInstance();
+//        watch.start(Watch.PerfSpan.WriteFlush);
         try {
           if (writerAll != null)
             writerAll.flush();
@@ -387,10 +387,11 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
           }
         } catch (MutationsRejectedException e) {
           log.warn("ignoring rejected mutations; ", e);
-        } finally {
-          watch.stop(Watch.PerfSpan.WriteFlush);
-          watch.print();
         }
+//        finally {
+//          watch.stop(Watch.PerfSpan.WriteFlush);
+//          watch.print();
+//        }
       }
     }
     return stoppedAtSafe;
@@ -402,7 +403,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
    */
   private boolean writeUntilSafeOrFinish() throws IOException {
     Mutation m;
-    Watch<Watch.PerfSpan> watch = Watch.getInstance();
+//    Watch<Watch.PerfSpan> watch = Watch.getInstance();
     while (source.hasTop()) {
       Key k = source.getTopKey();
       Value v = source.getTopValue();
@@ -413,29 +414,31 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
         m = new Mutation(k.getRowData().getBackingArray());
         m.put(k.getColumnFamilyData().getBackingArray(), k.getColumnQualifierData().getBackingArray(),
             k.getColumnVisibilityParsed(), v.get()); // no ts? System.currentTimeMillis()
-        watch.start(Watch.PerfSpan.WriteAddMut);
+//        watch.start(Watch.PerfSpan.WriteAddMut);
         try {
           writer.addMutation(m);
         } catch (MutationsRejectedException e) {
           numRejects++;
           log.warn("rejected mutations #"+numRejects+"; last one added is " + m, e);
-        } finally {
-          watch.stop(Watch.PerfSpan.WriteAddMut);
         }
+//        finally {
+//          watch.stop(Watch.PerfSpan.WriteAddMut);
+//        }
       }
       if (writerTranspose != null) {
         m = new Mutation(k.getColumnQualifierData().getBackingArray());
         m.put(k.getColumnFamilyData().getBackingArray(), k.getRowData().getBackingArray(),
             k.getColumnVisibilityParsed(), v.get()); // no ts? System.currentTimeMillis()
-        watch.start(Watch.PerfSpan.WriteAddMut);
+//        watch.start(Watch.PerfSpan.WriteAddMut);
         try {
           writerTranspose.addMutation(m);
         } catch (MutationsRejectedException e) {
           numRejects++;
           log.warn("rejected mutations #"+numRejects+"; last one added is " + m, e);
-        } finally {
-          watch.stop(Watch.PerfSpan.WriteAddMut);
         }
+//        finally {
+//          watch.stop(Watch.PerfSpan.WriteAddMut);
+//        }
       }
 
       if (numRejects >= REJECT_FAILURE_THRESHOLD) { // declare global failure after 10 rejects
@@ -455,12 +458,12 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
         }
       }
 
-      watch.start(Watch.PerfSpan.WriteGetNext);
-      try {
+//      watch.start(Watch.PerfSpan.WriteGetNext);
+//      try {
         source.next();
-      } finally {
-        watch.stop(Watch.PerfSpan.WriteGetNext);
-      }
+//      } finally {
+//        watch.stop(Watch.PerfSpan.WriteGetNext);
+//      }
     }
     return false;
   }
@@ -483,13 +486,13 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     reducer.reset();
     if (entriesWritten > 0 || rowRangeIterator.hasNext()) {
       if (source.hasTop()) {
-        Watch<Watch.PerfSpan> watch = Watch.getInstance();
-        watch.start(Watch.PerfSpan.WriteGetNext);
-        try {
+//        Watch<Watch.PerfSpan> watch = Watch.getInstance();
+//        watch.start(Watch.PerfSpan.WriteGetNext);
+//        try {
           source.next();
-        } finally {
-          watch.stop(Watch.PerfSpan.WriteGetNext);
-        }
+//        } finally {
+//          watch.stop(Watch.PerfSpan.WriteGetNext);
+//        }
         writeWrapper(false);
       } else {
         rowRangeIterator.next();

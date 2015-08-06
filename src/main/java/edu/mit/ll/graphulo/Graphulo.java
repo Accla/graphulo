@@ -82,6 +82,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -2494,16 +2496,21 @@ public class Graphulo {
       // H = ONLYPOS( (WT*W)^-1 * (WT*A) )
       //nmfStep(K, Wfinal, Aorig, Hfinal, HTfinal, Ttmp1, Ttmp2, trace);
       // assign to Hmatrix
-      Hmatrix = nmfStep_Client(WTmatrix, Wmatrix, Amatrix, cutoffThreshold);
-      HTmatrix = Hmatrix.transpose();
-//      if (trace)
-//        DebugUtil.printTable(numiter + ": H is KxM:", connector, Hfinal);
+      try (TraceScope span = Trace.startSpan("Hstep")) {
+        Hmatrix = nmfStep_Client(WTmatrix, Wmatrix, Amatrix, cutoffThreshold, true);
+        HTmatrix = Hmatrix.transpose();
+//        if (Trace.isTracing())
+//          DebugUtil.printTable(numiter + ": H is KxM:", connector, Hfinal);
+      }
+//      System.out.println("Hmatrix: "+Hmatrix);
 
       // WT = ONLYPOS( (H*HT)^-1 * (H*AT) )
-      WTmatrix = nmfStep_Client(Hmatrix, HTmatrix, ATmatrix, cutoffThreshold);
-      Wmatrix = WTmatrix.transpose();
-//      if (Trace.isTracing())
-//        DebugUtil.printTable(numiter + ": W is NxK:", connector, Wfinal);
+      try (TraceScope span = Trace.startSpan("Wstep")) {
+        WTmatrix = nmfStep_Client(Hmatrix, HTmatrix, ATmatrix, cutoffThreshold, false);
+        Wmatrix = WTmatrix.transpose();
+//        if (Trace.isTracing())
+//          DebugUtil.printTable(numiter + ": W is NxK:", connector, Wfinal);
+      }
 
       hdiff = nmfError_Client(HmatrixPrev, Hmatrix);
 
@@ -2511,15 +2518,14 @@ public class Graphulo {
 //      if (Trace.isTracing())
 //        DebugUtil.printTable(numiter + ": A is NxM --- error is "+hdiff+":", connector, Aorig);
 
-      if (hdiff <= 0.01) {
+      log.debug("NMF Iteration "+numiter+": hdiff " + hdiff);
+      if (hdiff <= 0.001) {
         numLowHDiff++;
         if (numLowHDiff >= reqNumLowHDiff) // saw enough consecutive low hdiffs-- NMF converged
           break;
       }
       else
         numLowHDiff = 0;
-
-      log.debug("NMF Iteration "+numiter+": hdiff " + hdiff);
     } while (numiter < maxiter);
 
     // Write out results!
@@ -2545,7 +2551,7 @@ public class Graphulo {
       private double sum = 0.0;
       @Override
       public void visit(int row, int column, double value) {
-        sum += value == 0.0 ? 0.0 : 1.0;
+        sum += (value == 0.0 ? 0.0 : 1.0);
       }
 
       @Override
@@ -2569,26 +2575,83 @@ public class Graphulo {
 
   /**
    * @param threshold Entries below this are set to 0. */
-  private RealMatrix nmfStep_Client(RealMatrix M1, RealMatrix M2, RealMatrix MA, final double threshold) {
+  @SuppressWarnings("unchecked")
+  private RealMatrix nmfStep_Client(RealMatrix M1, RealMatrix M2, RealMatrix MA,
+                                    final double threshold, final boolean doKeepTopColsPerRow) {
     RealMatrix MR = MemMatrixUtil.doInverse(M1.multiply(M2), 50).multiply(M1.multiply(MA));
+
     // only keep positive entries
-    MR.walkInOptimizedOrder(new RealMatrixChangingVisitor() {
-      @Override
-      public void start(int rows, int columns, int startRow, int endRow, int startColumn, int endColumn) {
+    if (!doKeepTopColsPerRow) {
+      MR.walkInOptimizedOrder(new RealMatrixChangingVisitor() {
+        @Override
+        public void start(int rows, int columns, int startRow, int endRow, int startColumn, int endColumn) {
+        }
 
+        @Override
+        public double visit(int row, int column, double value) {
+          return value > threshold ? value : 0;
+        }
+
+        @Override
+        public double end() {
+          return 0;
+        }
+      });
+      return MR;
+    } else {
+      class Entry implements Comparable<Entry> {
+        Double k;
+        Integer v;
+        public Entry(Double k, Integer v) {
+          this.k = k; this.v = v;
+        }
+        @Override
+        public int compareTo(Entry o) {
+          double diff = k - o.k;
+          if (diff > 0) return 1;
+          if (diff < 0) return -1;
+          return 0;
+        }
       }
 
-      @Override
-      public double visit(int row, int column, double value) {
-        return value > threshold ? value : 0;
+      final PriorityQueue<Entry>[] pqs = new PriorityQueue[MR.getRowDimension()];
+      for (int i = 0; i < pqs.length; i++)
+        pqs[i] = new PriorityQueue<>();
+      final int maxColsPerTopic = 10;
+
+      MR.walkInOptimizedOrder(new DefaultRealMatrixPreservingVisitor() {
+        @Override
+        public void visit(int row, int column, double value) {
+          if (value > 0) {
+            PriorityQueue<Entry> pq = pqs[row];
+            if (pq.size() < maxColsPerTopic) {
+              pq.add(new Entry(value, column));
+            } else {
+              if (value > pq.peek().k) {
+                pq.remove();
+                pq.add(new Entry(value, column));
+              }
+            }
+          }
+        }
+      });
+
+      final Set<Integer>[] sets = new Set[MR.getRowDimension()];
+      for (int i = 0; i < sets.length; i++) {
+        sets[i] = new HashSet<>(maxColsPerTopic);
+        for (Entry entry : pqs[i]) {
+          sets[i].add(entry.v);
+        }
       }
 
-      @Override
-      public double end() {
-        return 0;
-      }
-    });
-    return MR;
+      MR.walkInOptimizedOrder(new DefaultRealMatrixChangingVisitor() {
+        @Override
+        public double visit(int row, int column, double value) {
+          return sets[row].contains(column) ? value : 0.0;
+        }
+      });
+      return MR;
+    }
   }
 
   /**

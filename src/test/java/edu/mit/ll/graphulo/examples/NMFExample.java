@@ -2,7 +2,6 @@ package edu.mit.ll.graphulo.examples;
 
 import edu.mit.ll.graphulo.Graphulo;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
-import edu.mit.ll.graphulo.skvi.SamplingFilter;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -48,8 +47,8 @@ public class NMFExample extends AccumuloTestBase {
     String Htable = "ex" + SCALE + "AEdgeH";            // Output table H.
     String HTtable = "ex" + SCALE + "AEdgeHT";          // Transpose of output table HT.
     int K = 3;                                          // 3 topics
-    int maxiter = 2;                                    // 3 iterations of NMF maximum
-    double cutoffThreshold = 0.0001;                       // Threshold to cut off entries with value less than this
+    int maxiter = 5;                                    // 3 iterations of NMF maximum
+    double cutoffThreshold = 0.0;                       // Threshold to cut off entries with value less than this
     String newVisibility = "";                          // Column Visibility to use for newly created entries.
 
 
@@ -73,20 +72,24 @@ public class NMFExample extends AccumuloTestBase {
     // Create Graphulo executor. Supply the password for your Accumulo user account.
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
 
+//    DistributedTrace.enable("NMFExample");  // remove this for no tracing
+
+    // Option to use in-memory version
+    double nmfError = graphulo.NMF_Client(Etable, false, WTtable, true, Htable, false, K, maxiter,
+        cutoffThreshold);
+
     // Sample the graph with 10% uniform sampling and materialize the result in a sampled table
-    double probability = 0.1;
+//    double probability = 0.1;
 //    long nnzSample = graphulo.SampleCopy(Etable, EtableSample+"tmp", null, probability, trace);
-    long nnzSample = graphulo.OneTable(Etable, EtableSample, ETtableSample, null, -1, null, null, null, GraphuloUtil.d4mRowToRanges("2,:,50,"), "2,:,50,",
-        Collections.singletonList(SamplingFilter.iteratorSetting(1, probability)), null, Authorizations.EMPTY);
-    System.out.println("Sample finished; #entries in sample is "+nnzSample);
+//    long nnzSample = graphulo.OneTable(Etable, EtableSample, ETtableSample, null, -1, null, null, null, null, null,
+//        Collections.singletonList(SamplingFilter.iteratorSetting(1, probability)), null, Authorizations.EMPTY);
+//    System.out.println("Sample finished; #entries in sample is "+nnzSample);
 
     // Non-negative matrix factorization.
     // This call blocks until the NMF completes.
-    double nmfError = graphulo.NMF(EtableSample, ETtableSample, Wtable, WTtable, Htable, HTtable, K, maxiter, true,
-        cutoffThreshold);
+//    double nmfError = graphulo.NMF(EtableSample, ETtableSample, Wtable, WTtable, Htable, HTtable, K, maxiter, true,
+//        cutoffThreshold);
     System.out.println("Final NMF absolute difference in error: " + nmfError);
-
-    DistributedTrace.enable("NMFExample");  // remove this for no tracing
 
     // Result is in Htable, HTtable, Wtable, WTtable. Do whatever you like with it.
     // For this example we will multiply H*W into a new table that approximates the original incidence matrix.

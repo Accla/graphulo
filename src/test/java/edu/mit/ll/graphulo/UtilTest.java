@@ -35,6 +35,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -600,6 +601,36 @@ public class UtilTest {
     Assert.assertTrue(it.hasNext());
     Assert.assertEquals(6, it.next().intValue());
     Assert.assertFalse(it.hasNext());
+  }
+
+  @Test
+  public void testPriorityQueueOrder() {
+    class Entry implements Comparable<Entry> {
+      Double k;
+      Integer v;
+      public Entry(Double k, Integer v) {
+        this.k = k; this.v = v;
+      }
+
+      @Override
+      public int compareTo(Entry o) {
+        double diff = k - o.k;
+        if (diff > 0) return 1;
+        if (diff < 0) return -1;
+        return 0;
+      }
+    }
+
+    final PriorityQueue<Entry> pqs = new PriorityQueue<>();
+    pqs.add(new Entry(5.4,9));
+    pqs.add(new Entry(6.4,8));
+    pqs.add(new Entry(7.4,7));
+    pqs.add(new Entry(1.4,2));
+    Assert.assertEquals(1.4, pqs.poll().k, 0.00001);
+    Assert.assertEquals(5.4, pqs.poll().k, 0.00001);
+    Assert.assertEquals(6.4, pqs.poll().k, 0.00001);
+    Assert.assertEquals(7.4, pqs.poll().k, 0.00001);
+    Assert.assertTrue(pqs.isEmpty());
   }
 
 }

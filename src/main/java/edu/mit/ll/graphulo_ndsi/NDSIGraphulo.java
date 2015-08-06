@@ -6,6 +6,7 @@ import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Collections;
@@ -55,7 +56,7 @@ public class NDSIGraphulo extends Graphulo {
     // could reuse batchscanner if called many times
     return OneTable(Atable, Rtable, null, null, -1, null, null, itsetStats,
         GraphuloUtil.d4mRowToRanges(rowFilter), colFilter, Collections.singletonList(itsetHistogram),
-        null);
+        null, Authorizations.EMPTY);
   }
 
 }

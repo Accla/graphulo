@@ -166,7 +166,7 @@ public class Graphulo {
         false, false, Collections.<IteratorSetting>emptyList(),
         Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
         null, null,
-        numEntriesCheckpoint);
+        numEntriesCheckpoint, Authorizations.EMPTY, Authorizations.EMPTY);
   }
 
   public long SpEWiseX(String Atable, String Btable, String Ctable, String CTtable,
@@ -178,13 +178,14 @@ public class Graphulo {
                        List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
                        List<IteratorSetting> iteratorsAfterTwoTable,
                        Reducer reducer, Map<String, String> reducerOpts,
-                       int numEntriesCheckpoint) {
+                       int numEntriesCheckpoint,
+                       Authorizations Aauthorizations, Authorizations Bauthorizations) {
     return TwoTableEWISE(Atable, Btable, Ctable, CTtable, BScanIteratorPriority,
         multOp, multOpOptions, plusOp, rowFilter, colFilterAT, colFilterB,
         false, false, iteratorsBeforeA,
         iteratorsBeforeB, iteratorsAfterTwoTable,
         reducer, reducerOpts,
-        numEntriesCheckpoint);
+        numEntriesCheckpoint, Aauthorizations, Bauthorizations);
   }
 
   public long SpEWiseSum(String Atable, String Btable, String Ctable, String CTtable,
@@ -201,7 +202,7 @@ public class Graphulo {
         true, true, Collections.<IteratorSetting>emptyList(),
         Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
         null, null,
-        numEntriesCheckpoint);
+        numEntriesCheckpoint, Authorizations.EMPTY, Authorizations.EMPTY);
   }
 
   public long SpEWiseSum(String Atable, String Btable, String Ctable, String CTtable,
@@ -213,7 +214,8 @@ public class Graphulo {
                          List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
                          List<IteratorSetting> iteratorsAfterTwoTable,
                          Reducer reducer, Map<String, String> reducerOpts,
-                         int numEntriesCheckpoint) {
+                         int numEntriesCheckpoint,
+                         Authorizations Aauthorizations, Authorizations Bauthorizations) {
     if (multOp.equals(MathTwoScalar.class) && multOpOptions == null)
       multOpOptions = MathTwoScalar.optionMap(ScalarOp.PLUS, ScalarType.BIGDECIMAL); // + by default for SpEWiseSum
     return TwoTableEWISE(Atable, Btable, Ctable, CTtable, BScanIteratorPriority,
@@ -221,7 +223,7 @@ public class Graphulo {
         true, true, iteratorsBeforeA,
         iteratorsBeforeB, iteratorsAfterTwoTable,
         reducer, reducerOpts,
-        numEntriesCheckpoint);
+        numEntriesCheckpoint, Aauthorizations, Bauthorizations);
   }
 
   /**
@@ -257,7 +259,7 @@ public class Graphulo {
         alsoDoAA, alsoDoBB, alsoDoAA, alsoDoBB, Collections.<IteratorSetting>emptyList(),
         Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
         null, null,
-        numEntriesCheckpoint);
+        numEntriesCheckpoint, Authorizations.EMPTY, Authorizations.EMPTY);
   }
 
   /**
@@ -283,6 +285,8 @@ public class Graphulo {
    * @param reducer              Reducer used during operation. Null means no reducer. If not null, must already be init'ed.
    * @param reducerOpts          Options for the reducer; not used if reducer is null.
    * @param numEntriesCheckpoint # of entries before we emit a checkpoint entry from the scan. -1 means no monitoring.
+   * @param ATauthorizations Authorizations for scanning ATtable. Null means use default: Authorizations.EMPTY
+   * @param Bauthorizations Authorizations for scanning Btable. Null means use default: Authorizations.EMPTY
    */
   public long TableMult(String ATtable, String Btable, String Ctable, String CTtable,
                         int BScanIteratorPriority,
@@ -293,12 +297,13 @@ public class Graphulo {
                         List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
                         List<IteratorSetting> iteratorsAfterTwoTable,
                         Reducer reducer, Map<String, String> reducerOpts,
-                        int numEntriesCheckpoint) {
+                        int numEntriesCheckpoint,
+                        Authorizations ATauthorizations, Authorizations Bauthorizations) {
     return TwoTableROWCartesian(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority,
         multOp, multOpOptions, plusOp, rowFilter, colFilterAT, colFilterB,
         alsoDoAA, alsoDoBB, alsoDoAA, alsoDoBB, iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
         reducer, reducerOpts,
-        numEntriesCheckpoint);
+        numEntriesCheckpoint, ATauthorizations, Bauthorizations);
   }
 
   public long TwoTableROWCartesian(String ATtable, String Btable, String Ctable, String CTtable,
@@ -313,7 +318,8 @@ public class Graphulo {
                                    List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
                                    List<IteratorSetting> iteratorsAfterTwoTable,
                                    Reducer reducer, Map<String, String> reducerOpts,
-                                   int numEntriesCheckpoint) {
+                                   int numEntriesCheckpoint,
+                                   Authorizations ATauthorizations, Authorizations Bauthorizations) {
     if (multOp == null)
       multOp = MathTwoScalar.class;
     Map<String,String> opt = new HashMap<>();
@@ -332,7 +338,7 @@ public class Graphulo {
         rowFilter, colFilterAT, colFilterB,
         emitNoMatchA, emitNoMatchB, iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
         reducer, reducerOpts,
-        numEntriesCheckpoint);
+        numEntriesCheckpoint, ATauthorizations, Bauthorizations);
   }
 
   public long TwoTableROWSelector(
@@ -344,7 +350,8 @@ public class Graphulo {
       List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
       List<IteratorSetting> iteratorsAfterTwoTable,
       Reducer reducer, Map<String, String> reducerOpts,
-      int numEntriesCheckpoint
+      int numEntriesCheckpoint,
+      Authorizations Aauthorizations, Authorizations Bauthorizations
   ) {
     Map<String,String> opt = new HashMap<>();
     opt.put("rowMultiplyOp", SelectorRowMultiply.class.getName());
@@ -355,7 +362,7 @@ public class Graphulo {
         rowFilter, colFilterAT, colFilterB,
         false, false, iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
         reducer, reducerOpts,
-        numEntriesCheckpoint);
+        numEntriesCheckpoint, Aauthorizations, Bauthorizations);
   }
 
   public long TwoTableEWISE(String ATtable, String Btable, String Ctable, String CTtable,
@@ -369,7 +376,8 @@ public class Graphulo {
                             List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
                             List<IteratorSetting> iteratorsAfterTwoTable,
                             Reducer reducer, Map<String, String> reducerOpts,
-                            int numEntriesCheckpoint) {
+                            int numEntriesCheckpoint,
+                            Authorizations Aauthorizations, Authorizations Bauthorizations) {
     if (multOp == null)
       multOp = MathTwoScalar.class;
     Map<String,String> opt = new HashMap<>();
@@ -384,7 +392,7 @@ public class Graphulo {
         rowFilter, colFilterAT, colFilterB,
         emitNoMatchA, emitNoMatchB, iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
         reducer, reducerOpts,
-        numEntriesCheckpoint);
+        numEntriesCheckpoint, Aauthorizations, Bauthorizations);
   }
 
   public long TwoTableNONE(String ATtable, String Btable, String Ctable, String CTtable,
@@ -397,7 +405,8 @@ public class Graphulo {
                            List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
                            List<IteratorSetting> iteratorsAfterTwoTable,
                            Reducer reducer, Map<String, String> reducerOpts,
-                           int numEntriesCheckpoint) {
+                           int numEntriesCheckpoint,
+                           Authorizations Aauthorizations, Authorizations Bauthorizations) {
     Map<String,String> opt = new HashMap<>();
 
     return TwoTable(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority,
@@ -405,7 +414,7 @@ public class Graphulo {
         rowFilter, colFilterAT, colFilterB,
         emitNoMatchA, emitNoMatchB, iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
         reducer, reducerOpts,
-        numEntriesCheckpoint);
+        numEntriesCheckpoint, Aauthorizations, Bauthorizations);
   }
 
   public long TwoTable(String ATtable, String Btable, String Ctable, String CTtable,
@@ -420,7 +429,8 @@ public class Graphulo {
                        List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
                        List<IteratorSetting> iteratorsAfterTwoTable, // priority doesn't matter for these three
                        Reducer reducer, Map<String, String> reducerOpts, // applies at RWI if using RWI; otherwise applies at client. Reducer must be init'ed previously
-                       int numEntriesCheckpoint) {
+                       int numEntriesCheckpoint,
+                       Authorizations ATauthorizations, Authorizations Bauthorizations) {
     if (ATtable == null || ATtable.isEmpty())
       throw new IllegalArgumentException("Please specify table AT. Given: " + ATtable);
     if (Btable == null || Btable.isEmpty())
@@ -441,6 +451,10 @@ public class Graphulo {
       BScanIteratorPriority = 7; // default priority
     if (reducerOpts == null && reducer != null)
       reducerOpts = new HashMap<>();
+    if (ATauthorizations == null)
+      ATauthorizations = Authorizations.EMPTY;
+    if (Bauthorizations == null)
+      Bauthorizations = Authorizations.EMPTY;
 
     Ctable = emptyToNull(Ctable);
     CTtable = emptyToNull(CTtable);
@@ -486,8 +500,8 @@ public class Graphulo {
       }
 
     Map<String, String>
-        optTT = basicRemoteOpts("AT.", ATtable),
-        optRWI = (useRWI) ? basicRemoteOpts("", Ctable, CTtable) : null;
+        optTT = basicRemoteOpts("AT.", ATtable, null, ATauthorizations),
+        optRWI = (useRWI) ? basicRemoteOpts("", Ctable, CTtable, null) : null;
 //    optTT.put("trace", String.valueOf(Trace.isTracing())); // logs timing on server
     optTT.put("dotmode", dotmode.name());
     optTT.putAll(optsTT);
@@ -513,7 +527,7 @@ public class Graphulo {
     // scan B with TableMultIterator
     BatchScanner bs;
     try {
-      bs = connector.createBatchScanner(Btable, Authorizations.EMPTY, 50); // TODO P2: set number of batch scan threads
+      bs = connector.createBatchScanner(Btable, Bauthorizations, 50); // TODO P2: set number of batch scan threads
     } catch (TableNotFoundException e) {
       log.error("crazy", e);
       throw new RuntimeException(e);
@@ -648,6 +662,7 @@ public class Graphulo {
    *           Post-condition: This method will <b>CLEAR scan-time iterators and fetched columns</b> from the BatchScanner.
    *           Thus, scan-time iterators and fetched columns on a given BatchScanner will affect this OneTable operation once.
    *           It is better to specify a column filter and midIterator instead of setting these on the BatchScanner directly.
+   * @param authorizations Only used if the BatchScanner bs parameter is null. Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
    * @return Number of entries processed at the RemoteWriteIterator or gathered at the client.
    *
    */
@@ -659,7 +674,8 @@ public class Graphulo {
                        Collection<Range> rowFilter,
                        String colFilter,
                        List<IteratorSetting> midIterator,                 // Applied after row, col filter but before RWI
-                       BatchScanner bs                                   // Optimization: re-use BatchScanner
+                       BatchScanner bs,                                   // Optimization: re-use BatchScanner
+                       Authorizations authorizations
   ) {
     boolean useRWI = clientResultMap == null;
     if (Atable == null || Atable.isEmpty())
@@ -745,7 +761,7 @@ public class Graphulo {
     bs.setRanges(Collections.singleton(new Range()));
 
     Map<String, String>
-        optRWI = useRWI ? basicRemoteOpts("", Rtable, RTtable) : null;
+        optRWI = useRWI ? basicRemoteOpts("", Rtable, RTtable, authorizations) : null;
 //    if (useRWI)
 //      optRWI.put("trace", String.valueOf(Trace.isTracing())); // logs timing on server
 
@@ -850,11 +866,46 @@ public class Graphulo {
    *                    Applied at the client if Rtable==null && RTtable==null && clientResultMap != null.
    * @return          The nodes reachable in exactly k steps from v0.
    */
-  @SuppressWarnings("unchecked")
   public String AdjBFS(String Atable, String v0, int k, String Rtable, String RTtable,
                        Map<Key, Value> clientResultMap, int AScanIteratorPriority,
                        String ADegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree,
                        IteratorSetting plusOp) {
+    return AdjBFS(Atable, v0, k, Rtable, RTtable, clientResultMap, AScanIteratorPriority, ADegtable, degColumn, degInColQ, minDegree, maxDegree, plusOp, Authorizations.EMPTY, Authorizations.EMPTY);
+  }
+
+  /**
+   * Adjacency table Breadth First Search. Sums entries into Rtable from each step of the BFS.
+   * Can gather entries at client if desired.
+   *
+   * @param Atable      Name of Accumulo table.
+   * @param v0          Starting nodes, like "a,f,b,c,". Null or empty string "" means start from all nodes.
+   *                    v0 may be a range of nodes like "c,:,e,g,k,:,".
+   * @param k           Number of steps
+   * @param Rtable      Name of table to store result. Null means don't store the result.
+   * @param RTtable     Name of table to store transpose of result. Null means don't store the transpose.
+   * @param clientResultMap Only give non-null if Rtable==null && RTtable==null.
+   *                        Results of BFS are put inside the map instead of into a new Accumulo table.
+   *                        Yes, this means all the entries reached in the BFS are sent to the client. Use with care.
+   * @param AScanIteratorPriority Priority to use for scan-time iterator on table A
+   * @param ADegtable   Name of table holding out-degrees for A. Leave null to filter on the fly with
+ *                    the {@link SmallLargeRowFilter}, or do no filtering if minDegree=0 and maxDegree=Integer.MAX_VALUE.
+   * @param degColumn   Name of column for out-degrees in ADegtable like "deg". Null means the empty column "".
+*                    If degInColQ==true, this is the prefix before the numeric portion of the column like "deg|", and null means no prefix. Unused if ADegtable is null.
+   * @param degInColQ   True means degree is in the Column Qualifier. False means degree is in the Value.
+*                    Unused if ADegtable is null.
+   * @param minDegree   Minimum out-degree. Checked before doing any searching, at every step, from ADegtable. Pass 0 for no filtering.
+   * @param maxDegree   Maximum out-degree. Checked before doing any searching, at every step, from ADegtable. Pass Integer.MAX_VALUE for no filtering.
+   * @param plusOp      An SKVI to apply to the result table(s) that "sums" values. Not applied if null.
+   *                    Applied at the client if Rtable==null && RTtable==null && clientResultMap != null.
+   * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
+   * @param ADegauthorizations Authorizations for scanning ADegtable. Null means use default: Authorizations.EMPTY
+   * @return          The nodes reachable in exactly k steps from v0.
+   */
+  @SuppressWarnings("unchecked")
+  public String AdjBFS(String Atable, String v0, int k, String Rtable, String RTtable,
+                       Map<Key, Value> clientResultMap, int AScanIteratorPriority,
+                       String ADegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree,
+                       IteratorSetting plusOp, Authorizations Aauthorizations, Authorizations ADegauthorizations) {
     boolean needDegreeFiltering = minDegree > 1 || maxDegree < Integer.MAX_VALUE;
     boolean useRWI = clientResultMap == null;
     checkGiven(true, "Atable", Atable);
@@ -884,9 +935,9 @@ public class Graphulo {
 
     BatchScanner bs, bsDegree = null;
     try {
-      bs = connector.createBatchScanner(Atable, Authorizations.EMPTY, 50); // TODO P2: set number of batch scan threads
+      bs = connector.createBatchScanner(Atable, Aauthorizations, 50); // TODO P2: set number of batch scan threads
       if (needDegreeFiltering & ADegtable != null)
-        bsDegree = connector.createBatchScanner(ADegtable, Authorizations.EMPTY, 4); // TODO P2: set number of batch scan threads
+        bsDegree = connector.createBatchScanner(ADegtable, ADegauthorizations, 4); // TODO P2: set number of batch scan threads
     } catch (TableNotFoundException e) {
       log.error("crazy", e);
       throw new RuntimeException(e);
@@ -947,7 +998,7 @@ public class Graphulo {
         OneTable(Atable, Rtable, RTtable, clientResultMap, AScanIteratorPriority,
             reducer, reducerOpts, plusOp,
             rowFilter, null, // no column filter
-            iteratorSettingList, bs
+            iteratorSettingList, bs, Aauthorizations
         );
         // post-condition: reducer updated; clientResultMap updated if not null
 
@@ -1055,12 +1106,14 @@ public class Graphulo {
    * @param maxDegree     Maximum out-degree. Checked before doing any searching, at every step, from ADegtable. Pass Integer.MAX_VALUE for no filtering.
    * @param plusOp      An SKVI to apply to the result table that "sums" values. Not applied if null.
    * @param EScanIteratorPriority Priority to use for Table Multiplication scan-time iterator on table E
+   * @param Eauthorizations Authorizations for scanning Etable. Null means use default: Authorizations.EMPTY
+   *@param EDegauthorizations Authorizations for scanning EDegtable. Null means use default: Authorizations.EMPTY
    * @return              The nodes reachable in exactly k steps from v0.
    */
   public String  EdgeBFS(String Etable, String v0, int k, String Rtable, String RTtable,
                          String startPrefixes, String endPrefixes,
                          String ETDegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree,
-                         IteratorSetting plusOp, int EScanIteratorPriority) {
+                         IteratorSetting plusOp, int EScanIteratorPriority, Authorizations Eauthorizations, Authorizations EDegauthorizations) {
     boolean needDegreeFiltering = minDegree > 1 || maxDegree < Integer.MAX_VALUE;
     if (Etable == null || Etable.isEmpty())
       throw new IllegalArgumentException("Please specify Incidence table. Given: " + Etable);
@@ -1128,7 +1181,7 @@ public class Graphulo {
         throw new RuntimeException(e);
       }
 
-    Map<String, String> opt = Rtable != null || RTtable != null ? basicRemoteOpts("C.", Rtable, RTtable) : new HashMap<String,String>();
+    Map<String, String> opt = Rtable != null || RTtable != null ? basicRemoteOpts("C.", Rtable, RTtable, null) : new HashMap<String,String>();
 //    opt.put("trace", String.valueOf(trace)); // logs timing on server
 //    opt.put("gatherColQs", "true");  No gathering right now.  Need to implement more general gathering function on RemoteWriteIterator.
     opt.put("dotmode", TwoTableIterator.DOTMODE.ROW.name());
@@ -1153,9 +1206,9 @@ public class Graphulo {
 
     BatchScanner bs, bsDegree = null;
     try {
-      bs = connector.createBatchScanner(Etable, Authorizations.EMPTY, 2); // TODO P2: set number of batch scan threads
+      bs = connector.createBatchScanner(Etable, Eauthorizations, 50); // TODO P2: set number of batch scan threads
       if (needDegreeFiltering)
-        bsDegree = connector.createBatchScanner(ETDegtable, Authorizations.EMPTY, 4); // TODO P2: set number of batch scan threads
+        bsDegree = connector.createBatchScanner(ETDegtable, EDegauthorizations, 4); // TODO P2: set number of batch scan threads
     } catch (TableNotFoundException e) {
       log.error("crazy", e);
       throw new RuntimeException(e);
@@ -1367,6 +1420,7 @@ public class Graphulo {
    * @param plusOp         An SKVI to apply to the result table that "sums" values. Not applied if null.
    *                       Be careful: this affects degrees in the result table as well as normal entries.
    * @param outputUnion    Whether to output nodes reachable in EXACTLY or UP TO k BFS steps.
+   * @param Sauthorizations Authorizations for scanning Stable. Used for both degree scanning and normal scanning. Null means use default: Authorizations.EMPTY
    * @return  The nodes reachable in EXACTLY k steps from v0.
    *          If outputUnion is true, then returns the nodes reachable in UP TO k steps from v0.
    */
@@ -1375,7 +1429,7 @@ public class Graphulo {
                           String v0, int k, String Rtable,
                           String SDegtable, String degColumn, boolean degInColQ,
                           boolean copyOutDegrees, boolean computeInDegrees, int minDegree, int maxDegree,
-                          IteratorSetting plusOp, boolean outputUnion) {
+                          IteratorSetting plusOp, boolean outputUnion, Authorizations Sauthorizations) {
     boolean needDegreeFiltering = minDegree > 1 || maxDegree < Integer.MAX_VALUE;
     checkGiven(true, "Stable", Stable);
     if (needDegreeFiltering && (SDegtable == null || SDegtable.isEmpty()))
@@ -1432,9 +1486,9 @@ public class Graphulo {
 
     BatchScanner bs, bsDegree = null;
     try {
-      bs = connector.createBatchScanner(Stable, Authorizations.EMPTY, 50); // TODO P2: set number of batch scan threads
+      bs = connector.createBatchScanner(Stable, Sauthorizations, 50); // TODO P2: set number of batch scan threads
       if (needDegreeFiltering)
-        bsDegree = connector.createBatchScanner(SDegtable, Authorizations.EMPTY, 4); // TODO P2: set number of batch scan threads
+        bsDegree = connector.createBatchScanner(SDegtable, Sauthorizations, 4); // TODO P2: set number of batch scan threads
     } catch (TableNotFoundException e) {
       log.error("crazy", e);
       throw new RuntimeException(e);
@@ -1501,7 +1555,7 @@ public class Graphulo {
         OneTable(Stable, Rtable, null, null, // feature addition: could gather entries at the client
             4, reducer, optSingleReducer,
             plusOp, rowFilter, null, // column filter applied through BatchScanner fetchColumn
-            iteratorSettingList, bs);
+            iteratorSettingList, bs, Sauthorizations);
         long dur = System.currentTimeMillis() - t2;
         scanTime += dur;
 
@@ -1624,11 +1678,13 @@ public class Graphulo {
    * @param colFilterB Experimental. Pass null for no filtering.
    * @param numEntriesCheckpoint # of entries before we emit a checkpoint entry from the scan. -1 means no monitoring.
    * @param separator The string to insert between the labels of two nodes.
+   * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
    */
   public void LineGraph(String Atable, String ATtable, String Rtable, String RTtable,
                         int BScanIteratorPriority, boolean isDirected, boolean includeExtraCycles, IteratorSetting plusOp,
                         Collection<Range> rowFilter, String colFilterAT, String colFilterB,
-                        int numEntriesCheckpoint, String separator) {
+                        int numEntriesCheckpoint, String separator,
+                        Authorizations Aauthorizations) {
     Map<String,String> opt = new HashMap<>();
     opt.put("rowMultiplyOp", LineRowMultiply.class.getName());
     opt.put("rowMultiplyOp.opt."+LineRowMultiply.SEPARATOR, separator);
@@ -1641,7 +1697,7 @@ public class Graphulo {
         false, false, Collections.<IteratorSetting>emptyList(),
         Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
         null, null,
-        numEntriesCheckpoint);
+        numEntriesCheckpoint, Aauthorizations, Aauthorizations);
   }
 
   protected String emptyToNull(String s) { return s != null && s.isEmpty() ? null : s; }
@@ -1686,11 +1742,12 @@ public class Graphulo {
    *                     (must apply to both rows and cols because A is undirected Adjacency table).
    * @param forceDelete False means throws exception if the temporary tables used inside the algorithm already exist.
    *                    True means delete them if they exist.
+   * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
    * @return nnz of the kTruss subgraph, which is 2* the number of edges in the kTruss subgraph.
    *          Returns -1 if k < 2 since there is no point in counting the number of edges.
    */
   public long kTrussAdj(String Aorig, String Rfinal, int k,
-                        String filterRowCol, boolean forceDelete) {
+                        String filterRowCol, boolean forceDelete, Authorizations Aauthorizations) {
     checkGiven(true, "Aorig", Aorig);
     Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
     TableOperations tops = connector.tableOperations();
@@ -1701,7 +1758,7 @@ public class Graphulo {
         if (RfinalExists || filterRowCol != null)
           OneTable(Aorig, Rfinal, null, null, -1, null, null, PLUS_ITERATOR_LONG,
                   filterRowCol == null ? null : GraphuloUtil.d4mRowToRanges(filterRowCol),
-                  filterRowCol, null, null);
+                  filterRowCol, null, null, Aauthorizations);
         else
           tops.clone(Aorig, Rfinal, true, null, null);    // flushes Aorig before cloning
         return -1;
@@ -1723,7 +1780,7 @@ public class Graphulo {
       else
         nnzAfter = OneTable(Aorig, Atmp, null, null, -1, null, null, null,
                 filterRowCol == null ? null : GraphuloUtil.d4mRowToRanges(filterRowCol),
-                filterRowCol, null, null);
+                filterRowCol, null, null, Aauthorizations);
 
       // Inital nnz
       // Careful: nnz figure will be inaccurate if there are multiple versions of an entry in Aorig.
@@ -1750,7 +1807,7 @@ public class Graphulo {
         TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Atmp, A2tmp, null, -1, ConstantTwoScalar.class, null,
             sumAndFilter, null, null, null, false, false,
             null, null, noDiagFilter,
-            null, null, -1);
+            null, null, -1, Aauthorizations, Aauthorizations);
         // A2tmp has a SummingCombiner
 
         nnzAfter = SpEWiseX(A2tmp, Atmp, AtmpAlt, null, -1, ConstantTwoScalar.class, null, null,
@@ -1791,11 +1848,12 @@ public class Graphulo {
    * @param edgeFilter Filter on rows of Eorig, i.e., the edges in an incidence table.
    * @param forceDelete False means throws exception if the temporary tables used inside the algorithm already exist.
    *                    True means delete them if they exist.
+   * @param Eauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
    * @return  nnz of the kTruss subgraph, which is 2* the number of edges in the kTruss subgraph.
    *          Returns -1 if k < 2 since there is no point in counting the number of edges.
    */
   public long kTrussEdge(String Eorig, String ETorig, String Rfinal, String RTfinal, int k,
-                         Collection<Range> edgeFilter, boolean forceDelete) { // iterator priority?
+                         Collection<Range> edgeFilter, boolean forceDelete, Authorizations Eauthorizations) { // iterator priority?
     // small optimization possible: pass in Aorig = ET*E if present. Saves first iteration matrix multiply. Not really worth it.
     checkGiven(true, "Eorig", Eorig);
     Rfinal = emptyToNull(Rfinal);
@@ -1845,7 +1903,7 @@ public class Graphulo {
         tops.clone(ETorig, ETtmp, true, null, null);
         nnzAfter = countEntries(Eorig);
       } else
-        nnzAfter = OneTable(Eorig, Etmp, ETtmp, null, -1, null, null, null, edgeFilter, null, null, null);
+        nnzAfter = OneTable(Eorig, Etmp, ETtmp, null, -1, null, null, null, edgeFilter, null, null, null, Eauthorizations);
 
       // Inital nnz
       // Careful: nnz figure will be inaccurate if there are multiple versions of an entry in Aorig.
@@ -1873,7 +1931,7 @@ public class Graphulo {
 
         TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Etmp, Atmp, null, -1, ConstantTwoScalar.class, null,
             PLUS_ITERATOR_LONG, null, null, null, false, false, null, null,
-            Collections.singletonList(noDiagFilter), null, null, -1);
+            Collections.singletonList(noDiagFilter), null, null, -1, Eauthorizations, Eauthorizations);
         // Atmp has a SummingCombiner
 
         TableMult(ETtmp, Atmp, Rtmp, null, ConstantTwoScalar.class, itsBeforeR);
@@ -1884,7 +1942,7 @@ public class Graphulo {
         // E*A -> sum -> ==2 -> Abs0 -> OnlyRow -> sum -> kTrussFilter -> TT_RowSelector <- E
         //                                                                \-> Writing to EtmpAlt, ETtmpAlt
         nnzAfter = TwoTableROWSelector(Rtmp, Etmp, EtmpAlt, ETtmpAlt, -1, null, null, null, true,
-            null, null, null, null, null, -1);
+            null, null, null, null, null, -1, Eauthorizations, Eauthorizations);
         tops.delete(Etmp);
         tops.delete(Rtmp);
 
@@ -1931,10 +1989,11 @@ public class Graphulo {
    *               using a couple combiner-like iterators.
    * @param filterRowCol Filter applied to rows and columns of Aorig
    *                     (must apply to both rows and cols because A is undirected Adjacency table).
+   * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
    * @return number of partial products sent to Rtable during the Jaccard coefficient calculation
    */
   public long Jaccard(String Aorig, String ADeg, String Rfinal,
-                      String filterRowCol) {
+                      String filterRowCol, Authorizations Aauthorizations) {
     checkGiven(true, "Aorig, ADeg", Aorig, ADeg);
     Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
     TableOperations tops = connector.tableOperations();
@@ -1943,7 +2002,7 @@ public class Graphulo {
     // "Plus" iterator to set on Rfinal
     IteratorSetting RPlusIteratorSetting = new DynamicIteratorSetting()
       .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.LONG))
-      .append(JaccardDegreeApply.iteratorSetting(1, basicRemoteOpts(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX, ADeg)))
+      .append(JaccardDegreeApply.iteratorSetting(1, basicRemoteOpts(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX, ADeg, null, Aauthorizations)))
       .toIteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority());
 
     // use a deepCopy of the local iterator on A for the left part of the TwoTable
@@ -1956,7 +2015,7 @@ public class Graphulo {
         Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.Lower)),
         Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.Upper)),
         Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.Upper)),
-        null, null, -1);
+        null, null, -1, Aauthorizations, Aauthorizations);
 
     log.debug("Jaccard #partial products " + npp);
     return npp;
@@ -1997,7 +2056,7 @@ public class Graphulo {
       dis
         .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))
         .append(PLUS_ITERATOR_BIGDECIMAL)
-        .append(new IteratorSetting(1, RemoteWriteIterator.class, basicRemoteOpts("", Degtable)));
+        .append(new IteratorSetting(1, RemoteWriteIterator.class, basicRemoteOpts("", Degtable, null, null)));
       bs.addScanIterator(dis.toIteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority()));
     }
 
@@ -2013,18 +2072,20 @@ public class Graphulo {
     return totalRows;
   }
 
-  private Map<String,String> basicRemoteOpts(String prefix, String remoteTable) {
-    return basicRemoteOpts(prefix, remoteTable, null);
-  }
+//  private Map<String,String> basicRemoteOpts(String prefix, String remoteTable) {
+//    return basicRemoteOpts(prefix, remoteTable, null);
+//  }
 
   /**
    * Create the basic iterator settings for the {@link RemoteWriteIterator}.
    * @param prefix A prefix to apply to keys in the option map, e.g., the "B" in "B.tableName".
    * @param remoteTable Name of table to write to. Null does not put in the table name.
    * @param remoteTableTranspose Name of table to write transpose to. Null does not put in the transpose table name.
+   * @param authorizations Authorizations for the server-side iterator. Null means use default: Authorizations.EMPTY
    * @return The basic set of options for {@link RemoteWriteIterator}.
    */
-  private Map<String,String> basicRemoteOpts(String prefix, String remoteTable, String remoteTableTranspose) {
+  private Map<String,String> basicRemoteOpts(String prefix, String remoteTable,
+                                             String remoteTableTranspose, Authorizations authorizations) {
     if (prefix == null) prefix = "";
     Map<String,String> opt = new HashMap<>();
     String instance = connector.getInstance().getInstanceName();
@@ -2038,6 +2099,8 @@ public class Graphulo {
       opt.put(prefix+"tableNameTranspose", remoteTableTranspose);
     opt.put(prefix + "username", user);
     opt.put(prefix+"password", new String(password.getPassword()));
+    if (authorizations != null && !authorizations.equals(Authorizations.EMPTY))
+      opt.put(prefix+"authorizations", authorizations.toString());
     return opt;
   }
 
@@ -2134,7 +2197,8 @@ public class Graphulo {
         .append(RandomTopicApply.iteratorSetting(1, K))
         .getIteratorSettingList();
     try (TraceScope scope = Trace.startSpan("nmfCreateRandW", Sampler.ALWAYS)) {
-      long NK = OneTable(Aorig, Wfinal, WTfinal, null, -1, null, null, null, null, null, itCreateTopicList, null);
+      long NK = OneTable(Aorig, Wfinal, WTfinal, null, -1, null, null, null, null, null, itCreateTopicList, null,
+          Authorizations.EMPTY);
     }
     if (Trace.isTracing())
       DebugUtil.printTable("0: W is NxK:", connector, Wfinal);
@@ -2184,7 +2248,7 @@ public class Graphulo {
     TableMult(WTfinal, Hfinal, WHtmp, null, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
         MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
-        null, null, null, false, false, null, null, PRESUMITER, null, null, -1);
+        null, null, null, false, false, null, null, PRESUMITER, null, null, -1, Authorizations.EMPTY, Authorizations.EMPTY);
     if (Trace.isTracing())
       DebugUtil.printTable("WH is NxM:", connector, WHtmp);
 
@@ -2204,7 +2268,7 @@ public class Graphulo {
         null, null, null, null, null, null,
         iterAfterMinus,
         sumReducer, sumReducerOpts,
-        -1);
+        -1, Authorizations.EMPTY, Authorizations.EMPTY);
 
     // Delete temporary WH table.
     deleteTables(true, WHtmp);
@@ -2232,7 +2296,7 @@ public class Graphulo {
       TableMult(in1, in1, null, tmp1, -1,
           MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
           plusCombiner,
-          null, null, null, false, false, null, null, PRESUMITER, null, null, -1);
+          null, null, null, false, false, null, null, PRESUMITER, null, null, -1, Authorizations.EMPTY, Authorizations.EMPTY);
     }
     if (Trace.isTracing())
       DebugUtil.printTable("tmp1 is KxK:", connector, tmp1);
@@ -2266,7 +2330,7 @@ public class Graphulo {
       TableMult(in1, in2, tmp2, null, -1,
           MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
           plusCombiner,
-          null, null, null, false, false, null, null, PRESUMITER, null, null, -1);
+          null, null, null, false, false, null, null, PRESUMITER, null, null, -1, Authorizations.EMPTY, Authorizations.EMPTY);
     }
 
     // Step 4: tmp1^T * tmp2 => OnlyPositiveFilter => {out1, transpose to out2}
@@ -2284,7 +2348,7 @@ public class Graphulo {
           sumFilterOp,
           null, null, null, false, false, null, null,
           PRESUMITER,
-          null, null, -1);
+          null, null, -1, Authorizations.EMPTY, Authorizations.EMPTY);
     }
 
     // Delete temporary tables.
@@ -2321,7 +2385,7 @@ public class Graphulo {
 
     // Scan A into memory
     Map<Key,Value> Aentries = new TreeMap<>(); //GraphuloUtil.scanAll(connector, Aorig);
-    OneTable(Aorig, null, null, Aentries, -1, null, null, null, null, null, null, null); // returns nnz A
+    OneTable(Aorig, null, null, Aentries, -1, null, null, null, null, null, null, null, Authorizations.EMPTY); // returns nnz A
     if (transposeA)
       Aentries = GraphuloUtil.transposeMap(Aentries);
 
@@ -2469,7 +2533,7 @@ public class Graphulo {
     return OneTable(Atable, Rtable, RTtable, null, 21, null, null, null, null, null,
         probability >= 1 ? Collections.<IteratorSetting>emptyList() :
             Collections.singletonList(SamplingFilter.iteratorSetting(1, probability)),
-        null);
+        null, Authorizations.EMPTY);
   }
 
 }

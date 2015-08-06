@@ -64,7 +64,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      long nnzkTruss = graphulo.kTrussAdj(tA, tR, 3, null, true);
+      long nnzkTruss = graphulo.kTrussAdj(tA, tR, 3, null, true, Authorizations.EMPTY);
       log.info("3Truss has " + nnzkTruss + " nnz");
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -87,7 +87,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      long nnzkTruss = graphulo.kTrussAdj(tA, tR, 4, null, true);
+      long nnzkTruss = graphulo.kTrussAdj(tA, tR, 4, null, true, Authorizations.EMPTY);
       log.info("4Truss has " + nnzkTruss + " nnz");
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -147,7 +147,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      long nnzkTruss = graphulo.kTrussEdge(tE, tET, tR, tRT, 3, null, true);
+      long nnzkTruss = graphulo.kTrussEdge(tE, tET, tR, tRT, 3, null, true, Authorizations.EMPTY);
       log.info("3Truss has " + nnzkTruss + " nnz");
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -182,7 +182,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      long nnzkTruss = graphulo.kTrussEdge(tE, tET, tR, tRT, 3, null, true);
+      long nnzkTruss = graphulo.kTrussEdge(tE, tET, tR, tRT, 3, null, true, Authorizations.EMPTY);
       log.info("4Truss has " + nnzkTruss + " nnz");
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -255,7 +255,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    long npp = graphulo.Jaccard(tA, tADeg, tR, null);
+    long npp = graphulo.Jaccard(tA, tADeg, tR, null, Authorizations.EMPTY);
     log.info("Jaccard table has "+npp+" #partial products sent to "+tR);
 
     // Just for fun, let's compact and ensure idempotence.

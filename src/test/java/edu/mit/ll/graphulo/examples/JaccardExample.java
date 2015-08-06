@@ -82,7 +82,7 @@ public class JaccardExample extends AccumuloTestBase {
     log.info("Does AtableSub exist? "+conn.tableOperations().exists(AtableSub));
 
     String filterRowCol = null; // no filtering beyond what we already did with the AdjBFS
-    long npp = graphulo.Jaccard(AtableSub, ADegtable, Rtable, filterRowCol);
+    long npp = graphulo.Jaccard(AtableSub, ADegtable, Rtable, filterRowCol, Authorizations.EMPTY);
     log.info("Number of partial products sent to result table: " + npp);
 
     // Result is in output table. Do whatever you like with it.

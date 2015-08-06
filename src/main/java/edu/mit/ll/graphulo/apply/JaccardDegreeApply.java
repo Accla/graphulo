@@ -8,6 +8,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -32,7 +33,7 @@ import java.util.Map;
 public class JaccardDegreeApply implements ApplyOp {
   private static final Logger log = LogManager.getLogger(JaccardDegreeApply.class);
 
-  /** Setup with {@link edu.mit.ll.graphulo.Graphulo#basicRemoteOpts(String, String)}
+  /** Setup with {@link edu.mit.ll.graphulo.Graphulo#basicRemoteOpts(String, String, String, Authorizations)}
    * options for RemoteSourceIterator. */
   public static IteratorSetting iteratorSetting(int priority, Map<String,String> remoteOpts) {
     IteratorSetting JDegApply = new IteratorSetting(priority, ApplyIterator.class, remoteOpts);

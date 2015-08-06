@@ -13,15 +13,20 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -108,6 +113,102 @@ public class TableMultTest extends AccumuloTestBase {
     conn.tableOperations().delete(tB);
     conn.tableOperations().delete(tC);
     conn.tableOperations().delete(tCT);
+  }
+
+  /**
+   * <pre>
+   *      C1 C2        C1 C2 C3          B1  B2
+   * A1 [ 5  2 ] * B1 [   3  3  ] = A1 [ 6   15+6 ]
+   * A2 [ 4    ]   B2 [3  3     ]   A2 [     12   ]
+   * </pre>
+   */
+  @Test
+//  @Ignore("New version only works with BatchWriter. KnownBug: ACCUMULO-3645")
+  public void test1WithAuthoriations() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
+    Connector conn = tester.getConnector();
+
+    String user = conn.whoami();
+    Assume.assumeTrue("Cannot test visibility labels because user " + user + " does not have ALTER_USER permission",
+        conn.securityOperations().hasSystemPermission(user, SystemPermission.ALTER_USER));
+    Authorizations beforeAuthorizations = conn.securityOperations().getUserAuthorizations(user);
+    Authorizations tempAuthorizations;
+    {
+      List<byte[]> beforeAuthorizationsList = beforeAuthorizations.getAuthorizations();
+      List<byte[]> tempAuthorizationsList = new ArrayList<>(beforeAuthorizationsList);
+      tempAuthorizationsList.add("vis".getBytes(StandardCharsets.UTF_8));
+      tempAuthorizationsList.add("visB".getBytes(StandardCharsets.UTF_8));
+      tempAuthorizations = new Authorizations(tempAuthorizationsList);
+    }
+    conn.securityOperations().changeUserAuthorizations(user, tempAuthorizations);
+    System.out.println("new authorizations: "+tempAuthorizations);
+
+    try {
+      final String tC, tAT, tB, tCT;
+      {
+        String[] names = getUniqueNames(4);
+        tAT = names[0];
+        tB = names[1];
+        tC = names[2];
+        tCT = names[3];
+      }
+      {
+        Map<Key, Value> input = new HashMap<>();
+        input.put(new Key("A1", "", "C1", "vis"), new Value("5".getBytes()));
+        input.put(new Key("A1", "", "C2", "vis"), new Value("2".getBytes()));
+        input.put(new Key("A2", "", "C1", "vis"), new Value("4".getBytes()));
+        input = GraphuloUtil.transposeMap(input);
+        TestUtil.createTestTable(conn, tAT, null, input);
+      }
+      {
+        Map<Key, Value> input = new HashMap<>();
+        input.put(new Key("B1", "", "C2", "visB"), new Value("3".getBytes()));
+        input.put(new Key("B1", "", "C3", "visB"), new Value("3".getBytes()));
+        input.put(new Key("B2", "", "C1", "visB"), new Value("3".getBytes()));
+        input.put(new Key("B2", "", "C2", "visB"), new Value("3".getBytes()));
+        input = GraphuloUtil.transposeMap(input);
+        TestUtil.createTestTable(conn, tB, null, input);
+      }
+      SortedMap<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+      expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
+      expect.put(new Key("A1", "", "B2"), new Value("21".getBytes()));
+      expect.put(new Key("A2", "", "B2"), new Value("12".getBytes()));
+      SortedMap<Key, Value> expectT = GraphuloUtil.transposeMap(expect);
+
+      Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+      long numpp = graphulo.TableMult(tAT, tB, tC, tCT, -1,
+          MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.BIGDECIMAL), Graphulo.PLUS_ITERATOR_BIGDECIMAL,
+          null, null, null, false, false, null, null, null, null, null, 1,
+          new Authorizations("vis"), new Authorizations("visB"));
+
+      Assert.assertEquals(4, numpp);
+
+      Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
+      {
+        SortedMap<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+        for (Map.Entry<Key, Value> entry : scanner) {
+          actual.put(entry.getKey(), entry.getValue());
+        }
+        scanner.close();
+        Assert.assertEquals(expect, actual);
+      }
+
+      scanner = conn.createScanner(tCT, Authorizations.EMPTY);
+      {
+        SortedMap<Key, Value> actualT = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+        for (Map.Entry<Key, Value> entry : scanner) {
+          actualT.put(entry.getKey(), entry.getValue());
+        }
+        scanner.close();
+        Assert.assertEquals(expectT, actualT);
+      }
+
+      conn.tableOperations().delete(tAT);
+      conn.tableOperations().delete(tB);
+      conn.tableOperations().delete(tC);
+      conn.tableOperations().delete(tCT);
+    } finally {
+      conn.securityOperations().changeUserAuthorizations(user, beforeAuthorizations);
+    }
   }
 
   /**

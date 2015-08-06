@@ -10,6 +10,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.xml.DOMConfigurator;
@@ -74,7 +75,7 @@ public class MatlabGraphulo extends Graphulo {
 
     return TableMult(ATtable, Btable, Ctable, CTtable, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG), Graphulo.PLUS_ITERATOR_LONG,
-        rowFilterRanges, colFilterAT, colFilterB, false, false, null, null, itAfterTT, null, null, numEntriesCheckpoint);
+        rowFilterRanges, colFilterAT, colFilterB, false, false, null, null, itAfterTT, null, null, numEntriesCheckpoint, Authorizations.EMPTY, Authorizations.EMPTY);
   }
 
 

@@ -87,7 +87,7 @@ public class SingleBFSExample extends AccumuloTestBase {
     // This call blocks until the BFS completes.
     String vReached = graphulo.SingleBFS(Stable, edgeColumn, edgeSep, v0, numSteps,
         Rtable, Stable, degColumn, degInColQ, copyOutDegrees, computeInDegrees, minDegree, maxDegree,
-        plusOp, outputUnion);
+        plusOp, outputUnion, Authorizations.EMPTY);
     System.out.println("First few nodes reachable in exactly "+numSteps+" steps: " +
         vReached.substring(0,Math.min(20,vReached.length())));
 

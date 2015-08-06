@@ -77,7 +77,7 @@ public class NMFExample extends AccumuloTestBase {
     double probability = 0.1;
 //    long nnzSample = graphulo.SampleCopy(Etable, EtableSample+"tmp", null, probability, trace);
     long nnzSample = graphulo.OneTable(Etable, EtableSample, ETtableSample, null, -1, null, null, null, GraphuloUtil.d4mRowToRanges("2,:,50,"), "2,:,50,",
-        Collections.singletonList(SamplingFilter.iteratorSetting(1, probability)), null);
+        Collections.singletonList(SamplingFilter.iteratorSetting(1, probability)), null, Authorizations.EMPTY);
     System.out.println("Sample finished; #entries in sample is "+nnzSample);
 
     // Non-negative matrix factorization.

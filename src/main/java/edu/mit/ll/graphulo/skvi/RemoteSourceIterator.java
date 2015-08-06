@@ -49,6 +49,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
   private String zookeeperHost;
   private String username;
   private AuthenticationToken auth;
+  private Authorizations authorizations = Authorizations.EMPTY;
   /**
    * Zookeeper timeout in milliseconds
    */
@@ -109,6 +110,9 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
           case "password":
             auth = new PasswordToken(optionValue);
             break;
+          case "authorizations":
+            authorizations = new Authorizations(optionValue);
+            break;
 
           case "doWholeRow":
             doWholeRow = Boolean.parseBoolean(optionValue);
@@ -157,7 +161,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> map, IteratorEnvironment iteratorEnvironment) throws IOException {
     if (source != null)
       log.warn("RemoteSourceIterator ignores/replaces parent source passed in init(): " + source);
-    origOptions = map;
+    origOptions = new HashMap<>(map); // defensive copy
 
     parseOptions(map);
     setupConnectorScanner();
@@ -179,7 +183,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
     }
 
     try {
-      scanner = connector.createScanner(tableName, Authorizations.EMPTY);
+      scanner = connector.createScanner(tableName, authorizations);
     } catch (TableNotFoundException e) {
       log.error(tableName + " does not exist in instance " + instanceName, e);
       throw new RuntimeException(e);

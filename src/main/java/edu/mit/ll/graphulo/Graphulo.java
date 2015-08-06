@@ -60,6 +60,9 @@ import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.DistributedTrace;
+import org.apache.commons.math3.linear.DefaultRealMatrixChangingVisitor;
+import org.apache.commons.math3.linear.DefaultRealMatrixPreservingVisitor;
+import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealMatrixChangingVisitor;
 import org.apache.hadoop.io.Text;
@@ -92,9 +95,9 @@ public class Graphulo {
   private static final Logger log = LogManager.getLogger(Graphulo.class);
 
   public static final IteratorSetting PLUS_ITERATOR_BIGDECIMAL =
-            MathTwoScalar.combinerSetting(6, null, ScalarOp.PLUS, ScalarType.BIGDECIMAL);
+            MathTwoScalar.combinerSetting(6, null, ScalarOp.PLUS, ScalarType.BIGDECIMAL, false);
   public static final IteratorSetting PLUS_ITERATOR_LONG =
-            MathTwoScalar.combinerSetting(6, null, ScalarOp.PLUS, ScalarType.LONG);
+            MathTwoScalar.combinerSetting(6, null, ScalarOp.PLUS, ScalarType.LONG, false);
 
   protected Connector connector;
   protected PasswordToken password;
@@ -197,7 +200,7 @@ public class Graphulo {
                          String colFilterAT, String colFilterB,
                          int numEntriesCheckpoint) {
     if (multOp.equals(MathTwoScalar.class) && multOpOptions == null)
-      multOpOptions = MathTwoScalar.optionMap(ScalarOp.PLUS, ScalarType.BIGDECIMAL, null); // + by default for SpEWiseSum
+      multOpOptions = MathTwoScalar.optionMap(ScalarOp.PLUS, ScalarType.BIGDECIMAL, null, false); // + by default for SpEWiseSum
     return TwoTableEWISE(Atable, Btable, Ctable, CTtable, BScanIteratorPriority,
         multOp, multOpOptions, plusOp, rowFilter, colFilterAT, colFilterB,
         true, true, Collections.<IteratorSetting>emptyList(),
@@ -218,7 +221,7 @@ public class Graphulo {
                          int numEntriesCheckpoint,
                          Authorizations Aauthorizations, Authorizations Bauthorizations) {
     if (multOp.equals(MathTwoScalar.class) && multOpOptions == null)
-      multOpOptions = MathTwoScalar.optionMap(ScalarOp.PLUS, ScalarType.BIGDECIMAL, ""); // + by default for SpEWiseSum
+      multOpOptions = MathTwoScalar.optionMap(ScalarOp.PLUS, ScalarType.BIGDECIMAL, "", false); // + by default for SpEWiseSum
     return TwoTableEWISE(Atable, Btable, Ctable, CTtable, BScanIteratorPriority,
         multOp, multOpOptions, plusOp, rowFilter, colFilterAT, colFilterB,
         true, true, iteratorsBeforeA,
@@ -2014,13 +2017,13 @@ public class Graphulo {
 
     // "Plus" iterator to set on Rfinal
     IteratorSetting RPlusIteratorSetting = new DynamicIteratorSetting()
-      .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.LONG))
+      .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.LONG, false))
       .append(JaccardDegreeApply.iteratorSetting(1, basicRemoteOpts(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX, ADeg, null, Aauthorizations)))
       .toIteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority());
 
     // use a deepCopy of the local iterator on A for the left part of the TwoTable
     long npp = TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Aorig, Rfinal, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.LONG, RNewVisibility),    // this could be a ConstantTwoScalar if we knew no "0" entries present
+        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.LONG, RNewVisibility, false),    // this could be a ConstantTwoScalar if we knew no "0" entries present
         RPlusIteratorSetting,
         filterRowCol == null ? null : GraphuloUtil.d4mRowToRanges(filterRowCol),
         filterRowCol, filterRowCol,
@@ -2197,11 +2200,12 @@ public class Graphulo {
     Preconditions.checkArgument(K > 0, "# of topics K must be > 0: "+K);
     deleteTables(false, Wfinal, WTfinal, Hfinal, HTfinal);
 
-    String Ttmp1, Ttmp2;
+    String Ttmp1, Ttmp2, Hprev;
     String tmpBaseName = Aorig+"_NMF_";
     Ttmp1 = tmpBaseName+"tmp1";
     Ttmp2 = tmpBaseName+"tmp2";
-    deleteTables(forceDelete, Ttmp1, Ttmp2);
+    Hprev = tmpBaseName+"Hprev";
+    deleteTables(forceDelete, Ttmp1, Ttmp2, Hprev);
 
     // Initialize W to a dense random matrix of size N x K
     List<IteratorSetting> itCreateTopicList = new DynamicIteratorSetting()
@@ -2222,13 +2226,18 @@ public class Graphulo {
 //    long N = NK / K;
 //    long M = countRows(ATorig);
 
-    // newerr starts at frobenius norm of A, since H starts at the zero matrix.
-    double newerr = 0, olderr;
+        // hdiff starts at frobenius norm of A, since H starts at the zero matrix.
+    double hdiff = 0;
     int numiter = 0;
+    final int reqNumLowHDiff = 3;
+    int numLowHDiff = 0;
 
     do {
+      if (numiter > 2)
+        deleteTables(true, Hprev);
+
       numiter++;
-      olderr = newerr;
+      { String t = Hfinal; Hfinal = Hprev; Hprev = t; }
 
       try (TraceScope scope = Trace.startSpan("nmfStepToH", Sampler.ALWAYS)) {
         nmfStep(K, Wfinal, Aorig, Hfinal, HTfinal, Ttmp1, Ttmp2, cutoffThreshold);
@@ -2241,16 +2250,66 @@ public class Graphulo {
       if (Trace.isTracing())
         DebugUtil.printTable(numiter + ": W is NxK:", connector, Wfinal);
 
-      try (TraceScope scope = Trace.startSpan("nmfFro", Sampler.ALWAYS)) {
-        newerr = nmfDiffFrobeniusNorm(Aorig, WTfinal, Hfinal, Ttmp1);
+      if (numiter > 1) {
+        try (TraceScope scope = Trace.startSpan("nmfFro", Sampler.ALWAYS)) {
+          hdiff = nmfHDiff(Hfinal, Hprev);
+//        hdiff = nmfDiffFrobeniusNorm(Aorig, WTfinal, Hfinal, Ttmp1);
+        }
+        if (hdiff <= 0.01) {
+          numLowHDiff++;
+          if (numLowHDiff >= reqNumLowHDiff) // saw enough consecutive low hdiffs-- NMF converged
+            break;
+        }
+        else
+          numLowHDiff = 0;
       }
-      if (Trace.isTracing())
-        DebugUtil.printTable(numiter + ": A is NxM --- error is "+newerr+":", connector, Aorig);
+//      if (Trace.isTracing())
+//        DebugUtil.printTable(numiter + ": A is NxM --- error is "+hdiff+":", connector, Aorig);
 
-      log.debug("NMF Iteration "+numiter+": olderr " + olderr + " newerr " + newerr);
-    } while (Math.abs(newerr - olderr) > 0.01d && numiter < maxiter);
+      log.debug("NMF Iteration "+numiter+" to "+Hfinal+": hdiff " + hdiff);
+    } while (numiter < maxiter);
 
-    return Math.abs(newerr - olderr);
+    // at end of loop, if numiter is 2, 4, 6, 8, ... then Hfinal is correct
+    // 1, 3, 5, ... need to swap
+    if (numiter % 2 == 1) {
+      deleteTables(true, Hfinal);
+      try {
+        connector.tableOperations().clone(Hprev, Hfinal, true, null, null);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        log.warn("problem cloning to final table "+Hfinal, e);
+        throw new RuntimeException(e);
+      } catch (TableExistsException | TableNotFoundException e) {
+        log.warn("crazy", e);
+        throw new RuntimeException(e);
+      }
+    } else {
+      deleteTables(true, Hprev);
+    }
+
+    return hdiff;
+  }
+
+
+  private double nmfHDiff(String Hfinal, String Hprev) {
+    List<IteratorSetting> abs0list = Collections.singletonList(
+        ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes())));
+
+    // Step 1: sum(sum(Abs0(H),1),2)
+    MathTwoScalar sumReducer = new MathTwoScalar();
+    Map<String, String> sumOpts = MathTwoScalar.optionMap(ScalarOp.PLUS, ScalarType.LONG, "", false);
+    sumReducer.init(sumOpts, null);
+    OneTable(Hfinal, null, null, null, 50, sumReducer, sumOpts, null, null, null,
+        abs0list, null, null);
+    double hsum = Long.parseLong(new String(sumReducer.getForClient()));
+
+    // Step 2: sum(sum( Abs0(Abs0(H)-Abs0(Hprev)) ,1),2)
+    sumReducer.reset();
+    SpEWiseSum(Hfinal, Hprev, null, null, 50, MathTwoScalar.class, sumOpts, null, null, null, null,
+        abs0list, abs0list, abs0list,
+        sumReducer, sumOpts, -1, null, null);
+    double hdiffsum = Long.parseLong(new String(sumReducer.getForClient()));
+
+    return hdiffsum / hsum;
   }
 
 
@@ -2259,8 +2318,8 @@ public class Graphulo {
 
     // Step 1: W*H => WHtmp
     TableMult(WTfinal, Hfinal, WHtmp, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE, null),
-        MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
+        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE, null, false),
+        MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE, false),
         null, null, null, false, false, null, null, PRESUMITER, null, null, -1, Authorizations.EMPTY, Authorizations.EMPTY);
     if (Trace.isTracing())
       DebugUtil.printTable("WH is NxM:", connector, WHtmp);
@@ -2268,16 +2327,16 @@ public class Graphulo {
     // Step 2: A - WH => ^2 => ((+all)) => Client w/ Reducer => Sq.Root. => newerr return
     // Prep.
     List<IteratorSetting> iterAfterMinus = new DynamicIteratorSetting()
-        .append(MathTwoScalar.applyOpDouble(1, true, ScalarOp.POWER, 2.0))
+        .append(MathTwoScalar.applyOpDouble(1, true, ScalarOp.POWER, 2.0, false))
 //        .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.DOUBLE))
         .getIteratorSettingList();
-    Map<String,String> sumReducerOpts = MathTwoScalar.optionMap(ScalarOp.PLUS, ScalarType.DOUBLE, null);
+    Map<String,String> sumReducerOpts = MathTwoScalar.optionMap(ScalarOp.PLUS, ScalarType.DOUBLE, null, false);
     MathTwoScalar sumReducer = new MathTwoScalar();
     sumReducer.init(sumReducerOpts, null);
 
     // Execute. Sum into sumReducer.
     SpEWiseSum(Aorig, WHtmp, null, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.MINUS, ScalarType.DOUBLE, null),
+        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.MINUS, ScalarType.DOUBLE, null, false),
         null, null, null, null, null, null,
         iterAfterMinus,
         sumReducer, sumReducerOpts,
@@ -2293,7 +2352,7 @@ public class Graphulo {
 
   final int PRESUMCACHESIZE = 10000;
   final List<IteratorSetting> PRESUMITER = Collections.singletonList(LruCacheIterator.combinerSetting(
-      1, null, PRESUMCACHESIZE, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.DOUBLE, "")
+      1, null, PRESUMCACHESIZE, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.DOUBLE, "", false)
   ));
 
   private void nmfStep(int K, String in1, String in2, String out1, String out2, String tmp1, String tmp2,
@@ -2302,12 +2361,12 @@ public class Graphulo {
     deleteTables(true, out1, out2);
     org.junit.Assert.assertTrue(Trace.isTracing());
 
-    IteratorSetting plusCombiner = MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE);
+    IteratorSetting plusCombiner = MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE, false);
 
     // Step 1: in1^T * in1 ==transpose==> tmp1
     try (TraceScope scope = Trace.startSpan("nmf1TableMult")) {
       TableMult(in1, in1, null, tmp1, -1,
-          MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE, ""),
+          MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE, "", false),
           plusCombiner,
           null, null, null, false, false, null, null, PRESUMITER, null, null, -1, Authorizations.EMPTY, Authorizations.EMPTY);
     }
@@ -2341,7 +2400,7 @@ public class Graphulo {
     // Step 3: in1^T * in2 => tmp2.  This can run concurrently with step 1 and 2.
     try (TraceScope scope = Trace.startSpan("nmf3TableMult")) {
       TableMult(in1, in2, tmp2, null, -1,
-          MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE, ""),
+          MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE, "", false),
           plusCombiner,
           null, null, null, false, false, null, null, PRESUMITER, null, null, -1, Authorizations.EMPTY, Authorizations.EMPTY);
     }
@@ -2350,14 +2409,14 @@ public class Graphulo {
     // Filter out entries <= 0 after combining partial products.
     IteratorSetting sumFilterOp =
         new DynamicIteratorSetting()
-        .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.DOUBLE))
+        .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.DOUBLE, false))
         .append(MinMaxFilter.iteratorSetting(1, ScalarType.DOUBLE, cutoffThreshold, Double.MAX_VALUE))
         .toIteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority());
 
     // Execute.
     try (TraceScope scope = Trace.startSpan("nmf4TableMult")) {
       TableMult(tmp1, tmp2, out1, out2, -1,
-          MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE, ""),
+          MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE, "", false),
           sumFilterOp,
           null, null, null, false, false, null, null,
           PRESUMITER,
@@ -2413,18 +2472,22 @@ public class Graphulo {
 
     // Initialize W to a dense random matrix of size N x K
     RealMatrix Wmatrix = MemMatrixUtil.randNormPosFull(N, K);
-    RealMatrix WTmatrix = Wmatrix.transpose(), Hmatrix, HTmatrix;
+    RealMatrix WTmatrix = Wmatrix.transpose();
+    RealMatrix HmatrixPrev = MatrixUtils.createRealMatrix(K, M);
+//    RealMatrix HTmatrixPrev = HmatrixPrev.transpose();
+    RealMatrix Hmatrix, HTmatrix;
 
 //    if (Trace.isTracing())
 //      DebugUtil.printTable("0: W is NxK:", connector, Wfinal);
 
-    // newerr starts at frobenius norm of A, since H starts at the zero matrix.
-    double newerr = 0, olderr;
+    // hdiff starts at frobenius norm of A, since H starts at the zero matrix.
+    double hdiff;
     int numiter = 0;
+    final int reqNumLowHDiff = 3;
+    int numLowHDiff = 0;
 
     do {
       numiter++;
-      olderr = newerr;
 
       // H = ONLYPOS( (WT*W)^-1 * (WT*A) )
       //nmfStep(K, Wfinal, Aorig, Hfinal, HTfinal, Ttmp1, Ttmp2, trace);
@@ -2440,12 +2503,22 @@ public class Graphulo {
 //      if (Trace.isTracing())
 //        DebugUtil.printTable(numiter + ": W is NxK:", connector, Wfinal);
 
-      newerr = Amatrix.subtract(Wmatrix.multiply(Hmatrix)).getFrobeniusNorm();
-//      if (Trace.isTracing())
-//        DebugUtil.printTable(numiter + ": A is NxM --- error is "+newerr+":", connector, Aorig);
+      hdiff = nmfError_Client(HmatrixPrev, Hmatrix);
 
-      log.debug("NMF Iteration "+numiter+": olderr " + olderr + " newerr " + newerr);
-    } while (Math.abs(newerr - olderr) > 0.01d && numiter < maxiter);
+//      hdiff = Amatrix.subtract(Wmatrix.multiply(Hmatrix)).getFrobeniusNorm();
+//      if (Trace.isTracing())
+//        DebugUtil.printTable(numiter + ": A is NxM --- error is "+hdiff+":", connector, Aorig);
+
+      if (hdiff <= 0.01) {
+        numLowHDiff++;
+        if (numLowHDiff >= reqNumLowHDiff) // saw enough consecutive low hdiffs-- NMF converged
+          break;
+      }
+      else
+        numLowHDiff = 0;
+
+      log.debug("NMF Iteration "+numiter+": hdiff " + hdiff);
+    } while (numiter < maxiter);
 
     // Write out results!
     if (Wfinal != null) {
@@ -2456,13 +2529,46 @@ public class Graphulo {
       Map<Key, Value> Hmap = MemMatrixUtil.matrixToMapWithLabels(Hmatrix, colMap, true, 0.0001); // true = label column qualifier
       GraphuloUtil.writeEntries(connector, transposeH ? GraphuloUtil.transposeMap(Hmap) : Hmap, Hfinal, true);
     }
-    return Math.abs(newerr - olderr);
+    return hdiff;
   }
+
+  private double nmfError_Client(RealMatrix HmatrixPrev, RealMatrix Hmatrix) {
+    return
+        matrixSumAllAbs0( matrixAbs0(Hmatrix).subtract(matrixAbs0(HmatrixPrev)) )
+        / matrixSumAllAbs0( Hmatrix );
+  }
+
+  private double matrixSumAllAbs0(RealMatrix matrix) {
+    return matrix.walkInOptimizedOrder(new DefaultRealMatrixPreservingVisitor() {
+      private double sum = 0.0;
+      @Override
+      public void visit(int row, int column, double value) {
+        sum += value == 0.0 ? 0.0 : 1.0;
+      }
+
+      @Override
+      public double end() {
+        return sum;
+      }
+    });
+  }
+
+  private RealMatrix matrixAbs0(RealMatrix matrix) {
+    RealMatrix tmp = matrix.copy();
+    tmp.walkInOptimizedOrder(new DefaultRealMatrixChangingVisitor() {
+      @Override
+      public double visit(int row, int column, double value) {
+        return value == 0.0 ? 0.0 : 1.0;
+      }
+    });
+    return tmp;
+  }
+
 
   /**
    * @param threshold Entries below this are set to 0. */
   private RealMatrix nmfStep_Client(RealMatrix M1, RealMatrix M2, RealMatrix MA, final double threshold) {
-    RealMatrix MR = MemMatrixUtil.doInverse(M1.multiply(M2), 100).multiply(M1.multiply(MA));
+    RealMatrix MR = MemMatrixUtil.doInverse(M1.multiply(M2), 50).multiply(M1.multiply(MA));
     // only keep positive entries
     MR.walkInOptimizedOrder(new RealMatrixChangingVisitor() {
       @Override
@@ -2506,8 +2612,8 @@ public class Graphulo {
 
     // H*HT
     TableMult(HTtable, HTtable, Ttmp1, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE, ""),
-        MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
+        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE, "", false),
+        MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE, false),
         null, null, null, false, false, -1);
 
     log.debug("AFTER H*HT");
@@ -2529,8 +2635,8 @@ public class Graphulo {
 
     // HT * inv
     TableMult(Htable, Ttmp1, Rtable, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE, ""),
-        MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
+        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE, "", false),
+        MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE, false),
         null, null, null, false, false, -1);
 
     deleteTables(true, Ttmp1);

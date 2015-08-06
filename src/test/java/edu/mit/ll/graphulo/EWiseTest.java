@@ -70,7 +70,7 @@ public class EWiseTest extends AccumuloTestBase {
     SortedMap<Key,Value> expectT = GraphuloUtil.transposeMap(expect);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    graphulo.SpEWiseX(tAT, tB, tC, tCT, -1, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, ""), null, null, null, null, 1);
+    graphulo.SpEWiseX(tAT, tB, tC, tCT, -1, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, "", false), null, null, null, null, 1);
 
     Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
     {
@@ -159,7 +159,7 @@ public class EWiseTest extends AccumuloTestBase {
     }
 
     Graphulo g = new Graphulo(conn, tester.getPassword());
-    g.SpEWiseX(tA, tB, tC, null, -1, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, ""), null, null, null, null, -1);
+    g.SpEWiseX(tA, tB, tC, null, -1, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, "", false), null, null, null, null, -1);
 
     Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
     {
@@ -215,7 +215,7 @@ public class EWiseTest extends AccumuloTestBase {
     SortedMap<Key,Value> expectT = GraphuloUtil.transposeMap(expect);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    graphulo.SpEWiseSum(tA, tB, tC, tCT, -1, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.LONG, ""), null, null, null, null, 1);
+    graphulo.SpEWiseSum(tA, tB, tC, tCT, -1, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.LONG, "", false), null, null, null, null, 1);
 
     Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
     {

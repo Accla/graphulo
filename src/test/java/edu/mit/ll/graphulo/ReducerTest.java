@@ -72,7 +72,7 @@ public class ReducerTest {
   @Test
   public void testMathReducer() {
     MathTwoScalar r = new MathTwoScalar();
-    r.init(MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.LONG, ""), null);
+    r.init(MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.LONG, "", false), null);
 
     r.update(new Key("", "", "oad|v1"), new Value("1".getBytes()));
     r.update(new Key("","","infcds"), new Value("2".getBytes()));

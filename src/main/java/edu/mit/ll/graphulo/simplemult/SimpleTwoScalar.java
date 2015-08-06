@@ -149,7 +149,7 @@ public abstract class SimpleTwoScalar extends KeyTwoScalar implements MultiplyOp
   @Override
   public final void update(Key k, Value v) {
     if (reducerV == null)
-      reducerV = new Value(v);
+      reducerV = v == null ? null : new Value(v);
     else
       reducerV = reverse ? multiply(reducerV, v) : multiply(v, reducerV);
   }

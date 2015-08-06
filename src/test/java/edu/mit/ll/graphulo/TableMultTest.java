@@ -84,7 +84,7 @@ public class TableMultTest extends AccumuloTestBase {
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     long numpp = graphulo.TableMult(tAT, tB, tC, tCT, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.BIGDECIMAL, ""),
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.BIGDECIMAL, "", false),
         Graphulo.PLUS_ITERATOR_BIGDECIMAL,
         null, null, null, false, false, 1);
 
@@ -186,7 +186,7 @@ public class TableMultTest extends AccumuloTestBase {
 
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
       long numpp = graphulo.TableMult(tAT, tB, tC, tCT, -1,
-          MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.BIGDECIMAL, authC),
+          MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.BIGDECIMAL, authC, false),
           Graphulo.PLUS_ITERATOR_BIGDECIMAL,
           null, null, null, false, false, null, null, null, null, null, 1,
           new Authorizations(authA), new Authorizations(authB));
@@ -270,7 +270,7 @@ public class TableMultTest extends AccumuloTestBase {
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     long numpp = graphulo.TableMult(tAT, tB, tC, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, ""),
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, "", false),
         Graphulo.PLUS_ITERATOR_BIGDECIMAL,
         GraphuloUtil.d4mRowToRanges("C2,:,"), null, null, false, false, 1);
 
@@ -333,7 +333,7 @@ public class TableMultTest extends AccumuloTestBase {
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     long numpp = graphulo.TableMult(tAT, tB, tC, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, ""),
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, "", false),
         Graphulo.PLUS_ITERATOR_BIGDECIMAL,
         GraphuloUtil.d4mRowToRanges("C2,:,"),
         "A1,", "B1,", false, false, 1);
@@ -351,7 +351,7 @@ public class TableMultTest extends AccumuloTestBase {
     // now check more advanced column filter, write to transpose
     expect = GraphuloUtil.transposeMap(expect);
     graphulo.TableMult(tAT, tB, null, tCT, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, ""),
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, "", false),
         Graphulo.PLUS_ITERATOR_BIGDECIMAL,
         GraphuloUtil.d4mRowToRanges("C2,:,"),
         "A1,:,A15,", "B1,:,B15,F,", false, false, 1);
@@ -417,7 +417,7 @@ public class TableMultTest extends AccumuloTestBase {
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     long numpp = graphulo.TableMult(tAT, tB, tC, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, ""),
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, "", false),
         Graphulo.PLUS_ITERATOR_BIGDECIMAL,
         GraphuloUtil.d4mRowToRanges("C2,:,"),
         "A1,", "B1,", true, false, 1);
@@ -434,7 +434,7 @@ public class TableMultTest extends AccumuloTestBase {
     // now check more advanced column filter, write to transpose
     expect = GraphuloUtil.transposeMap(expect);
     graphulo.TableMult(tAT, tB, null, tCT, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, ""),
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, "", false),
         Graphulo.PLUS_ITERATOR_BIGDECIMAL,
         GraphuloUtil.d4mRowToRanges("C2,:,"),
         "A1,:,A15,", "B1,:,B15,F,", true, false, 1);

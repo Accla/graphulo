@@ -40,7 +40,7 @@ public class MemMatrixUtil {
     } else {
       X = new LUDecomposition(matrix).getSolver().getInverse();
     }
-    System.out.println("Inverse time for "+numIterations+" iterations: "+(System.currentTimeMillis()-t));
+    log.debug("Inverse time for "+numIterations+" iterations: "+(System.currentTimeMillis()-t));
     return X;
   }
 

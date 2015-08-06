@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 /**
  * Math operations between two scalars.
  * Can be used as an ApplyOp by setting one of the sides to a constant scalar.
+ * Will not emit zero entries unless keepZero is set to true.
  */
 public class MathTwoScalar extends SimpleTwoScalar {
   private static final Logger log = LogManager.getLogger(MathTwoScalar.class);
@@ -76,14 +77,15 @@ public class MathTwoScalar extends SimpleTwoScalar {
 
   public static final String
       SCALAR_OP = "ScalarOp",
-      SCALAR_TYPE = "scalarType";
+      SCALAR_TYPE = "scalarType",
+      KEEP_ZERO = "keepZero";
 
   /** For use as an ApplyOp.
    * Create an IteratorSetting that performs a ScalarOp on every Value it sees, parsing Values as Doubles. */
-  public static IteratorSetting applyOpDouble(int priority, boolean constantOnRight, ScalarOp op, double scalar) {
+  public static IteratorSetting applyOpDouble(int priority, boolean constantOnRight, ScalarOp op, double scalar, boolean keepZero) {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
     itset.addOption(ApplyIterator.APPLYOP, MathTwoScalar.class.getName());
-    for (Map.Entry<String, String> entry : optionMap(op, ScalarType.DOUBLE, null).entrySet())
+    for (Map.Entry<String, String> entry : optionMap(op, ScalarType.DOUBLE, null, keepZero).entrySet())
       itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + entry.getKey(), entry.getValue());
     itset = KeyTwoScalar.addOptionsToIteratorSetting(itset, constantOnRight, new Value(Double.toString(scalar).getBytes()));
     return itset;
@@ -91,10 +93,10 @@ public class MathTwoScalar extends SimpleTwoScalar {
 
   /** For use as an ApplyOp.
    * Create an IteratorSetting that performs a ScalarOp on every Value it sees, parsing Values as Longs. */
-  public static IteratorSetting applyOpLong(int priority, boolean constantOnRight, ScalarOp op, long scalar) {
+  public static IteratorSetting applyOpLong(int priority, boolean constantOnRight, ScalarOp op, long scalar, boolean keepZero) {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
     itset.addOption(ApplyIterator.APPLYOP, MathTwoScalar.class.getName());
-    for (Map.Entry<String, String> entry : optionMap(op, ScalarType.LONG, null).entrySet())
+    for (Map.Entry<String, String> entry : optionMap(op, ScalarType.LONG, null, keepZero).entrySet())
       itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + entry.getKey(), entry.getValue());
     itset = KeyTwoScalar.addOptionsToIteratorSetting(itset, constantOnRight, new Value(Long.toString(scalar).getBytes()));
     return itset;
@@ -102,38 +104,40 @@ public class MathTwoScalar extends SimpleTwoScalar {
 
   /** For use as an ApplyOp.
    * Create an IteratorSetting that performs a ScalarOp on every Value it sees, parsing Values as BigDecimal objects. */
-  public static IteratorSetting applyOpBigDecimal(int priority, boolean constantOnRight, ScalarOp op, BigDecimal scalar) {
+  public static IteratorSetting applyOpBigDecimal(int priority, boolean constantOnRight, ScalarOp op, BigDecimal scalar, boolean keepZero) {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
     itset.addOption(ApplyIterator.APPLYOP, MathTwoScalar.class.getName());
-    for (Map.Entry<String, String> entry : optionMap(op, ScalarType.BIGDECIMAL, null).entrySet())
+    for (Map.Entry<String, String> entry : optionMap(op, ScalarType.BIGDECIMAL, null, keepZero).entrySet())
       itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + entry.getKey(), entry.getValue());
     itset = KeyTwoScalar.addOptionsToIteratorSetting(itset, constantOnRight, new Value(scalar.toString().getBytes())); // byte encoding UTF-8?
     return itset;
   }
 
   /** For use as a Combiner. Pass columns as null or empty to combine on all columns. */
-  public static IteratorSetting combinerSetting(int priority, List<IteratorSetting.Column> columns, ScalarOp op, ScalarType type) {
+  public static IteratorSetting combinerSetting(int priority, List<IteratorSetting.Column> columns, ScalarOp op, ScalarType type, boolean keepZero) {
     IteratorSetting itset = new IteratorSetting(priority, MathTwoScalar.class);
     if (columns == null || columns.isEmpty())
       Combiner.setCombineAllColumns(itset, true);
     else
       Combiner.setColumns(itset, columns);
-    itset.addOptions(optionMap(op, type, null)); // no newVisibility needed for Combiner usage
+    itset.addOptions(optionMap(op, type, null, false)); // no newVisibility needed for Combiner usage
     return itset;
   }
 
-  public static Map<String,String> optionMap(ScalarOp op, ScalarType type, String newVisibility) {
+  public static Map<String,String> optionMap(ScalarOp op, ScalarType type, String newVisibility, boolean keepZero) {
     Map<String,String> map = new HashMap<>();
     map.put(SCALAR_OP, op.name());
     map.put(SCALAR_TYPE, type.name());
     if (newVisibility != null && !newVisibility.isEmpty())
       map.put(NEW_VISIBILITY, newVisibility);
+    map.put(KEEP_ZERO, Boolean.toString(keepZero));
     return map;
   }
 
 
   private ScalarType scalarType = ScalarType.BIGDECIMAL; // default
   private ScalarOp scalarOp = ScalarOp.TIMES;  // default
+  private boolean keepZero = false;
 
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env)  {
@@ -145,6 +149,7 @@ public class MathTwoScalar extends SimpleTwoScalar {
           scalarType = ScalarType.valueOf(options.get(SCALAR_TYPE));
           break;
         case SCALAR_OP: scalarOp = ScalarOp.valueOf(v); break;
+        case KEEP_ZERO: keepZero = Boolean.parseBoolean(v); break;
         default:
           extraOpts.put(k, v);
           break;
@@ -241,6 +246,15 @@ public class MathTwoScalar extends SimpleTwoScalar {
       default:
         throw new AssertionError();
     }
+    // check for zero
+    if (!keepZero) {
+      switch (scalarType) {
+        case LONG: if (nnew.longValue() == 0) return null; break;
+        case DOUBLE: if (nnew.doubleValue() == 0) return null; break;
+        case BIGDECIMAL: if (nnew.equals(BigDecimal.ZERO)) return null; break;
+      }
+    }
+
     Value vnew;
     switch(scalarType) {
       case LONG: vnew = new Value(Long.toString(nnew.longValue()).getBytes()); break;

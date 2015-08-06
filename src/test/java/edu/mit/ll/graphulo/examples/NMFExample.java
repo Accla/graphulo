@@ -93,8 +93,8 @@ public class NMFExample extends AccumuloTestBase {
     String APtable = "ex" + SCALE + "AEdgeApprox";        // Approximation of the incidence table Etable.
     GraphuloUtil.deleteTables(conn, true, APtable);
     graphulo.TableMult(WTtable, Htable, APtable, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.DOUBLE, newVisibility),
-        MathTwoScalar.combinerSetting(Graphulo.PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.DOUBLE),
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.DOUBLE, newVisibility, false),
+        MathTwoScalar.combinerSetting(Graphulo.PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.DOUBLE, false),
         null, null, null, false, false, -1);
 
     DistributedTrace.disable();

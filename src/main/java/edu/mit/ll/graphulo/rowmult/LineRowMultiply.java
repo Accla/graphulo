@@ -2,7 +2,6 @@ package edu.mit.ll.graphulo.rowmult;
 
 import com.google.common.collect.Iterators;
 import edu.mit.ll.graphulo.skvi.Watch;
-import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.SKVIRowIterator;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -17,6 +16,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collections;
@@ -32,13 +32,15 @@ public class LineRowMultiply implements RowMultiplyOp {
 
   public static final String SEPARATOR = "separator",
       ISDIRECTED = "isDirected",
-      INCLUDE_EXTRA_CYCLES = "includeExtraCycles";
+      INCLUDE_EXTRA_CYCLES = "includeExtraCycles",
+      NEW_VISIBILITY = "newVisibility";
 
   private boolean isDirected = true;
   /** Whether to include the AAT term. */
   private boolean includeExtraCycles = false;
 //  private char separator = '|';
   private MultiplyOp multiplyOpAA, multiplyOpAAT;
+  private byte[] newVisibility = new byte[0];
 
   private void parseOptions(Map<String, String> options) {
     for (Map.Entry<String, String> optionEntry : options.entrySet()) {
@@ -55,6 +57,9 @@ public class LineRowMultiply implements RowMultiplyOp {
             break;
           case INCLUDE_EXTRA_CYCLES:
             includeExtraCycles = Boolean.parseBoolean(optionValue);
+            break;
+          case NEW_VISIBILITY:
+            newVisibility = optionValue.getBytes(StandardCharsets.UTF_8);
             break;
           default:
             log.warn("Unrecognized option: " + optionEntry);
@@ -209,7 +214,7 @@ public class LineRowMultiply implements RowMultiplyOp {
       k = new Key(doCat(Mrow, ATcolQ, newrow),
           ATcolF.getBackingArray(),
           doCat(Mrow, BcolQ, newcol),
-          GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis());
+          newVisibility, System.currentTimeMillis());
       // reuse object instead of new one each time?
       return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(k, winPerEdgeValue));
     }

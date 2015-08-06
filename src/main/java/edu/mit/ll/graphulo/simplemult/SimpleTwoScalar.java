@@ -8,12 +8,18 @@ import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
 
 
@@ -32,14 +38,51 @@ import java.util.Map.Entry;
  *   Can be used for unary Apply if passed a fixed Value operand
  *   on the left or right of the multiplication inside iterator options.
  *   Defaults to the left side of the multiplication; pass {@value #REVERSE} if the right is desired.
+ * <p>
+ * Has a newVisibility option for new Keys created with MultiplyOp or EWiseOp usage.
  */
 public abstract class SimpleTwoScalar extends KeyTwoScalar implements MultiplyOp, EWiseOp, Reducer {
   private static final Logger log = LogManager.getLogger(SimpleTwoScalar.class);
+
+  public static final String NEW_VISIBILITY ="newVisibility";
+  protected byte[] newVisibility = GraphuloUtil.EMPTY_BYTES;
 
   //////////////////////////////////////////////////////////////////////////////////
   /** Implements simple multiply logic. Returning null means no entry is emitted. */
   public abstract Value multiply(Value Aval, Value Bval);
   //////////////////////////////////////////////////////////////////////////////////
+
+//  protected static IteratorSetting addOptionsToIteratorSetting(IteratorSetting itset, boolean reverse, Value fixedValue,
+//                                                               String newVisibility) {
+//    KeyTwoScalar.addOptionsToIteratorSetting(itset, reverse, fixedValue);
+//    if (newVisibility != null && !newVisibility.isEmpty())
+//      itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + NEW_VISIBILITY, newVisibility);
+//    return itset;
+//  }
+
+  @Override
+  public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
+    Map<String,String> parentOpts = new HashMap<>();
+    for (Map.Entry<String, String> entry : options.entrySet()) {
+      String k = entry.getKey(), v = entry.getValue();
+      switch (k) {
+        case NEW_VISIBILITY:
+          newVisibility = v.getBytes(StandardCharsets.UTF_8);
+          break;
+        default:
+          parentOpts.put(k, v);
+          break;
+      }
+    }
+    super.init(parentOpts, env);  // Setup parent.
+  }
+
+  @Override
+  public SimpleTwoScalar deepCopy(IteratorEnvironment env) {
+    SimpleTwoScalar copy = (SimpleTwoScalar) super.deepCopy(env);
+    copy.newVisibility = Arrays.copyOf(newVisibility, newVisibility.length);
+    return copy;
+  }
 
   // MultiplyOp
   @Override
@@ -47,12 +90,10 @@ public abstract class SimpleTwoScalar extends KeyTwoScalar implements MultiplyOp
 //    System.err.println("Mrow:"+Mrow+" ATcolQ:"+ATcolQ+" BcolQ:"+BcolQ+" ATval:"+ATval+" Bval:"+Bval);
     assert ATval != null || Bval != null;
     Key k = new Key(ATcolQ.getBackingArray(), ATcolF.getBackingArray(),
-        BcolQ.getBackingArray(), GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis());
+        BcolQ.getBackingArray(), newVisibility, System.currentTimeMillis());
     Value v = reverse ? multiply(Bval, ATval) : multiply(ATval, Bval);
     return v == null ? Collections.<Entry<Key,Value>>emptyIterator() : Iterators.singletonIterator((Entry<Key, Value>) new SimpleImmutableEntry<>(k, v));
   }
-
-  private static final byte[] EMPTY_BYTES = new byte[0];
 
   // EWiseOp
   @Override
@@ -62,15 +103,15 @@ public abstract class SimpleTwoScalar extends KeyTwoScalar implements MultiplyOp
     assert Aval != null || Bval != null;
     if (Aval == null)
       return Iterators.singletonIterator((Entry<Key, Value>) new SimpleImmutableEntry<>(
-          new Key(Mrow.getBackingArray(), McolF.getBackingArray(), McolQ.getBackingArray(), EMPTY_BYTES, System.currentTimeMillis()),
+          new Key(Mrow.getBackingArray(), McolF.getBackingArray(), McolQ.getBackingArray(), newVisibility, System.currentTimeMillis()),
           Bval));
     if (Bval == null)
       return Iterators.singletonIterator((Entry<Key, Value>) new SimpleImmutableEntry<>(
-          new Key(Mrow.getBackingArray(), McolF.getBackingArray(), McolQ.getBackingArray(), EMPTY_BYTES, System.currentTimeMillis()),
+          new Key(Mrow.getBackingArray(), McolF.getBackingArray(), McolQ.getBackingArray(), newVisibility, System.currentTimeMillis()),
           Aval));
 
     Key k = new Key(Mrow.getBackingArray(), McolF.getBackingArray(),
-        McolQ.getBackingArray(), GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis());
+        McolQ.getBackingArray(), newVisibility, System.currentTimeMillis());
     Value v = reverse ? multiply(Bval, Aval) : multiply(Aval, Bval);
     return v == null ? Collections.<Entry<Key,Value>>emptyIterator() : Iterators.singletonIterator((Entry<Key, Value>) new SimpleImmutableEntry<>(k, v));
   }
@@ -86,7 +127,16 @@ public abstract class SimpleTwoScalar extends KeyTwoScalar implements MultiplyOp
     IteratorOptions io = super.describeOptions();
     io.setName("SimpleTwoScalar");
     io.setDescription("A Combiner that operates on every pair of entries matching row through column visibility, that does not need to see the Key");
+//    io.addNamedOption(NEW_VISIBILITY, "Authorizations to use for new Keys created with MultiplyOp or EWiseOp usage");
     return io;
+  }
+
+  @Override
+  public boolean validateOptions(Map<String, String> options) {
+    if (options.containsKey(NEW_VISIBILITY))
+//      new Authorizations(options.get(NEW_VISIBILITY));
+      log.warn("Combiner usage does not use newVisibility: "+options.get(NEW_VISIBILITY));
+    return super.validateOptions(options);
   }
 
   private Value reducerV;

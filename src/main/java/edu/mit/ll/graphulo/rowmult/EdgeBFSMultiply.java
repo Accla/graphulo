@@ -1,15 +1,14 @@
 package edu.mit.ll.graphulo.rowmult;
 
-import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -20,7 +19,10 @@ import java.util.Map;
 public class EdgeBFSMultiply implements MultiplyOp, Iterator<Map.Entry<Key,Value>> {
   private static final Logger log = LogManager.getLogger(EdgeBFSMultiply.class);
 
-  private Text outColumnPrefix, inColumnPrefix;
+  public static final String NEW_VISIBILITY = "newVisibility";
+
+//  private Text outColumnPrefix, inColumnPrefix;
+  private byte[] newVisibility = new byte[0];
 
 //  private enum FILTER_MODE { NONE, SIMPLE, RANGES }
 //  private Collection<Text> simpleFilter;
@@ -30,22 +32,23 @@ public class EdgeBFSMultiply implements MultiplyOp, Iterator<Map.Entry<Key,Value
   private Key emitKeyFirst, emitKeySecond;
 
   private void parseOptions(Map<String,String> options) {
-//    for (Map.Entry<String, String> entry : options.entrySet()) {
-//      String v = entry.getValue();
-//      switch (entry.getKey()) {
+    for (Map.Entry<String, String> entry : options.entrySet()) {
+      String v = entry.getValue();
+      switch (entry.getKey()) {
 //        case "outColumnPrefix": outColumnPrefix = new Text(v); break;
 //        case "inColumnPrefix": inColumnPrefix = new Text(v); break;
-//        default:
-//          log.warn("Unrecognized option: " + entry);
-//          break;
-//      }
-//    }
+        case NEW_VISIBILITY: newVisibility = v.getBytes(StandardCharsets.UTF_8); break;
+        default:
+          log.warn("Unrecognized option: " + entry);
+          break;
+      }
+    }
 
   }
 
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
-//    parseOptions(options);
+    parseOptions(options);
   }
 
 
@@ -59,9 +62,9 @@ public class EdgeBFSMultiply implements MultiplyOp, Iterator<Map.Entry<Key,Value
 //      return;
 //    }
     emitKeyFirst = new Key(Mrow.getBackingArray(), ATcolF.getBackingArray(), ATcolQ.getBackingArray(),
-        GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis()); // experiment with copy=false?
+        newVisibility, System.currentTimeMillis()); // experiment with copy=false?
     emitKeySecond = new Key(Mrow.getBackingArray(), BcolF.getBackingArray(), BcolQ.getBackingArray(),
-        GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis()); // experiment with copy=false?
+        newVisibility, System.currentTimeMillis()); // experiment with copy=false?
     emitValueFirst = new Value(ATval);
     emitValueSecond = new Value(Bval);
     return this;

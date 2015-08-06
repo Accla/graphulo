@@ -83,9 +83,9 @@ public class MathTwoScalar extends SimpleTwoScalar {
   public static IteratorSetting applyOpDouble(int priority, boolean constantOnRight, ScalarOp op, double scalar) {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
     itset.addOption(ApplyIterator.APPLYOP, MathTwoScalar.class.getName());
-    for (Map.Entry<String, String> entry : optionMap(op, ScalarType.DOUBLE).entrySet())
+    for (Map.Entry<String, String> entry : optionMap(op, ScalarType.DOUBLE, null).entrySet())
       itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + entry.getKey(), entry.getValue());
-    itset = SimpleTwoScalar.addOptionsToIteratorSetting(itset, constantOnRight, new Value(Double.toString(scalar).getBytes()));
+    itset = KeyTwoScalar.addOptionsToIteratorSetting(itset, constantOnRight, new Value(Double.toString(scalar).getBytes()));
     return itset;
   }
 
@@ -94,9 +94,9 @@ public class MathTwoScalar extends SimpleTwoScalar {
   public static IteratorSetting applyOpLong(int priority, boolean constantOnRight, ScalarOp op, long scalar) {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
     itset.addOption(ApplyIterator.APPLYOP, MathTwoScalar.class.getName());
-    for (Map.Entry<String, String> entry : optionMap(op, ScalarType.LONG).entrySet())
+    for (Map.Entry<String, String> entry : optionMap(op, ScalarType.LONG, null).entrySet())
       itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + entry.getKey(), entry.getValue());
-    itset = SimpleTwoScalar.addOptionsToIteratorSetting(itset, constantOnRight, new Value(Long.toString(scalar).getBytes()));
+    itset = KeyTwoScalar.addOptionsToIteratorSetting(itset, constantOnRight, new Value(Long.toString(scalar).getBytes()));
     return itset;
   }
 
@@ -105,9 +105,9 @@ public class MathTwoScalar extends SimpleTwoScalar {
   public static IteratorSetting applyOpBigDecimal(int priority, boolean constantOnRight, ScalarOp op, BigDecimal scalar) {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
     itset.addOption(ApplyIterator.APPLYOP, MathTwoScalar.class.getName());
-    for (Map.Entry<String, String> entry : optionMap(op, ScalarType.BIGDECIMAL).entrySet())
+    for (Map.Entry<String, String> entry : optionMap(op, ScalarType.BIGDECIMAL, null).entrySet())
       itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + entry.getKey(), entry.getValue());
-    itset = SimpleTwoScalar.addOptionsToIteratorSetting(itset, constantOnRight, new Value(scalar.toString().getBytes())); // byte encoding UTF-8?
+    itset = KeyTwoScalar.addOptionsToIteratorSetting(itset, constantOnRight, new Value(scalar.toString().getBytes())); // byte encoding UTF-8?
     return itset;
   }
 
@@ -118,14 +118,16 @@ public class MathTwoScalar extends SimpleTwoScalar {
       Combiner.setCombineAllColumns(itset, true);
     else
       Combiner.setColumns(itset, columns);
-    itset.addOptions(optionMap(op, type));
+    itset.addOptions(optionMap(op, type, null)); // no newVisibility needed for Combiner usage
     return itset;
   }
 
-  public static Map<String,String> optionMap(ScalarOp op, ScalarType type) {
+  public static Map<String,String> optionMap(ScalarOp op, ScalarType type, String newVisibility) {
     Map<String,String> map = new HashMap<>();
     map.put(SCALAR_OP, op.name());
     map.put(SCALAR_TYPE, type.name());
+    if (newVisibility != null && !newVisibility.isEmpty())
+      map.put(NEW_VISIBILITY, newVisibility);
     return map;
   }
 

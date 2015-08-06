@@ -27,6 +27,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -110,8 +111,8 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
           case "password":
             auth = new PasswordToken(optionValue);
             break;
-          case "authorizations":
-            authorizations = new Authorizations(optionValue);
+          case "authorizations": // passed value must be from Authorizations.serialize()
+            authorizations = new Authorizations(optionValue.getBytes(StandardCharsets.UTF_8));
             break;
 
           case "doWholeRow":

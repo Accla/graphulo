@@ -84,7 +84,8 @@ public class TableMultTest extends AccumuloTestBase {
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     long numpp = graphulo.TableMult(tAT, tB, tC, tCT, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.BIGDECIMAL), Graphulo.PLUS_ITERATOR_BIGDECIMAL,
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.BIGDECIMAL, ""),
+        Graphulo.PLUS_ITERATOR_BIGDECIMAL,
         null, null, null, false, false, 1);
 
     Assert.assertEquals(4, numpp);
@@ -127,20 +128,29 @@ public class TableMultTest extends AccumuloTestBase {
   public void test1WithAuthoriations() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
     Connector conn = tester.getConnector();
 
+    String authA = "testvisA", authB = "testvisB", authC = "testvisC";
     String user = conn.whoami();
-    Assume.assumeTrue("Cannot test visibility labels because user " + user + " does not have ALTER_USER permission",
+    Assume.assumeTrue("Cannot test authorizations because user " + user + " does not have ALTER_USER permission",
         conn.securityOperations().hasSystemPermission(user, SystemPermission.ALTER_USER));
     Authorizations beforeAuthorizations = conn.securityOperations().getUserAuthorizations(user);
-    Authorizations tempAuthorizations;
-    {
-      List<byte[]> beforeAuthorizationsList = beforeAuthorizations.getAuthorizations();
-      List<byte[]> tempAuthorizationsList = new ArrayList<>(beforeAuthorizationsList);
-      tempAuthorizationsList.add("vis".getBytes(StandardCharsets.UTF_8));
-      tempAuthorizationsList.add("visB".getBytes(StandardCharsets.UTF_8));
-      tempAuthorizations = new Authorizations(tempAuthorizationsList);
+    if (beforeAuthorizations.contains(authA) && beforeAuthorizations.contains(authB) && beforeAuthorizations.contains(authC))
+      log.info("User " + user + " already has authorizations for "+authA+" and "+authB+" and "+authC+"; no need to modify user permissions");
+    else {
+      Authorizations tempAuthorizations;
+      {
+        List<byte[]> beforeAuthorizationsList = beforeAuthorizations.getAuthorizations();
+        List<byte[]> tempAuthorizationsList = new ArrayList<>(beforeAuthorizationsList);
+        if (!beforeAuthorizations.contains(authA))
+          tempAuthorizationsList.add(authA.getBytes(StandardCharsets.UTF_8));
+        if (!beforeAuthorizations.contains(authB))
+          tempAuthorizationsList.add(authB.getBytes(StandardCharsets.UTF_8));
+        if (!beforeAuthorizations.contains(authC))
+          tempAuthorizationsList.add(authC.getBytes(StandardCharsets.UTF_8));
+        tempAuthorizations = new Authorizations(tempAuthorizationsList);
+      }
+      conn.securityOperations().changeUserAuthorizations(user, tempAuthorizations);
+      log.info("Changing user "+user+" authorizations to: " + tempAuthorizations);
     }
-    conn.securityOperations().changeUserAuthorizations(user, tempAuthorizations);
-    System.out.println("new authorizations: "+tempAuthorizations);
 
     try {
       final String tC, tAT, tB, tCT;
@@ -153,18 +163,18 @@ public class TableMultTest extends AccumuloTestBase {
       }
       {
         Map<Key, Value> input = new HashMap<>();
-        input.put(new Key("A1", "", "C1", "vis"), new Value("5".getBytes()));
-        input.put(new Key("A1", "", "C2", "vis"), new Value("2".getBytes()));
-        input.put(new Key("A2", "", "C1", "vis"), new Value("4".getBytes()));
+        input.put(new Key("A1", "", "C1", authA), new Value("5".getBytes()));
+        input.put(new Key("A1", "", "C2", authA), new Value("2".getBytes()));
+        input.put(new Key("A2", "", "C1", authA), new Value("4".getBytes()));
         input = GraphuloUtil.transposeMap(input);
         TestUtil.createTestTable(conn, tAT, null, input);
       }
       {
         Map<Key, Value> input = new HashMap<>();
-        input.put(new Key("B1", "", "C2", "visB"), new Value("3".getBytes()));
-        input.put(new Key("B1", "", "C3", "visB"), new Value("3".getBytes()));
-        input.put(new Key("B2", "", "C1", "visB"), new Value("3".getBytes()));
-        input.put(new Key("B2", "", "C2", "visB"), new Value("3".getBytes()));
+        input.put(new Key("B1", "", "C2", authB), new Value("3".getBytes()));
+        input.put(new Key("B1", "", "C3", authB), new Value("3".getBytes()));
+        input.put(new Key("B2", "", "C1", authB), new Value("3".getBytes()));
+        input.put(new Key("B2", "", "C2", authB), new Value("3".getBytes()));
         input = GraphuloUtil.transposeMap(input);
         TestUtil.createTestTable(conn, tB, null, input);
       }
@@ -176,13 +186,14 @@ public class TableMultTest extends AccumuloTestBase {
 
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
       long numpp = graphulo.TableMult(tAT, tB, tC, tCT, -1,
-          MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.BIGDECIMAL), Graphulo.PLUS_ITERATOR_BIGDECIMAL,
+          MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.BIGDECIMAL, authC),
+          Graphulo.PLUS_ITERATOR_BIGDECIMAL,
           null, null, null, false, false, null, null, null, null, null, 1,
-          new Authorizations("vis"), new Authorizations("visB"));
+          new Authorizations(authA), new Authorizations(authB));
 
       Assert.assertEquals(4, numpp);
 
-      Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
+      Scanner scanner = conn.createScanner(tC, new Authorizations(authC));
       {
         SortedMap<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
         for (Map.Entry<Key, Value> entry : scanner) {
@@ -192,7 +203,7 @@ public class TableMultTest extends AccumuloTestBase {
         Assert.assertEquals(expect, actual);
       }
 
-      scanner = conn.createScanner(tCT, Authorizations.EMPTY);
+      scanner = conn.createScanner(tCT, new Authorizations(authC));
       {
         SortedMap<Key, Value> actualT = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
         for (Map.Entry<Key, Value> entry : scanner) {
@@ -208,6 +219,7 @@ public class TableMultTest extends AccumuloTestBase {
       conn.tableOperations().delete(tCT);
     } finally {
       conn.securityOperations().changeUserAuthorizations(user, beforeAuthorizations);
+      log.info("Reverting user " + user + " authorizations to: " + beforeAuthorizations);
     }
   }
 
@@ -258,7 +270,8 @@ public class TableMultTest extends AccumuloTestBase {
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     long numpp = graphulo.TableMult(tAT, tB, tC, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG), Graphulo.PLUS_ITERATOR_BIGDECIMAL,
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, ""),
+        Graphulo.PLUS_ITERATOR_BIGDECIMAL,
         GraphuloUtil.d4mRowToRanges("C2,:,"), null, null, false, false, 1);
 
     Assert.assertEquals(2, numpp);
@@ -320,7 +333,8 @@ public class TableMultTest extends AccumuloTestBase {
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     long numpp = graphulo.TableMult(tAT, tB, tC, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG), Graphulo.PLUS_ITERATOR_BIGDECIMAL,
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, ""),
+        Graphulo.PLUS_ITERATOR_BIGDECIMAL,
         GraphuloUtil.d4mRowToRanges("C2,:,"),
         "A1,", "B1,", false, false, 1);
 
@@ -337,7 +351,8 @@ public class TableMultTest extends AccumuloTestBase {
     // now check more advanced column filter, write to transpose
     expect = GraphuloUtil.transposeMap(expect);
     graphulo.TableMult(tAT, tB, null, tCT, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG), Graphulo.PLUS_ITERATOR_BIGDECIMAL,
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, ""),
+        Graphulo.PLUS_ITERATOR_BIGDECIMAL,
         GraphuloUtil.d4mRowToRanges("C2,:,"),
         "A1,:,A15,", "B1,:,B15,F,", false, false, 1);
     scanner = conn.createScanner(tCT, Authorizations.EMPTY);
@@ -402,7 +417,8 @@ public class TableMultTest extends AccumuloTestBase {
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     long numpp = graphulo.TableMult(tAT, tB, tC, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG), Graphulo.PLUS_ITERATOR_BIGDECIMAL,
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, ""),
+        Graphulo.PLUS_ITERATOR_BIGDECIMAL,
         GraphuloUtil.d4mRowToRanges("C2,:,"),
         "A1,", "B1,", true, false, 1);
 
@@ -418,7 +434,8 @@ public class TableMultTest extends AccumuloTestBase {
     // now check more advanced column filter, write to transpose
     expect = GraphuloUtil.transposeMap(expect);
     graphulo.TableMult(tAT, tB, null, tCT, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG), Graphulo.PLUS_ITERATOR_BIGDECIMAL,
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, ""),
+        Graphulo.PLUS_ITERATOR_BIGDECIMAL,
         GraphuloUtil.d4mRowToRanges("C2,:,"),
         "A1,:,A15,", "B1,:,B15,F,", true, false, 1);
     scanner = conn.createScanner(tCT, Authorizations.EMPTY);

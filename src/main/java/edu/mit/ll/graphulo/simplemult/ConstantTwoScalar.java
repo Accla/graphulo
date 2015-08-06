@@ -6,7 +6,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,14 +19,18 @@ public class ConstantTwoScalar extends SimpleTwoScalar {
   public static IteratorSetting iteratorSetting(int priority, Value constant) {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
     itset.addOption(ApplyIterator.APPLYOP, ConstantTwoScalar.class.getName());
-    for (Map.Entry<String, String> entry : optionMap(constant).entrySet())
+    for (Map.Entry<String, String> entry : optionMap(constant, "").entrySet())
       itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + entry.getKey(), entry.getValue());
     return itset;
   }
 
   /** For use as a MultiplyOp or EWiseOp. */
-  public static Map<String,String> optionMap(Value constant) {
-    return Collections.singletonMap(CONSTANT, new String(constant.get()));
+  public static Map<String,String> optionMap(Value constant, String newVisibility) {
+    Map<String,String> map = new HashMap<>();
+    map.put(CONSTANT, new String(constant.get()));
+    if (newVisibility != null && !newVisibility.isEmpty())
+      map.put(NEW_VISIBILITY, newVisibility);
+    return map;
   }
 
   private Value constant = new Value("1".getBytes());

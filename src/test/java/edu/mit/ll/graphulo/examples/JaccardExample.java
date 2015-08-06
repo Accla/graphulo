@@ -44,7 +44,8 @@ public class JaccardExample extends AccumuloTestBase {
     String Atable = "ex" + SCALE + "A";                 // Adjacency table A.
     String Rtable = "ex" + SCALE + "J";                 // Table to write Jaccard coefficients.
     String ADegtable = "ex" + SCALE + "ADeg";           // Adjacency table A containing out-degrees.
-    boolean trace = true;                              // Disable debug printing.
+    String newVisibility = "";                          // Column Visibility to use for newly created entries.
+
 
     // In your code, you would connect to an Accumulo instance by writing something similar to:
 //    ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance("instance").withZkHosts("localhost:2181").withZkTimeout(5000);
@@ -82,7 +83,7 @@ public class JaccardExample extends AccumuloTestBase {
     log.info("Does AtableSub exist? "+conn.tableOperations().exists(AtableSub));
 
     String filterRowCol = null; // no filtering beyond what we already did with the AdjBFS
-    long npp = graphulo.Jaccard(AtableSub, ADegtable, Rtable, filterRowCol, Authorizations.EMPTY);
+    long npp = graphulo.Jaccard(AtableSub, ADegtable, Rtable, filterRowCol, Authorizations.EMPTY, newVisibility);
     log.info("Number of partial products sent to result table: " + npp);
 
     // Result is in output table. Do whatever you like with it.

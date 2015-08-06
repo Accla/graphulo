@@ -69,6 +69,7 @@ import org.apache.htrace.TraceScope;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -196,7 +197,7 @@ public class Graphulo {
                          String colFilterAT, String colFilterB,
                          int numEntriesCheckpoint) {
     if (multOp.equals(MathTwoScalar.class) && multOpOptions == null)
-      multOpOptions = MathTwoScalar.optionMap(ScalarOp.PLUS, ScalarType.BIGDECIMAL); // + by default for SpEWiseSum
+      multOpOptions = MathTwoScalar.optionMap(ScalarOp.PLUS, ScalarType.BIGDECIMAL, null); // + by default for SpEWiseSum
     return TwoTableEWISE(Atable, Btable, Ctable, CTtable, BScanIteratorPriority,
         multOp, multOpOptions, plusOp, rowFilter, colFilterAT, colFilterB,
         true, true, Collections.<IteratorSetting>emptyList(),
@@ -217,7 +218,7 @@ public class Graphulo {
                          int numEntriesCheckpoint,
                          Authorizations Aauthorizations, Authorizations Bauthorizations) {
     if (multOp.equals(MathTwoScalar.class) && multOpOptions == null)
-      multOpOptions = MathTwoScalar.optionMap(ScalarOp.PLUS, ScalarType.BIGDECIMAL); // + by default for SpEWiseSum
+      multOpOptions = MathTwoScalar.optionMap(ScalarOp.PLUS, ScalarType.BIGDECIMAL, ""); // + by default for SpEWiseSum
     return TwoTableEWISE(Atable, Btable, Ctable, CTtable, BScanIteratorPriority,
         multOp, multOpOptions, plusOp, rowFilter, colFilterAT, colFilterB,
         true, true, iteratorsBeforeA,
@@ -1108,12 +1109,14 @@ public class Graphulo {
    * @param EScanIteratorPriority Priority to use for Table Multiplication scan-time iterator on table E
    * @param Eauthorizations Authorizations for scanning Etable. Null means use default: Authorizations.EMPTY
    *@param EDegauthorizations Authorizations for scanning EDegtable. Null means use default: Authorizations.EMPTY
+   * @param newVisibility Visibility label for new entries created in Rtable and/or RTtable. Null means no visibility label.
    * @return              The nodes reachable in exactly k steps from v0.
    */
   public String  EdgeBFS(String Etable, String v0, int k, String Rtable, String RTtable,
                          String startPrefixes, String endPrefixes,
                          String ETDegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree,
-                         IteratorSetting plusOp, int EScanIteratorPriority, Authorizations Eauthorizations, Authorizations EDegauthorizations) {
+                         IteratorSetting plusOp, int EScanIteratorPriority,
+                         Authorizations Eauthorizations, Authorizations EDegauthorizations, String newVisibility) {
     boolean needDegreeFiltering = minDegree > 1 || maxDegree < Integer.MAX_VALUE;
     if (Etable == null || Etable.isEmpty())
       throw new IllegalArgumentException("Please specify Incidence table. Given: " + Etable);
@@ -1186,6 +1189,8 @@ public class Graphulo {
 //    opt.put("gatherColQs", "true");  No gathering right now.  Need to implement more general gathering function on RemoteWriteIterator.
     opt.put("dotmode", TwoTableIterator.DOTMODE.ROW.name());
     opt.put("multiplyOp", EdgeBFSMultiply.class.getName());
+    if (newVisibility != null && !newVisibility.isEmpty())
+      opt.put("multiplyOp.opt."+EdgeBFSMultiply.NEW_VISIBILITY, newVisibility);
 //    opt.put("AT.zookeeperHost", zookeepers);
 //    opt.put("AT.instanceName", instance);
     opt.put("AT.tableName", TwoTableIterator.CLONESOURCE_TABLENAME);
@@ -1679,17 +1684,20 @@ public class Graphulo {
    * @param numEntriesCheckpoint # of entries before we emit a checkpoint entry from the scan. -1 means no monitoring.
    * @param separator The string to insert between the labels of two nodes.
    * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
+   * @param newVisibility Visibility label for new entries created in Rtable. Null means no visibility label.
    */
   public void LineGraph(String Atable, String ATtable, String Rtable, String RTtable,
                         int BScanIteratorPriority, boolean isDirected, boolean includeExtraCycles, IteratorSetting plusOp,
                         Collection<Range> rowFilter, String colFilterAT, String colFilterB,
                         int numEntriesCheckpoint, String separator,
-                        Authorizations Aauthorizations) {
+                        Authorizations Aauthorizations, String newVisibility) {
     Map<String,String> opt = new HashMap<>();
     opt.put("rowMultiplyOp", LineRowMultiply.class.getName());
     opt.put("rowMultiplyOp.opt."+LineRowMultiply.SEPARATOR, separator);
     opt.put("rowMultiplyOp.opt."+LineRowMultiply.ISDIRECTED, Boolean.toString(isDirected));
     opt.put("rowMultiplyOp.opt."+LineRowMultiply.INCLUDE_EXTRA_CYCLES, Boolean.toString(includeExtraCycles));
+    if (newVisibility != null && !newVisibility.isEmpty())
+      opt.put("rowMultiplyOp.opt."+LineRowMultiply.NEW_VISIBILITY, newVisibility);
 
     TwoTable(ATtable, Atable, Rtable, RTtable, BScanIteratorPriority,
         TwoTableIterator.DOTMODE.ROW, opt, plusOp,
@@ -1743,11 +1751,12 @@ public class Graphulo {
    * @param forceDelete False means throws exception if the temporary tables used inside the algorithm already exist.
    *                    True means delete them if they exist.
    * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
+   * @param RNewVisibility Visibility label for new entries created. Null means no visibility label.
    * @return nnz of the kTruss subgraph, which is 2* the number of edges in the kTruss subgraph.
    *          Returns -1 if k < 2 since there is no point in counting the number of edges.
    */
   public long kTrussAdj(String Aorig, String Rfinal, int k,
-                        String filterRowCol, boolean forceDelete, Authorizations Aauthorizations) {
+                        String filterRowCol, boolean forceDelete, Authorizations Aauthorizations, String RNewVisibility) {
     checkGiven(true, "Aorig", Aorig);
     Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
     TableOperations tops = connector.tableOperations();
@@ -1804,14 +1813,16 @@ public class Graphulo {
         nnzBefore = nnzAfter;
 
         // Use Atmp for both AT and B
-        TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Atmp, A2tmp, null, -1, ConstantTwoScalar.class, null,
+        TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Atmp, A2tmp, null, -1, ConstantTwoScalar.class,
+            ConstantTwoScalar.optionMap(new Value("1".getBytes(StandardCharsets.UTF_8)), RNewVisibility),
             sumAndFilter, null, null, null, false, false,
             null, null, noDiagFilter,
             null, null, -1, Aauthorizations, Aauthorizations);
         // A2tmp has a SummingCombiner
 
-        nnzAfter = SpEWiseX(A2tmp, Atmp, AtmpAlt, null, -1, ConstantTwoScalar.class, null, null,
-            null, null, null, -1);
+        nnzAfter = SpEWiseX(A2tmp, Atmp, AtmpAlt, null, -1, ConstantTwoScalar.class,
+            ConstantTwoScalar.optionMap(new Value("1".getBytes(StandardCharsets.UTF_8)), RNewVisibility),
+            null, null, null, null, -1);
 
         tops.delete(Atmp);
         tops.delete(A2tmp);
@@ -1985,15 +1996,17 @@ public class Graphulo {
    * From input <b>unweighted, undirected</b> adjacency table Aorig,
    * put the Jaccard coefficients in the upper triangle of Rfinal.
    * @param Aorig Unweighted, undirected adjacency table.
+   * @param ADeg Degree table name.
    * @param Rfinal Should not previously exist. Writes the Jaccard table into Rfinal,
    *               using a couple combiner-like iterators.
    * @param filterRowCol Filter applied to rows and columns of Aorig
    *                     (must apply to both rows and cols because A is undirected Adjacency table).
    * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
+   * @param RNewVisibility Visibility label for new entries created in Rtable. Null means no visibility label.
    * @return number of partial products sent to Rtable during the Jaccard coefficient calculation
    */
   public long Jaccard(String Aorig, String ADeg, String Rfinal,
-                      String filterRowCol, Authorizations Aauthorizations) {
+                      String filterRowCol, Authorizations Aauthorizations, String RNewVisibility) {
     checkGiven(true, "Aorig, ADeg", Aorig, ADeg);
     Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
     TableOperations tops = connector.tableOperations();
@@ -2007,7 +2020,7 @@ public class Graphulo {
 
     // use a deepCopy of the local iterator on A for the left part of the TwoTable
     long npp = TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Aorig, Rfinal, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.LONG),    // this could be a ConstantTwoScalar if we knew no "0" entries present
+        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.LONG, RNewVisibility),    // this could be a ConstantTwoScalar if we knew no "0" entries present
         RPlusIteratorSetting,
         filterRowCol == null ? null : GraphuloUtil.d4mRowToRanges(filterRowCol),
         filterRowCol, filterRowCol,
@@ -2100,7 +2113,7 @@ public class Graphulo {
     opt.put(prefix + "username", user);
     opt.put(prefix+"password", new String(password.getPassword()));
     if (authorizations != null && !authorizations.equals(Authorizations.EMPTY))
-      opt.put(prefix+"authorizations", authorizations.toString());
+      opt.put(prefix+"authorizations", authorizations.serialize());
     return opt;
   }
 
@@ -2246,7 +2259,7 @@ public class Graphulo {
 
     // Step 1: W*H => WHtmp
     TableMult(WTfinal, Hfinal, WHtmp, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
+        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE, null),
         MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
         null, null, null, false, false, null, null, PRESUMITER, null, null, -1, Authorizations.EMPTY, Authorizations.EMPTY);
     if (Trace.isTracing())
@@ -2258,13 +2271,13 @@ public class Graphulo {
         .append(MathTwoScalar.applyOpDouble(1, true, ScalarOp.POWER, 2.0))
 //        .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.DOUBLE))
         .getIteratorSettingList();
-    Map<String,String> sumReducerOpts = MathTwoScalar.optionMap(ScalarOp.PLUS, ScalarType.DOUBLE);
+    Map<String,String> sumReducerOpts = MathTwoScalar.optionMap(ScalarOp.PLUS, ScalarType.DOUBLE, null);
     MathTwoScalar sumReducer = new MathTwoScalar();
     sumReducer.init(sumReducerOpts, null);
 
     // Execute. Sum into sumReducer.
     SpEWiseSum(Aorig, WHtmp, null, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.MINUS, ScalarType.DOUBLE),
+        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.MINUS, ScalarType.DOUBLE, null),
         null, null, null, null, null, null,
         iterAfterMinus,
         sumReducer, sumReducerOpts,
@@ -2280,7 +2293,7 @@ public class Graphulo {
 
   final int PRESUMCACHESIZE = 10000;
   final List<IteratorSetting> PRESUMITER = Collections.singletonList(LruCacheIterator.combinerSetting(
-      1, null, PRESUMCACHESIZE, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.DOUBLE)
+      1, null, PRESUMCACHESIZE, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.DOUBLE, "")
   ));
 
   private void nmfStep(int K, String in1, String in2, String out1, String out2, String tmp1, String tmp2,
@@ -2294,7 +2307,7 @@ public class Graphulo {
     // Step 1: in1^T * in1 ==transpose==> tmp1
     try (TraceScope scope = Trace.startSpan("nmf1TableMult")) {
       TableMult(in1, in1, null, tmp1, -1,
-          MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
+          MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE, ""),
           plusCombiner,
           null, null, null, false, false, null, null, PRESUMITER, null, null, -1, Authorizations.EMPTY, Authorizations.EMPTY);
     }
@@ -2328,7 +2341,7 @@ public class Graphulo {
     // Step 3: in1^T * in2 => tmp2.  This can run concurrently with step 1 and 2.
     try (TraceScope scope = Trace.startSpan("nmf3TableMult")) {
       TableMult(in1, in2, tmp2, null, -1,
-          MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
+          MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE, ""),
           plusCombiner,
           null, null, null, false, false, null, null, PRESUMITER, null, null, -1, Authorizations.EMPTY, Authorizations.EMPTY);
     }
@@ -2344,7 +2357,7 @@ public class Graphulo {
     // Execute.
     try (TraceScope scope = Trace.startSpan("nmf4TableMult")) {
       TableMult(tmp1, tmp2, out1, out2, -1,
-          MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
+          MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE, ""),
           sumFilterOp,
           null, null, null, false, false, null, null,
           PRESUMITER,
@@ -2493,7 +2506,7 @@ public class Graphulo {
 
     // H*HT
     TableMult(HTtable, HTtable, Ttmp1, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
+        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE, ""),
         MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
         null, null, null, false, false, -1);
 
@@ -2516,7 +2529,7 @@ public class Graphulo {
 
     // HT * inv
     TableMult(Htable, Ttmp1, Rtable, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE),
+        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE, ""),
         MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE),
         null, null, null, false, false, -1);
 

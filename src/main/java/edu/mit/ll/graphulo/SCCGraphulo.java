@@ -81,7 +81,7 @@ public class SCCGraphulo extends Graphulo {
       if (k % 2 == 1) {
         if (k != 1)
           tops.delete(tAC);
-        TableMult(tAT, tA, tR, tAC, -1, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG), null, null, null, null, false, false, -1);
+        TableMult(tAT, tA, tR, tAC, -1, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, ""), null, null, null, null, false, false, -1);
 
         if (trace) {
           // TESTING
@@ -101,7 +101,7 @@ public class SCCGraphulo extends Graphulo {
 
       } else {
         tops.delete(tAT);
-        TableMult(tAC, tA, tR, tAT, -1, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG), null, null, null, null, false, false, -1);
+        TableMult(tAC, tA, tR, tAT, -1, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, ""), null, null, null, null, false, false, -1);
 
         if (trace) {
           // TESTING
@@ -152,7 +152,7 @@ public class SCCGraphulo extends Graphulo {
       // TEST END
     }
 
-    SpEWiseX(tR, tRT, tRf, null, -1, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG), null, null, null, null, -1);
+    SpEWiseX(tR, tRT, tRf, null, -1, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, ""), null, null, null, null, -1);
 
   }
 

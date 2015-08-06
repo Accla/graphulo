@@ -52,7 +52,6 @@ public class EdgeBFSExample extends AccumuloTestBase {
     int maxDegree = Integer.MAX_VALUE;                  // Unbounded maximum degree.  This and the minimum degree make a High-pass Filter.
     String v0 = "1,25,:,27,";                           // Starting nodes: node 1 (the supernode) and all the nodes from 25 to 27 inclusive.
     int EScanIteratorPriority = -1;                     // Use default priority for scan-time iterators on table E
-    boolean trace = false;                              // Disable debug printing.
 
     // In your code, you would connect to an Accumulo instance by writing something similar to:
 //    ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance("instance").withZkHosts("localhost:2181").withZkTimeout(5000);
@@ -87,7 +86,7 @@ public class EdgeBFSExample extends AccumuloTestBase {
     // This call blocks until the BFS completes.
     String vReached = graphulo.EdgeBFS(Etable, v0, numSteps, Rtable, RTtable,
         startPrefixes, endPrefixes, EDegTtable, degColumn, degInColQ, minDegree, maxDegree,
-        plusOp, EScanIteratorPriority, Authorizations.EMPTY, Authorizations.EMPTY);
+        plusOp, EScanIteratorPriority, Authorizations.EMPTY, Authorizations.EMPTY, "");
     System.out.println("First few nodes reachable in exactly "+numSteps+" steps: " +
         vReached.substring(0,Math.min(20,vReached.length())));
 

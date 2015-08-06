@@ -47,10 +47,10 @@ public class NMFExample extends AccumuloTestBase {
     String WTtable = "ex" + SCALE + "AEdgeWT";          // Transpose of output table W.
     String Htable = "ex" + SCALE + "AEdgeH";            // Output table H.
     String HTtable = "ex" + SCALE + "AEdgeHT";          // Transpose of output table HT.
-    boolean trace = false;                              // Disable debug printing.
     int K = 3;                                          // 3 topics
     int maxiter = 2;                                    // 3 iterations of NMF maximum
     double cutoffThreshold = 0.0001;                       // Threshold to cut off entries with value less than this
+    String newVisibility = "";                          // Column Visibility to use for newly created entries.
 
 
     // In your code, you would connect to an Accumulo instance by writing something similar to:
@@ -93,7 +93,7 @@ public class NMFExample extends AccumuloTestBase {
     String APtable = "ex" + SCALE + "AEdgeApprox";        // Approximation of the incidence table Etable.
     GraphuloUtil.deleteTables(conn, true, APtable);
     graphulo.TableMult(WTtable, Htable, APtable, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.DOUBLE),
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.DOUBLE, newVisibility),
         MathTwoScalar.combinerSetting(Graphulo.PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.DOUBLE),
         null, null, null, false, false, -1);
 

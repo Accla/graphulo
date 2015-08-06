@@ -64,7 +64,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      long nnzkTruss = graphulo.kTrussAdj(tA, tR, 3, null, true, Authorizations.EMPTY);
+      long nnzkTruss = graphulo.kTrussAdj(tA, tR, 3, null, true, Authorizations.EMPTY, "");
       log.info("3Truss has " + nnzkTruss + " nnz");
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -87,7 +87,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      long nnzkTruss = graphulo.kTrussAdj(tA, tR, 4, null, true, Authorizations.EMPTY);
+      long nnzkTruss = graphulo.kTrussAdj(tA, tR, 4, null, true, Authorizations.EMPTY, "");
       log.info("4Truss has " + nnzkTruss + " nnz");
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -255,7 +255,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    long npp = graphulo.Jaccard(tA, tADeg, tR, null, Authorizations.EMPTY);
+    long npp = graphulo.Jaccard(tA, tADeg, tR, null, Authorizations.EMPTY, "");
     log.info("Jaccard table has "+npp+" #partial products sent to "+tR);
 
     // Just for fun, let's compact and ensure idempotence.
@@ -361,7 +361,7 @@ public class AlgorithmTest extends AccumuloTestBase {
 //    }
 
     graphulo.TableMult(tWT, tH, tWH, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.DOUBLE),
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.DOUBLE, ""),
         MathTwoScalar.combinerSetting(Graphulo.PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.DOUBLE),
         null, null, null, false, false, -1);
 

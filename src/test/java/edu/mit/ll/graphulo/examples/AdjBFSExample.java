@@ -49,7 +49,6 @@ public class AdjBFSExample extends AccumuloTestBase {
     int maxDegree = Integer.MAX_VALUE;                  // Unbounded maximum degree.  This and the minimum degree make a High-pass Filter.
     int AScanIteratorPriority = -1;                     // Use default priority for scan-time iterator on table A
     String v0 = "1,25,:,27,";                           // Starting nodes: node 1 (the supernode) and all the nodes from 25 to 27 inclusive.
-    boolean trace = false;                              // Disable debug printing.
     Map<Key,Value> clientResultMap = null;              // Unused because we are writing entries to a remote table instead of gathering at the client.
 
     // In your code, you would connect to an Accumulo instance by writing something similar to:

@@ -29,6 +29,8 @@ import java.util.Map;
  * Possible future optimization: only need to scan the part of the degree table
  * that is after the seek range's beginning row. For example, if seeked to [v3,v5),
  * we should scan the degree table on (v3,+inf) and load those degrees into a Map.
+ * <p>
+ * Preserves keys.
  */
 public class JaccardDegreeApply implements ApplyOp {
   private static final Logger log = LogManager.getLogger(JaccardDegreeApply.class);

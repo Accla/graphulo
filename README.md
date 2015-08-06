@@ -232,12 +232,12 @@ Some use cases for implementing advanced operator logic are if your logic
 
 1. manipulates returned Keys in non-standard ways 
 (i.e., changes the row and column qualifier differently than matrix multiply or element-wise multiply would); 
-3. returns more than one entry as the result of a single operator call;
-4. performs some setup or other function based on more stateful knowledge, 
+2. returns more than one entry as the result of a single operator call;
+3. performs some setup or other function based on more stateful knowledge, 
 such as what the contents of one row of the input tables \[`ONEROWA` or `ONEROWB` (default)\] 
 or both rows of the input tables \[`TWOROW`\] held in memory during matrix multiplication
 (implement [RowStartMultiplyOp][] in this case); or 
-5. (very advanced) performs a non-standard pattern of multiplying two matching rows, 
+4. (very advanced) performs a non-standard pattern of multiplying two matching rows, 
 different from the Cartesian product of the two rows' entries
 (implement [RowMultiplyOp][] in this case). 
 
@@ -260,6 +260,32 @@ assuming the D4M libraries are also installed:
 G = DBaddJavaOps('edu.mit.ll.graphulo.MatlabGraphulo','instance','localhost:2181','root','secret');
 res = G.AdjBFS('Atable','v0;v7;v9;',3,'Rtable','','ADegtable','OutDeg',false,5,15);
 ```
+
+### How to use Graphulo with Column Visibilities and Authorizations
+Authorizations are used to scan entries in an Accumulo table.
+Entries have an empty column visibility by default, which means that 
+a user scanning the table with empty authorizations can see those entries.
+Every user has permission to use empty authorizations.
+
+In order to scan entries that have a non-empty column visibility, 
+the scanning user must have permission to place an authorization on the scan
+that satisfies each entries' visibility, which takes the form of a Boolean algebra of labels.
+A user's permitted authorizations can be set via
+`connector.securityOperations().changeUserAuthorizations(user, newAuthorizations);`.
+These authorizations can then be passed to the Connector methods that create Scanners and BatchScanners.
+
+Each Graphulo function takes an Authorizations object as an argument,
+ which is passed to every (Batch)Scanner created by Graphulo, 
+ including the ones created server-side 
+ (in this case, the Authorizations are transmitted via iterator options).
+
+Some Graphulo capabilities create new entries and ingest them into Accumulo tables.
+This includes matrix multiply, element-wise sum and multiply, and some ApplyOp 
+and other SKVIs. These features take an argument called `newVisibility`
+that sets the visibility of all newly created Keys to the given constant visibility.
+
+If more fine-grained control of visibility creation is desired, please implement a custom 
+MultiplyOp, EWiseOp, ApplyOp or more general SKVI as applicable.
 
 ### Debugging
 Before debugging a problem, consider 
@@ -368,9 +394,10 @@ Four modes of operation:
 * `tableName`
 * `username`
 * `password` Anyone who can read the Accumulo table config or log files will see the password in plaintext.
-* `iter.7` Class name of an iterator to place on the remote table scan, running on the remote Accumulo server at the specified priority. 
-Run as many as desired, each with its own priority.
-* `iter.7.OPTION_NAME` An option supplied to a remote iterator.
+* `authorizations` Authorizations to use in the Scanner in serialized form, e.g. from `authorizations.serialize()`
+* `diter.*` Encapsulated form of a DynamicIteratorSetting. See the code for how to use. 
+These encoded iterators are placed on the remote table scan, running on the remote Accumulo server at an encoded priority.
+These also encode iterator options for each iterator.
 
 ##### TwoTableIterator
 * `A. ... ` All the options of RemoteSourceIterator, to read table A from a remote Accumulo table. 
@@ -387,9 +414,8 @@ Set `AT.emitNoMatch` to true when `alsoDoAA` is true, so that rows of A that do 
 are considered.  Conversely, if `AT.emitNoMatch` is true but `alsoDoAA` is false, then
 individual entries from A are emitted (`A*A` is not computed).
 
-##### Future: PreSumCacheIterator
-* `combiner` Name of class for "pre-summing" entries.
-* `size` in bytes or entries?
+##### LruCacheIterator
+Pre-sums entries that collide within a fixed size cache. An optimization. See code for how to use.
 
 ##### RemoteWriteIterator
 * `reducer` Used to "collect" something to send to the client. Name of class that implements `Reducer` interface. 

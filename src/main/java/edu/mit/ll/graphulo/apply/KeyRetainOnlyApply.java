@@ -67,22 +67,19 @@ public class KeyRetainOnlyApply implements ApplyOp {
     Key knew;
     if (pk == null)
       knew = seekStartKey;
-    else
+    else {
       knew = GraphuloUtil.keyCopy(k, pk);
+      if (knew.compareTo(seekStartKey) < 0)
+        return null;
+    }
     return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(knew, v));
   }
 
   @Override
   public void seekApplyOp(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-    if (pk == null) {
-      if (range.isInfiniteStartKey())
-        seekStartKey = new Key();
-      else {
-        if (range.isStartKeyInclusive())
-          seekStartKey = range.getStartKey(); // not necessarily empty column family/qualifier
-        else
-          seekStartKey = range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL);
-      }
-    }
+    if (range.isInfiniteStartKey())
+      seekStartKey = new Key();
+    else
+      seekStartKey = range.isStartKeyInclusive() ? range.getStartKey() : range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL);
   }
 }

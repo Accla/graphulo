@@ -56,8 +56,8 @@
   
  
     <root>
-       <level value="WARN"/>
-       <appender-ref ref="RollingFile"/>
+       <level value="DEBUG"/>
+       <!--<appender-ref ref="RollingFile"/>-->
        <appender-ref ref="CONSOLE"/> 
     </root>
 

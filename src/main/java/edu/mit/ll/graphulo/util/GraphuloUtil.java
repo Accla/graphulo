@@ -494,7 +494,10 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
     if (pos1 == -1) { // no ranges - collection of singleton texts
       Set<Column> colset = new HashSet<>();
       for (Text text : GraphuloUtil.d4mRowToTexts(colFilter)) {
-        colset.add(new Column(EMPTY_BYTES, text.getBytes(), EMPTY_BYTES));
+        byte[] by = text.copyBytes();
+//        log.debug("Printing characters of string TEXT LIM: "+ Key.toPrintableString(by, 0, text.getLength(), 100));
+//        log.debug("Printing characters of string TEXT    : "+ Key.toPrintableString(by, 0, by.length, 100));
+        colset.add(new Column(EMPTY_BYTES, text.copyBytes(), EMPTY_BYTES));
       }
       return new ColumnQualifierFilter(skvi, colset);
 

@@ -264,7 +264,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
 //    Watch<Watch.PerfSpan> watch = Watch.getInstance();
 //    watch.resetAll();
-    System.out.println("reset watch at RemoteWriteIterator init");
+//    System.out.println("reset watch at RemoteWriteIterator init");
 
     parseOptions(map);
 

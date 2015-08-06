@@ -793,6 +793,83 @@ public class BFSTest extends AccumuloTestBase {
     conn.tableOperations().delete(tRT);
   }
 
+  @Test
+  public void testEdgeBFS2() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
+    Connector conn = tester.getConnector();
+    final String tE, tETDeg, tR, tRT;
+    {
+      String[] names = getUniqueNames(4);
+      tE = names[0];
+//      tETDeg = names[1];
+      tR = names[2];
+      tRT = names[3];
+    }
+    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+        expectTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actualTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+
+    {
+      Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("one", "", "outNode|string"), new Value("1".getBytes()));
+      input.put(new Key("one", "", "inNode|2"), new Value("1".getBytes()));
+      input.put(new Key("two", "", "outNode|string"), new Value("1".getBytes()));
+      input.put(new Key("two", "", "inNode|3"), new Value("1".getBytes()));
+      expect.putAll(input);
+      expectTranspose.putAll(GraphuloUtil.transposeMap(input));
+      input.put(new Key("three", "", "outNode|3"), new Value("1".getBytes()));
+      input.put(new Key("three", "", "inNode|4"), new Value("1".getBytes()));
+      SortedSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("e33"));
+      TestUtil.createTestTable(conn, tE, splits, input);
+    }
+//    {
+//      Map<Key, Value> input = new HashMap<>();
+//      input.put(new Key("v0", "", "2"), new Value("1".getBytes()));
+//      input.put(new Key("v1", "", "2"), new Value("1".getBytes()));
+//      input.put(new Key("v2", "", "2"), new Value("1".getBytes()));
+//      input.put(new Key("vBig", "", "3"), new Value("1".getBytes()));
+//      SortedSet<Text> splits = new TreeSet<>();
+//      splits.add(new Text("v15"));
+//      TestUtil.createTestTable(conn, tETDeg, splits, input);
+//    }
+//    byte[] by = "string".getBytes();
+//    log.debug("Printing characters of string: "+ Key.toPrintableString(by,0,by.length,100));
+
+    String v0 = "string,";
+    Collection<Text> u3expect = GraphuloUtil.d4mRowToTexts("2,3,");
+
+    {
+      Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+      String u3actual = graphulo.EdgeBFS(tE, v0, 1, tR, tRT, "outNode|,", "inNode|,", //tETDeg
+      null , null, false, 0, Integer.MAX_VALUE, Graphulo.PLUS_ITERATOR_BIGDECIMAL, 1, Authorizations.EMPTY, Authorizations.EMPTY, "");
+      Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
+
+      BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), entry.getValue());
+        System.out.println(entry.getKey().toStringNoTime()+" "+entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expect, actual);
+
+      scanner = conn.createBatchScanner(tRT, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actualTranspose.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expectTranspose, actualTranspose);
+    }
+
+    conn.tableOperations().delete(tE);
+//    conn.tableOperations().delete(tETDeg);
+    conn.tableOperations().delete(tR);
+    conn.tableOperations().delete(tRT);
+  }
+
+
   /**
    * Undirected.
    * <pre>

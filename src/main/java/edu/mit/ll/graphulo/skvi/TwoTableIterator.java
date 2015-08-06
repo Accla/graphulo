@@ -253,6 +253,7 @@ public class TwoTableIterator implements SaveStateIterator {
     if (tableName != null && tableName.equals(CLONESOURCE_TABLENAME)) {
       ret = source.deepCopy(env);
       ret = setupRemoteSourceOptionsSKVI(ret, opts, env);
+      log.debug("Setting up "+CLONESOURCE_TABLENAME+": "+ret);
     } else {
       ret = new RemoteSourceIterator();
       ret.init(null, opts, env);
@@ -295,7 +296,9 @@ public class TwoTableIterator implements SaveStateIterator {
             ret = filter;
             break;
           case "colFilter":
-            ret = GraphuloUtil.applyGeneralColumnFilter(optionEntry.getValue(), ret, env);
+//            byte[] by = optionValue.getBytes();
+//            log.debug("Printing characters of string: "+ Key.toPrintableString(by, 0, by.length, 100));
+            ret = GraphuloUtil.applyGeneralColumnFilter(optionValue, ret, env);
             break;
           default:
             log.warn("Unrecognized option: " + optionEntry);
@@ -341,6 +344,7 @@ public class TwoTableIterator implements SaveStateIterator {
         seekColumnFamilies = columnFamilies;
         seekInclusive = inclusive;
         bottomIter = null;
+        log.debug("Weird range; aborting seek. Range is "+range);
         return;
       }
 
@@ -433,6 +437,16 @@ public class TwoTableIterator implements SaveStateIterator {
           cmp = 1;
         else
           cmp = remoteAT.getTopKey().compareTo(remoteB.getTopKey(), pk);
+
+//        if (remoteAT.hasTop() && remoteB.hasTop())
+//          log.debug("remoteAT "+remoteAT.getTopKey().toStringNoTime()+" "+remoteAT.getTopValue()
+//            +" remoteB "+remoteB.getTopKey().toStringNoTime()+" "+remoteB.getTopValue());
+//        else if (remoteAT.hasTop())
+//          log.debug("remoteAT "+remoteAT.getTopKey().toStringNoTime()+" "+remoteAT.getTopValue());
+//        else if (remoteB.hasTop())
+//          log.debug(" remoteB "+remoteB.getTopKey().toStringNoTime()+" "+remoteB.getTopValue());
+//        else
+//          log.debug("no hasTop() for remoteAT or remoteB");
 
         if (cmp < 0) {
           if (emitNoMatchA) {

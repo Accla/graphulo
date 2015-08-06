@@ -1258,7 +1258,9 @@ public class Graphulo {
           } else
             opt.put("AT.colFilter", prependStartPrefix(startPrefixes, vktexts));
         }
-        log.debug("AT.colFilter: " + opt.get("AT.colFilter"));
+//        log.debug("AT.colFilter: " + opt.get("AT.colFilter"));
+//        byte[] by = opt.get("AT.colFilter").getBytes();
+//        log.debug("Printing characters of string: "+ Key.toPrintableString(by, 0, by.length, 100));
 
         bs.setRanges(Collections.singleton(new Range()));
         bs.clearScanIterators();

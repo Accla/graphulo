@@ -696,6 +696,7 @@ public class Graphulo {
       AScanIteratorPriority = 27; // default priority
     if (reducerOpts == null)
       reducerOpts = new HashMap<>();
+    if (authorizations == null) authorizations = Authorizations.EMPTY;
 
     Rtable = emptyToNull(Rtable);
     RTtable = emptyToNull(RTtable);
@@ -923,6 +924,8 @@ public class Graphulo {
     Preconditions.checkArgument(maxDegree >= minDegree, "maxDegree=%s should be >= minDegree=%s", maxDegree, minDegree);
     if (AScanIteratorPriority <= 0)
       AScanIteratorPriority = 4; // default priority
+    if (Aauthorizations == null) Aauthorizations = Authorizations.EMPTY;
+    if (ADegauthorizations == null) ADegauthorizations = Authorizations.EMPTY;
 
     Preconditions.checkArgument(useRWI || (Rtable == null && RTtable == null),
         "clientResultMap must be null if given an Rtable or RTtable");
@@ -1137,6 +1140,8 @@ public class Graphulo {
       throw new IllegalArgumentException("maxDegree=" + maxDegree + " should be >= minDegree=" + minDegree);
     if (EScanIteratorPriority <= 0)
       EScanIteratorPriority = 5; // default priority
+    if (Eauthorizations == null) Eauthorizations = Authorizations.EMPTY;
+    if (EDegauthorizations == null) EDegauthorizations = Authorizations.EMPTY;
 
     if (degColumn == null)
       degColumn = "";
@@ -1432,16 +1437,16 @@ public class Graphulo {
    * @param plusOp         An SKVI to apply to the result table that "sums" values. Not applied if null.
    *                       Be careful: this affects degrees in the result table as well as normal entries.
    * @param outputUnion    Whether to output nodes reachable in EXACTLY or UP TO k BFS steps.
-   * @param Sauthorizations Authorizations for scanning Stable. Used for both degree scanning and normal scanning. Null means use default: Authorizations.EMPTY
+   * @param Sauthorizations Authorizations for scanning Stable and SDegtable. Used for both degree scanning and normal scanning. Null means use default: Authorizations.EMPTY
    * @return  The nodes reachable in EXACTLY k steps from v0.
    *          If outputUnion is true, then returns the nodes reachable in UP TO k steps from v0.
    */
   @SuppressWarnings("unchecked")
   public String SingleBFS(String Stable, String edgeColumn, char edgeSep,
-                          String v0, int k, String Rtable,
-                          String SDegtable, String degColumn, boolean degInColQ,
-                          boolean copyOutDegrees, boolean computeInDegrees, int minDegree, int maxDegree,
-                          IteratorSetting plusOp, boolean outputUnion, Authorizations Sauthorizations) {
+                          String v0, int k, String Rtable, String SDegtable, String degColumn,
+                          boolean degInColQ, boolean copyOutDegrees, boolean computeInDegrees,
+                          int minDegree, int maxDegree,IteratorSetting plusOp,
+                          boolean outputUnion, Authorizations Sauthorizations) {
     boolean needDegreeFiltering = minDegree > 1 || maxDegree < Integer.MAX_VALUE;
     checkGiven(true, "Stable", Stable);
     if (needDegreeFiltering && (SDegtable == null || SDegtable.isEmpty()))
@@ -1450,13 +1455,14 @@ public class Graphulo {
     if (edgeColumn == null)
       edgeColumn = "";
     Text edgeColumnText = new Text(edgeColumn);
-    if (copyOutDegrees && !SDegtable.equals(Stable))
+    if (copyOutDegrees && !Stable.equals(SDegtable))
       throw new IllegalArgumentException("Stable and SDegtable must be the same when copying out-degrees. Stable: " + Stable + " SDegtable: " + SDegtable);
     if (minDegree < 1)
       minDegree = 1;
     if (maxDegree < minDegree)
       throw new IllegalArgumentException("maxDegree=" + maxDegree + " should be >= minDegree=" + minDegree);
     String edgeSepStr = String.valueOf(edgeSep);
+    if (Sauthorizations == null) Sauthorizations = Authorizations.EMPTY;
 
     if (degColumn == null)
       degColumn = "";
@@ -1492,7 +1498,7 @@ public class Graphulo {
 
     Map<String, String> optSingleReducer = new HashMap<>(), optSTI = new HashMap<>();
     optSTI.put(SingleTransposeIterator.EDGESEP, edgeSepStr);
-    optSTI.put(SingleTransposeIterator.NEG_ONE_IN_DEG, Boolean.toString(false)); // not a good option
+    optSTI.put(SingleTransposeIterator.NEG_ONE_IN_DEG, Boolean.toString(false)); // rare option
     optSTI.put(SingleTransposeIterator.DEGCOL, degColumn);
     optSingleReducer.put(SingleBFSReducer.EDGE_SEP, edgeSepStr);
 
@@ -1500,7 +1506,8 @@ public class Graphulo {
     try {
       bs = connector.createBatchScanner(Stable, Sauthorizations, 50); // TODO P2: set number of batch scan threads
       if (needDegreeFiltering)
-        bsDegree = connector.createBatchScanner(SDegtable, Sauthorizations, 4); // TODO P2: set number of batch scan threads
+        bsDegree = Stable.equals(SDegtable) ? bs :
+            connector.createBatchScanner(SDegtable, Sauthorizations, 4); // TODO P2: set number of batch scan threads
     } catch (TableNotFoundException e) {
       log.error("crazy", e);
       throw new RuntimeException(e);
@@ -1602,18 +1609,18 @@ public class Graphulo {
     if (computeInDegrees) {
       allInNodes.removeAll(mostAllOutNodes);
 //      log.debug("allInNodes: "+allInNodes);
-      singleCheckWriteDegrees(allInNodes, Stable, Rtable, degColumn.getBytes(), edgeSepStr, sep);
+      singleCheckWriteDegrees(allInNodes, Rtable, Sauthorizations, degColumn.getBytes(), edgeSepStr);
     }
 
     return ret;
   }
 
-  private void singleCheckWriteDegrees(Collection<Text> questionNodes, String Stable, String Rtable,
-                                       byte[] degColumn, String edgeSepStr, char sep) {
+  private void singleCheckWriteDegrees(Collection<Text> questionNodes, String Rtable,
+                                       Authorizations Sauthorizations, byte[] degColumn, String edgeSepStr) {
     Scanner scan;
     BatchWriter bw;
     try {
-      scan = connector.createScanner(Rtable, Authorizations.EMPTY);
+      scan = connector.createScanner(Rtable, Sauthorizations);
       bw = connector.createBatchWriter(Rtable, new BatchWriterConfig());
     } catch (TableNotFoundException e) {
       log.error("crazy", e);
@@ -1640,6 +1647,7 @@ public class Graphulo {
 //        log.debug("range: "+range);
         boolean first = true;
         int cnt = 0, pos = -1;
+        // This logic could be offloaded to a server-side iterator if it was deemed crucial.
         scan.setRange(range);
         for (Map.Entry<Key, Value> entry : scan) {
 //          log.debug(entry.getKey()+" -> "+entry.getValue());
@@ -1660,14 +1668,14 @@ public class Graphulo {
 
 
     } catch (MutationsRejectedException e) {
-      log.error("canceling in-degree ingest because in-degree mutations rejected, sending to Rtable "+Rtable, e);
+      log.error("canceling in-degree ingest because in-degree mutations rejected sending to Rtable "+Rtable, e);
       throw new RuntimeException(e);
     } finally {
       scan.close();
       try {
         bw.close();
       } catch (MutationsRejectedException e) {
-        log.error("in-degree mutations rejected, sending to Rtable "+Rtable, e);
+        log.error("in-degree mutations rejected sending to Rtable "+Rtable, e);
       }
     }
 

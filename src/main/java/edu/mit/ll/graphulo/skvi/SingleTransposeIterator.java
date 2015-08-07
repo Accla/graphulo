@@ -98,10 +98,8 @@ public class SingleTransposeIterator implements SortedKeyValueIterator<Key,Value
     topKey1 = null;
     topValue1 = null;
 
-    if (doNext) {
+    if (doNext)
       source.next();
-    }
-
     if (!source.hasTop())
       return;
 
@@ -109,11 +107,8 @@ public class SingleTransposeIterator implements SortedKeyValueIterator<Key,Value
     topValue1 = source.getTopValue();
 
     // begin analysis of topKey1 to see if we need to alter or make topKey2
-    String rStr;
-    {
-      ByteSequence rowData = topKey1.getRowData();
-      rStr = new String(rowData.getBackingArray(), rowData.offset(), rowData.length());
-    }
+    Text rowText = topKey1.getRow();
+    String rStr = rowText.toString();
     int pos = rStr.indexOf(edgeSep);
     if (pos == -1)
       return;        // this is a degree row, not an edge row.
@@ -121,7 +116,7 @@ public class SingleTransposeIterator implements SortedKeyValueIterator<Key,Value
     long ts = topKey1.getTimestamp();
     long tsEven = ts % 2 == 0 ? ts : ts-1;
 
-    topKey1 = new Key(topKey1.getRow(), topKey1.getColumnFamily(), topKey1.getColumnQualifier(),
+    topKey1 = new Key(rowText, topKey1.getColumnFamily(), topKey1.getColumnQualifier(),
         topKey1.getColumnVisibility(), tsEven);
 
     String toNode = rStr.substring(pos+1);

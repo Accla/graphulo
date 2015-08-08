@@ -59,6 +59,7 @@ import org.apache.accumulo.core.iterators.user.ColumnSliceFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.commons.math3.linear.DefaultRealMatrixChangingVisitor;
 import org.apache.commons.math3.linear.DefaultRealMatrixPreservingVisitor;
@@ -150,6 +151,16 @@ public class Graphulo {
                         Class<? extends MultiplyOp> multOp, IteratorSetting plusOp) {
     return TableMult(ATtable, Btable, Ctable, CTtable, -1, multOp, null, plusOp, null, null, null,
         false, false, -1);
+  }
+
+  public long TableMult(String ATtable, String Btable, String Ctable, String CTtable,
+                        Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
+                        Authorizations ATauthorizations, Authorizations Bauthorizations) {
+    return TwoTableROWCartesian(ATtable, Btable, Ctable, CTtable, -1,
+        multOp, null, plusOp, null, null, null,
+        false, false, false, false, Collections.<IteratorSetting>emptyList(),
+        Collections.<IteratorSetting>emptyList(), Collections.<IteratorSetting>emptyList(),
+        null, null, -1, ATauthorizations, Bauthorizations);
   }
 
   public long TableMult(String ATtable, String Btable, String Ctable, String CTtable,
@@ -1413,39 +1424,38 @@ public class Graphulo {
   /**
    * Single-table Breadth First Search. Sums entries into Rtable from each step of the BFS.
    * Note that this version does not copy the in-degrees into the result table.
-   *
    * @param Stable         Name of Accumulo table.
    * @param edgeColumn     Column that edges are stored in.
    * @param edgeSep        Character used to separate edges in the row key, e.g. '|'.
    * @param v0             Starting nodes, like "a,f,b,c,". Null or empty string "" means start from all nodes.
-   *                       v0 may be a range of nodes like "c,:,e,g,k,:,".
+*                       v0 may be a range of nodes like "c,:,e,g,k,:,".
    * @param k              Number of steps
    * @param Rtable         Name of table to store result. Null means don't store the result.
    * @param SDegtable      Name of table holding out-degrees for S. This should almost always be the same as Stable.
-   *                       Can set to null only if no filtering is necessary, e.g.,
-   *                       if minDegree=0 and maxDegree=Integer.MAX_VALUE.
+*                       Can set to null only if no filtering is necessary, e.g.,
+*                       if minDegree=0 and maxDegree=Integer.MAX_VALUE.
    * @param degColumn      Name of column for out-degrees in SDegtable like "out". Null means the empty column "".
-   *                       If degInColQ==true, this is the prefix before the numeric portion of the column
-   *                       like "out|", and null means no prefix. Unused if ADegtable is null.
-   * @param degInColQ      True means degree is in the Column Qualifier. False means degree is in the Value.
-   *                       Unused if SDegtable is null.
+*                       Unused if SDegtable is null.
    * @param copyOutDegrees True means copy out-degrees from Stable to Rtable. This must be false if SDegtable is different from Stable. (could remove restriction in future)
-   * @param computeInDegrees True means compute the in-degrees of nodes reached in Rtable that are not starting nodes for any BFS step.
-   *                         Makes little sense to set this to true if copyOutDegrees is false. Invovles an extra scan at the client.
+   * @param computeInDegrees True means compute the degrees of nodes reached in Rtable that are not starting nodes for any BFS step.
+*                         Makes little sense to set this to true if copyOutDegrees is false. Invovles an extra scan at the client.
+   * @param degSumType    Only used if computeInDegrees==true. If null, then the computed degrees are the count of colunns.
+   *                      If not null, then the values of all entries the node is connected to are summed according to degSumType decoding.
+   * @param newVisibility Only used if computeInDegrees==true. The visibility to apply to new Keys written to SDegtable.
    * @param minDegree      Minimum out-degree. Checked before doing any searching, at every step, from SDegtable. Pass 0 for no filtering.
    * @param maxDegree      Maximum out-degree. Checked before doing any searching, at every step, from SDegtable. Pass Integer.MAX_VALUE for no filtering.
    * @param plusOp         An SKVI to apply to the result table that "sums" values. Not applied if null.
-   *                       Be careful: this affects degrees in the result table as well as normal entries.
+*                       Be careful: this affects degrees in the result table as well as normal entries.
    * @param outputUnion    Whether to output nodes reachable in EXACTLY or UP TO k BFS steps.
    * @param Sauthorizations Authorizations for scanning Stable and SDegtable. Used for both degree scanning and normal scanning. Null means use default: Authorizations.EMPTY
    * @return  The nodes reachable in EXACTLY k steps from v0.
-   *          If outputUnion is true, then returns the nodes reachable in UP TO k steps from v0.
-   */
+   * */
   @SuppressWarnings("unchecked")
   public String SingleBFS(String Stable, String edgeColumn, char edgeSep,
                           String v0, int k, String Rtable, String SDegtable, String degColumn,
-                          boolean degInColQ, boolean copyOutDegrees, boolean computeInDegrees,
-                          int minDegree, int maxDegree,IteratorSetting plusOp,
+                          boolean copyOutDegrees, boolean computeInDegrees,
+                          ScalarType degSumType, ColumnVisibility newVisibility,
+                          int minDegree, int maxDegree, IteratorSetting plusOp,
                           boolean outputUnion, Authorizations Sauthorizations) {
     boolean needDegreeFiltering = minDegree > 1 || maxDegree < Integer.MAX_VALUE;
     checkGiven(true, "Stable", Stable);
@@ -1528,7 +1538,7 @@ public class Graphulo {
         Collection<Range> rowFilter;
         if (needDegreeFiltering /*&& SDegtable != null*/) { // use degree table
           long t1 = System.currentTimeMillis(), dur;
-          vktexts = filterTextsDegreeTable(bsDegree, degColumnText, degInColQ, minDegree, maxDegree,
+          vktexts = filterTextsDegreeTable(bsDegree, degColumnText, false, minDegree, maxDegree,
               thisk == 1 ? GraphuloUtil.d4mRowToRanges(v0) : GraphuloUtil.textsToRanges(vktexts));
           dur = System.currentTimeMillis() - t1;
           degTime += dur;
@@ -1609,14 +1619,15 @@ public class Graphulo {
     if (computeInDegrees) {
       allInNodes.removeAll(mostAllOutNodes);
 //      log.debug("allInNodes: "+allInNodes);
-      singleCheckWriteDegrees(allInNodes, Rtable, Sauthorizations, degColumn.getBytes(), edgeSepStr);
+      singleCheckWriteDegrees(allInNodes, Rtable, Sauthorizations, degColumn.getBytes(), edgeSepStr, degSumType, newVisibility);
     }
 
     return ret;
   }
 
   private void singleCheckWriteDegrees(Collection<Text> questionNodes, String Rtable,
-                                       Authorizations Sauthorizations, byte[] degColumn, String edgeSepStr) {
+                                       Authorizations Sauthorizations, byte[] degColumn,
+                                       String edgeSepStr, ScalarType degSumType, ColumnVisibility newVisibility) {
     Scanner scan;
     BatchWriter bw;
     try {
@@ -1625,6 +1636,11 @@ public class Graphulo {
     } catch (TableNotFoundException e) {
       log.error("crazy", e);
       throw new RuntimeException(e);
+    }
+    MathTwoScalar summer = null;
+    if (degSumType != null) {
+      summer = new MathTwoScalar();
+      summer.init(MathTwoScalar.optionMap(ScalarOp.PLUS, degSumType, null, true), null);
     }
 
     //GraphuloUtil.singletonsAsPrefix(questionNodes, sep);
@@ -1647,6 +1663,8 @@ public class Graphulo {
 //        log.debug("range: "+range);
         boolean first = true;
         int cnt = 0, pos = -1;
+        if (summer != null)
+          summer.reset();
         // This logic could be offloaded to a server-side iterator if it was deemed crucial.
         scan.setRange(range);
         for (Map.Entry<Key, Value> entry : scan) {
@@ -1658,11 +1676,15 @@ public class Graphulo {
             first = false;
           }
           // assume all other rows in this range are degree rows.
-          cnt++;
+          if (summer == null)
+            cnt++;
+          else
+            summer.update(entry.getKey(), entry.getValue());
         }
         // row contains "v1|v2" -- want v1. pos is the byte position of the '|'. cnt is the degree.
         Mutation m = new Mutation(row.getBytes(), 0, pos);
-        m.put(GraphuloUtil.EMPTY_BYTES, degColumn, String.valueOf(cnt).getBytes());
+        m.put(GraphuloUtil.EMPTY_BYTES, degColumn, newVisibility,
+            summer == null ? String.valueOf(cnt).getBytes() : summer.getForClient());
         bw.addMutation(m);
       }
 
@@ -1771,7 +1793,8 @@ public class Graphulo {
    *          Returns -1 if k < 2 since there is no point in counting the number of edges.
    */
   public long kTrussAdj(String Aorig, String Rfinal, int k,
-                        String filterRowCol, boolean forceDelete, Authorizations Aauthorizations, String RNewVisibility) {
+                        String filterRowCol, boolean forceDelete,
+                        Authorizations Aauthorizations, String RNewVisibility) {
     checkGiven(true, "Aorig", Aorig);
     Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
     TableOperations tops = connector.tableOperations();
@@ -1837,7 +1860,7 @@ public class Graphulo {
 
         nnzAfter = SpEWiseX(A2tmp, Atmp, AtmpAlt, null, -1, ConstantTwoScalar.class,
             ConstantTwoScalar.optionMap(new Value("1".getBytes(StandardCharsets.UTF_8)), RNewVisibility),
-            null, null, null, null, -1);
+            null, null, null, null, null, null, null, null, null, -1, Aauthorizations, Aauthorizations);
 
         tops.delete(Atmp);
         tops.delete(A2tmp);
@@ -1848,7 +1871,7 @@ public class Graphulo {
       // Atmp, ATtmp have the result table. Could be empty.
 
       if (RfinalExists)  // sum whole graph into existing graph
-        AdjBFS(Atmp, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null);
+        AdjBFS(Atmp, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Aauthorizations, Aauthorizations);
       else                                           // result is new;
         tops.clone(Atmp, Rfinal, true, null, null);  // flushes Atmp before cloning
 
@@ -1894,13 +1917,13 @@ public class Graphulo {
       if (k <= 2) {               // trivial case: every graph is a 2-truss
         if (RfinalExists && RTfinalExists) { // sum whole graph into existing graph
           // AdjBFS works just as well as EdgeBFS because we're not doing any filtering.
-          AdjBFS(Eorig, null, 1, Rfinal, RTfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null);
+          AdjBFS(Eorig, null, 1, Rfinal, RTfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Eauthorizations, Eauthorizations);
         } else if (RfinalExists) {
-          AdjBFS(Eorig, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null);
+          AdjBFS(Eorig, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Eauthorizations, Eauthorizations);
           if (RTfinal != null)
             tops.clone(ETorig, RTfinal, true, null, null);
         } else if (RTfinalExists) {
-          AdjBFS(Eorig, null, 1, null, RTfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null);
+          AdjBFS(Eorig, null, 1, null, RTfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Eauthorizations, Eauthorizations);
           if (Rfinal != null)
             tops.clone(Eorig, Rfinal, true, null, null);
         } else {                                          // both graphs are new;
@@ -1960,7 +1983,7 @@ public class Graphulo {
             Collections.singletonList(noDiagFilter), null, null, -1, Eauthorizations, Eauthorizations);
         // Atmp has a SummingCombiner
 
-        TableMult(ETtmp, Atmp, Rtmp, null, ConstantTwoScalar.class, itsBeforeR);
+        TableMult(ETtmp, Atmp, Rtmp, null, ConstantTwoScalar.class, itsBeforeR, Eauthorizations, Eauthorizations);
         // Rtmp has a big DynamicIterator
         tops.delete(ETtmp);
         tops.delete(Atmp);
@@ -1981,13 +2004,13 @@ public class Graphulo {
 
       if (RfinalExists && RTfinalExists) { // sum whole graph into existing graph
         // AdjBFS works just as well as EdgeBFS because we're not doing any filtering.
-        AdjBFS(Etmp, null, 1, Rfinal, RTfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null);
+        AdjBFS(Etmp, null, 1, Rfinal, RTfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Eauthorizations, Eauthorizations);
       } else if (RfinalExists) {
-        AdjBFS(Etmp, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null);
+        AdjBFS(Etmp, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Eauthorizations, Eauthorizations);
         if (RTfinal != null)
           tops.clone(ETtmp, RTfinal, true, null, null);
       } else if (RTfinalExists) {
-        AdjBFS(Etmp, null, 1, null, RTfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null);
+        AdjBFS(Etmp, null, 1, null, RTfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Eauthorizations, Eauthorizations);
         if (Rfinal != null)
           tops.clone(Etmp, Rfinal, true, null, null);
       } else {                                          // both graphs are new;

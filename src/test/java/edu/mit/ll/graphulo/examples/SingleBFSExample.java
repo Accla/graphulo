@@ -1,6 +1,7 @@
 package edu.mit.ll.graphulo.examples;
 
 import edu.mit.ll.graphulo.Graphulo;
+import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -48,6 +49,7 @@ public class SingleBFSExample extends AccumuloTestBase {
     boolean degInColQ = false;                          // Degree is stored in the Value, not the Column Qualifier.
     boolean copyOutDegrees = true;                      // Copy out-degrees to the result table. Note that in-degrees are not copied.
     boolean computeInDegrees = true;                    // Use extra client scans/writes after the BFS to compute result table in-degrees.
+    MathTwoScalar.ScalarType degSumType = MathTwoScalar.ScalarType.LONG; // Type to use for computing degrees of last nodes reached in BFS.
     int minDegree = 20;                                 // Bounding minimum degree: only include nodes with degree 20 or higher.
     int maxDegree = Integer.MAX_VALUE;                  // Unbounded maximum degree.  This and the minimum degree make a High-pass Filter.
     String v0 = "1,25,:,27,";                           // Starting nodes: node 1 (the supernode) and all the nodes from 25 to 27 inclusive.
@@ -86,7 +88,7 @@ public class SingleBFSExample extends AccumuloTestBase {
     // Single-table Breadth First Search.
     // This call blocks until the BFS completes.
     String vReached = graphulo.SingleBFS(Stable, edgeColumn, edgeSep, v0, numSteps,
-        Rtable, Stable, degColumn, degInColQ, copyOutDegrees, computeInDegrees, minDegree, maxDegree,
+        Rtable, Stable, degColumn, copyOutDegrees, computeInDegrees, degSumType, null, minDegree, maxDegree,
         plusOp, outputUnion, Authorizations.EMPTY);
     System.out.println("First few nodes reachable in exactly "+numSteps+" steps: " +
         vReached.substring(0,Math.min(20,vReached.length())));
@@ -121,6 +123,9 @@ public class SingleBFSExample extends AccumuloTestBase {
 
   5)  Set outputUnion = true to obtain (at the client) all the nodes reached
       in UP TO numSteps distance from the v0 nodes.
+
+  6)  Set degSumType to null to count columns instead of summing values
+      for the degrees of nodes in the last degree of the BFS.
 
   */
   ////////////////////////////////////////////////////////////////////////////////////////////////

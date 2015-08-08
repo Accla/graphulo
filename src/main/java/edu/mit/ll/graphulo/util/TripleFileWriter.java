@@ -1,4 +1,4 @@
-package edu.mit.ll.graphulo.d4m;
+package edu.mit.ll.graphulo.util;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -29,12 +29,12 @@ import java.util.zip.GZIPInputStream;
 /**
  * Write row, column and (optionally) value files to a table.
  */
-public class D4MTripleFileWriter {
-  private static final Logger log = LogManager.getLogger(D4MTripleFileWriter.class);
+public class TripleFileWriter {
+  private static final Logger log = LogManager.getLogger(TripleFileWriter.class);
 
   private Connector connector;
 
-  public D4MTripleFileWriter(Connector connector) {
+  public TripleFileWriter(Connector connector) {
     this.connector = connector;
   }
 

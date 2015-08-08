@@ -91,7 +91,7 @@ public class JaccardExample extends AccumuloTestBase {
     // that emits statistics based on entries it sees in each row-column.
     // The KeyRetainOnlyApply iterator puts all entries in the same row-column in each tablet.
     // It must be run once more at the client to aggregate across tablets.
-    // See ClientSideIteratorAggregatingScanner, since
+    // See ClientSideIteratorAggregatingScanner, which is usable because
     // we can hold one entry from each tablet in memory.
     IteratorSetting scanIters = new DynamicIteratorSetting()
         .append(KeyRetainOnlyApply.iteratorSetting(1, null))

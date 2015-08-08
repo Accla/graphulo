@@ -1,6 +1,6 @@
 package edu.mit.ll.graphulo;
 
-import edu.mit.ll.graphulo.d4m.D4MTripleFileWriter;
+import edu.mit.ll.graphulo.util.TripleFileWriter;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.log4j.LogManager;
@@ -26,7 +26,7 @@ public class DataTest extends AccumuloTestBase {
     Connector conn = tester.getConnector();
     String baseName = PREFIX_TABLE_SCALE+"10";
 
-    D4MTripleFileWriter tripleFileWriter = new D4MTripleFileWriter(conn);
+    TripleFileWriter tripleFileWriter = new TripleFileWriter(conn);
     URL url = Thread.currentThread().getContextClassLoader().getResource("data/10r.txt");
     Assert.assertNotNull(url);
     File rowFile = new File(url.getPath());

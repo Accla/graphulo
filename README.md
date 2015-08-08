@@ -283,6 +283,8 @@ Some Graphulo capabilities create new entries and ingest them into Accumulo tabl
 This includes matrix multiply, element-wise sum and multiply, and some ApplyOp 
 and other SKVIs. These features take an argument called `newVisibility`
 that sets the visibility of all newly created Keys to the given constant visibility.
+Other features that modify or transform a Key, instead of creating a brand new Key, 
+inherit the visibility of their parent Key.
 
 If more fine-grained control of visibility creation is desired, please implement a custom 
 MultiplyOp, EWiseOp, ApplyOp or more general SKVI as applicable.

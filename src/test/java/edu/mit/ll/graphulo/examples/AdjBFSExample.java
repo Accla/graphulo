@@ -50,6 +50,9 @@ public class AdjBFSExample extends AccumuloTestBase {
     int AScanIteratorPriority = -1;                     // Use default priority for scan-time iterator on table A
     String v0 = "1,25,:,27,";                           // Starting nodes: node 1 (the supernode) and all the nodes from 25 to 27 inclusive.
     Map<Key,Value> clientResultMap = null;              // Unused because we are writing entries to a remote table instead of gathering at the client.
+    Authorizations Aauth = Authorizations.EMPTY;        // Authorizations to use for scanning Atable.
+    Authorizations ADegauth = Authorizations.EMPTY;     // Authorizations to use for scanning ADegtable.
+
 
     // In your code, you would connect to an Accumulo instance by writing something similar to:
 //    ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance("instance").withZkHosts("localhost:2181").withZkTimeout(5000);
@@ -83,7 +86,7 @@ public class AdjBFSExample extends AccumuloTestBase {
     // Adjacency Table Breadth First Search.
     // This call blocks until the BFS completes.
     String vReached = graphulo.AdjBFS(Atable, v0, numSteps, Rtable, RTtable, clientResultMap, AScanIteratorPriority,
-        ADegtable, degColumn, degInColQ, minDegree, maxDegree, plusOp);
+        ADegtable, degColumn, degInColQ, minDegree, maxDegree, plusOp, Aauth, ADegauth);
     log.info("First few nodes reachable in exactly "+numSteps+" steps: " +
             vReached.substring(0,Math.min(20,vReached.length())));
 

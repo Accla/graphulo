@@ -1628,6 +1628,8 @@ public class Graphulo {
   private void singleCheckWriteDegrees(Collection<Text> questionNodes, String Rtable,
                                        Authorizations Sauthorizations, byte[] degColumn,
                                        String edgeSepStr, ScalarType degSumType, ColumnVisibility newVisibility) {
+    if (newVisibility == null)
+      newVisibility = new ColumnVisibility();
     Scanner scan;
     BatchWriter bw;
     try {

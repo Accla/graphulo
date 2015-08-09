@@ -3,6 +3,8 @@ package edu.mit.ll.graphulo.util;
 import com.google.common.base.Preconditions;
 import edu.mit.ll.graphulo.DynamicIteratorSetting;
 import edu.mit.ll.graphulo.skvi.D4mColumnRangeFilter;
+import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
+import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -56,6 +58,7 @@ public class GraphuloUtil {
 
   public static final char DEFAULT_SEP_D4M_STRING = '\t';
   private static final Text EMPTY_TEXT = new Text();
+  public static final String OPT_SUFFIX = ".opt.";
 
 
   /* Motivation for using -1 argument in String.split() call:
@@ -877,4 +880,15 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
     }
     return neww;
   }
+
+  public static IteratorSetting tableMultIterator(
+      Map<String, String> mapTT, Map<String, String> mapRWI,
+      int priority, String name) {
+    DynamicIteratorSetting dis = new DynamicIteratorSetting()
+        .append(new IteratorSetting(1, TwoTableIterator.class, mapTT));
+    if (mapRWI != null)
+      dis.append(new IteratorSetting(1, RemoteWriteIterator.class, mapRWI));
+    return name == null ? dis.toIteratorSetting(priority) : dis.toIteratorSetting(priority, name);
+  }
+
 }

@@ -1,5 +1,6 @@
 package edu.mit.ll.graphulo.apply;
 
+import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -31,7 +32,7 @@ public class RandomTopicApply implements ApplyOp {
   public static IteratorSetting iteratorSetting(int priority, int knum) {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
     itset.addOption(ApplyIterator.APPLYOP, RandomTopicApply.class.getName());
-    itset.addOption(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+KNUM, Integer.toString(knum));
+    itset.addOption(ApplyIterator.APPLYOP+ GraphuloUtil.OPT_SUFFIX+KNUM, Integer.toString(knum));
     return itset;
   }
 

@@ -1,5 +1,6 @@
 package edu.mit.ll.graphulo.skvi;
 
+import com.google.common.base.Preconditions;
 import edu.mit.ll.graphulo.DynamicIteratorSetting;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.PeekingIterator1;
@@ -81,6 +82,76 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
    */
   private PeekingIterator1<Map.Entry<Key, Value>> remoteIterator;
 
+  public static final String
+      ZOOKEEPERHOST = "zookeeperHost",
+      TIMEOUT = "timeout",
+      INSTANCENAME = "instanceName",
+      TABLENAME = "tableName",
+      USERNAME = "username",
+      PASSWORD = "password",
+      AUTHORIZATIONS = "authorizations",
+      ROWRANGES = "rowRanges",
+      COLFILTER = "colFilter",
+      DOCLIENTSIDEITERATORS = "doClientSideIterators",
+      ITER_PREFIX = "diter.";
+
+  public static IteratorSetting iteratorSetting(
+      int priority, String zookeeperHost, int timeout, String instanceName, String tableName, String username, String password,
+      Authorizations authorizations, String rowRanges, String colFilter, boolean doClientSideIterators,
+      DynamicIteratorSetting remoteIterators) {
+    Preconditions.checkNotNull(tableName, "Param %s is required", TABLENAME);
+    return new IteratorSetting(priority, RemoteSourceIterator.class, optionMap(null, tableName, zookeeperHost, timeout, instanceName,
+        username, password, authorizations, rowRanges, colFilter, doClientSideIterators, remoteIterators));
+  }
+
+  /**
+   *
+   * @param map Map to reuse. Pass null to create a new HashMap.
+   * @param tableName Name of table to read from.
+   * @param zookeeperHost Zookeeper host for Connector to remote table.
+   * @param timeout Timeout for Connector to remote table. <= 0 means use default timeout.
+   * @param instanceName Instance name for Connector to remote table.
+   * @param username Accumulo Username for Connector to remote table.
+   * @param password Used in a PasswordToken for Connector to remote table. Passed in plaintext.
+   * @param authorizations Authorizations to use while scanning. Null means {@link Authorizations#EMPTY}
+   * @param rowRanges Applied to this class's Scanner. Null means all rows. TODO: Would using a SeekFilterIterator lead to better performance?
+   * @param colFilter Column filter, see {@link GraphuloUtil#applyGeneralColumnFilter(String, SortedKeyValueIterator, IteratorEnvironment)}.
+   * @param doClientSideIterators Whether to apply remoteIterators at the remote table or locally. Meaningless if remoteIterators is null. Null means false.
+   * @param remoteIterators If doClientSideIterators=false, these iterators are applied on the remote server.
+   *                        If doClientSideIterators=true, these iterators are applied locally.
+   *                        Null means no extra iterators.
+   * @return map with options filled in.
+   */
+  public static Map<String,String> optionMap(
+      Map<String, String> map, String tableName, String zookeeperHost, int timeout, String instanceName, String username, String password,
+      Authorizations authorizations, String rowRanges, String colFilter, Boolean doClientSideIterators,
+      DynamicIteratorSetting remoteIterators) {
+    if (map == null)
+      map = new HashMap<>();
+    if (tableName != null)
+      map.put(TABLENAME, tableName);
+    if (zookeeperHost != null)
+      map.put(ZOOKEEPERHOST, zookeeperHost);
+    if (timeout > 0)
+      map.put(TIMEOUT, Integer.toString(timeout));
+    if (instanceName != null)
+      map.put(INSTANCENAME, instanceName);
+    if (username != null)
+      map.put(USERNAME, username);
+    if (password != null)
+      map.put(PASSWORD, password);
+    if (authorizations != null && !authorizations.equals(Authorizations.EMPTY))
+      map.put(AUTHORIZATIONS, authorizations.serialize());
+    if (rowRanges != null)
+      map.put(ROWRANGES, rowRanges);
+    if (colFilter != null)
+      map.put(COLFILTER, colFilter);
+    if (doClientSideIterators != null)
+      map.put(DOCLIENTSIDEITERATORS, doClientSideIterators.toString());
+    if (remoteIterators != null)
+      map.putAll(remoteIterators.buildSettingMap(ITER_PREFIX));
+    return map;
+  }
 
   private void parseOptions(Map<String, String> map) {
     Map<String,String> diterMap = new HashMap<>();
@@ -89,42 +160,42 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
       String optionValue = optionEntry.getValue();
       if (optionValue.isEmpty())
         continue;
-      if (optionKey.startsWith("diter.")) {
-        diterMap.put(optionKey.substring("diter.".length()), optionValue);
+      if (optionKey.startsWith(ITER_PREFIX)) {
+        diterMap.put(optionKey.substring(ITER_PREFIX.length()), optionValue);
       } else {
         switch (optionKey) {
-          case "zookeeperHost":
+          case ZOOKEEPERHOST:
             zookeeperHost = optionValue;
             break;
-          case "timeout":
+          case TIMEOUT:
             timeout = Integer.parseInt(optionValue);
             break;
-          case "instanceName":
+          case INSTANCENAME:
             instanceName = optionValue;
             break;
-          case "tableName":
+          case TABLENAME:
             tableName = optionValue;
             break;
-          case "username":
+          case USERNAME:
             username = optionValue;
             break;
-          case "password":
+          case PASSWORD:
             auth = new PasswordToken(optionValue);
             break;
-          case "authorizations": // passed value must be from Authorizations.serialize()
+          case AUTHORIZATIONS: // passed value must be from Authorizations.serialize()
             authorizations = new Authorizations(optionValue.getBytes(StandardCharsets.UTF_8));
             break;
 
           case "doWholeRow":
             doWholeRow = Boolean.parseBoolean(optionValue);
             break;
-          case "rowRanges":
+          case ROWRANGES:
             rowRanges = parseRanges(optionValue);
             break;
-          case "colFilter":
+          case COLFILTER:
             colFilter = optionValue; //GraphuloUtil.d4mRowToTexts(optionValue);
             break;
-          case "doClientSideIterators":
+          case DOCLIENTSIDEITERATORS:
             doClientSideIterators = Boolean.parseBoolean(optionValue);
             break;
           default:

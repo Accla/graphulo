@@ -1,6 +1,7 @@
 package edu.mit.ll.graphulo.simplemult;
 
 import edu.mit.ll.graphulo.apply.ApplyIterator;
+import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
@@ -86,7 +87,7 @@ public class MathTwoScalar extends SimpleTwoScalar {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
     itset.addOption(ApplyIterator.APPLYOP, MathTwoScalar.class.getName());
     for (Map.Entry<String, String> entry : optionMap(op, ScalarType.DOUBLE, null, keepZero).entrySet())
-      itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + entry.getKey(), entry.getValue());
+      itset.addOption(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX + entry.getKey(), entry.getValue());
     itset = KeyTwoScalar.addOptionsToIteratorSetting(itset, constantOnRight, new Value(Double.toString(scalar).getBytes()));
     return itset;
   }
@@ -97,7 +98,7 @@ public class MathTwoScalar extends SimpleTwoScalar {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
     itset.addOption(ApplyIterator.APPLYOP, MathTwoScalar.class.getName());
     for (Map.Entry<String, String> entry : optionMap(op, ScalarType.LONG, null, keepZero).entrySet())
-      itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + entry.getKey(), entry.getValue());
+      itset.addOption(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX + entry.getKey(), entry.getValue());
     itset = KeyTwoScalar.addOptionsToIteratorSetting(itset, constantOnRight, new Value(Long.toString(scalar).getBytes()));
     return itset;
   }
@@ -108,7 +109,7 @@ public class MathTwoScalar extends SimpleTwoScalar {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
     itset.addOption(ApplyIterator.APPLYOP, MathTwoScalar.class.getName());
     for (Map.Entry<String, String> entry : optionMap(op, ScalarType.BIGDECIMAL, null, keepZero).entrySet())
-      itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + entry.getKey(), entry.getValue());
+      itset.addOption(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX + entry.getKey(), entry.getValue());
     itset = KeyTwoScalar.addOptionsToIteratorSetting(itset, constantOnRight, new Value(scalar.toString().getBytes())); // byte encoding UTF-8?
     return itset;
   }

@@ -23,6 +23,7 @@ import edu.mit.ll.graphulo.skvi.CountAllIterator;
 import edu.mit.ll.graphulo.skvi.InverseMatrixIterator;
 import edu.mit.ll.graphulo.skvi.LruCacheIterator;
 import edu.mit.ll.graphulo.skvi.MinMaxFilter;
+import edu.mit.ll.graphulo.skvi.RemoteSourceIterator;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
 import edu.mit.ll.graphulo.skvi.SamplingFilter;
 import edu.mit.ll.graphulo.skvi.SeekFilterIterator;
@@ -344,7 +345,7 @@ public class Graphulo {
     opt.put("rowMultiplyOp.opt.multiplyOp", multOp.getName()); // treated same as multiplyOp
     if (multOpOptions != null)
       for (Map.Entry<String, String> entry : multOpOptions.entrySet()) {
-        opt.put("multiplyOp.opt."+entry.getKey(), entry.getValue()); // treated same as multiplyOp
+        opt.put("rowMultiplyOp.opt.multiplyOp.opt."+entry.getKey(), entry.getValue()); // treated same as multiplyOp
       }
     opt.put("rowMultiplyOp.opt.rowmode", CartesianRowMultiply.ROWMODE.ONEROWA.name());
     opt.put("rowMultiplyOp.opt."+CartesianRowMultiply.ALSODOAA, Boolean.toString(alsoDoAA));
@@ -535,7 +536,7 @@ public class Graphulo {
       GraphuloUtil.applyIteratorSoft(plusOp, tops, CTtable);
 
     if (reducer != null) {
-      optRWI.put("reducer", reducer.getClass().getName());
+      optRWI.put(RemoteWriteIterator.REDUCER, reducer.getClass().getName());
       for (Map.Entry<String, String> entry : reducerOpts.entrySet()) {
         optRWI.put("reducer.opt."+entry.getKey(), entry.getValue());
       }
@@ -552,7 +553,7 @@ public class Graphulo {
 
     if (rowFilter != null) {
       if (useRWI) {
-        optRWI.put("rowRanges", rowFilter); // translate row filter to D4M notation
+        optRWI.put(RemoteSourceIterator.ROWRANGES, rowFilter); // translate row filter to D4M notation
         bs.setRanges(Collections.singleton(new Range()));
       } else
         bs.setRanges(GraphuloUtil.d4mRowToRanges(rowFilter));
@@ -786,9 +787,9 @@ public class Graphulo {
     DynamicIteratorSetting dis = new DynamicIteratorSetting();
 
     if (rowFilter != null) {
-      Map<String,String> rowFilterOpt = Collections.singletonMap("rowRanges", rowFilter);
+      Map<String,String> rowFilterOpt = Collections.singletonMap(RemoteSourceIterator.ROWRANGES, rowFilter);
       if (useRWI)
-        optRWI.put("rowRanges", rowFilter); // translate row filter to D4M notation
+        optRWI.put(RemoteSourceIterator.ROWRANGES, rowFilter); // translate row filter to D4M notation
       else
         dis.append(new IteratorSetting(4, SeekFilterIterator.class, rowFilterOpt));
     }
@@ -800,7 +801,7 @@ public class Graphulo {
       dis.append(setting);
 
     if (useRWI && reducer != null) {
-      optRWI.put("reducer", reducer.getClass().getName());
+      optRWI.put(RemoteWriteIterator.REDUCER, reducer.getClass().getName());
       for (Map.Entry<String, String> entry : reducerOpts.entrySet()) {
         optRWI.put("reducer.opt."+entry.getKey(), entry.getValue());
       }
@@ -996,15 +997,15 @@ public class Graphulo {
 
           if (vktexts.isEmpty())
             break;
-//          opt.put("rowRanges", GraphuloUtil.textsToD4mString(vktexts, sep));
+//          opt.put(RemoteSourceIterator.ROWRANGES, GraphuloUtil.textsToD4mString(vktexts, sep));
           rowFilter = GraphuloUtil.textsToD4mString(vktexts);
 
         } else {  // no degree table or no filtering
           if (thisk == 1)
-//            opt.put("rowRanges", v0);
+//            opt.put(RemoteSourceIterator.ROWRANGES, v0);
             rowFilter = v0;
           else
-//            opt.put("rowRanges", GraphuloUtil.textsToD4mString(vktexts, sep));
+//            opt.put(RemoteSourceIterator.ROWRANGES, GraphuloUtil.textsToD4mString(vktexts, sep));
             rowFilter = GraphuloUtil.textsToD4mString(vktexts);
           if (needDegreeFiltering) // filtering but no degree table
             iteratorSettingList.add(itsetDegreeFilter);
@@ -1552,19 +1553,19 @@ public class Graphulo {
             break;
           if (mostAllOutNodes != null)
             mostAllOutNodes.addAll(vktexts);
-//          opt.put("rowRanges", GraphuloUtil.singletonsAsPrefix(vktexts, sep));
+//          opt.put(RemoteSourceIterator.ROWRANGES, GraphuloUtil.singletonsAsPrefix(vktexts, sep));
           rowFilter = GraphuloUtil.singletonsAsPrefix(vktexts, sep);
           optSTI.put(SingleTransposeIterator.STARTNODES, GraphuloUtil.singletonsAsPrefix(vktexts, sep));
 
         } else {  // no filtering
           if (thisk == 1) {
-//            opt.put("rowRanges", GraphuloUtil.singletonsAsPrefix(v0));
+//            opt.put(RemoteSourceIterator.ROWRANGES, GraphuloUtil.singletonsAsPrefix(v0));
             rowFilter = GraphuloUtil.singletonsAsPrefix(v0);
             optSTI.put(SingleTransposeIterator.STARTNODES, v0);
           } else {
             if (mostAllOutNodes != null)
               mostAllOutNodes.addAll(vktexts);
-//            opt.put("rowRanges", GraphuloUtil.singletonsAsPrefix(vktexts, sep));
+//            opt.put(RemoteSourceIterator.ROWRANGES, GraphuloUtil.singletonsAsPrefix(vktexts, sep));
             rowFilter = GraphuloUtil.singletonsAsPrefix(vktexts, sep);
             optSTI.put(SingleTransposeIterator.STARTNODES, GraphuloUtil.textsToD4mString(vktexts, sep));
           }
@@ -2057,7 +2058,7 @@ public class Graphulo {
     // "Plus" iterator to set on Rfinal
     IteratorSetting RPlusIteratorSetting = new DynamicIteratorSetting()
       .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.LONG, false))
-      .append(JaccardDegreeApply.iteratorSetting(1, basicRemoteOpts(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX, ADeg, null, Aauthorizations)))
+      .append(JaccardDegreeApply.iteratorSetting(1, basicRemoteOpts(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX, ADeg, null, Aauthorizations)))
       .toIteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority());
 
     // use a deepCopy of the local iterator on A for the left part of the TwoTable
@@ -2146,14 +2147,14 @@ public class Graphulo {
     String instance = connector.getInstance().getInstanceName();
     String zookeepers = connector.getInstance().getZooKeepers();
     String user = connector.whoami();
-    opt.put(prefix+"zookeeperHost", zookeepers);
-    opt.put(prefix + "instanceName", instance);
+    opt.put(prefix+RemoteSourceIterator.ZOOKEEPERHOST, zookeepers);
+    opt.put(prefix + RemoteSourceIterator.INSTANCENAME, instance);
     if (remoteTable != null)
-      opt.put(prefix+"tableName", remoteTable);
+      opt.put(prefix+RemoteSourceIterator.TABLENAME, remoteTable);
     if (remoteTableTranspose != null)
-      opt.put(prefix+"tableNameTranspose", remoteTableTranspose);
-    opt.put(prefix + "username", user);
-    opt.put(prefix+"password", new String(password.getPassword()));
+      opt.put(prefix+RemoteWriteIterator.TABLENAMETRANSPOSE, remoteTableTranspose);
+    opt.put(prefix + RemoteSourceIterator.USERNAME, user);
+    opt.put(prefix+RemoteSourceIterator.PASSWORD, new String(password.getPassword()));
     if (authorizations != null && !authorizations.equals(Authorizations.EMPTY))
       opt.put(prefix+"authorizations", authorizations.serialize());
     return opt;

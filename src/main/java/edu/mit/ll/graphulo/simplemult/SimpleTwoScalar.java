@@ -56,7 +56,7 @@ public abstract class SimpleTwoScalar extends KeyTwoScalar implements MultiplyOp
 //                                                               String newVisibility) {
 //    KeyTwoScalar.addOptionsToIteratorSetting(itset, reverse, fixedValue);
 //    if (newVisibility != null && !newVisibility.isEmpty())
-//      itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + NEW_VISIBILITY, newVisibility);
+//      itset.addOption(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX + NEW_VISIBILITY, newVisibility);
 //    return itset;
 //  }
 

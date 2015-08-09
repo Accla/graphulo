@@ -16,6 +16,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -89,6 +90,146 @@ public class TwoTableIterator implements SaveStateIterator {
     EWISE
   }
 
+  public static final String
+  EMITNOMATCH = "emitNoMatch",
+  MULTIPLYOP = "multiplyOp",
+  OPT_SUFFIX = ".opt.",
+  ROWMULTIPLYOP = "rowMultiplyOp";
+
+  /**
+   *
+   * @param map Map to reuse. Pass null to create a new HashMap.
+   * @param emitNoMatch Whether to emit non-colliding entries. False for intersection/multiplication, True for union/sum.
+   * @param tableName See {@link RemoteSourceIterator#optionMap}
+   * @param zookeeperHost See {@link RemoteSourceIterator#optionMap}
+   * @param timeout See {@link RemoteSourceIterator#optionMap}
+   * @param instanceName See {@link RemoteSourceIterator#optionMap}
+   * @param username See {@link RemoteSourceIterator#optionMap}
+   * @param password See {@link RemoteSourceIterator#optionMap}
+   * @param authorizations See {@link RemoteSourceIterator#optionMap}
+   * @param rowRanges See {@link RemoteSourceIterator#optionMap}
+   * @param colFilter See {@link RemoteSourceIterator#optionMap}
+   * @param doClientSideIterators See {@link RemoteSourceIterator#optionMap}
+   * @param remoteIterators See {@link RemoteSourceIterator#optionMap}
+   * @return map with options filled in.
+   */
+  public static Map<String, String> tableREMOTEOptionMap(
+      Map<String, String> map, boolean emitNoMatch, String tableName, String zookeeperHost, int timeout, String instanceName,
+      String username, String password,
+      Authorizations authorizations, String rowRanges, String colFilter, Boolean doClientSideIterators,
+      DynamicIteratorSetting remoteIterators) {
+    map = RemoteSourceIterator.optionMap(map, tableName, zookeeperHost, timeout, instanceName,
+        username, password, authorizations, rowRanges, colFilter, doClientSideIterators, remoteIterators);
+    map.put(EMITNOMATCH, Boolean.toString(emitNoMatch));
+    return map;
+  }
+
+  /**
+   * For either table A or table B. This option indicates that the table should
+   * {@link SortedKeyValueIterator#deepCopy} the other table iterator.
+   * @param map Map to reuse. Pass null to create a new HashMap.
+   * @param emitNoMatch Whether to emit non-colliding entries. False for intersection/multiplication, True for union/sum.
+   * @param rowRanges Row range filter, implemented with {@link SeekFilterIterator}.
+   * @param colFilter Column filter, see {@link GraphuloUtil#applyGeneralColumnFilter(String, SortedKeyValueIterator, IteratorEnvironment)}.
+   * @param remoteIterators Iterators to apply after the deepCopied iterator and before TwoTableIterator.
+   * @return map with options for this table filled in.
+   */
+  public static Map<String, String> tableCLONESOURCEOptionMap(
+      Map<String, String> map, boolean emitNoMatch, String rowRanges, String colFilter,
+      DynamicIteratorSetting remoteIterators) {
+    map = RemoteSourceIterator.optionMap(map, CLONESOURCE_TABLENAME, null, -1, null,
+        null, null, null, rowRanges, colFilter, false, remoteIterators);
+    map.put(EMITNOMATCH, Boolean.toString(emitNoMatch));
+    return map;
+  }
+
+  /**
+   * Create a map of options that properly configures TwoTableIterator
+   * for ROW mode.
+   * <p>
+   * One of either AtableMap or BtableMap must be non-null.
+   * Use either {@link #tableREMOTEOptionMap} or {@link #tableCLONESOURCEOptionMap}
+   * for the AtableMap and BtableMap arguments.
+   *
+   * @param map Map to reuse. Pass null to create a new HashMap.
+   * @param AtableMap Options for table A. Pass null to use the source iterator for table A.
+   * @param BtableMap Options for table B. Pass null to use the source iterator for table B.
+   * @param rowMultiplyOp Null uses default {@link CartesianRowMultiply}.
+   * @param rowMultiplyOpOptions Null means no options passed to rowMultiplyOp.
+   * @return map with TwoTableIterator's options filled in.
+   */
+  public static Map<String, String> optionMapROW(
+      Map<String, String> map, Map<String, String> AtableMap, Map<String, String> BtableMap,
+      Class<? extends RowMultiplyOp> rowMultiplyOp, Map<String, String> rowMultiplyOpOptions) {
+    map = optionMapCommon(map, AtableMap, BtableMap, DOTMODE.ROW);
+    if (rowMultiplyOp != null)
+      map.put(ROWMULTIPLYOP, rowMultiplyOp.getName());
+    if (rowMultiplyOpOptions != null)
+      for (Map.Entry<String, String> entry : rowMultiplyOpOptions.entrySet())
+        map.put(ROWMULTIPLYOP + OPT_SUFFIX + entry.getKey(), entry.getValue());
+    return map;
+  }
+
+  /**
+   * Create a map of options that properly configures TwoTableIterator
+   * for EWISE mode.
+   * <p>
+   * One of either AtableMap or BtableMap must be non-null.
+   * Use either {@link #tableREMOTEOptionMap} or {@link #tableCLONESOURCEOptionMap}
+   * for the AtableMap and BtableMap arguments.
+   *
+   * @param map Map to reuse. Pass null to create a new HashMap.
+   * @param AtableMap Options for table A. Pass null to use the source iterator for table A.
+   * @param BtableMap Options for table B. Pass null to use the source iterator for table B.
+   * @param multiplyOp Null uses default {@link CartesianRowMultiply}.
+   * @param multiplyOpOptions Null means no options passed to rowMultiplyOp.
+   * @return map with TwoTableIterator's options filled in.
+   */
+  public static Map<String, String> optionMapEWISE(
+      Map<String, String> map, Map<String, String> AtableMap, Map<String, String> BtableMap,
+      Class<? extends EWiseOp> multiplyOp, Map<String, String> multiplyOpOptions) {
+    map = optionMapCommon(map, AtableMap, BtableMap, DOTMODE.EWISE);
+    if (multiplyOp != null)
+      map.put(MULTIPLYOP, multiplyOp.getName());
+    if (multiplyOpOptions != null)
+      for (Map.Entry<String, String> entry : multiplyOpOptions.entrySet())
+        map.put(MULTIPLYOP + OPT_SUFFIX + entry.getKey(), entry.getValue());
+    return map;
+  }
+
+  /**
+   * Create a map of options that properly configures TwoTableIterator
+   * for NONE mode.
+   * <p>
+   * One of either AtableMap or BtableMap must be non-null.
+   * Use either {@link #tableREMOTEOptionMap} or {@link #tableCLONESOURCEOptionMap}
+   * for the AtableMap and BtableMap arguments.
+   *
+   * @param map Map to reuse. Pass null to create a new HashMap.
+   * @param AtableMap Options for table A. Pass null to use the source iterator for table A.
+   * @param BtableMap Options for table B. Pass null to use the source iterator for table B.
+   * @return map with TwoTableIterator's options filled in.
+   */
+  public static Map<String, String> optionMapNONE(
+      Map<String, String> map, Map<String, String> AtableMap, Map<String, String> BtableMap) {
+    return optionMapCommon(map, AtableMap, BtableMap, DOTMODE.NONE);
+  }
+
+  private static Map<String,String> optionMapCommon(
+      Map<String, String> map, Map<String, String> AtableMap, Map<String, String> BtableMap,
+      DOTMODE dotmode) {
+    if (map == null)
+      map = new HashMap<>();
+    if (AtableMap != null)
+      for (Map.Entry<String, String> entry : AtableMap.entrySet())
+        map.put(PREFIX_AT + '.' + entry.getKey(), entry.getValue());
+    if (BtableMap != null)
+      for (Map.Entry<String, String> entry : BtableMap.entrySet())
+        map.put(PREFIX_B + '.' + entry.getKey(), entry.getValue());
+    map.put("dotmode", dotmode.name());
+    return map;
+  }
+
   private void parseOptions(Map<String, String> options, final Map<String, String> optAT, final Map<String, String> optB) {
     log.debug("options: "+options);
     String dm = options.get("dotmode");
@@ -97,12 +238,11 @@ public class TwoTableIterator implements SaveStateIterator {
     dotmode = DOTMODE.valueOf(dm);
 
     for (Map.Entry<String, String> optionEntry : options.entrySet()) {
-      String optionKey = optionEntry.getKey();
-      String optionValue = optionEntry.getValue();
+      String optionKey = optionEntry.getKey(), optionValue = optionEntry.getValue();
       if (optionKey.startsWith(PREFIX_AT + '.')) {
         String keyAfterPrefix = optionKey.substring(PREFIX_AT.length() + 1);
         switch (keyAfterPrefix) {
-          case "emitNoMatch":
+          case EMITNOMATCH:
             emitNoMatchA = Boolean.parseBoolean(optionValue);
             break;
           case "doWholeRow":
@@ -116,7 +256,7 @@ public class TwoTableIterator implements SaveStateIterator {
       } else if (optionKey.startsWith(PREFIX_B + '.')) {
         String keyAfterPrefix = optionKey.substring(PREFIX_B.length() + 1);
         switch (keyAfterPrefix) {
-          case "emitNoMatch":
+          case EMITNOMATCH:
             emitNoMatchB = Boolean.parseBoolean(optionValue);
             break;
           case "doWholeRow":
@@ -144,16 +284,16 @@ public class TwoTableIterator implements SaveStateIterator {
         }
       } else {
         switch (optionKey) {
-          case "rowMultiplyOp":
+          case ROWMULTIPLYOP:
             if (dotmode == DOTMODE.ROW)
               rowMultiplyOp = GraphuloUtil.subclassNewInstance(optionValue, RowMultiplyOp.class);
             else
               log.warn(dotmode+" mode: Ignoring rowMultiplyOp " + optionValue);
             break;
-          case "multiplyOp":
+          case MULTIPLYOP:
             switch (dotmode) {
               case ROW:
-                rowMultiplyOpOptions.put("multiplyOp", optionValue);
+                rowMultiplyOpOptions.put(MULTIPLYOP, optionValue);
                 break;
               case EWISE:
                 eWiseOp = GraphuloUtil.subclassNewInstance(optionValue, EWiseOp.class);
@@ -196,8 +336,8 @@ public class TwoTableIterator implements SaveStateIterator {
     Map<String, String> optAT = new HashMap<>(), optB = new HashMap<>();
     parseOptions(options, optAT, optB);
     // The tableName option is the key signal for use of RemoteSourceIterator.
-    boolean dorAT = optAT.containsKey("tableName") && !optAT.get("tableName").isEmpty(),
-        dorB = optB.containsKey("tableName") && !optB.get("tableName").isEmpty();
+    boolean dorAT = optAT.containsKey(RemoteSourceIterator.TABLENAME) && !optAT.get(RemoteSourceIterator.TABLENAME).isEmpty(),
+        dorB = optB.containsKey(RemoteSourceIterator.TABLENAME) && !optB.get(RemoteSourceIterator.TABLENAME).isEmpty();
 
 
     if (!dorAT && !dorB && source == null)      // ~A ~B ~S
@@ -238,7 +378,7 @@ public class TwoTableIterator implements SaveStateIterator {
     }
 
     assert !(rowMultiplyOp != null && eWiseOp != null);
-    log.debug("rowMultiplyOp="+rowMultiplyOp+"  rowMultiplyOpOptions: "+rowMultiplyOpOptions);
+    log.debug("rowMultiplyOp=" + rowMultiplyOp + "  rowMultiplyOpOptions: " + rowMultiplyOpOptions);
     if (rowMultiplyOp != null)
       rowMultiplyOp.init(rowMultiplyOpOptions, env);
     if (eWiseOp != null)
@@ -248,7 +388,7 @@ public class TwoTableIterator implements SaveStateIterator {
   private SortedKeyValueIterator<Key, Value> setup(
       Map<String,String> opts, SortedKeyValueIterator<Key, Value> source, IteratorEnvironment env) throws IOException {
     assert opts != null && source != null;
-    String tableName = opts.get("tableName");
+    String tableName = opts.get(RemoteSourceIterator.TABLENAME);
     SortedKeyValueIterator<Key, Value> ret;
     if (tableName != null && tableName.equals(CLONESOURCE_TABLENAME)) {
       ret = source.deepCopy(env);
@@ -272,40 +412,39 @@ public class TwoTableIterator implements SaveStateIterator {
       String optionValue = optionEntry.getValue();
       if (optionEntry.getValue().isEmpty())
         continue;
-      if (optionKey.startsWith("diter.")) {
-        diterMap.put(optionKey.substring("diter.".length()), optionValue);
+      if (optionKey.startsWith(RemoteSourceIterator.ITER_PREFIX)) {
+        diterMap.put(optionKey.substring(RemoteSourceIterator.ITER_PREFIX.length()), optionValue);
       } else {
         switch (optionKey) {
-          case "zookeeperHost":
-          case "timeout":
-          case "instanceName":
-          case "username":
-          case "password":
-          case "doClientSideIterators":
+          case RemoteSourceIterator.ZOOKEEPERHOST:
+          case RemoteSourceIterator.TIMEOUT:
+          case RemoteSourceIterator.INSTANCENAME:
+          case RemoteSourceIterator.USERNAME:
+          case RemoteSourceIterator.PASSWORD:
+          case RemoteSourceIterator.DOCLIENTSIDEITERATORS:
             // these are ok to ignore
             break;
-          case "tableName":
+          case RemoteSourceIterator.TABLENAME:
             assert optionEntry.getValue().equals(CLONESOURCE_TABLENAME);
             break;
           case "doWholeRow":
             doWholeRow = Boolean.parseBoolean(optionEntry.getValue());
             break;
-          case "rowRanges":
+          case RemoteSourceIterator.ROWRANGES:
             SortedKeyValueIterator<Key, Value> filter = new SeekFilterIterator();
-            filter.init(ret, Collections.singletonMap("rowRanges", optionEntry.getValue()), env);
+            filter.init(ret, Collections.singletonMap(RemoteSourceIterator.ROWRANGES, optionEntry.getValue()), env);
             ret = filter;
             break;
-          case "colFilter":
+          case RemoteSourceIterator.COLFILTER:
 //            byte[] by = optionValue.getBytes();
 //            log.debug("Printing characters of string: "+ Key.toPrintableString(by, 0, by.length, 100));
             ret = GraphuloUtil.applyGeneralColumnFilter(optionValue, ret, env);
             break;
           default:
             log.warn("Unrecognized option: " + optionEntry);
-            continue;
+            break;
         }
       }
-      log.trace("Option OK: " + optionEntry);
     }
 
     if (!diterMap.isEmpty()) {

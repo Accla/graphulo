@@ -4,6 +4,7 @@ import com.google.common.collect.Iterators;
 import edu.mit.ll.graphulo.apply.ApplyIterator;
 import edu.mit.ll.graphulo.apply.ApplyOp;
 import edu.mit.ll.graphulo.util.DoubletonIterator;
+import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -54,8 +55,8 @@ public abstract class KeyTwoScalar extends Combiner implements ApplyOp {
   protected static IteratorSetting addOptionsToIteratorSetting(IteratorSetting itset, boolean reverse, Value fixedValue) {
 //    IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
 //    itset.addOption(ApplyIterator.APPLYOP, this.getClass().getName());
-    itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + FIXED_VALUE, new String(fixedValue.get()));
-    itset.addOption(ApplyIterator.APPLYOP + ApplyIterator.OPT_SUFFIX + REVERSE, Boolean.toString(reverse));
+    itset.addOption(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX + FIXED_VALUE, new String(fixedValue.get()));
+    itset.addOption(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX + REVERSE, Boolean.toString(reverse));
     return itset;
   }
 

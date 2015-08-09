@@ -1,11 +1,18 @@
 package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.skvi.CountAllIterator;
+import edu.mit.ll.graphulo.skvi.RemoteSourceIterator;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
 import edu.mit.ll.graphulo.skvi.RowCountingIterator;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import edu.mit.ll.graphulo.util.TestUtil;
-import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -18,7 +25,12 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * Test CountAllIterator and RowCountingIterator
@@ -160,11 +172,11 @@ public class CountTest extends AccumuloTestBase {
     String instance = conn.getInstance().getInstanceName();
     String zookeepers = conn.getInstance().getZooKeepers();
     String user = conn.whoami();
-    opt.put("zookeeperHost", zookeepers);
-    opt.put("instanceName", instance);
-    opt.put("tableName", tB);
-    opt.put("username", user);
-    opt.put("password", new String(tester.getPassword().getPassword()));
+    opt.put(RemoteSourceIterator.ZOOKEEPERHOST, zookeepers);
+    opt.put(RemoteSourceIterator.INSTANCENAME, instance);
+    opt.put(RemoteSourceIterator.TABLENAME, tB);
+    opt.put(RemoteSourceIterator.USERNAME, user);
+    opt.put(RemoteSourceIterator.PASSWORD, new String(tester.getPassword().getPassword()));
 
     DynamicIteratorSetting dis = new DynamicIteratorSetting();
     dis.append(new IteratorSetting(25, RowCountingIterator.class));

@@ -108,7 +108,7 @@ public class DynamicIteratorSetting {
   /**
    * Load a DynamicIteratorSetting from a Map&lt;String,String&gt;.
    * Used inside the Accumulo iterator stack {@link SortedKeyValueIterator#init}.
-   * @param pre A prefix that must be in front of every option, like "diter."
+   * @param pre A prefix that must be in front of every option, like ITER_PREFIX
    * @param mapOrig A copy is made so that the original options are not consumed.
    * @return New DynamicIteratorSetting
    */

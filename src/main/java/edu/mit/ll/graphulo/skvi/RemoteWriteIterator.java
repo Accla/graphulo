@@ -48,6 +48,9 @@ import java.util.TreeSet;
 public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueIterator<Key, Value> {
   private static final Logger log = LogManager.getLogger(RemoteWriteIterator.class);
 
+  /** The original options passed to init. Retaining this makes deepCopy much easier-- call init again and done! */
+  private Map<String,String> origOptions;
+
   static final int REJECT_FAILURE_THRESHOLD = 10;
   private int numRejects = 0;
 
@@ -112,48 +115,28 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   private Collection<ByteSequence> seekColumnFamilies;
   private boolean seekInclusive;
 
-
-  /**
-   * Call init() after construction.
-   */
-  public RemoteWriteIterator() {
-  }
-
-  /**
-   * Copies configuration from other, including connector,
-   * EXCEPT creates a new, separate scanner.
-   * No need to call init().
-   */
-  RemoteWriteIterator(RemoteWriteIterator other) {
-    other.instanceName = instanceName;
-    other.tableName = tableName;
-    other.tableNameTranspose = tableNameTranspose;
-    other.zookeeperHost = zookeeperHost;
-    other.username = username;
-    other.auth = auth;
-    other.timeout = timeout;
-    other.numEntriesCheckpoint = numEntriesCheckpoint;
-    other.rowRanges = rowRanges;
-    other.setupConnectorWriter();
-  }
-
-  static final IteratorOptions iteratorOptions;
+  private static final IteratorOptions iteratorOptions;
+  public static final String
+    TABLENAMETRANSPOSE = "tableNameTranspose",
+    NUMENTRIESCHECKPOINT = "numEntriesCheckpoint",
+    REDUCER = "reducer";
 
   static {
     Map<String, String> optDesc = new LinkedHashMap<>();
-    optDesc.put("zookeeperHost", "address and port");
-    optDesc.put("timeout", "Zookeeper timeout between 1000 and 300000 (default 1000)");
-    optDesc.put("instanceName", "");
-    optDesc.put("tableName", "(optional) To write entries to.");
-    optDesc.put("tableNameTranspose", "(optional) To write entries with row and column qualifier swapped.");
-    optDesc.put("username", "");
-    optDesc.put("password", "(Anyone who can read the Accumulo table config OR the log files will see your password in plaintext.)");
-    optDesc.put("numEntriesCheckpoint", "(optional) #entries until sending back a progress monitor");
-    optDesc.put("reducer", "(default does nothing) reducing function");
-    optDesc.put("rowRanges", "(optional) rows to seek to");
+    optDesc.put(RemoteSourceIterator.ZOOKEEPERHOST, "address and port");
+    optDesc.put(RemoteSourceIterator.TIMEOUT, "Zookeeper timeout between 1000 and 300000 (default 1000)");
+    optDesc.put(RemoteSourceIterator.INSTANCENAME, "");
+    optDesc.put(RemoteSourceIterator.TABLENAME, "(optional) To write entries to.");
+    optDesc.put(TABLENAMETRANSPOSE, "(optional) To write entries with row and column qualifier swapped.");
+    optDesc.put(RemoteSourceIterator.USERNAME, "");
+    optDesc.put(RemoteSourceIterator.PASSWORD, "(Anyone who can read the Accumulo table config OR the log files will see your password in plaintext.)");
+    optDesc.put(NUMENTRIESCHECKPOINT, "(optional) #entries until sending back a progress monitoring entry, if the source iterator supports it");
+    optDesc.put(RemoteSourceIterator.ROWRANGES, "(optional) rows to seek to");
+    optDesc.put(REDUCER, "(default does nothing) reducing function");
     iteratorOptions = new IteratorOptions("RemoteWriteIterator",
         "Write to a remote Accumulo table.",
-        Collections.unmodifiableMap(optDesc), null);
+        optDesc,
+        Collections.singletonList("Reducer Options (preface each with "+REDUCER+GraphuloUtil.OPT_SUFFIX+")"));
   }
 
   @Override
@@ -171,51 +154,87 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     return true;
   }
 
+  /**
+   *
+   * @param map Map to reuse. Pass null to create a new HashMap.
+   * @param tableName Table to write entries to. Null means don't write entries.
+   * @param tableNameTranspose Table to write transpose of entries to. Null means don't write transpose of entries.   *
+   * @param zookeeperHost See {@link RemoteSourceIterator#optionMap}
+   * @param timeout See {@link RemoteSourceIterator#optionMap}
+   * @param instanceName See {@link RemoteSourceIterator#optionMap}
+   * @param username See {@link RemoteSourceIterator#optionMap}
+   * @param password See {@link RemoteSourceIterator#optionMap}
+   * @param rowRanges See {@link RemoteSourceIterator#optionMap}
+   * @param reducer Reducer class to instantiate at {@link #init} and {@link Reducer#update} with every entry RemoteWriteIterator sees.
+   * @param reducerOptions Options passed to Reducer's {@link #init}.
+   * @param numEntriesCheckpoint Number of entries seen by RemoteWriteIterator before it emits a monitoring entry.
+   *                             Only used if its source iterator supports monitoring through use of the {@link SaveStateIterator} interface.
+   * @return map with options filled in.
+   */
+  public static Map<String,String> optionMap(
+      Map<String, String> map, String tableName, String tableNameTranspose, String zookeeperHost, int timeout, String instanceName, String username, String password,
+      String rowRanges,
+      Class<? extends Reducer> reducer, Map<String,String> reducerOptions,
+      int numEntriesCheckpoint) {
+    map = RemoteSourceIterator.optionMap(map, tableName, zookeeperHost, timeout, instanceName, username, password,
+        null, rowRanges, null, null, null);
+    if (tableNameTranspose != null)
+      map.put(TABLENAMETRANSPOSE, tableNameTranspose);
+    if (reducer != null)
+      map.put(REDUCER, reducer.getName());
+    if (reducerOptions != null)
+      for (Map.Entry<String, String> entry : reducerOptions.entrySet())
+        map.put(REDUCER + GraphuloUtil.OPT_SUFFIX + entry.getKey(), entry.getValue());
+    if (numEntriesCheckpoint > 0)
+      map.put(NUMENTRIESCHECKPOINT, Integer.toString(numEntriesCheckpoint));
+    return map;
+  }
+
   @SuppressWarnings("unchecked")
   private void parseOptions(Map<String, String> map) {
     for (Map.Entry<String, String> optionEntry : map.entrySet()) {
       String optionKey = optionEntry.getKey();
       String optionValue = optionEntry.getValue();
-      if (optionKey.startsWith("reducer.opt.")) {
-        String keyAfterPrefix = optionKey.substring("reducer.opt.".length());
+      if (optionKey.startsWith(REDUCER+GraphuloUtil.OPT_SUFFIX)) {
+        String keyAfterPrefix = optionKey.substring((REDUCER + GraphuloUtil.OPT_SUFFIX).length());
         reducerOptions.put(keyAfterPrefix, optionValue);
       } else {
         switch (optionKey) {
-          case "zookeeperHost":
+          case RemoteSourceIterator.ZOOKEEPERHOST:
             zookeeperHost = optionValue;
             break;
-          case "timeout":
+          case RemoteSourceIterator.TIMEOUT:
             timeout = Integer.parseInt(optionValue);
             break;
-          case "instanceName":
+          case RemoteSourceIterator.INSTANCENAME:
             instanceName = optionValue;
             break;
-          case "tableName":
+          case RemoteSourceIterator.TABLENAME:
             tableName = optionValue;
             if (tableName.isEmpty())
               tableName = null;
             break;
-          case "tableNameTranspose":
+          case TABLENAMETRANSPOSE:
             tableNameTranspose = optionValue;
             if (tableNameTranspose.isEmpty())
               tableNameTranspose = null;
             break;
-          case "username":
+          case RemoteSourceIterator.USERNAME:
             username = optionValue;
             break;
-          case "password":
+          case RemoteSourceIterator.PASSWORD:
             auth = new PasswordToken(optionValue);
             break;
 
-          case "reducer":
+          case REDUCER:
             reducer = GraphuloUtil.subclassNewInstance(optionValue, Reducer.class);
             break;
 
-          case "numEntriesCheckpoint":
+          case NUMENTRIESCHECKPOINT:
             numEntriesCheckpoint = Integer.parseInt(optionValue);
             break;
 
-          case "rowRanges":
+          case RemoteSourceIterator.ROWRANGES:
             rowRanges.setTargetRanges(parseRanges(optionValue));
             break;
 
@@ -224,9 +243,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 //            break;
           default:
             log.warn("Unrecognized option: " + optionEntry);
-            continue;
+            break;
         }
-        log.trace("Option OK: " + optionEntry);
       }
     }
     // Required options
@@ -257,6 +275,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 //    for (Map.Entry<String, String> entry : iteratorEnvironment.getConfig()) {
 //      System.out.println(entry.getKey() + " -> "+entry.getValue());
 //    }
+    origOptions = new HashMap<>(map); // defensive copy
 
     this.source = source;
     if (source == null)
@@ -535,19 +554,13 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   @Override
   @SuppressWarnings("unchecked")
   public RemoteWriteIterator deepCopy(IteratorEnvironment iteratorEnvironment) {
-    RemoteWriteIterator copy = new RemoteWriteIterator(this);
-    copy.source = source.deepCopy(iteratorEnvironment);
-    copy.reducerOptions.putAll(reducerOptions);
-      try {
-        copy.reducer = reducer.getClass().newInstance();
-      } catch (InstantiationException | IllegalAccessException e) {
-        throw new RuntimeException(e);
-      }
-      try {
-        copy.reducer.init(reducerOptions, iteratorEnvironment);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
+    RemoteWriteIterator copy = new RemoteWriteIterator();
+    try {
+      copy.init(source.deepCopy(iteratorEnvironment), origOptions, iteratorEnvironment);
+    } catch (IOException e) {
+      log.error("Problem creating deepCopy of RemoteWriteIterator on table "+tableName, e);
+      throw new RuntimeException(e);
+    }
     return copy;
   }
 

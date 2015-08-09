@@ -33,7 +33,7 @@ public class KeyRetainOnlyApply implements ApplyOp {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
     itset.addOption(ApplyIterator.APPLYOP, KeyRetainOnlyApply.class.getName());
     if (pk != null)
-      itset.addOption(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+PARTIAL_KEY, pk.name());
+      itset.addOption(ApplyIterator.APPLYOP+GraphuloUtil.OPT_SUFFIX+PARTIAL_KEY, pk.name());
     return itset;
   }
 

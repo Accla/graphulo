@@ -3,6 +3,7 @@ package edu.mit.ll.graphulo_ndsi;
 import com.google.common.collect.Iterators;
 import edu.mit.ll.graphulo.apply.ApplyIterator;
 import edu.mit.ll.graphulo.apply.ApplyOp;
+import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -31,10 +32,10 @@ public class Histogram2DTransformer implements ApplyOp {
   public static IteratorSetting iteratorSetting(int priority, long minX, long minY, double binsizeX, double binsizeY) {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
     itset.addOption(ApplyIterator.APPLYOP, Histogram2DTransformer.class.getName());
-    itset.addOption(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+MIN_X, Long.toString(minX));
-    itset.addOption(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+MIN_Y, Long.toString(minY));
-    itset.addOption(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+BINSIZE_X, Double.toString(binsizeX));
-    itset.addOption(ApplyIterator.APPLYOP+ApplyIterator.OPT_SUFFIX+BINSIZE_Y, Double.toString(binsizeY));
+    itset.addOption(ApplyIterator.APPLYOP+GraphuloUtil.OPT_SUFFIX+MIN_X, Long.toString(minX));
+    itset.addOption(ApplyIterator.APPLYOP+GraphuloUtil.OPT_SUFFIX+MIN_Y, Long.toString(minY));
+    itset.addOption(ApplyIterator.APPLYOP+GraphuloUtil.OPT_SUFFIX+BINSIZE_X, Double.toString(binsizeX));
+    itset.addOption(ApplyIterator.APPLYOP+GraphuloUtil.OPT_SUFFIX+BINSIZE_Y, Double.toString(binsizeY));
     return itset;
   }
 

@@ -88,13 +88,13 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     BatchScanner bs = conn.createBatchScanner(tA, Authorizations.EMPTY, 2);
     bs.setRanges(Collections.singleton(new Range("A1",true,"B",true)));
     Map<String,String> opt = new HashMap<>();
-    opt.put("zookeeperHost", conn.getInstance().getZooKeepers());
-    opt.put("instanceName", conn.getInstance().getInstanceName());
-    opt.put("tableName", tR);
-    opt.put("tableNameTranspose", tRT);
-    opt.put("username", conn.whoami());
-    opt.put("password", new String(tester.getPassword().getPassword()));
-    opt.put("reducer", GatherReducer.class.getName());
+    opt.put(RemoteSourceIterator.ZOOKEEPERHOST, conn.getInstance().getZooKeepers());
+    opt.put(RemoteSourceIterator.INSTANCENAME, conn.getInstance().getInstanceName());
+    opt.put(RemoteSourceIterator.TABLENAME, tR);
+    opt.put(RemoteWriteIterator.TABLENAMETRANSPOSE, tRT);
+    opt.put(RemoteSourceIterator.USERNAME, conn.whoami());
+    opt.put(RemoteSourceIterator.PASSWORD, new String(tester.getPassword().getPassword()));
+    opt.put(RemoteWriteIterator.REDUCER, GatherReducer.class.getName());
     opt.put("reducer.opt."+GatherReducer.KEYPART, GatherReducer.KeyPart.COLQ.name());
     IteratorSetting is = new IteratorSetting(12,RemoteWriteIterator.class, opt);
     bs.addScanIterator(is);
@@ -184,12 +184,12 @@ public class RemoteIteratorTest extends AccumuloTestBase {
 
     Scanner scanner = conn.createScanner(tableName2, Authorizations.EMPTY);
     Map<String, String> itprops = new HashMap<>();
-    itprops.put("instanceName", conn.getInstance().getInstanceName());
-    itprops.put("tableName", tableName);
-    itprops.put("zookeeperHost", conn.getInstance().getZooKeepers());
-    //itprops.put("timeout","5000");
-    itprops.put("username", tester.getUsername());
-    itprops.put("password", new String(tester.getPassword().getPassword()));
+    itprops.put(RemoteSourceIterator.INSTANCENAME, conn.getInstance().getInstanceName());
+    itprops.put(RemoteSourceIterator.TABLENAME, tableName);
+    itprops.put(RemoteSourceIterator.ZOOKEEPERHOST, conn.getInstance().getZooKeepers());
+    //itprops.put(RemoteSourceIterator.TIMEOUT,"5000");
+    itprops.put(RemoteSourceIterator.USERNAME, tester.getUsername());
+    itprops.put(RemoteSourceIterator.PASSWORD, new String(tester.getPassword().getPassword()));
     itprops.put("doWholeRow", "true"); // *
     IteratorSetting itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.skvi.RemoteSourceIterator", itprops);
     scanner.addScanIterator(itset);
@@ -252,12 +252,12 @@ public class RemoteIteratorTest extends AccumuloTestBase {
 
     Scanner scanner = conn.createScanner(tableName2, Authorizations.EMPTY);
     Map<String, String> itprops = new HashMap<>();
-    itprops.put("instanceName", conn.getInstance().getInstanceName());
-    itprops.put("tableName", tableName);
-    itprops.put("zookeeperHost", conn.getInstance().getZooKeepers());
-    //itprops.put("timeout","5000");
-    itprops.put("username", tester.getUsername());
-    itprops.put("password", new String(tester.getPassword().getPassword()));
+    itprops.put(RemoteSourceIterator.INSTANCENAME, conn.getInstance().getInstanceName());
+    itprops.put(RemoteSourceIterator.TABLENAME, tableName);
+    itprops.put(RemoteSourceIterator.ZOOKEEPERHOST, conn.getInstance().getZooKeepers());
+    //itprops.put(RemoteSourceIterator.TIMEOUT,"5000");
+    itprops.put(RemoteSourceIterator.USERNAME, tester.getUsername());
+    itprops.put(RemoteSourceIterator.PASSWORD, new String(tester.getPassword().getPassword()));
     itprops.put("doWholeRow", "true"); // *
     IteratorSetting itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.skvi.RemoteSourceIterator", itprops);
     scanner.addScanIterator(itset);
@@ -277,7 +277,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     // should work the same if we set rowRanges instead of setting the Scanner range
     scanner.setRange(new Range());
     scanner.clearScanIterators();
-    itprops.put("rowRanges", GraphuloUtil.rangesToD4MString(Collections.singleton(range)));
+    itprops.put(RemoteSourceIterator.ROWRANGES, GraphuloUtil.rangesToD4MString(Collections.singleton(range)));
     itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.skvi.RemoteSourceIterator", itprops);
     scanner.addScanIterator(itset);
     expectIter = expectList.iterator();
@@ -326,13 +326,13 @@ public class RemoteIteratorTest extends AccumuloTestBase {
 
     Scanner scanner = conn.createScanner(tableName2, Authorizations.EMPTY);
     Map<String, String> itprops = new HashMap<>();
-    itprops.put("instanceName", conn.getInstance().getInstanceName());
-    itprops.put("tableName", tableName);
-    itprops.put("zookeeperHost", conn.getInstance().getZooKeepers());
-    //itprops.put("timeout","5000");
-    itprops.put("username", tester.getUsername());
-    itprops.put("password", new String(tester.getPassword().getPassword()));
-    itprops.put("colFilter", "cq,"); // *
+    itprops.put(RemoteSourceIterator.INSTANCENAME, conn.getInstance().getInstanceName());
+    itprops.put(RemoteSourceIterator.TABLENAME, tableName);
+    itprops.put(RemoteSourceIterator.ZOOKEEPERHOST, conn.getInstance().getZooKeepers());
+    //itprops.put(RemoteSourceIterator.TIMEOUT,"5000");
+    itprops.put(RemoteSourceIterator.USERNAME, tester.getUsername());
+    itprops.put(RemoteSourceIterator.PASSWORD, new String(tester.getPassword().getPassword()));
+    itprops.put(RemoteSourceIterator.COLFILTER, "cq,"); // *
     IteratorSetting itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.skvi.RemoteSourceIterator", itprops);
     scanner.addScanIterator(itset);
 
@@ -346,7 +346,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
 
     // now repeat using a column range
     scanner.clearScanIterators();
-    itprops.put("colFilter", "c,:,cq15,"); // *
+    itprops.put(RemoteSourceIterator.COLFILTER, "c,:,cq15,"); // *
     itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.skvi.RemoteSourceIterator", itprops);
     scanner.addScanIterator(itset);
 
@@ -359,7 +359,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
 
     // now repeat using a multi-column range
     scanner.clearScanIterators();
-    itprops.put("colFilter", "a,b,:,b2,b3,c,:,cq15,"); // *
+    itprops.put(RemoteSourceIterator.COLFILTER, "a,b,:,b2,b3,c,:,cq15,"); // *
     itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.skvi.RemoteSourceIterator", itprops);
     scanner.addScanIterator(itset);
 
@@ -373,12 +373,12 @@ public class RemoteIteratorTest extends AccumuloTestBase {
 
     // what if we put the filter on manually using DynamicIterator?
     scanner.clearScanIterators();
-    itprops.remove("colFilter"); //, "a,b,:,b2,b3,c,:,cq15,"); // *
+    itprops.remove(RemoteSourceIterator.COLFILTER); //, "a,b,:,b2,b3,c,:,cq15,"); // *
     IteratorSetting itsetFilter = new IteratorSetting(1, ColumnSliceFilter.class);
     ColumnSliceFilter.setSlice(itsetFilter, "c", "cq15");
     DynamicIteratorSetting dis = new DynamicIteratorSetting();
     dis.append(itsetFilter);
-    itprops.putAll(dis.buildSettingMap("diter."));
+    itprops.putAll(dis.buildSettingMap(RemoteSourceIterator.ITER_PREFIX));
 
     itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.skvi.RemoteSourceIterator", itprops);
     scanner.addScanIterator(itset);
@@ -435,12 +435,12 @@ public class RemoteIteratorTest extends AccumuloTestBase {
 
     Scanner scanner = conn.createScanner(tableName2, Authorizations.EMPTY);
     Map<String, String> itprops = new HashMap<>();
-    itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator + "instanceName", conn.getInstance().getInstanceName());
-    itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator + "tableName", tableName);
-    itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator + "zookeeperHost", conn.getInstance().getZooKeepers());
-    //itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator+"timeout","5000");
-    itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator + "username", tester.getUsername());
-    itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator + "password", new String(tester.getPassword().getPassword()));
+    itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator + RemoteSourceIterator.INSTANCENAME, conn.getInstance().getInstanceName());
+    itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator + RemoteSourceIterator.TABLENAME, tableName);
+    itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator + RemoteSourceIterator.ZOOKEEPERHOST, conn.getInstance().getZooKeepers());
+    //itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator+RemoteSourceIterator.TIMEOUT,"5000");
+    itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator + RemoteSourceIterator.USERNAME, tester.getUsername());
+    itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator + RemoteSourceIterator.PASSWORD, new String(tester.getPassword().getPassword()));
     //itprops.put(RemoteMergeIterator.PREFIX_RemoteIterator + "doWholeRow", "true"); // *
     IteratorSetting itset = new IteratorSetting(5, RemoteMergeIterator.class, itprops); //"edu.mit.ll.graphulo.skvi.RemoteSourceIterator", itprops);
     scanner.addScanIterator(itset);

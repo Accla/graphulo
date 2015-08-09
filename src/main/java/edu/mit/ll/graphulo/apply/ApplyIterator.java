@@ -22,8 +22,7 @@ import java.util.Map;
 public class ApplyIterator implements SortedKeyValueIterator<Key, Value> {
   private static final Logger log = LogManager.getLogger(ApplyIterator.class);
 
-  public static final String APPLYOP = "applyOp",
-    OPT_SUFFIX = ".opt.";
+  public static final String APPLYOP = "applyOp";
 
 
   private SortedKeyValueIterator<Key, Value> source;
@@ -35,8 +34,8 @@ public class ApplyIterator implements SortedKeyValueIterator<Key, Value> {
   private void parseOptions(Map<String, String> options) {
     for (Map.Entry<String, String> optionEntry : options.entrySet()) {
       String optionKey = optionEntry.getKey(), optionValue = optionEntry.getValue();
-      if (optionKey.startsWith(APPLYOP+OPT_SUFFIX)) {
-        String keyAfterPrefix = optionKey.substring((APPLYOP+OPT_SUFFIX).length());
+      if (optionKey.startsWith(APPLYOP+GraphuloUtil.OPT_SUFFIX)) {
+        String keyAfterPrefix = optionKey.substring((APPLYOP+GraphuloUtil.OPT_SUFFIX).length());
         applyOpOptions.put(keyAfterPrefix, optionValue);
       } else {
         switch (optionKey) {

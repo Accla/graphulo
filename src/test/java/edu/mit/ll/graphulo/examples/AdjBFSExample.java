@@ -52,6 +52,7 @@ public class AdjBFSExample extends AccumuloTestBase {
     Map<Key,Value> clientResultMap = null;              // Unused because we are writing entries to a remote table instead of gathering at the client.
     Authorizations Aauth = Authorizations.EMPTY;        // Authorizations to use for scanning Atable.
     Authorizations ADegauth = Authorizations.EMPTY;     // Authorizations to use for scanning ADegtable.
+    boolean outputUnion = false;                        // Return nodes reached in EXACTLY k steps.
 
 
     // In your code, you would connect to an Accumulo instance by writing something similar to:
@@ -86,7 +87,7 @@ public class AdjBFSExample extends AccumuloTestBase {
     // Adjacency Table Breadth First Search.
     // This call blocks until the BFS completes.
     String vReached = graphulo.AdjBFS(Atable, v0, numSteps, Rtable, RTtable, clientResultMap, AScanIteratorPriority,
-        ADegtable, degColumn, degInColQ, minDegree, maxDegree, plusOp, Aauth, ADegauth, false);
+        ADegtable, degColumn, degInColQ, minDegree, maxDegree, plusOp, Aauth, ADegauth, outputUnion);
     log.info("First few nodes reachable in exactly "+numSteps+" steps: " +
             vReached.substring(0,Math.min(20,vReached.length())));
 
@@ -116,6 +117,8 @@ public class AdjBFSExample extends AccumuloTestBase {
   4)  Set Rtable and RTtable both to null to obtain the nodes reachable
       in exactly numSteps as a return value from the BFS call,
       without writing the subgraph traversed at each step to result tables.
+
+  5)  Set outputUnion=true to return the nodes reached in UP TO k steps.
 
   */
   ////////////////////////////////////////////////////////////////////////////////////////////////

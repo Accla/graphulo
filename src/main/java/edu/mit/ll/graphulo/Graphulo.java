@@ -940,7 +940,7 @@ public class Graphulo {
       AScanIteratorPriority = 4; // default priority
     if (Aauthorizations == null) Aauthorizations = Authorizations.EMPTY;
     if (ADegauthorizations == null) ADegauthorizations = Authorizations.EMPTY;
-    Collection<Text> allReachedNodes = null;
+    Collection<String> allReachedNodes = null;
     if (outputUnion)
       allReachedNodes = new HashSet<>();
 
@@ -956,7 +956,7 @@ public class Graphulo {
 
     if (v0 == null || v0.isEmpty())
       v0 = ":"+GraphuloUtil.DEFAULT_SEP_D4M_STRING;
-    Collection<Text> vktexts = new HashSet<>(); //v0 == null ? null : GraphuloUtil.d4mRowToTexts(v0);
+    Collection<String> vk = new HashSet<>();  //v0 == null ? null : GraphuloUtil.d4mRowToTexts(v0);
     char sep = v0.charAt(v0.length() - 1);
 
     BatchScanner bs, bsDegree = null;
@@ -983,35 +983,35 @@ public class Graphulo {
             System.out.println("First step: v0 is " + v0);
           else
             System.out.println("k=" + thisk + " before filter" +
-                (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
+                (vk.size() > 5 ? " #=" + String.valueOf(vk.size()) : ": " + vk.toString()));
 
         iteratorSettingList.clear();
         String rowFilter;
 
         if (needDegreeFiltering && ADegtable != null) { // use degree table
           long t1 = System.currentTimeMillis(), dur;
-          vktexts = filterTextsDegreeTable(bsDegree, degColumnText, degInColQ, minDegree, maxDegree,
-                    thisk == 1 ? GraphuloUtil.d4mRowToRanges(v0) : GraphuloUtil.textsToRanges(vktexts));
+          vk = filterTextsDegreeTable(bsDegree, degColumnText, degInColQ, minDegree, maxDegree,
+                    thisk == 1 ? GraphuloUtil.d4mRowToRanges(v0) : GraphuloUtil.stringsToRanges(vk));
           dur = System.currentTimeMillis() - t1;
           degTime += dur;
           if (Trace.isTracing()) {
             System.out.println("Degree Lookup Time: " + dur + " ms");
             System.out.println("k=" + thisk + " after  filter" +
-                (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
+                (vk.size() > 5 ? " #=" + String.valueOf(vk.size()) : ": " + vk.toString()));
           }
 
-          if (vktexts.isEmpty())
+          if (vk.isEmpty())
             break;
-//          opt.put(RemoteSourceIterator.ROWRANGES, GraphuloUtil.textsToD4mString(vktexts, sep));
-          rowFilter = GraphuloUtil.textsToD4mString(vktexts);
+//          opt.put(RemoteSourceIterator.ROWRANGES, GraphuloUtil.textsToD4mString(vk, sep));
+          rowFilter = GraphuloUtil.stringsToD4mString(vk);
 
         } else {  // no degree table or no filtering
           if (thisk == 1)
 //            opt.put(RemoteSourceIterator.ROWRANGES, v0);
             rowFilter = v0;
           else
-//            opt.put(RemoteSourceIterator.ROWRANGES, GraphuloUtil.textsToD4mString(vktexts, sep));
-            rowFilter = GraphuloUtil.textsToD4mString(vktexts);
+//            opt.put(RemoteSourceIterator.ROWRANGES, GraphuloUtil.textsToD4mString(vk, sep));
+            rowFilter = GraphuloUtil.stringsToD4mString(vk);
           if (needDegreeFiltering) // filtering but no degree table
             iteratorSettingList.add(itsetDegreeFilter);
         }
@@ -1031,17 +1031,13 @@ public class Graphulo {
         dur = System.currentTimeMillis() - t2;
         scanTime += dur;
 
-        vktexts.clear();
-//      vktexts.addAll(reducer.getSerializableForClient());
-        for (String uk : reducer.getSerializableForClient()) {
-          Text t = new Text(uk);
-          vktexts.add(t);
-          if (allReachedNodes != null)
-            allReachedNodes.add(t);
-        }
+        vk.clear();
+        vk.addAll(reducer.getSerializableForClient());
+        if (allReachedNodes != null)
+          allReachedNodes.addAll(vk);
         if (Trace.isTracing())
           System.out.println("BatchScan/Iterator Time: " + dur + " ms");
-        if (vktexts.isEmpty())
+        if (vk.isEmpty())
           break;
       }
 
@@ -1055,7 +1051,7 @@ public class Graphulo {
         bsDegree.close();
     }
 
-    return GraphuloUtil.textsToD4mString(outputUnion ? allReachedNodes : vktexts, sep);
+    return GraphuloUtil.stringsToD4mString(outputUnion ? allReachedNodes : vk, sep);
   }
 
   /**
@@ -1072,10 +1068,10 @@ public class Graphulo {
    * @return The same texts object, with nodes that fail the degree filter removed.
    */
   // Ranges passed differently on thisk == 1
-  private Collection<Text> filterTextsDegreeTable(BatchScanner bs, Text degColumnText, boolean degInColQ,
+  private Collection<String> filterTextsDegreeTable(BatchScanner bs, Text degColumnText, boolean degInColQ,
                                                   int minDegree, int maxDegree,
                                                   Collection<Range> ranges) {
-    Collection<Text> texts = new HashSet<>();
+    Collection<String> texts = new HashSet<>();
     if (ranges == null || ranges.isEmpty())
       return texts;
     if (degColumnText.getLength() == 0)
@@ -1098,9 +1094,10 @@ public class Graphulo {
         degInColQ, degColumnText == null ? null : degColumnText.toString()));
 
     try {
+      Text tmp = new Text();
       for (Map.Entry<Key, Value> entry : bs) {
 //      log.debug("Deg Entry: " + entry.getKey() + " -> " + entry.getValue());
-        texts.add(entry.getKey().getRow()); // need new Text object
+        texts.add(entry.getKey().getRow(tmp).toString()); // need new Text object
       }
     } finally {
       bs.setRanges(Collections.singletonList(new Range()));
@@ -1163,7 +1160,7 @@ public class Graphulo {
       EScanIteratorPriority = 5; // default priority
     if (Eauthorizations == null) Eauthorizations = Authorizations.EMPTY;
     if (EDegauthorizations == null) EDegauthorizations = Authorizations.EMPTY;
-    Collection<Text> allReachedNodes = null;
+    Collection<String> allReachedNodes = null;
     if (outputUnion)
       allReachedNodes = new HashSet<>();
 
@@ -1174,7 +1171,7 @@ public class Graphulo {
       log.warn("Sum iterator setting is >=20. Are you sure you want the priority after the default Versioning iterator priority? " + plusOp);
     if (v0 == null || v0.isEmpty())
       v0 = ":\t";
-    Collection<Text> vktexts = new HashSet<>();
+    Collection<String> vk = new HashSet<>();
     char sep = v0.charAt(v0.length() - 1);
 
     if (startPrefixes == null || startPrefixes.isEmpty())
@@ -1265,29 +1262,31 @@ public class Graphulo {
             System.out.println("First step: v0 is " + v0);
           else
             System.out.println("k=" + thisk + " before filter" +
-                (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
+                (vk.size() > 5 ? " #=" + String.valueOf(vk.size()) : ": " + vk.toString()));
 
         if (needDegreeFiltering) { // use degree table
           long t1 = System.currentTimeMillis(), dur;
-          vktexts = filterTextsDegreeTable(bsDegree, degColumnText, degInColQ, minDegree, maxDegree,
-              thisk == 1 ? GraphuloUtil.d4mRowToRanges(v0) : GraphuloUtil.textsToRanges(vktexts));
+          vk = filterTextsDegreeTable(bsDegree, degColumnText, degInColQ, minDegree, maxDegree,
+              thisk == 1 ? GraphuloUtil.d4mRowToRanges(v0) : GraphuloUtil.stringsToRanges(vk));
           dur = System.currentTimeMillis() - t1;
           degTime += dur;
           if (Trace.isTracing()) {
             System.out.println("Degree Lookup Time: " + dur + " ms");
             System.out.println("k=" + thisk + " after  filter" +
-                (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
+                (vk.size() > 5 ? " #=" + String.valueOf(vk.size()) : ": " + vk.toString()));
           }
 
-          if (vktexts.isEmpty())
+          if (vk.isEmpty())
             break;
-          opt.put("AT.colFilter", prependStartPrefix(startPrefixes, vktexts)); // MULTI
+          opt.put("AT.colFilter", GraphuloUtil.padD4mString(startPrefixes, null,
+              GraphuloUtil.stringsToD4mString(vk))); // MULTI
 
         } else {  // no filtering
           if (thisk == 1) {
             opt.put("AT.colFilter", GraphuloUtil.padD4mString(startPrefixes, ",", v0));
           } else
-            opt.put("AT.colFilter", prependStartPrefix(startPrefixes, vktexts));
+            opt.put("AT.colFilter", GraphuloUtil.padD4mString(startPrefixes, null,
+                GraphuloUtil.stringsToD4mString(vk)));
         }
 //        log.debug("AT.colFilter: " + opt.get("AT.colFilter"));
 //        byte[] by = opt.get("AT.colFilter").getBytes();
@@ -1311,16 +1310,13 @@ public class Graphulo {
         long dur = System.currentTimeMillis() - t2;
         scanTime += dur;
 
-        vktexts.clear();
-        for (String uk : reducer.getSerializableForClient()) {
-          Text t = new Text(uk);
-          vktexts.add(t);
-          if (allReachedNodes != null)
-            allReachedNodes.add(t);
-        }
+        vk.clear();
+        vk.addAll(reducer.getSerializableForClient());
+        if (allReachedNodes != null)
+          allReachedNodes.addAll(vk);
         if (Trace.isTracing())
           System.out.println("BatchScan/Iterator Time: " + dur + " ms");
-        if (vktexts.isEmpty())
+        if (vk.isEmpty())
           break;
       }
 
@@ -1333,7 +1329,7 @@ public class Graphulo {
       if (bsDegree != null)
         bsDegree.close();
     }
-    return GraphuloUtil.textsToD4mString(outputUnion ? allReachedNodes : vktexts, sep);
+    return GraphuloUtil.stringsToD4mString(outputUnion ? allReachedNodes : vk, sep);
 
   }
 
@@ -1498,10 +1494,10 @@ public class Graphulo {
       log.warn("Sum iterator setting is >=20. Are you sure you want the priority after the default Versioning iterator priority? " + plusOp);
     if (v0 == null || v0.isEmpty())
       v0 = ":\t";
-    Collection<Text> vktexts = new HashSet<>(); //v0 == null ? null : GraphuloUtil.d4mRowToTexts(v0);
+    Collection<String> vktexts = new HashSet<>(); //v0 == null ? null : GraphuloUtil.d4mRowToTexts(v0);
     /** If no degree filtering and v0 is a range, then does not include v0 nodes. */
-    Collection<Text> mostAllOutNodes = null;
-    Collection<Text> allInNodes = null;
+    Collection<String> mostAllOutNodes = null;
+    Collection<String> allInNodes = null;
     if (computeInDegrees || outputUnion)
       allInNodes = new HashSet<>();
     if (computeInDegrees)
@@ -1555,7 +1551,7 @@ public class Graphulo {
         if (needDegreeFiltering /*&& SDegtable != null*/) { // use degree table
           long t1 = System.currentTimeMillis(), dur;
           vktexts = filterTextsDegreeTable(bsDegree, degColumnText, false, minDegree, maxDegree,
-              thisk == 1 ? GraphuloUtil.d4mRowToRanges(v0) : GraphuloUtil.textsToRanges(vktexts));
+              thisk == 1 ? GraphuloUtil.d4mRowToRanges(v0) : GraphuloUtil.stringsToRanges(vktexts));
           dur = System.currentTimeMillis() - t1;
           degTime += dur;
           if (Trace.isTracing()) {
@@ -1569,8 +1565,8 @@ public class Graphulo {
           if (mostAllOutNodes != null)
             mostAllOutNodes.addAll(vktexts);
 //          opt.put(RemoteSourceIterator.ROWRANGES, GraphuloUtil.singletonsAsPrefix(vktexts, sep));
-          rowFilter = GraphuloUtil.singletonsAsPrefix(vktexts, sep);
-          optSTI.put(SingleTransposeIterator.STARTNODES, GraphuloUtil.singletonsAsPrefix(vktexts, sep));
+          rowFilter = GraphuloUtil.singletonsAsPrefix(GraphuloUtil.stringsToD4mString(vktexts));
+          optSTI.put(SingleTransposeIterator.STARTNODES, rowFilter);
 
         } else {  // no filtering
           if (thisk == 1) {
@@ -1581,8 +1577,8 @@ public class Graphulo {
             if (mostAllOutNodes != null)
               mostAllOutNodes.addAll(vktexts);
 //            opt.put(RemoteSourceIterator.ROWRANGES, GraphuloUtil.singletonsAsPrefix(vktexts, sep));
-            rowFilter = GraphuloUtil.singletonsAsPrefix(vktexts, sep);
-            optSTI.put(SingleTransposeIterator.STARTNODES, GraphuloUtil.textsToD4mString(vktexts, sep));
+            rowFilter = GraphuloUtil.singletonsAsPrefix(GraphuloUtil.stringsToD4mString(vktexts));
+            optSTI.put(SingleTransposeIterator.STARTNODES, rowFilter);
           }
         }
 
@@ -1605,10 +1601,7 @@ public class Graphulo {
         scanTime += dur;
 
         vktexts.clear();
-//      vktexts.addAll(reducer.getSerializableForClient());
-        for (String uk : reducer.getSerializableForClient()) {
-          vktexts.add(new Text(uk));
-        }
+        vktexts.addAll(reducer.getSerializableForClient());
         if (Trace.isTracing())
           System.out.println("BatchScan/Iterator Time: " + dur + " ms");
         if (vktexts.isEmpty())
@@ -1629,7 +1622,7 @@ public class Graphulo {
     }
 
     // take union if necessary
-    String ret = GraphuloUtil.textsToD4mString(outputUnion ? allInNodes : vktexts, sep);
+    String ret = GraphuloUtil.stringsToD4mString(outputUnion ? allInNodes : vktexts, sep);
 
     // compute in degrees if necessary
     if (computeInDegrees) {
@@ -1641,7 +1634,7 @@ public class Graphulo {
     return ret;
   }
 
-  private void singleCheckWriteDegrees(Collection<Text> questionNodes, String Rtable,
+  private void singleCheckWriteDegrees(Collection<String> questionNodes, String Rtable,
                                        Authorizations Sauthorizations, byte[] degColumn,
                                        String edgeSepStr, ScalarType degSumType, ColumnVisibility newVisibility) {
     if (newVisibility == null)
@@ -1669,7 +1662,7 @@ public class Graphulo {
     List<Range> rangeList;
     {
       Collection<Range> rs = new TreeSet<>();
-      for (Text node : questionNodes) {
+      for (String node : questionNodes) {
         rs.add(Range.prefix(node));
       }
       rangeList = Range.mergeOverlapping(rs);

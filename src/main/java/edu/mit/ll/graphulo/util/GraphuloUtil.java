@@ -296,17 +296,35 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
     if (texts == null)
       return "";
     StringBuilder sb = new StringBuilder();
-    for (Text text : texts) {
+    for (Text text : texts)
       sb.append(text).append(sep);
-    }
+    return sb.toString();
+  }
+
+  public static String stringsToD4mString(Collection<String> texts) {
+    return stringsToD4mString(texts, DEFAULT_SEP_D4M_STRING);
+  }
+
+  public static String stringsToD4mString(Collection<String> texts, char sep) {
+    if (texts == null)
+      return "";
+    StringBuilder sb = new StringBuilder();
+    for (String text : texts)
+      sb.append(text).append(sep);
     return sb.toString();
   }
 
   public static Collection<Range> textsToRanges(Collection<Text> texts) {
     Collection<Range> ranges = new HashSet<>();
-    for (Text text : texts) {
+    for (Text text : texts)
       ranges.add(new Range(text));
-    }
+    return ranges;
+  }
+
+  public static Collection<Range> stringsToRanges(Collection<String> texts) {
+    Collection<Range> ranges = new HashSet<>();
+    for (String text : texts)
+      ranges.add(new Range(text));
     return ranges;
   }
 
@@ -632,6 +650,24 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
     }
     return sb.toString();
   }
+
+  /**
+   * Count the number of terms in a D4M String that do NOT have any ranges.
+   * @param s D4M String
+   * @return Number of terms in the D4M String.
+   */
+  public static int NumD4mStr(String s) {
+    if (s == null || s.isEmpty())
+      return 0;
+    if (s.contains(":"))
+      throw new IllegalArgumentException("Cannot count number of terms in a D4M String with a range: "+s);
+    int cnt = 0, pos = -1;
+    char sep = s.charAt(s.length()-1);
+    while ((pos = s.indexOf(sep,++pos)) != -1)
+      cnt++;
+    return cnt;
+  }
+
 
   /**
    * Pad a range with a prefix, so the new range points to entries

@@ -622,15 +622,27 @@ public class UtilTest {
     }
 
     final PriorityQueue<Entry> pqs = new PriorityQueue<>();
-    pqs.add(new Entry(5.4,9));
-    pqs.add(new Entry(6.4,8));
-    pqs.add(new Entry(7.4,7));
-    pqs.add(new Entry(1.4,2));
+    pqs.add(new Entry(5.4, 9));
+    pqs.add(new Entry(6.4, 8));
+    pqs.add(new Entry(7.4, 7));
+    pqs.add(new Entry(1.4, 2));
     Assert.assertEquals(1.4, pqs.poll().k, 0.00001);
     Assert.assertEquals(5.4, pqs.poll().k, 0.00001);
     Assert.assertEquals(6.4, pqs.poll().k, 0.00001);
     Assert.assertEquals(7.4, pqs.poll().k, 0.00001);
     Assert.assertTrue(pqs.isEmpty());
+  }
+
+  @Test
+  public void testNumD4mStr() {
+    Assert.assertEquals(0, GraphuloUtil.NumD4mStr(null));
+    Assert.assertEquals(0, GraphuloUtil.NumD4mStr(""));
+    Assert.assertEquals(1, GraphuloUtil.NumD4mStr(","));
+    Assert.assertEquals(2, GraphuloUtil.NumD4mStr(",,"));
+    Assert.assertEquals(2, GraphuloUtil.NumD4mStr(",a,"));
+    Assert.assertEquals(2, GraphuloUtil.NumD4mStr("a,b,"));
+    Assert.assertEquals(3, GraphuloUtil.NumD4mStr("zcsazfcdsf,sgrsdgf,asxcawsd,"));
+    Assert.assertEquals(4, GraphuloUtil.NumD4mStr("235trwgrt5h5;ewr;34rf;;"));
   }
 
 }

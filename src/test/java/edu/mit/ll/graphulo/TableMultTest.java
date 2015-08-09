@@ -272,7 +272,7 @@ public class TableMultTest extends AccumuloTestBase {
     long numpp = graphulo.TableMult(tAT, tB, tC, null, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, "", false),
         Graphulo.PLUS_ITERATOR_BIGDECIMAL,
-        GraphuloUtil.d4mRowToRanges("C2,:,"), null, null, false, false, 1);
+        "C2,:,", null, null, false, false, 1);
 
     Assert.assertEquals(2, numpp);
 
@@ -335,7 +335,7 @@ public class TableMultTest extends AccumuloTestBase {
     long numpp = graphulo.TableMult(tAT, tB, tC, null, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, "", false),
         Graphulo.PLUS_ITERATOR_BIGDECIMAL,
-        GraphuloUtil.d4mRowToRanges("C2,:,"),
+        "C2,:,",
         "A1,", "B1,", false, false, 1);
 
     Assert.assertEquals(1, numpp);
@@ -353,7 +353,7 @@ public class TableMultTest extends AccumuloTestBase {
     graphulo.TableMult(tAT, tB, null, tCT, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, "", false),
         Graphulo.PLUS_ITERATOR_BIGDECIMAL,
-        GraphuloUtil.d4mRowToRanges("C2,:,"),
+        "C2,:,",
         "A1,:,A15,", "B1,:,B15,F,", false, false, 1);
     scanner = conn.createScanner(tCT, Authorizations.EMPTY);
     actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
@@ -419,7 +419,7 @@ public class TableMultTest extends AccumuloTestBase {
     long numpp = graphulo.TableMult(tAT, tB, tC, null, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, "", false),
         Graphulo.PLUS_ITERATOR_BIGDECIMAL,
-        GraphuloUtil.d4mRowToRanges("C2,:,"),
+        "C2,:,",
         "A1,", "B1,", true, false, 1);
 
     Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
@@ -436,7 +436,7 @@ public class TableMultTest extends AccumuloTestBase {
     graphulo.TableMult(tAT, tB, null, tCT, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, "", false),
         Graphulo.PLUS_ITERATOR_BIGDECIMAL,
-        GraphuloUtil.d4mRowToRanges("C2,:,"),
+        "C2,:,",
         "A1,:,A15,", "B1,:,B15,F,", true, false, 1);
     scanner = conn.createScanner(tCT, Authorizations.EMPTY);
     actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ

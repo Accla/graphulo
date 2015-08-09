@@ -2,7 +2,6 @@ package edu.mit.ll.graphulo_ndsi;
 
 import com.google.common.base.Preconditions;
 import edu.mit.ll.graphulo.Graphulo;
-import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -55,7 +54,7 @@ public class NDSIGraphulo extends Graphulo {
     // support transpose?
     // could reuse batchscanner if called many times
     return OneTable(Atable, Rtable, null, null, -1, null, null, itsetStats,
-        GraphuloUtil.d4mRowToRanges(rowFilter), colFilter, Collections.singletonList(itsetHistogram),
+        rowFilter, colFilter, Collections.singletonList(itsetHistogram),
         null, Authorizations.EMPTY);
   }
 

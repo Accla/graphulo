@@ -55,15 +55,12 @@ public class SCCGraphulo extends Graphulo {
    */
   public void SCC(String Atable, String Rtable, long rowCount, /* boolean notSymmetric, */boolean trace) throws AccumuloSecurityException, AccumuloException,
       TableNotFoundException {
-    if (Atable == null || Atable.isEmpty()) {
+    if (Atable == null || Atable.isEmpty())
       throw new IllegalArgumentException("Please specify table A. Given: " + Atable);
-    }
-    if (Rtable == null || Rtable.isEmpty()) {
+    if (Rtable == null || Rtable.isEmpty())
       throw new IllegalArgumentException("Please specify table AT. Given: " + Rtable);
-    }
-    if (rowCount < 1) {
+    if (rowCount < 1)
       throw new IllegalArgumentException("Table too small.");
-    }
 
     TableOperations tops = connector.tableOperations();
     String tA = Atable;

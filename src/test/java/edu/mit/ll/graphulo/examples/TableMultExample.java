@@ -23,7 +23,6 @@ import org.apache.log4j.Logger;
 import org.junit.Test;
 
 import java.io.FileNotFoundException;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -85,7 +84,7 @@ public class TableMultExample extends AccumuloTestBase {
     //  multOp must satisfy the requirement that 0 is multiplicative annihilator.
     Class<? extends MultiplyOp> multOp = MathTwoScalar.class; // Multiply operation, generic to many kinds of mathematical operators.
     Map<String,String> multOpOptions = null; // Null uses the default mode of MathTwoScalar is TIMES, which is what we want.
-    Collection<Range> rowFilter = null;   // No row subsetting; run on whole tables.
+    String rowFilter = null;              // No row subsetting; run on whole tables.
     String colFilterAT = null;            // No column subsetting for ATtable; run on the whole table.
     String colFilterB = null;             // No column subsetting for  Btable; run on the whole table.
     boolean alsoDoAA = false;             // Don't also add in the product of A*A at the same time as A*B.
@@ -132,9 +131,8 @@ public class TableMultExample extends AccumuloTestBase {
       The result will have the same sparsity pattern as the +.* algebra.
       One difference is that if all nonzero input values are 1, then all nonzero output values are 1.
 
-  2)  Replace: Collection<Range> rowFilter = null; ==>
-        Collection<Range> rowFilter = Collections.singleton(new Range("1",false,null,false));
-      to include in the TableMult only columns after column "1" of A (which is a row of AT)
+  2)  Replace: String rowFilter = null; ==> String rowFilter = "2,:,";
+      to include in the TableMult only columns after and including column "2" of A (which is a row of AT)
       and rows after row "1" of B. This restricts the dimension of the tables on which they are "joined."
 
   3)  Replace: String colFilterAT = null; ==> String colFilterAT = "7,23,85,";

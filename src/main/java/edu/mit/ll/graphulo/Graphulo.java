@@ -165,7 +165,7 @@ public class Graphulo {
 
   public long TableMult(String ATtable, String Btable, String Ctable, String CTtable,
                         Class<? extends MultiplyOp> multOp, IteratorSetting plusOp,
-                        Collection<Range> rowFilter,
+                        String rowFilter,
                         String colFilterAT, String colFilterB) {
     return TableMult(ATtable, Btable, Ctable, CTtable, -1, multOp, null, plusOp, rowFilter, colFilterAT, colFilterB,
         false, false, -1);
@@ -175,7 +175,7 @@ public class Graphulo {
                        int BScanIteratorPriority,
                        Class<? extends EWiseOp> multOp, Map<String, String> multOpOptions,
                        IteratorSetting plusOp,
-                       Collection<Range> rowFilter,
+                       String rowFilter,
                        String colFilterAT, String colFilterB,
                        int numEntriesCheckpoint) {
     return TwoTableEWISE(Atable, Btable, Ctable, CTtable, BScanIteratorPriority,
@@ -190,7 +190,7 @@ public class Graphulo {
                        int BScanIteratorPriority,
                        Class<? extends EWiseOp> multOp, Map<String, String> multOpOptions,
                        IteratorSetting plusOp,
-                       Collection<Range> rowFilter,
+                       String rowFilter,
                        String colFilterAT, String colFilterB,
                        List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
                        List<IteratorSetting> iteratorsAfterTwoTable,
@@ -209,7 +209,7 @@ public class Graphulo {
                          int BScanIteratorPriority,
                          Class<? extends EWiseOp> multOp, Map<String, String> multOpOptions,
                          IteratorSetting plusOp,
-                         Collection<Range> rowFilter,
+                         String rowFilter,
                          String colFilterAT, String colFilterB,
                          int numEntriesCheckpoint) {
     if (multOp.equals(MathTwoScalar.class) && multOpOptions == null)
@@ -226,7 +226,7 @@ public class Graphulo {
                          int BScanIteratorPriority,
                          Class<? extends EWiseOp> multOp, Map<String, String> multOpOptions,
                          IteratorSetting plusOp,
-                         Collection<Range> rowFilter,
+                         String rowFilter,
                          String colFilterAT, String colFilterB,
                          List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
                          List<IteratorSetting> iteratorsAfterTwoTable,
@@ -267,7 +267,7 @@ public class Graphulo {
                         int BScanIteratorPriority,
                         Class<? extends MultiplyOp> multOp, Map<String, String> multOpOptions,
                         IteratorSetting plusOp,
-                        Collection<Range> rowFilter,
+                        String rowFilter,
                         String colFilterAT, String colFilterB,
                         boolean alsoDoAA, boolean alsoDoBB,
                         int numEntriesCheckpoint) {
@@ -309,7 +309,7 @@ public class Graphulo {
                         int BScanIteratorPriority,
                         Class<? extends MultiplyOp> multOp, Map<String, String> multOpOptions,
                         IteratorSetting plusOp,
-                        Collection<Range> rowFilter, String colFilterAT, String colFilterB,
+                        String rowFilter, String colFilterAT, String colFilterB,
                         boolean alsoDoAA, boolean alsoDoBB,
                         List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
                         List<IteratorSetting> iteratorsAfterTwoTable,
@@ -328,7 +328,7 @@ public class Graphulo {
                                    //TwoTableIterator.DOTMODE dotmode, //CartesianRowMultiply.ROWMODE rowmode,
                                    Class<? extends MultiplyOp> multOp, Map<String, String> multOpOptions,
                                    IteratorSetting plusOp,
-                                   Collection<Range> rowFilter,
+                                   String rowFilter,
                                    String colFilterAT, String colFilterB,
                                    boolean emitNoMatchA, boolean emitNoMatchB,
                                    boolean alsoDoAA, boolean alsoDoBB,
@@ -361,7 +361,7 @@ public class Graphulo {
   public long TwoTableROWSelector(
       String ATtable, String Btable, String Ctable, String CTtable,
       int BScanIteratorPriority,
-      Collection<Range> rowFilter,
+      String rowFilter,
       String colFilterAT, String colFilterB,
       boolean ASelectsBRow,
       List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
@@ -387,7 +387,7 @@ public class Graphulo {
                             //TwoTableIterator.DOTMODE dotmode, //CartesianRowMultiply.ROWMODE rowmode,
                             Class<? extends EWiseOp> multOp, Map<String, String> multOpOptions,
                             IteratorSetting plusOp,
-                            Collection<Range> rowFilter,
+                            String rowFilter,
                             String colFilterAT, String colFilterB,
                             boolean emitNoMatchA, boolean emitNoMatchB,
                             List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
@@ -416,7 +416,7 @@ public class Graphulo {
                            int BScanIteratorPriority,
                            //TwoTableIterator.DOTMODE dotmode, //CartesianRowMultiply.ROWMODE rowmode,
                            IteratorSetting plusOp,
-                           Collection<Range> rowFilter,
+                           String rowFilter,
                            String colFilterAT, String colFilterB,
                            boolean emitNoMatchA, boolean emitNoMatchB,
                            List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
@@ -438,7 +438,7 @@ public class Graphulo {
                        int BScanIteratorPriority,
                        TwoTableIterator.DOTMODE dotmode, Map<String, String> optsTT,
                        IteratorSetting plusOp, // priority matters
-                       Collection<Range> rowFilter,
+                       String rowFilter,
                        String colFilterAT, String colFilterB,
                        boolean emitNoMatchA, boolean emitNoMatchB,
                        // RemoteSourceIterator has its own priority for scan-time iterators.
@@ -485,7 +485,7 @@ public class Graphulo {
       throw new IllegalArgumentException("dotmode is required but given null");
 //    if (multOp == null)
 //      throw new IllegalArgumentException("multOp is required but given null");
-    if (rowFilter != null && (rowFilter.isEmpty() || rowFilter.contains(new Range())))
+    if (rowFilter != null && (rowFilter.isEmpty() || (rowFilter.length()==2 && rowFilter.charAt(0)==':')))
       rowFilter = null;
 
     TableOperations tops = connector.tableOperations();
@@ -552,10 +552,10 @@ public class Graphulo {
 
     if (rowFilter != null) {
       if (useRWI) {
-        optRWI.put("rowRanges", GraphuloUtil.rangesToD4MString(rowFilter)); // translate row filter to D4M notation
+        optRWI.put("rowRanges", rowFilter); // translate row filter to D4M notation
         bs.setRanges(Collections.singleton(new Range()));
       } else
-        bs.setRanges(rowFilter);
+        bs.setRanges(GraphuloUtil.d4mRowToRanges(rowFilter));
     } else
       bs.setRanges(Collections.singleton(new Range()));
 
@@ -669,8 +669,8 @@ public class Graphulo {
    * @param reducerOpts Options for the reducer. Only give if reducer is given too.
    * @param plusOp An SKVI to apply to the result table(s) that "sums" values. Not applied if null.
    *               Applied at the client if Rtable==null && RTtable==null && clientResultMap != null.
-   * @param rowFilter Only reads rows in the given Ranges. Null means all rows.
-   * @param colFilter Only acts on entries with a matching column. This is interpreted as a D4M string.
+   * @param rowFilter Only reads rows in the given Ranges, interpreted from D4M string format. Null means all rows.
+   * @param colFilter Only acts on entries with a matching column. Interpreted as a D4M string.
    *                   Null means all columns. Note that the columns are still read, just not sent through the iterator stack.
    * @param midIterator Iterators to apply after the row and column filtering but before the RemoteWriteIterator.
    *                     Always applied at the server.
@@ -688,7 +688,7 @@ public class Graphulo {
                        int AScanIteratorPriority,                         // Scan-time iterator priority
                        Reducer reducer, Map<String, String> reducerOpts,  // Applies at RemoteWriteIterator and/or client
                        IteratorSetting plusOp,                            // priority matters
-                       Collection<Range> rowFilter,
+                       String rowFilter,
                        String colFilter,
                        List<IteratorSetting> midIterator,                 // Applied after row, col filter but before RWI
                        BatchScanner bs,                                   // Optimization: re-use BatchScanner
@@ -717,7 +717,7 @@ public class Graphulo {
 //      log.warn("Experimental: Streaming back result of multiplication to client." +
 //          "If Accumulo destroys, re-inits and re-seeks an iterator stack, the stack may not recover.");
 //    }
-    if (rowFilter != null && (rowFilter.isEmpty() || rowFilter.contains(new Range())))
+    if (rowFilter != null && (rowFilter.isEmpty() || (rowFilter.length()==2 && rowFilter.charAt(0)==':')))
       rowFilter = null;
 
     TableOperations tops = connector.tableOperations();
@@ -786,9 +786,9 @@ public class Graphulo {
     DynamicIteratorSetting dis = new DynamicIteratorSetting();
 
     if (rowFilter != null) {
-      Map<String,String> rowFilterOpt = Collections.singletonMap("rowRanges", GraphuloUtil.rangesToD4MString(rowFilter));
+      Map<String,String> rowFilterOpt = Collections.singletonMap("rowRanges", rowFilter);
       if (useRWI)
-        optRWI.put("rowRanges", GraphuloUtil.rangesToD4MString(rowFilter)); // translate row filter to D4M notation
+        optRWI.put("rowRanges", rowFilter); // translate row filter to D4M notation
       else
         dis.append(new IteratorSetting(4, SeekFilterIterator.class, rowFilterOpt));
     }
@@ -980,7 +980,7 @@ public class Graphulo {
                 (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
 
         iteratorSettingList.clear();
-        Collection<Range> rowFilter;
+        String rowFilter;
 
         if (needDegreeFiltering && ADegtable != null) { // use degree table
           long t1 = System.currentTimeMillis(), dur;
@@ -997,15 +997,15 @@ public class Graphulo {
           if (vktexts.isEmpty())
             break;
 //          opt.put("rowRanges", GraphuloUtil.textsToD4mString(vktexts, sep));
-          rowFilter = GraphuloUtil.textsToRanges(vktexts);
+          rowFilter = GraphuloUtil.textsToD4mString(vktexts);
 
         } else {  // no degree table or no filtering
           if (thisk == 1)
 //            opt.put("rowRanges", v0);
-            rowFilter = GraphuloUtil.d4mRowToRanges(v0);
+            rowFilter = v0;
           else
 //            opt.put("rowRanges", GraphuloUtil.textsToD4mString(vktexts, sep));
-            rowFilter = GraphuloUtil.textsToRanges(vktexts);
+            rowFilter = GraphuloUtil.textsToD4mString(vktexts);
           if (needDegreeFiltering) // filtering but no degree table
             iteratorSettingList.add(itsetDegreeFilter);
         }
@@ -1535,7 +1535,7 @@ public class Graphulo {
             System.out.println("k=" + thisk + " before filter" +
                 (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
 
-        Collection<Range> rowFilter;
+        String rowFilter;
         if (needDegreeFiltering /*&& SDegtable != null*/) { // use degree table
           long t1 = System.currentTimeMillis(), dur;
           vktexts = filterTextsDegreeTable(bsDegree, degColumnText, false, minDegree, maxDegree,
@@ -1553,19 +1553,19 @@ public class Graphulo {
           if (mostAllOutNodes != null)
             mostAllOutNodes.addAll(vktexts);
 //          opt.put("rowRanges", GraphuloUtil.singletonsAsPrefix(vktexts, sep));
-          rowFilter = GraphuloUtil.d4mRowToRanges(GraphuloUtil.singletonsAsPrefix(vktexts, sep));
+          rowFilter = GraphuloUtil.singletonsAsPrefix(vktexts, sep);
           optSTI.put(SingleTransposeIterator.STARTNODES, GraphuloUtil.singletonsAsPrefix(vktexts, sep));
 
         } else {  // no filtering
           if (thisk == 1) {
 //            opt.put("rowRanges", GraphuloUtil.singletonsAsPrefix(v0));
-            rowFilter = GraphuloUtil.d4mRowToRanges(GraphuloUtil.singletonsAsPrefix(v0));
+            rowFilter = GraphuloUtil.singletonsAsPrefix(v0);
             optSTI.put(SingleTransposeIterator.STARTNODES, v0);
           } else {
             if (mostAllOutNodes != null)
               mostAllOutNodes.addAll(vktexts);
 //            opt.put("rowRanges", GraphuloUtil.singletonsAsPrefix(vktexts, sep));
-            rowFilter = GraphuloUtil.d4mRowToRanges(GraphuloUtil.singletonsAsPrefix(vktexts, sep));
+            rowFilter = GraphuloUtil.singletonsAsPrefix(vktexts, sep);
             optSTI.put(SingleTransposeIterator.STARTNODES, GraphuloUtil.textsToD4mString(vktexts, sep));
           }
         }
@@ -1727,7 +1727,7 @@ public class Graphulo {
    */
   public void LineGraph(String Atable, String ATtable, String Rtable, String RTtable,
                         int BScanIteratorPriority, boolean isDirected, boolean includeExtraCycles, IteratorSetting plusOp,
-                        Collection<Range> rowFilter, String colFilterAT, String colFilterB,
+                        String rowFilter, String colFilterAT, String colFilterB,
                         int numEntriesCheckpoint, String separator,
                         Authorizations Aauthorizations, String newVisibility) {
     Map<String,String> opt = new HashMap<>();
@@ -1747,6 +1747,7 @@ public class Graphulo {
         numEntriesCheckpoint, Aauthorizations, Aauthorizations);
   }
 
+  /** @return original string if not empty, null if null or empty  */
   protected String emptyToNull(String s) { return s != null && s.isEmpty() ? null : s; }
 
   /**
@@ -1806,7 +1807,7 @@ public class Graphulo {
       if (k <= 2) {               // trivial case: every graph is a 2-truss
         if (RfinalExists || filterRowCol != null)
           OneTable(Aorig, Rfinal, null, null, -1, null, null, PLUS_ITERATOR_LONG,
-                  filterRowCol == null ? null : GraphuloUtil.d4mRowToRanges(filterRowCol),
+                  filterRowCol,
                   filterRowCol, null, null, Aauthorizations);
         else
           tops.clone(Aorig, Rfinal, true, null, null);    // flushes Aorig before cloning
@@ -1828,7 +1829,7 @@ public class Graphulo {
       }
       else
         nnzAfter = OneTable(Aorig, Atmp, null, null, -1, null, null, null,
-                filterRowCol == null ? null : GraphuloUtil.d4mRowToRanges(filterRowCol),
+                filterRowCol,
                 filterRowCol, null, null, Aauthorizations);
 
       // Inital nnz
@@ -1904,12 +1905,13 @@ public class Graphulo {
    *          Returns -1 if k < 2 since there is no point in counting the number of edges.
    */
   public long kTrussEdge(String Eorig, String ETorig, String Rfinal, String RTfinal, int k,
-                         Collection<Range> edgeFilter, boolean forceDelete, Authorizations Eauthorizations) { // iterator priority?
+                         String edgeFilter, boolean forceDelete, Authorizations Eauthorizations) { // iterator priority?
     // small optimization possible: pass in Aorig = ET*E if present. Saves first iteration matrix multiply. Not really worth it.
     checkGiven(true, "Eorig", Eorig);
     Rfinal = emptyToNull(Rfinal);
     RTfinal = emptyToNull(RTfinal);
     ETorig = emptyToNull(ETorig);
+    edgeFilter = emptyToNull(edgeFilter);
     Preconditions.checkArgument(Rfinal != null || RTfinal != null, "One Output table must be given or operation is useless: Rfinal=%s; RTfinal=%s", Rfinal, RTfinal);
     TableOperations tops = connector.tableOperations();
     boolean RfinalExists = Rfinal != null && tops.exists(Rfinal),
@@ -2062,7 +2064,7 @@ public class Graphulo {
     long npp = TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Aorig, Rfinal, null, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.LONG, RNewVisibility, false),    // this could be a ConstantTwoScalar if we knew no "0" entries present
         RPlusIteratorSetting,
-        filterRowCol == null ? null : GraphuloUtil.d4mRowToRanges(filterRowCol),
+        filterRowCol,
         filterRowCol, filterRowCol,
         true, true,
         Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.Lower)),

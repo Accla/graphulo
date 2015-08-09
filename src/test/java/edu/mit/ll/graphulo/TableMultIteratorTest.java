@@ -1,6 +1,5 @@
 package edu.mit.ll.graphulo;
 
-import edu.mit.ll.graphulo.skvi.TableMultIterator;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
@@ -215,7 +214,7 @@ public class TableMultIteratorTest extends AccumuloTestBase {
 //            itprops.put("B.username",tester.getUsername());
 //            itprops.put("B.password",new String(tester.getPassword().getPassword()));
       itprops.put("dotmode", TwoTableIterator.DOTMODE.ROW.name());
-      IteratorSetting itset = new IteratorSetting(15, TableMultIterator.class, itprops);
+      IteratorSetting itset = GraphuloUtil.tableMultIterator(itprops, 15, null);
       scannerB.addScanIterator(itset);
 
       Map<Key, Integer> expect = new HashMap<>();
@@ -262,7 +261,7 @@ public class TableMultIteratorTest extends AccumuloTestBase {
       itprops.putAll(dis.buildSettingMap("B.diter."));
 
       scannerB.clearScanIterators();
-      IteratorSetting itset = new IteratorSetting(15, TableMultIterator.class, itprops);
+      IteratorSetting itset = GraphuloUtil.tableMultIterator(itprops, 15, null);
       scannerB.addScanIterator(itset);
 
       Map<Key, Integer> expect = new HashMap<>();
@@ -304,7 +303,7 @@ public class TableMultIteratorTest extends AccumuloTestBase {
       itprops.put("C.password", new String(tester.getPassword().getPassword()));
       itprops.put("C.numEntriesCheckpoint", "1");
       itprops.put("dotmode",TwoTableIterator.DOTMODE.ROW.name());
-      IteratorSetting itset = new IteratorSetting(15, TableMultIterator.class, itprops);
+      IteratorSetting itset = GraphuloUtil.tableMultIterator(itprops, 15, null);
       scannerB.clearScanIterators();
       scannerB.addScanIterator(itset);
       for (Map.Entry<Key, Value> entry : scannerB) {

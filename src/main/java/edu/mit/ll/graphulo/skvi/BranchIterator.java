@@ -23,7 +23,7 @@ public abstract class BranchIterator implements SortedKeyValueIterator<Key, Valu
 
   /**
    * Return the *bottom-most* iterator of the custom computation stack.
-   * The resulting iterator should be initalized; should not have to call init() on the resulting iterator.
+   * The resulting iterator should be initialized; should not have to call init() on the resulting iterator.
    * Can be null, but if null, which means no computation performed.
    *
    * @param options Options passed to the BranchIterator.

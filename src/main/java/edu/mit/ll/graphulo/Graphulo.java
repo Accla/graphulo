@@ -29,7 +29,6 @@ import edu.mit.ll.graphulo.skvi.SamplingFilter;
 import edu.mit.ll.graphulo.skvi.SeekFilterIterator;
 import edu.mit.ll.graphulo.skvi.SingleTransposeIterator;
 import edu.mit.ll.graphulo.skvi.SmallLargeRowFilter;
-import edu.mit.ll.graphulo.skvi.TableMultIterator;
 import edu.mit.ll.graphulo.skvi.TriangularFilter;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import edu.mit.ll.graphulo.util.DebugUtil;
@@ -1297,7 +1296,7 @@ public class Graphulo {
         bs.clearColumns();
 //        GraphuloUtil.applyGeneralColumnFilter(colFilterB, bs, 4, false);
         opt.put("B.colFilter", colFilterB);
-        IteratorSetting itset = new IteratorSetting(EScanIteratorPriority, TableMultIterator.class, opt);
+        IteratorSetting itset = GraphuloUtil.tableMultIterator(opt, EScanIteratorPriority, null);
         bs.addScanIterator(itset);
 
         EdgeBFSReducer reducer = new EdgeBFSReducer();

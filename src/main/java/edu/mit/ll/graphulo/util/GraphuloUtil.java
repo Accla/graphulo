@@ -917,14 +917,56 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
     return neww;
   }
 
+  /**
+   * Generates RemoteSourceIterator (possibly x2), TwoTableIterator, RemoteWriteIterator
+   * configuration through a DynamicIteratorSetting.
+   * @param map Map of all options.
+   * @param priority Priority to use for the IteratorSetting of the whole stack
+   * @param name Null means use the default name "TableMultIterator"
+   */
   public static IteratorSetting tableMultIterator(
-      Map<String, String> mapTT, Map<String, String> mapRWI,
+      Map<String, String> map,
       int priority, String name) {
+    Map<String, String> optDM = new HashMap<>(), optC = new HashMap<>();
+    {
+      Map<String, Map<String, String>> prefixMap = GraphuloUtil.splitMapPrefix(map);
+      for (Map.Entry<String, Map<String, String>> prefixEntry : prefixMap.entrySet()) {
+        final String prefix = prefixEntry.getKey();
+        Map<String, String> entryMap = prefixEntry.getValue();
+
+        switch (prefix) {
+          case TwoTableIterator.PREFIX_AT:
+          case TwoTableIterator.PREFIX_B:
+            optDM.putAll(GraphuloUtil.preprendPrefixToKey(prefix + '.', entryMap));
+            break;
+          case "C":
+            optC.putAll(entryMap);
+            break;
+          default:
+            for (Map.Entry<String, String> entry : entryMap.entrySet()) {
+//              switch (entry.getKey()) {
+//                case "dotmode":
+//                case "multiplyOp":
+//                  optDM.put(entry.getKey(), entry.getValue());
+//                  break;
+//                default:
+//                  log.warn("Unrecognized option: " + prefix + '.' + entry);
+//                  break;
+//              }
+              if (prefix.isEmpty())
+                optDM.put(entry.getKey(), entry.getValue());
+              else
+                optDM.put(prefix + '.'+entry.getKey(), entry.getValue());
+            }
+            break;
+        }
+      }
+    }
     DynamicIteratorSetting dis = new DynamicIteratorSetting()
-        .append(new IteratorSetting(1, TwoTableIterator.class, mapTT));
-    if (mapRWI != null)
-      dis.append(new IteratorSetting(1, RemoteWriteIterator.class, mapRWI));
-    return name == null ? dis.toIteratorSetting(priority) : dis.toIteratorSetting(priority, name);
+        .append(new IteratorSetting(1, TwoTableIterator.class, optDM));
+    if (!optC.isEmpty())
+      dis.append(new IteratorSetting(1, RemoteWriteIterator.class, optC));
+    return dis.toIteratorSetting(priority, name == null ? "TableMultIterator" : name);
   }
 
 }

@@ -83,7 +83,7 @@ public class SingleBFSExample extends AccumuloTestBase {
     // Options for plus operator: encode/decode with a string representation; act on all columns of Ctable.
     LongCombiner.setEncodingType(plusOp, LongCombiner.Type.STRING);
     Combiner.setCombineAllColumns(plusOp, true);
-    // Note: this is the same as Graphulo.PLUS_ITERATOR_BIGDECIMAL
+    // Note: this is the same as Graphulo.PLUS_ITERATOR_LONG
 
     // Single-table Breadth First Search.
     // This call blocks until the BFS completes.

@@ -4,6 +4,7 @@ import edu.mit.ll.graphulo.util.MemMatrixUtil;
 import edu.mit.ll.graphulo.util.TestUtil;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -79,9 +80,26 @@ public class MatrixTest  {
     Assert.assertEquals(1 , matrix.getEntry(0, 0), tol);
     Assert.assertEquals(-3, matrix.getEntry(0, 1), tol);
     Assert.assertEquals(-1, matrix.getEntry(1, 0), tol);
-    Assert.assertEquals(4 , matrix.getEntry(1, 1), tol);
+    Assert.assertEquals(4, matrix.getEntry(1, 1), tol);
 
     SortedMap<Key, Value> back = MemMatrixUtil.matrixToMap(new TreeMap<Key, Value>(TestUtil.COMPARE_KEY_TO_COLQ), matrix);
     TestUtil.assertEqualDoubleMap(expect, back);
   }
+
+  @Test
+  public void testSubtractMatrixNorm() {
+    RealMatrix m, mp;
+    m = MatrixUtils.createRealMatrix(3,5);
+    mp = MatrixUtils.createRealMatrix(3,5);
+    m.setEntry(1, 2, 0.1613351);
+    mp.setEntry(1, 2, 0.486433333333);
+    Assert.assertEquals(0.0, Graphulo.nmfError_Client(m, mp), 0.000001);
+    m.setEntry(2, 2, 0.76);
+    mp.setEntry(2, 2, 0.25);
+    Assert.assertEquals(0.0, Graphulo.nmfError_Client(m, mp), 0.000001);
+    m.setEntry(2, 1, 0.4);
+    mp.setEntry(2,0,0.9);
+    Assert.assertEquals(2.0/3.0, Graphulo.nmfError_Client(m, mp), 0.000001);
+  }
+
 }

@@ -49,6 +49,7 @@ public class NMFExample extends AccumuloTestBase {
     int K = 3;                                          // 3 topics
     int maxiter = 5;                                    // 3 iterations of NMF maximum
     double cutoffThreshold = 0.0;                       // Threshold to cut off entries with value less than this
+    int maxColsPerTopic = 10;                           // Threshold - only keep 10 nodes in H per topic
     String newVisibility = "";                          // Column Visibility to use for newly created entries.
 
 
@@ -76,7 +77,7 @@ public class NMFExample extends AccumuloTestBase {
 
     // Option to use in-memory version
     double nmfError = graphulo.NMF_Client(Etable, false, WTtable, true, Htable, false, K, maxiter,
-        cutoffThreshold);
+        cutoffThreshold, maxColsPerTopic);
 
     // Sample the graph with 10% uniform sampling and materialize the result in a sampled table
 //    double probability = 0.1;

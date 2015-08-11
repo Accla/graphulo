@@ -75,6 +75,7 @@ import org.apache.log4j.Logger;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -2494,7 +2495,7 @@ public class Graphulo {
    */
   public double NMF_Client(String Aorig, boolean transposeA,
                            String Wfinal, boolean transposeW, String Hfinal, boolean transposeH,
-                           final int K, final int maxiter, double cutoffThreshold) {
+                           final int K, final int maxiter, double cutoffThreshold, final int maxColsPerTopic) {
     checkGiven(true, "Aorig", Aorig);
     Wfinal = emptyToNull(Wfinal);
     Hfinal = emptyToNull(Hfinal);
@@ -2520,9 +2521,9 @@ public class Graphulo {
     // Initialize W to a dense random matrix of size N x K
     RealMatrix Wmatrix = MemMatrixUtil.randNormPosFull(N, K);
     RealMatrix WTmatrix = Wmatrix.transpose();
-    RealMatrix HmatrixPrev = MatrixUtils.createRealMatrix(K, M);
+    RealMatrix HmatrixPrev;
 //    RealMatrix HTmatrixPrev = HmatrixPrev.transpose();
-    RealMatrix Hmatrix, HTmatrix;
+    RealMatrix Hmatrix = MatrixUtils.createRealMatrix(K, M), HTmatrix;
 
 //    if (Trace.isTracing())
 //      DebugUtil.printTable("0: W is NxK:", connector, Wfinal);
@@ -2532,6 +2533,14 @@ public class Graphulo {
     int numiter = 0;
     final int reqNumLowHDiff = 3;
     int numLowHDiff = 0;
+    boolean DEBUG = false;
+    String[][] WARR = null, HARR = null;
+    if (DEBUG) {
+      WARR = new String[K*N][maxiter+1];
+      HARR = new String[K*M][maxiter+1];
+      putInDebugArray(WARR, WTmatrix, 0);
+      putInDebugArray(HARR, MatrixUtils.createRealMatrix(K,M), 0);
+    }
 
     do {
       numiter++;
@@ -2539,17 +2548,20 @@ public class Graphulo {
       // H = ONLYPOS( (WT*W)^-1 * (WT*A) )
       //nmfStep(K, Wfinal, Aorig, Hfinal, HTfinal, Ttmp1, Ttmp2, trace);
       // assign to Hmatrix
+      HmatrixPrev = Hmatrix;
       try (TraceScope span = Trace.startSpan("Hstep")) {
-        Hmatrix = nmfStep_Client(WTmatrix, Wmatrix, Amatrix, cutoffThreshold, true);
+        Hmatrix = nmfStep_Client(WTmatrix, Wmatrix, Amatrix, cutoffThreshold, maxColsPerTopic);
         HTmatrix = Hmatrix.transpose();
 //        if (Trace.isTracing())
 //          DebugUtil.printTable(numiter + ": H is KxM:", connector, Hfinal);
       }
+      if (HARR != null)
+        putInDebugArray(HARR, Hmatrix, numiter);
 //      System.out.println("Hmatrix: "+Hmatrix);
 
       // WT = ONLYPOS( (H*HT)^-1 * (H*AT) )
       try (TraceScope span = Trace.startSpan("Wstep")) {
-        WTmatrix = nmfStep_Client(Hmatrix, HTmatrix, ATmatrix, cutoffThreshold, false);
+        WTmatrix = nmfStep_Client(Hmatrix, HTmatrix, ATmatrix, cutoffThreshold, -1);
         Wmatrix = WTmatrix.transpose();
 //        if (Trace.isTracing())
 //          DebugUtil.printTable(numiter + ": W is NxK:", connector, Wfinal);
@@ -2571,6 +2583,44 @@ public class Graphulo {
         numLowHDiff = 0;
     } while (numiter < maxiter);
 
+    if (HARR != null) {
+      if (++numiter < maxiter)
+        for ( ; numiter < maxiter+1; numiter++) {
+          for (int i = 0; i < K * M; i++) {
+            HARR[i][numiter] = String.format("%4s", "");
+          }
+        }
+
+
+      String[] header = new String[maxiter+1];
+      for (int i = 0; i < header.length; i++) {
+        header[i] = String.format("%4d", i);
+      }
+      System.out.printf("( K, M) %s\n", Arrays.toString(header));
+      for (int i = 0; i < K * M; i++) {
+        System.out.printf("(%2d,%2d) %s\n", i / M, i % M, Arrays.toString(HARR[i]));
+      }
+      String[] footer = new String[maxiter+1];
+      footer[0] = String.format("%4s", "");
+      for (int j = 1; j < maxiter+1; j++) {
+        boolean changeAllTopics = true;
+        for (int k = 0; k < K; k++) {
+          boolean changeThisTopic = false;
+          for (int m = 0; m < M; m++) {
+            if (!HARR[k*M+m][j].equals(HARR[m][j - 1])) {
+              changeThisTopic = true;
+              break;
+            }
+          }
+          if (!changeThisTopic) {
+            changeAllTopics = false; break;
+          }
+        }
+        footer[j] = String.format("%4s", changeAllTopics ? "c" : "NO");
+      }
+      System.out.printf("CHANGE? %s\n", Arrays.toString(footer));
+    }
+
     // Write out results!
     if (Wfinal != null) {
       Map<Key, Value> Wmap = MemMatrixUtil.matrixToMapWithLabels(Wmatrix, rowMap, false, 0.0001); // false = label row
@@ -2583,18 +2633,29 @@ public class Graphulo {
     return hdiff;
   }
 
-  private double nmfError_Client(RealMatrix HmatrixPrev, RealMatrix Hmatrix) {
+  private void putInDebugArray(final String[][] arr, RealMatrix matrix, final int numiter) {
+    final int M = matrix.getColumnDimension();
+    matrix.walkInOptimizedOrder(new DefaultRealMatrixPreservingVisitor() {
+      @Override
+      public void visit(int row, int column, double value) {
+        arr[row * M + column][numiter] = value == 0 ? "    " : String.format("%4.2f", value);
+      }
+    });
+  }
+
+  static double nmfError_Client(RealMatrix HmatrixPrev, RealMatrix Hmatrix) {
+    System.out.printf("Error calc: (%.2f - %.2f) / %.2f\n", matrixSumAllAbs0(matrixAbs0(Hmatrix)), matrixSumAllAbs0(matrixAbs0(HmatrixPrev)), matrixSumAllAbs0( Hmatrix ));
     return
         matrixSumAllAbs0( matrixAbs0(Hmatrix).subtract(matrixAbs0(HmatrixPrev)) )
         / matrixSumAllAbs0( Hmatrix );
   }
 
-  private double matrixSumAllAbs0(RealMatrix matrix) {
+  private static double matrixSumAllAbs0(RealMatrix matrix) {
     return matrix.walkInOptimizedOrder(new DefaultRealMatrixPreservingVisitor() {
       private double sum = 0.0;
       @Override
       public void visit(int row, int column, double value) {
-        sum += (value == 0.0 ? 0.0 : 1.0);
+        sum += (Math.abs(value) < TOL ? 0.0 : 1.0);
       }
 
       @Override
@@ -2604,12 +2665,14 @@ public class Graphulo {
     });
   }
 
-  private RealMatrix matrixAbs0(RealMatrix matrix) {
+  private static final double TOL = 10e-10;
+
+  private static RealMatrix matrixAbs0(RealMatrix matrix) {
     RealMatrix tmp = matrix.copy();
     tmp.walkInOptimizedOrder(new DefaultRealMatrixChangingVisitor() {
       @Override
       public double visit(int row, int column, double value) {
-        return value == 0.0 ? 0.0 : 1.0;
+        return Math.abs(value) < TOL ? 0.0 : 1.0;
       }
     });
     return tmp;
@@ -2620,11 +2683,11 @@ public class Graphulo {
    * @param threshold Entries below this are set to 0. */
   @SuppressWarnings("unchecked")
   private RealMatrix nmfStep_Client(RealMatrix M1, RealMatrix M2, RealMatrix MA,
-                                    final double threshold, final boolean doKeepTopColsPerRow) {
+                                    final double threshold, final int maxColsPerTopic) {
     RealMatrix MR = MemMatrixUtil.doInverse(M1.multiply(M2), 50).multiply(M1.multiply(MA));
 
     // only keep positive entries
-    if (!doKeepTopColsPerRow) {
+    if (maxColsPerTopic <= 0) {
       MR.walkInOptimizedOrder(new RealMatrixChangingVisitor() {
         @Override
         public void start(int rows, int columns, int startRow, int endRow, int startColumn, int endColumn) {
@@ -2660,7 +2723,6 @@ public class Graphulo {
       final PriorityQueue<Entry>[] pqs = new PriorityQueue[MR.getRowDimension()];
       for (int i = 0; i < pqs.length; i++)
         pqs[i] = new PriorityQueue<>();
-      final int maxColsPerTopic = 10;
 
       MR.walkInOptimizedOrder(new DefaultRealMatrixPreservingVisitor() {
         @Override

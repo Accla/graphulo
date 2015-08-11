@@ -44,7 +44,8 @@ import java.util.Map.Entry;
 public abstract class SimpleTwoScalar extends KeyTwoScalar implements MultiplyOp, EWiseOp, Reducer {
   private static final Logger log = LogManager.getLogger(SimpleTwoScalar.class);
 
-  public static final String NEW_VISIBILITY ="newVisibility";
+  public static final String NEW_VISIBILITY ="newVisibility", USE_NEW_VISIBILITY = "useNewVisibility";
+  protected boolean useNewVisibility = false;
   protected byte[] newVisibility = null;
 
   //////////////////////////////////////////////////////////////////////////////////
@@ -66,6 +67,7 @@ public abstract class SimpleTwoScalar extends KeyTwoScalar implements MultiplyOp
     for (Map.Entry<String, String> entry : options.entrySet()) {
       String k = entry.getKey(), v = entry.getValue();
       switch (k) {
+        case USE_NEW_VISIBILITY: useNewVisibility = Boolean.parseBoolean(v); break;
         case NEW_VISIBILITY:
           newVisibility = v.getBytes(StandardCharsets.UTF_8);
           break;
@@ -80,7 +82,8 @@ public abstract class SimpleTwoScalar extends KeyTwoScalar implements MultiplyOp
   @Override
   public SimpleTwoScalar deepCopy(IteratorEnvironment env) {
     SimpleTwoScalar copy = (SimpleTwoScalar) super.deepCopy(env);
-    copy.newVisibility = newVisibility == null ? null : Arrays.copyOf(newVisibility, newVisibility.length);
+    copy.useNewVisibility = useNewVisibility;
+    copy.newVisibility = useNewVisibility ? Arrays.copyOf(newVisibility, newVisibility.length) : null ;
     return copy;
   }
 
@@ -90,7 +93,7 @@ public abstract class SimpleTwoScalar extends KeyTwoScalar implements MultiplyOp
 //    System.err.println("Mrow:"+Mrow+" ATcolQ:"+ATcolQ+" BcolQ:"+BcolQ+" ATval:"+ATval+" Bval:"+Bval);
     assert ATval != null || Bval != null;
     Key k = new Key(ATcolQ.getBackingArray(), ATcolF.getBackingArray(),
-        BcolQ.getBackingArray(), newVisibility == null ? GraphuloUtil.EMPTY_BYTES : newVisibility, System.currentTimeMillis());
+        BcolQ.getBackingArray(), useNewVisibility ? newVisibility : GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis());
     Value v = reverse ? multiply(Bval, ATval) : multiply(ATval, Bval);
     return v == null ? Collections.<Entry<Key,Value>>emptyIterator() : Iterators.singletonIterator(new SimpleImmutableEntry<>(k, v));
   }
@@ -102,7 +105,7 @@ public abstract class SimpleTwoScalar extends KeyTwoScalar implements MultiplyOp
     // Decision is to emit the non-matching entries untouched by the operation.  This is a *SIMPLETwoScalar* operator.
     assert Aval != null || Bval != null;
     final Key k = new Key(Mrow.getBackingArray(), McolF.getBackingArray(),
-        McolQ.getBackingArray(), newVisibility == null ? McolVis.getBackingArray() : newVisibility, System.currentTimeMillis());
+        McolQ.getBackingArray(), useNewVisibility ? newVisibility : McolVis.getBackingArray(), System.currentTimeMillis());
     if (Aval == null)
       return Iterators.singletonIterator(new SimpleImmutableEntry<>(k, Bval));
     if (Bval == null)

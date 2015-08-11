@@ -29,8 +29,10 @@ public class ConstantTwoScalar extends SimpleTwoScalar {
   public static Map<String,String> optionMap(Value constant, String newVisibility) {
     Map<String,String> map = new HashMap<>();
     map.put(CONSTANT, new String(constant.get()));
-    if (newVisibility != null && !newVisibility.isEmpty())
+    if (newVisibility != null && !newVisibility.isEmpty()) {
+      map.put(USE_NEW_VISIBILITY, "true");
       map.put(NEW_VISIBILITY, newVisibility);
+    }
     return map;
   }
 

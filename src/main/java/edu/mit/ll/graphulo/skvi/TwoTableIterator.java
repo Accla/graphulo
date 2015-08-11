@@ -330,8 +330,13 @@ public class TwoTableIterator implements SaveStateIterator {
     }
   }
 
+  private Map<String,String> origOptions;
+  private SortedKeyValueIterator<Key,Value> origSource;
+
   @Override
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
+    origOptions = new HashMap<>(options);
+    origSource = source;
     // parse options, pass correct options to RemoteSourceIterator init()
     Map<String, String> optAT = new HashMap<>(), optB = new HashMap<>();
     parseOptions(options, optAT, optB);
@@ -391,6 +396,8 @@ public class TwoTableIterator implements SaveStateIterator {
     String tableName = opts.get(RemoteSourceIterator.TABLENAME);
     SortedKeyValueIterator<Key, Value> ret;
     if (tableName != null && tableName.equals(CLONESOURCE_TABLENAME)) {
+      if (source.getClass().equals(DynamicIterator.class))
+        System.out.println("BAD OPTS: "+opts);
       ret = source.deepCopy(env);
       ret = setupRemoteSourceOptionsSKVI(ret, opts, env);
       log.debug("Setting up "+CLONESOURCE_TABLENAME+": "+ret);
@@ -747,25 +754,13 @@ public class TwoTableIterator implements SaveStateIterator {
 
   @Override
   public TwoTableIterator deepCopy(IteratorEnvironment env) {
+    TwoTableIterator copy = new TwoTableIterator();
     try {
-      TwoTableIterator copy = new TwoTableIterator();
-      copy.dotmode = this.dotmode;
-      if (this.rowMultiplyOp != null) {
-        copy.rowMultiplyOp = this.rowMultiplyOp.getClass().newInstance();
-        copy.rowMultiplyOpOptions = this.rowMultiplyOpOptions;
-        copy.rowMultiplyOp.init(rowMultiplyOpOptions, env);
-      }
-      if (this.eWiseOp != null) {
-        copy.eWiseOp = this.eWiseOp.getClass().newInstance();
-        copy.multiplyOpOptions = this.multiplyOpOptions;
-        copy.eWiseOp.init(copy.multiplyOpOptions, env);
-      }
-      copy.remoteAT = remoteAT.deepCopy(env);
-      copy.remoteB = remoteB.deepCopy(env);
-      return copy;
-    } catch (IOException | InstantiationException | IllegalAccessException e) {
-      log.error("", e);
-      throw new RuntimeException("",e);
+      copy.init(origSource == null ? null : origSource.deepCopy(env), origOptions, env);
+    } catch (IOException e) {
+      log.error("Problem creating deepCopy", e);
+      throw new RuntimeException(e);
     }
+    return copy;
   }
 }

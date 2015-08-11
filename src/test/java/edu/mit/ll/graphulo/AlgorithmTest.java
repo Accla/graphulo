@@ -324,10 +324,10 @@ public class AlgorithmTest extends AccumuloTestBase {
 //    DistributedTrace.enable("testNMF");
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    int maxIter = 4;
+    int maxIter = 3;
     long t = System.currentTimeMillis();
     int K = 3;
-    double error = graphulo.NMF(tE, tET, tW, tWT, tH, tHT, K, maxIter, true, 0.0001);
+    double error = graphulo.NMF(tE, tET, tW, tWT, tH, tHT, K, maxIter, true, 0, -1);
     System.out.println("Trace is "+ org.apache.htrace.Trace.isTracing()+"; NMF time "+(System.currentTimeMillis()-t));
     log.info("NMF error " + error);
 

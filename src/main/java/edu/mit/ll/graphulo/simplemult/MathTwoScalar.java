@@ -129,8 +129,10 @@ public class MathTwoScalar extends SimpleTwoScalar {
     Map<String,String> map = new HashMap<>();
     map.put(SCALAR_OP, op.name());
     map.put(SCALAR_TYPE, type.name());
-    if (newVisibility != null && !newVisibility.isEmpty())
+    if (newVisibility != null && !newVisibility.isEmpty()) {
+      map.put(USE_NEW_VISIBILITY, "true");
       map.put(NEW_VISIBILITY, newVisibility);
+    }
     map.put(KEEP_ZERO, Boolean.toString(keepZero));
     return map;
   }

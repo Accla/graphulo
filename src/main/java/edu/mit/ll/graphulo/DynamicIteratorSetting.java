@@ -9,6 +9,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -26,6 +28,8 @@ import java.util.Map;
  * @see edu.mit.ll.graphulo.skvi.DynamicIterator
  */
 public class DynamicIteratorSetting {
+  private static final Logger log = LogManager.getLogger(DynamicIteratorSetting.class);
+
   private Deque<IteratorSetting> iteratorSettingList = new LinkedList<>();
 
   public DynamicIteratorSetting prepend(IteratorSetting setting) {
@@ -165,6 +169,9 @@ public class DynamicIteratorSetting {
    */
   @SuppressWarnings("unchecked")
   public SortedKeyValueIterator<Key,Value> loadIteratorStack(SortedKeyValueIterator<Key,Value> source, IteratorEnvironment env) throws IOException {
+    if (log.isDebugEnabled())
+      if (source.getClass().equals(DynamicIterator.class))
+        log.debug("Be Careful not to reuse names! Recursive DynamicIterator: "+source);
     for (IteratorSetting setting : iteratorSettingList) {
       SortedKeyValueIterator<Key,Value> iter =
           (SortedKeyValueIterator<Key,Value>)GraphuloUtil.subclassNewInstance(

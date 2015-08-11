@@ -100,10 +100,11 @@ public class MinMaxFilter extends Filter {
         prefixColQ = options.get(PREFIXCOLQ).getBytes();
       else
         prefixColQ = new byte[0];
-    }
+    } else
+      prefixColQ = new byte[0];
 
     log.debug("minValue="+minValue+" maxValue="+maxValue+" useColQ="+useColQ+" prefixColQ="+
-        (prefixColQ == null ? null : new String(prefixColQ)));
+        (new String(prefixColQ)));
   }
 
   @Override

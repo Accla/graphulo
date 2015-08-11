@@ -135,7 +135,7 @@ public abstract class KeyTwoScalar extends Combiner implements ApplyOp {
   public KeyTwoScalar deepCopy(IteratorEnvironment env) {
     KeyTwoScalar copy = (KeyTwoScalar) super.deepCopy(env);
     copy.reverse = reverse;
-    copy.fixedValue = new Value(fixedValue);
+    copy.fixedValue = fixedValue == null ? null : new Value(fixedValue);
     return copy;
   }
 

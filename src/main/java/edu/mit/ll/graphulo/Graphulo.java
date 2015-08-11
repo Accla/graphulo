@@ -1,7 +1,6 @@
 package edu.mit.ll.graphulo;
 
 import com.google.common.base.Preconditions;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import edu.mit.ll.graphulo.apply.ApplyIterator;
 import edu.mit.ll.graphulo.apply.JaccardDegreeApply;
 import edu.mit.ll.graphulo.apply.KeyRetainOnlyApply;
@@ -1134,7 +1133,7 @@ public class Graphulo {
    * @param EScanIteratorPriority Priority to use for Table Multiplication scan-time iterator on table E
    * @param Eauthorizations Authorizations for scanning Etable. Null means use default: Authorizations.EMPTY
    * @param EDegauthorizations Authorizations for scanning EDegtable. Null means use default: Authorizations.EMPTY
-   * @param newVisibility Visibility label for new entries created in Rtable and/or RTtable. Null means no visibility label.
+   * @param newVisibility Visibility label for new entries created in Rtable and/or RTtable. Null means use the visibility of the parent keys.
    * @param outputUnion Whether to output nodes reachable in EXACTLY (false) or UP TO (true) k BFS steps.
    * @return  The nodes reachable in EXACTLY k steps from v0, unless outputUnion is true.
    */
@@ -2240,24 +2239,27 @@ public class Graphulo {
    * @param K Number of topics.
    * @param maxiter Maximum number of iterations
    * @param forceDelete Forcibly delete temporary tables used if they happen to exist. If false, throws an exception if they exist.
+   * @param cutoffThreshold Set entries of W and H below this threshold to zero. Default 0.
+   * @param maxColsPerTopic Only retain the top X columns for each topic in matrix H. If <= 0, this is disabled.
    * @return The absolute difference in error (between A and W*H) from the last iteration to the second-to-last.
    */
   public double NMF(String Aorig, String ATorig,
                     String Wfinal, String WTfinal, String Hfinal, String HTfinal,
                     final int K, final int maxiter,
-                    boolean forceDelete, double cutoffThreshold) {
+                    boolean forceDelete, double cutoffThreshold, int maxColsPerTopic) {
     cutoffThreshold += Double.MIN_NORMAL;
     checkGiven(true, "Aorig, ATorig", Aorig, ATorig);
     checkGiven(false, "Wfinal, WTfinal, Hfinal, HTfinal", Wfinal, WTfinal, Hfinal, HTfinal);
     Preconditions.checkArgument(K > 0, "# of topics K must be > 0: "+K);
     deleteTables(false, Wfinal, WTfinal, Hfinal, HTfinal);
 
-    String Ttmp1, Ttmp2, Hprev;
+    String Ttmp1, Ttmp2, Hprev, HTprev;
     String tmpBaseName = Aorig+"_NMF_";
     Ttmp1 = tmpBaseName+"tmp1";
     Ttmp2 = tmpBaseName+"tmp2";
     Hprev = tmpBaseName+"Hprev";
-    deleteTables(forceDelete, Ttmp1, Ttmp2, Hprev);
+    HTprev = tmpBaseName+"HTprev";
+    deleteTables(forceDelete, Ttmp1, Ttmp2, Hprev, HTprev);
 
     // Initialize W to a dense random matrix of size N x K
     List<IteratorSetting> itCreateTopicList = new DynamicIteratorSetting()
@@ -2269,7 +2271,9 @@ public class Graphulo {
       long NK = OneTable(Aorig, Wfinal, WTfinal, null, -1, null, null, null, null, null, itCreateTopicList, null,
           Authorizations.EMPTY);
     }
-    if (Trace.isTracing())
+
+    boolean DBG = false;
+    if (DBG)
       DebugUtil.printTable("0: W is NxK:", connector, Wfinal);
 
     // No need to actually measure N and M
@@ -2285,21 +2289,24 @@ public class Graphulo {
     int numLowHDiff = 0;
 
     do {
-      if (numiter > 2)
+      if (numiter > 2) {
         deleteTables(true, Hprev);
+        deleteTables(true, HTprev);
+      }
 
       numiter++;
-      { String t = Hfinal; Hfinal = Hprev; Hprev = t; }
+      { String  t = Hfinal; Hfinal = Hprev; Hprev = t;
+                t = HTfinal; HTfinal = HTprev; HTprev = t;}
 
       try (TraceScope scope = Trace.startSpan("nmfStepToH", Sampler.ALWAYS)) {
-        nmfStep(K, Wfinal, Aorig, Hfinal, HTfinal, Ttmp1, Ttmp2, cutoffThreshold);
+        nmfStep(K, Wfinal, Aorig, Hfinal, HTfinal, Ttmp1, Ttmp2, cutoffThreshold, maxColsPerTopic);
       }
-      if (Trace.isTracing())
+      if (DBG)
         DebugUtil.printTable(numiter + ": H is KxM:", connector, Hfinal);
       try (TraceScope scope = Trace.startSpan("nmfStepToW", Sampler.ALWAYS)) {
-        nmfStep(K, HTfinal, ATorig, WTfinal, Wfinal, Ttmp1, Ttmp2, cutoffThreshold);
+        nmfStep(K, HTfinal, ATorig, WTfinal, Wfinal, Ttmp1, Ttmp2, cutoffThreshold, -1);
       }
-      if (Trace.isTracing())
+      if (DBG)
         DebugUtil.printTable(numiter + ": W is NxK:", connector, Wfinal);
 
       if (numiter > 1) {
@@ -2325,8 +2332,10 @@ public class Graphulo {
     // 1, 3, 5, ... need to swap
     if (numiter % 2 == 1) {
       deleteTables(true, Hfinal);
+      deleteTables(true, HTfinal);
       try {
         connector.tableOperations().clone(Hprev, Hfinal, true, null, null);
+        connector.tableOperations().clone(HTprev, HTfinal, true, null, null);
       } catch (AccumuloException | AccumuloSecurityException e) {
         log.warn("problem cloning to final table "+Hfinal, e);
         throw new RuntimeException(e);
@@ -2336,6 +2345,7 @@ public class Graphulo {
       }
     } else {
       deleteTables(true, Hprev);
+      deleteTables(true, HTprev);
     }
 
     return hdiff;
@@ -2355,11 +2365,12 @@ public class Graphulo {
     double hsum = Long.parseLong(new String(sumReducer.getForClient()));
 
     // Step 2: sum(sum( Abs0(Abs0(H)-Abs0(Hprev)) ,1),2)
+    Map<String, String> subtractOpts = MathTwoScalar.optionMap(ScalarOp.MINUS, ScalarType.LONG, "", false);
     sumReducer.reset();
-    SpEWiseSum(Hfinal, Hprev, null, null, 50, MathTwoScalar.class, sumOpts, null, null, null, null,
+    SpEWiseSum(Hfinal, Hprev, null, null, 50, MathTwoScalar.class, subtractOpts, null, null, null, null,
         abs0list, abs0list, abs0list,
         sumReducer, sumOpts, -1, null, null);
-    double hdiffsum = Long.parseLong(new String(sumReducer.getForClient()));
+    double hdiffsum = sumReducer.hasTopForClient() ? Long.parseLong(new String(sumReducer.getForClient())) : 0;
 
     return hdiffsum / hsum;
   }
@@ -2408,21 +2419,21 @@ public class Graphulo {
   ));
 
   private void nmfStep(int K, String in1, String in2, String out1, String out2, String tmp1, String tmp2,
-                       double cutoffThreshold) {
+                       double cutoffThreshold, int maxColsPerTopic) {
+    boolean DBG = false;
     // delete out1, out2
     deleteTables(true, out1, out2);
-    org.junit.Assert.assertTrue(Trace.isTracing());
 
     IteratorSetting plusCombiner = MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE, false);
 
     // Step 1: in1^T * in1 ==transpose==> tmp1
     try (TraceScope scope = Trace.startSpan("nmf1TableMult")) {
-      TableMult(in1, in1, null, tmp1, -1,
-          MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE, "", false),
+      TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, in1, null, tmp1, -1,
+          MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.DOUBLE, null, false),
           plusCombiner,
           null, null, null, false, false, null, null, PRESUMITER, null, null, -1, Authorizations.EMPTY, Authorizations.EMPTY);
     }
-    if (Trace.isTracing())
+    if (DBG)
       DebugUtil.printTable("tmp1 is KxK:", connector, tmp1);
 
     // Step 2: tmp1 => tmp1 inverse.
@@ -2440,13 +2451,13 @@ public class Graphulo {
     try {
       connector.tableOperations().removeIterator(tmp1, plusCombiner.getName(), EnumSet.allOf(IteratorUtil.IteratorScope.class));
     } catch (AccumuloException | AccumuloSecurityException e) {
-      log.error("problem while removeing " + plusCombiner + " from "+tmp1, e);
+      log.error("problem while removing " + plusCombiner + " from "+tmp1, e);
       throw new RuntimeException(e);
     } catch (TableNotFoundException e) {
       log.error("crazy", e);
       throw new RuntimeException(e);
     }
-    if (Trace.isTracing())
+    if (DBG)
       DebugUtil.printTable("tmp1 INVERSE is KxK:", connector, tmp1);
 
     // Step 3: in1^T * in2 => tmp2.  This can run concurrently with step 1 and 2.
@@ -2457,13 +2468,21 @@ public class Graphulo {
           null, null, null, false, false, null, null, PRESUMITER, null, null, -1, Authorizations.EMPTY, Authorizations.EMPTY);
     }
 
+//    if (Trace.isTracing())
+    if (DBG)
+      System.out.println("-tmp2 ok-  tmp1=" + tmp1 + "  tmp2=" + tmp2 + "  out1=" + out1);
+
     // Step 4: tmp1^T * tmp2 => OnlyPositiveFilter => {out1, transpose to out2}
     // Filter out entries <= 0 after combining partial products.
     IteratorSetting sumFilterOp =
         new DynamicIteratorSetting()
         .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.DOUBLE, false))
         .append(MinMaxFilter.iteratorSetting(1, ScalarType.DOUBLE, cutoffThreshold, Double.MAX_VALUE))
-        .toIteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority());
+        .toIteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), "sumFilterOp");
+
+    // plan to add maxColsPerTopic: write to tmp3 instead of {out1,out2}.
+    // use OneTable: WholeRow => TopK => {out1,out2}
+    // TopK is kind of like PreSumCache
 
     // Execute.
     try (TraceScope scope = Trace.startSpan("nmf4TableMult")) {
@@ -2480,12 +2499,10 @@ public class Graphulo {
   }
 
 
-
   /**
    * Non-negative matrix factorization <b>at the client</b>.
    * The main NMF loop stops when either (1) we reach the maximum number of iterations or
-   *    (2) when the absolute difference in error between A and W*H is less than 0.01 from one iteration to the next.
-   *
+   *    (2) when the proportion of changed words in topics remains under 0.001 for three iterations.
    *
    * @param Aorig Accumulo input table to factor
    * @param transposeA Whether to take the transpose of A (false if not).
@@ -2495,11 +2512,41 @@ public class Graphulo {
    * @param transposeH Whether to write the transpose of H instead of H (false if not).
    * @param K Number of topics.
    * @param maxiter Maximum number of iterations
-   * @return The absolute difference in error (between A and W*H) from the last iteration to the second-to-last.
+   * @param cutoffThreshold Set entries of W and H below this threshold to zero. Default 0.
+   * @param maxColsPerTopic Only retain the top X columns for each topic in matrix H. If <= 0, this is disabled.
+   * @return The proportion of changed topics between the second-to-last and last iteration. Shows degree of topic convergence.
    */
   public double NMF_Client(String Aorig, boolean transposeA,
                            String Wfinal, boolean transposeW, String Hfinal, boolean transposeH,
                            final int K, final int maxiter, double cutoffThreshold, final int maxColsPerTopic) {
+    return NMF_Client(Aorig, transposeA, Wfinal, transposeW, Hfinal, transposeH, K, maxiter, cutoffThreshold, maxColsPerTopic, null, null);
+  }
+
+  /**
+   * Non-negative matrix factorization <b>at the client</b>.
+   * The main NMF loop stops when either (1) we reach the maximum number of iterations or
+   *    (2) when the proportion of changed words in topics remains under 0.001 for three iterations.
+   *
+   * @param Aorig Accumulo input table to factor
+   * @param transposeA Whether to take the transpose of A (false if not).
+   * @param Wfinal Output table W. Must not exist before this method. Can be null. Wfinal or Hfinal must be given.
+   * @param transposeW Whether to write the transpose of W instead of W (false if not).
+   * @param Hfinal Output table H. Must not exist before this method. Can be null. Wfinal or Hfinal must be given.
+   * @param transposeH Whether to write the transpose of H instead of H (false if not).
+   * @param K Number of topics.
+   * @param maxiter Maximum number of iterations
+   * @param cutoffThreshold Set entries of W and H below this threshold to zero. Default 0.
+   * @param maxColsPerTopic Only retain the top X columns for each topic in matrix H. If <= 0, this is disabled.
+   * @param HstartTopicsTable Default null. Table of an H from a previous NMF from which we want to find topics similar to a given set of topics in H.
+   * @param HstartTopics Default null. Set of indices of topics from HstartTopicsTable, ordered. These will be the first topics in the new table.
+   * @return The proportion of changed topics between the second-to-last and last iteration. Shows degree of topic convergence.
+   */
+  public double NMF_Client(String Aorig, boolean transposeA,
+                           String Wfinal, boolean transposeW, String Hfinal, boolean transposeH,
+                           final int K, final int maxiter, double cutoffThreshold, int maxColsPerTopic,
+                           String HstartTopicsTable, int[] HstartTopics) {
+    if (HstartTopics != null || HstartTopicsTable != null)
+      throw new UnsupportedOperationException("not implemented: using previous topic and incremental topic finding");
     checkGiven(true, "Aorig", Aorig);
     Wfinal = emptyToNull(Wfinal);
     Hfinal = emptyToNull(Hfinal);
@@ -2521,6 +2568,8 @@ public class Graphulo {
 
     int N = Amatrix.getRowDimension();
     int M = Amatrix.getColumnDimension();
+    if (maxColsPerTopic >= M)
+      maxColsPerTopic = -1;
 
     // Initialize W to a dense random matrix of size N x K
     RealMatrix Wmatrix = MemMatrixUtil.randNormPosFull(N, K);
@@ -2648,7 +2697,7 @@ public class Graphulo {
   }
 
   static double nmfError_Client(RealMatrix HmatrixPrev, RealMatrix Hmatrix) {
-    System.out.printf("Error calc: (%.2f - %.2f) / %.2f\n", matrixSumAllAbs0(matrixAbs0(Hmatrix)), matrixSumAllAbs0(matrixAbs0(HmatrixPrev)), matrixSumAllAbs0( Hmatrix ));
+//    System.out.printf("Error calc: (%.2f - %.2f) / %.2f\n", matrixSumAllAbs0(matrixAbs0(Hmatrix)), matrixSumAllAbs0(matrixAbs0(HmatrixPrev)), matrixSumAllAbs0( Hmatrix ));
     return
         matrixSumAllAbs0( matrixAbs0(Hmatrix).subtract(matrixAbs0(HmatrixPrev)) )
         / matrixSumAllAbs0( Hmatrix );

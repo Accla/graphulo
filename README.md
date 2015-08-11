@@ -281,10 +281,15 @@ Each Graphulo function takes an Authorizations object as an argument,
 
 Some Graphulo capabilities create new entries and ingest them into Accumulo tables.
 This includes matrix multiply, element-wise sum and multiply, and some ApplyOp 
-and other SKVIs. These features take an argument called `newVisibility`
+and other SKVIs. 
+*These functions will inherit the visibility of their parent Key when possible.*
+In particular, it is possible to inherit parent key visibility for EWiseOp, ApplyOp and
+EdgeBFSMultiply.  MultiplyOp in general does not have a clear inheritance for column visibility,
+because generated keys descend from two parent keys that may have differing visibility.
+
+An additional feature these functions take is an argument called `newVisibility`
 that sets the visibility of all newly created Keys to the given constant visibility.
-Other features that modify or transform a Key, instead of creating a brand new Key, 
-inherit the visibility of their parent Key.
+This overrides the visibility of any parent keys and forces generated keys to have the given visibility.
 
 If more fine-grained control of visibility creation is desired, please implement a custom 
 MultiplyOp, EWiseOp, ApplyOp or more general SKVI as applicable.

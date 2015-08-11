@@ -2,6 +2,7 @@ package edu.mit.ll.graphulo.rowmult;
 
 import com.google.common.collect.Iterators;
 import edu.mit.ll.graphulo.skvi.Watch;
+import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.SKVIRowIterator;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -34,13 +35,15 @@ public class LineRowMultiply implements RowMultiplyOp {
       ISDIRECTED = "isDirected",
       INCLUDE_EXTRA_CYCLES = "includeExtraCycles",
       NEW_VISIBILITY = "newVisibility";
+  public static final String USE_NEW_VISIBILITY = "useNewVisibility";
 
   private boolean isDirected = true;
   /** Whether to include the AAT term. */
   private boolean includeExtraCycles = false;
 //  private char separator = '|';
   private MultiplyOp multiplyOpAA, multiplyOpAAT;
-  private byte[] newVisibility = new byte[0];
+  private boolean useNewVisibility = false;
+  private byte[] newVisibility = null;
 
   private void parseOptions(Map<String, String> options) {
     for (Map.Entry<String, String> optionEntry : options.entrySet()) {
@@ -57,6 +60,9 @@ public class LineRowMultiply implements RowMultiplyOp {
             break;
           case INCLUDE_EXTRA_CYCLES:
             includeExtraCycles = Boolean.parseBoolean(optionValue);
+            break;
+          case USE_NEW_VISIBILITY:
+            useNewVisibility = Boolean.parseBoolean(optionValue);
             break;
           case NEW_VISIBILITY:
             newVisibility = optionValue.getBytes(StandardCharsets.UTF_8);
@@ -191,7 +197,7 @@ public class LineRowMultiply implements RowMultiplyOp {
 
     @Override
     public Iterator<? extends Map.Entry<Key, Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ,
-                                                              ByteSequence BcolF, ByteSequence BcolQ, Value ATval, Value Bval) {
+                                                              ByteSequence ATcolVis, ByteSequence BcolF, ByteSequence BcolQ, ByteSequence BcolVis, Value ATval, Value Bval) {
       if ((linemode == LINEMODE.UNDIR || linemode == LINEMODE.DIRAAT) &&
           Arrays.equals(BcolQ.getBackingArray(), ATcolQ.getBackingArray()))
         return Collections.emptyIterator(); // no diagonal
@@ -214,7 +220,7 @@ public class LineRowMultiply implements RowMultiplyOp {
       k = new Key(doCat(Mrow, ATcolQ, newrow),
           ATcolF.getBackingArray(),
           doCat(Mrow, BcolQ, newcol),
-          newVisibility, System.currentTimeMillis());
+          useNewVisibility ? newVisibility : GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis());
       // reuse object instead of new one each time?
       return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(k, winPerEdgeValue));
     }

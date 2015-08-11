@@ -19,10 +19,11 @@ import java.util.Map;
 public class EdgeBFSMultiply implements MultiplyOp, Iterator<Map.Entry<Key,Value>> {
   private static final Logger log = LogManager.getLogger(EdgeBFSMultiply.class);
 
-  public static final String NEW_VISIBILITY = "newVisibility";
+  public static final String NEW_VISIBILITY = "newVisibility", USE_NEW_VISIBILITY = "useNewVisibility";
 
 //  private Text outColumnPrefix, inColumnPrefix;
-  private byte[] newVisibility = new byte[0];
+  private boolean useNewVisibility = false;
+  private byte[] newVisibility = null;
 
 //  private enum FILTER_MODE { NONE, SIMPLE, RANGES }
 //  private Collection<Text> simpleFilter;
@@ -37,6 +38,7 @@ public class EdgeBFSMultiply implements MultiplyOp, Iterator<Map.Entry<Key,Value
       switch (entry.getKey()) {
 //        case "outColumnPrefix": outColumnPrefix = new Text(v); break;
 //        case "inColumnPrefix": inColumnPrefix = new Text(v); break;
+        case USE_NEW_VISIBILITY: useNewVisibility = Boolean.parseBoolean(v); break;
         case NEW_VISIBILITY: newVisibility = v.getBytes(StandardCharsets.UTF_8); break;
         default:
           log.warn("Unrecognized option: " + entry);
@@ -53,8 +55,8 @@ public class EdgeBFSMultiply implements MultiplyOp, Iterator<Map.Entry<Key,Value
 
 
   @Override
-  public Iterator<? extends Map.Entry<Key, Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence BcolF, ByteSequence BcolQ,
-                                                            Value ATval, Value Bval) {
+  public Iterator<? extends Map.Entry<Key, Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence ATcolVis, ByteSequence BcolF, ByteSequence BcolQ,
+                                                            ByteSequence BcolVis, Value ATval, Value Bval) {
     // maybe todo: check whether ATcolQ is of the form "out|v0"
 //    if (ATcolQ.length() < outColumnPrefix.getLength() ||
 //        0 != WritableComparator.compareBytes(ATcolQ.getBackingArray(), 0, outColumnPrefix.getLength(), outColumnPrefix.getBytes(), 0, outColumnPrefix.getLength())) {
@@ -62,9 +64,9 @@ public class EdgeBFSMultiply implements MultiplyOp, Iterator<Map.Entry<Key,Value
 //      return;
 //    }
     emitKeyFirst = new Key(Mrow.getBackingArray(), ATcolF.getBackingArray(), ATcolQ.getBackingArray(),
-        newVisibility, System.currentTimeMillis()); // experiment with copy=false?
+        useNewVisibility ? newVisibility : ATcolVis.getBackingArray(), System.currentTimeMillis()); // experiment with copy=false?
     emitKeySecond = new Key(Mrow.getBackingArray(), BcolF.getBackingArray(), BcolQ.getBackingArray(),
-        newVisibility, System.currentTimeMillis()); // experiment with copy=false?
+        useNewVisibility ? newVisibility : BcolVis.getBackingArray(), System.currentTimeMillis()); // experiment with copy=false?
     emitValueFirst = new Value(ATval);
     emitValueSecond = new Value(Bval);
     return this;

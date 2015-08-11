@@ -45,7 +45,7 @@ public abstract class SimpleTwoScalar extends KeyTwoScalar implements MultiplyOp
   private static final Logger log = LogManager.getLogger(SimpleTwoScalar.class);
 
   public static final String NEW_VISIBILITY ="newVisibility";
-  protected byte[] newVisibility = GraphuloUtil.EMPTY_BYTES;
+  protected byte[] newVisibility = null;
 
   //////////////////////////////////////////////////////////////////////////////////
   /** Implements simple multiply logic. Returning null means no entry is emitted. */
@@ -80,40 +80,36 @@ public abstract class SimpleTwoScalar extends KeyTwoScalar implements MultiplyOp
   @Override
   public SimpleTwoScalar deepCopy(IteratorEnvironment env) {
     SimpleTwoScalar copy = (SimpleTwoScalar) super.deepCopy(env);
-    copy.newVisibility = Arrays.copyOf(newVisibility, newVisibility.length);
+    copy.newVisibility = newVisibility == null ? null : Arrays.copyOf(newVisibility, newVisibility.length);
     return copy;
   }
 
   // MultiplyOp
   @Override
-  public final Iterator<? extends Entry<Key, Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence BcolF, ByteSequence BcolQ, Value ATval, Value Bval) {
+  public final Iterator<? extends Entry<Key, Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence ATcolVis, ByteSequence BcolF, ByteSequence BcolQ, ByteSequence BcolVis, Value ATval, Value Bval) {
 //    System.err.println("Mrow:"+Mrow+" ATcolQ:"+ATcolQ+" BcolQ:"+BcolQ+" ATval:"+ATval+" Bval:"+Bval);
     assert ATval != null || Bval != null;
     Key k = new Key(ATcolQ.getBackingArray(), ATcolF.getBackingArray(),
-        BcolQ.getBackingArray(), newVisibility, System.currentTimeMillis());
+        BcolQ.getBackingArray(), newVisibility == null ? GraphuloUtil.EMPTY_BYTES : newVisibility, System.currentTimeMillis());
     Value v = reverse ? multiply(Bval, ATval) : multiply(ATval, Bval);
-    return v == null ? Collections.<Entry<Key,Value>>emptyIterator() : Iterators.singletonIterator((Entry<Key, Value>) new SimpleImmutableEntry<>(k, v));
+    return v == null ? Collections.<Entry<Key,Value>>emptyIterator() : Iterators.singletonIterator(new SimpleImmutableEntry<>(k, v));
   }
 
   // EWiseOp
   @Override
-  public final Iterator<? extends Entry<Key, Value>> multiply(ByteSequence Mrow, ByteSequence McolF, ByteSequence McolQ, Value Aval, Value Bval) {
+  public final Iterator<? extends Entry<Key, Value>> multiply(ByteSequence Mrow, ByteSequence McolF, ByteSequence McolQ, ByteSequence McolVis, Value Aval, Value Bval) {
     // Important!  Aval xor Bval could be null, if emitNoMatchA or emitNoMatchB are true in TwoTableIterator.
     // Decision is to emit the non-matching entries untouched by the operation.  This is a *SIMPLETwoScalar* operator.
     assert Aval != null || Bval != null;
+    final Key k = new Key(Mrow.getBackingArray(), McolF.getBackingArray(),
+        McolQ.getBackingArray(), newVisibility == null ? McolVis.getBackingArray() : newVisibility, System.currentTimeMillis());
     if (Aval == null)
-      return Iterators.singletonIterator((Entry<Key, Value>) new SimpleImmutableEntry<>(
-          new Key(Mrow.getBackingArray(), McolF.getBackingArray(), McolQ.getBackingArray(), newVisibility, System.currentTimeMillis()),
-          Bval));
+      return Iterators.singletonIterator(new SimpleImmutableEntry<>(k, Bval));
     if (Bval == null)
-      return Iterators.singletonIterator((Entry<Key, Value>) new SimpleImmutableEntry<>(
-          new Key(Mrow.getBackingArray(), McolF.getBackingArray(), McolQ.getBackingArray(), newVisibility, System.currentTimeMillis()),
-          Aval));
+      return Iterators.singletonIterator(new SimpleImmutableEntry<>(k, Aval));
 
-    Key k = new Key(Mrow.getBackingArray(), McolF.getBackingArray(),
-        McolQ.getBackingArray(), newVisibility, System.currentTimeMillis());
     Value v = reverse ? multiply(Bval, Aval) : multiply(Aval, Bval);
-    return v == null ? Collections.<Entry<Key,Value>>emptyIterator() : Iterators.singletonIterator((Entry<Key, Value>) new SimpleImmutableEntry<>(k, v));
+    return v == null ? Collections.<Entry<Key,Value>>emptyIterator() : Iterators.singletonIterator(new SimpleImmutableEntry<>(k, v));
   }
 
   @Override

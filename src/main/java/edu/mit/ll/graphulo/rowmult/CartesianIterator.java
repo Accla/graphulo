@@ -69,7 +69,8 @@ public class CartesianIterator implements Iterator<Map.Entry<Key, Value>> {
     assert e1.getKey().getRowData().compareTo(e2.getKey().getRowData()) == 0;
     Key k1 = e1.getKey(), k2 = e2.getKey();
     return multiplyOp.multiply(k1.getRowData(), k1.getColumnFamilyData(), k1.getColumnQualifierData(),
-        k2.getColumnFamilyData(), k2.getColumnQualifierData(), e1.getValue(), e2.getValue());
+        k1.getColumnVisibilityData(), k2.getColumnFamilyData(), k2.getColumnQualifierData(), k2.getColumnVisibilityData(),
+        e1.getValue(), e2.getValue());
   }
 
   @Override

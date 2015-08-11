@@ -553,7 +553,7 @@ public class TwoTableIterator implements SaveStateIterator {
         break;
       case EWISE:
       case NONE:
-        pk = PartialKey.ROW_COLFAM_COLQUAL;
+        pk = PartialKey.ROW_COLFAM_COLQUAL_COLVIS;
         break;
     }
 
@@ -597,8 +597,8 @@ public class TwoTableIterator implements SaveStateIterator {
               case EWISE:
                 emitted = remoteAT.getTopKey();
                 bottomIter = new PeekingIterator2<>(
-                    eWiseOp.multiply(remoteAT.getTopKey().getRowData(), remoteAT.getTopKey().getColumnFamilyData(),
-                        remoteAT.getTopKey().getColumnQualifierData(), remoteAT.getTopValue(), null));
+                    eWiseOp.multiply(emitted.getRowData(), emitted.getColumnFamilyData(),
+                        emitted.getColumnQualifierData(), emitted.getColumnVisibilityData(), remoteAT.getTopValue(), null));
                 remoteAT.next();
                 continue TOPLOOP;
               case NONE:
@@ -623,8 +623,8 @@ public class TwoTableIterator implements SaveStateIterator {
               case EWISE:
                 emitted = remoteB.getTopKey();
                 bottomIter = new PeekingIterator2<>(
-                    eWiseOp.multiply(remoteB.getTopKey().getRowData(), remoteB.getTopKey().getColumnFamilyData(),
-                        remoteB.getTopKey().getColumnQualifierData(), null, remoteB.getTopValue()));
+                    eWiseOp.multiply(emitted.getRowData(), emitted.getColumnFamilyData(),
+                        emitted.getColumnQualifierData(), emitted.getColumnVisibilityData(), null, remoteB.getTopValue()));
                 remoteB.next();
                 continue TOPLOOP;
               case NONE:
@@ -650,8 +650,9 @@ public class TwoTableIterator implements SaveStateIterator {
             case EWISE: {
               emitted = remoteAT.getTopKey();
               bottomIter = new PeekingIterator2<>(
-                  eWiseOp.multiply(remoteAT.getTopKey().getRowData(), remoteAT.getTopKey().getColumnFamilyData(),
-                      remoteAT.getTopKey().getColumnQualifierData(), remoteAT.getTopValue(), remoteB.getTopValue()));
+                  eWiseOp.multiply(emitted.getRowData(), emitted.getColumnFamilyData(),
+                      emitted.getColumnQualifierData(), emitted.getColumnVisibilityData(),
+                      remoteAT.getTopValue(), remoteB.getTopValue()));
               remoteAT.next();
               remoteB.next();
               continue TOPLOOP;

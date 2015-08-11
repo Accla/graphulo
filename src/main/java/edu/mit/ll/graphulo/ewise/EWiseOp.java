@@ -45,11 +45,11 @@ public interface EWiseOp {
    * @param Mrow  Pointer to data for matching row. Do not modify.
    * @param McolF Pointer to data for matching column family. Do not modify.
    * @param McolQ Pointer to data for matching column qualifier. Do not modify.
-   * @param Aval  Pointer to data for A value. Do not modify. May be null in the case of <tt>emitNoMatchB</tt>.
-   * @param Bval  Pointer to data for B value. Do not modify. May be null in the case of <tt>emitNoMatchA</tt>.
-   * @return Iterator over result of multiplying the two entries. Use {@link Collections#emptyIterator()} if no entries to emit.
+   * @param McolVis
+   *@param Aval  Pointer to data for A value. Do not modify. May be null in the case of <tt>emitNoMatchB</tt>.
+   * @param Bval  Pointer to data for B value. Do not modify. May be null in the case of <tt>emitNoMatchA</tt>.   @return Iterator over result of multiplying the two entries. Use {@link Collections#emptyIterator()} if no entries to emit.
    */
   Iterator<? extends Map.Entry<Key, Value>> multiply(ByteSequence Mrow, ByteSequence McolF, ByteSequence McolQ,
-                                                     Value Aval, Value Bval);
+                                                     ByteSequence McolVis, Value Aval, Value Bval);
 
 }

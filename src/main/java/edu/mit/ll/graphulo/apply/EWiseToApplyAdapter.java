@@ -64,9 +64,9 @@ public class EWiseToApplyAdapter implements ApplyOp {
         McolQ = k.getColumnQualifierData();
     switch (fixSide) {
       case FIX_LEFT:
-        return eWiseOp.multiply(Mrow, McolF, McolQ, fixedValue, v);
+        return eWiseOp.multiply(Mrow, McolF, McolQ, null, fixedValue, v);
       case FIX_RIGHT:
-        return eWiseOp.multiply(Mrow, McolF, McolQ, v, fixedValue);
+        return eWiseOp.multiply(Mrow, McolF, McolQ, null, v, fixedValue);
       default:
         throw new AssertionError();
     }

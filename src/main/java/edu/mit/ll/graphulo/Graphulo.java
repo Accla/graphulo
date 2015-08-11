@@ -1,6 +1,7 @@
 package edu.mit.ll.graphulo;
 
 import com.google.common.base.Preconditions;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import edu.mit.ll.graphulo.apply.ApplyIterator;
 import edu.mit.ll.graphulo.apply.JaccardDegreeApply;
 import edu.mit.ll.graphulo.apply.KeyRetainOnlyApply;
@@ -1221,6 +1222,7 @@ public class Graphulo {
     opt.put("dotmode", TwoTableIterator.DOTMODE.ROW.name());
     opt.put("multiplyOp", EdgeBFSMultiply.class.getName());
     if (newVisibility != null && !newVisibility.isEmpty())
+      opt.put("multiplyOp.opt."+EdgeBFSMultiply.USE_NEW_VISIBILITY, Boolean.toString(true));
       opt.put("multiplyOp.opt."+EdgeBFSMultiply.NEW_VISIBILITY, newVisibility);
 //    opt.put("AT.zookeeperHost", zookeepers);
 //    opt.put("AT.instanceName", instance);
@@ -1744,8 +1746,10 @@ public class Graphulo {
     opt.put("rowMultiplyOp.opt."+LineRowMultiply.SEPARATOR, separator);
     opt.put("rowMultiplyOp.opt."+LineRowMultiply.ISDIRECTED, Boolean.toString(isDirected));
     opt.put("rowMultiplyOp.opt."+LineRowMultiply.INCLUDE_EXTRA_CYCLES, Boolean.toString(includeExtraCycles));
-    if (newVisibility != null && !newVisibility.isEmpty())
-      opt.put("rowMultiplyOp.opt."+LineRowMultiply.NEW_VISIBILITY, newVisibility);
+    if (newVisibility != null && !newVisibility.isEmpty()) {
+      opt.put("rowMultiplyOp.opt." + LineRowMultiply.USE_NEW_VISIBILITY, Boolean.toString(true));
+      opt.put("rowMultiplyOp.opt." + LineRowMultiply.NEW_VISIBILITY, newVisibility);
+    }
 
     TwoTable(ATtable, Atable, Rtable, RTtable, BScanIteratorPriority,
         TwoTableIterator.DOTMODE.ROW, opt, plusOp,

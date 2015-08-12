@@ -9,7 +9,7 @@
   <version>0.0.1-SNAPSHOT</version>
   <packaging>jar</packaging>
   <description>
-    Graphulo: Accumulo library of matrix math primitives and graph algorithms. Includes d4m_api_java.
+    Graphulo: Accumulo library of matrix math primitives and graph algorithms.
   </description>
   <url>http://graphulo.mit.edu/</url>
   <organization>
@@ -17,6 +17,11 @@
     <url>https://www.ll.mit.edu/</url>
   </organization>
   <inceptionYear>2014</inceptionYear>
+  <scm>
+    <url>https://github.com/Accla/graphulo</url>
+    <connection>scm:git:git@github.com:Accla/graphulo.git</connection>
+    <developerConnection>scm:git:git@github.com:Accla/graphulo.git</developerConnection>
+  </scm>
 
   <properties>
     <DBinit.path.libextFolder>libext/</DBinit.path.libextFolder>

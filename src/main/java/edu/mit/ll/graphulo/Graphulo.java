@@ -1135,6 +1135,8 @@ public class Graphulo {
    * @param Eauthorizations Authorizations for scanning Etable. Null means use default: Authorizations.EMPTY
    * @param EDegauthorizations Authorizations for scanning EDegtable. Null means use default: Authorizations.EMPTY
    * @param newVisibility Visibility label for new entries created in Rtable and/or RTtable. Null means use the visibility of the parent keys.
+   *                      Important: this is one option for which null (don't change the visibiltity) is distinguished from the empty string
+   *                      (set the visibility of all Keys seen to the empty visibility).
    * @param outputUnion Whether to output nodes reachable in EXACTLY (false) or UP TO (true) k BFS steps.
    * @return  The nodes reachable in EXACTLY k steps from v0, unless outputUnion is true.
    */
@@ -1221,9 +1223,10 @@ public class Graphulo {
 //    opt.put("gatherColQs", "true");  No gathering right now.  Need to implement more general gathering function on RemoteWriteIterator.
     opt.put("dotmode", TwoTableIterator.DOTMODE.ROW.name());
     opt.put("multiplyOp", EdgeBFSMultiply.class.getName());
-    if (newVisibility != null && !newVisibility.isEmpty())
-      opt.put("multiplyOp.opt."+EdgeBFSMultiply.USE_NEW_VISIBILITY, Boolean.toString(true));
-      opt.put("multiplyOp.opt."+EdgeBFSMultiply.NEW_VISIBILITY, newVisibility);
+    if (newVisibility != null && !newVisibility.isEmpty()) {
+      opt.put("multiplyOp.opt." + EdgeBFSMultiply.USE_NEW_VISIBILITY, Boolean.toString(true));
+      opt.put("multiplyOp.opt." + EdgeBFSMultiply.NEW_VISIBILITY, newVisibility);
+    }
 //    opt.put("AT.zookeeperHost", zookeepers);
 //    opt.put("AT.instanceName", instance);
     opt.put("AT.tableName", TwoTableIterator.CLONESOURCE_TABLENAME);

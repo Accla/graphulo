@@ -17,6 +17,7 @@ import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -705,9 +706,13 @@ public class BFSTest extends AccumuloTestBase {
     Collection<Text> u3expect = GraphuloUtil.d4mRowToTexts("v0,vBig,");
 
     {
+      MutableLong numEntriesWritten = new MutableLong();
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      String u3actual = graphulo.EdgeBFS(tE, v0, 3, tR, tRT, "out|,", "in|,", tETDeg, "", true, 1, 2, Graphulo.PLUS_ITERATOR_BIGDECIMAL, 1, Authorizations.EMPTY, Authorizations.EMPTY, null, false);
+      String u3actual = graphulo.EdgeBFS(tE, v0, 3, tR, tRT, "out|,", "in|,", tETDeg, "", true, 1, 2,
+          Graphulo.PLUS_ITERATOR_BIGDECIMAL, 1, Authorizations.EMPTY, Authorizations.EMPTY, null, false,
+          numEntriesWritten);
       Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
+      Assert.assertEquals(12l, numEntriesWritten.longValue());
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
       scanner.setRanges(Collections.singleton(new Range()));
@@ -730,9 +735,13 @@ public class BFSTest extends AccumuloTestBase {
     conn.tableOperations().delete(tR);
     conn.tableOperations().delete(tRT);
     {
+      MutableLong numEntriesWritten = new MutableLong();
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      String u3actual = graphulo.EdgeBFS(tE, v0, 3, tR, tRT, "out|,afedfafe,", "in|,", tETDeg, "", true, 1, 2, Graphulo.PLUS_ITERATOR_BIGDECIMAL, -1, Authorizations.EMPTY, Authorizations.EMPTY, "", false);
+      String u3actual = graphulo.EdgeBFS(tE, v0, 3, tR, tRT, "out|,afedfafe,", "in|,", tETDeg, "", true, 1, 2,
+          Graphulo.PLUS_ITERATOR_BIGDECIMAL, -1, Authorizations.EMPTY, Authorizations.EMPTY, "", false,
+          numEntriesWritten);
       Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
+      Assert.assertEquals(12l, numEntriesWritten.longValue());
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
       scanner.setRanges(Collections.singleton(new Range()));
@@ -756,7 +765,8 @@ public class BFSTest extends AccumuloTestBase {
     v0 = "v0,:,v000,";
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      String u3actual = graphulo.EdgeBFS(tE, v0, 3, tR, tRT, "out|,", "in|,", tETDeg, "", true, 1, 2, Graphulo.PLUS_ITERATOR_BIGDECIMAL, -1, Authorizations.EMPTY, Authorizations.EMPTY, "", false);
+      String u3actual = graphulo.EdgeBFS(tE, v0, 3, tR, tRT, "out|,", "in|,", tETDeg, "", true, 1, 2,
+          Graphulo.PLUS_ITERATOR_BIGDECIMAL, -1, Authorizations.EMPTY, Authorizations.EMPTY, "", false);
       Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -792,7 +802,7 @@ public class BFSTest extends AccumuloTestBase {
    * </pre>
    */
   @Test
-  public void testEdgeBFS_MultiEdge() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
+  public void testEdgeBFS_Multi_Hyper() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
     Connector conn = tester.getConnector();
     final String tE, tETDeg, tR, tRT;
     {
@@ -809,20 +819,22 @@ public class BFSTest extends AccumuloTestBase {
 
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("e0", "", "outA|v0"), new Value("5".getBytes()));
-      input.put(new Key("e0", "", "in|v1"), new Value("5".getBytes()));
-      input.put(new Key("e1", "", "out|v1"), new Value("2".getBytes()));
-      input.put(new Key("e1", "", "HEYHEY|v2"), new Value("2".getBytes()));
-      input.put(new Key("e2", "", "outB|v2"), new Value("4".getBytes()));
-      input.put(new Key("e2", "", "in|v0"), new Value("4".getBytes()));
-      input.put(new Key("e3", "", "out|v0"), new Value("7".getBytes()));
-      input.put(new Key("e3", "", "in|vBig"), new Value("7".getBytes()));
-      input.put(new Key("e4", "", "v1"), new Value("7".getBytes()));
-      input.put(new Key("e4", "", "in|vBig"), new Value("7".getBytes()));
-      input.put(new Key("e5", "", "outA|v2"), new Value("7".getBytes()));
-      input.put(new Key("e5", "", "in|vBig"), new Value("7".getBytes()));
+      input.put(new Key("e0", "", "outA|v0"), new Value("5".getBytes()));   /////1
+      input.put(new Key("e0", "", "in|v1"), new Value("5".getBytes()));     /////1 v1
+      input.put(new Key("e1", "", "out|v1"), new Value("2".getBytes()));    /////2
+      input.put(new Key("e1", "", "HEYHEY|v2"), new Value("2".getBytes())); /////2 v2
+      input.put(new Key("e1", "", "HEYHEY|vBig"), new Value("2".getBytes())); /////2 vBig ! Repeated twice
+      input.put(new Key("e2", "", "outB|v2"), new Value("4".getBytes()));   /////3
+      input.put(new Key("e2", "", "in|v0"), new Value("4".getBytes()));     /////3 v0
+      input.put(new Key("e3", "", "out|v0"), new Value("7".getBytes()));    /////1
+      input.put(new Key("e3", "", "in|vBig"), new Value("7".getBytes()));   /////1 vBig
+      input.put(new Key("e4", "", "v1"), new Value("7".getBytes()));        /////2
+      input.put(new Key("e4", "", "in|vBig"), new Value("7".getBytes()));   /////2 vBig
+      input.put(new Key("e5", "", "outA|v2"), new Value("7".getBytes()));   /////3
+      input.put(new Key("e5", "", "in|vBig"), new Value("7".getBytes()));   /////3 vBig
       expect.putAll(input);
-      expectTranspose.putAll(GraphuloUtil.transposeMap(input));
+      expect.put(new Key("e1", "", "out|v1"), new Value("4".getBytes())); // double b/c repeated twice
+      expectTranspose.putAll(GraphuloUtil.transposeMap(expect));
       input.put(new Key("e6", "", "outA|vBig"), new Value("9".getBytes()));
       input.put(new Key("e6", "", "HEYHEY|v0"), new Value("9".getBytes()));
       input.put(new Key("e7", "", "out|vBig"), new Value("9".getBytes()));
@@ -848,9 +860,14 @@ public class BFSTest extends AccumuloTestBase {
     Collection<Text> u3expect = GraphuloUtil.d4mRowToTexts("v0,vBig,");
 
     {
+      MutableLong numEntriesWritten = new MutableLong();
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      String u3actual = graphulo.EdgeBFS(tE, v0, 3, tR, tRT, "out|,outB|,outA|,,", "in|,HEYHEY|,", tETDeg, "", true, 1, 2, Graphulo.PLUS_ITERATOR_BIGDECIMAL, -1, Authorizations.EMPTY, Authorizations.EMPTY, "", false);
+      String u3actual = graphulo.EdgeBFS(tE, v0, 3, tR, tRT, "out|,outB|,outA|,,", "in|,HEYHEY|,", tETDeg, "", true,
+          1, 2, Graphulo.PLUS_ITERATOR_BIGDECIMAL, -1, Authorizations.EMPTY, Authorizations.EMPTY, "", false,
+          numEntriesWritten);
       Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
+//      DebugUtil.printTable("hyper e1", conn, tR, 9);
+      Assert.assertEquals(14l, numEntriesWritten.longValue());
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
       scanner.setRanges(Collections.singleton(new Range()));
@@ -858,6 +875,7 @@ public class BFSTest extends AccumuloTestBase {
         actual.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
+//      TestUtil.printExpectActual(expect, actual);
       Assert.assertEquals(expect, actual);
 
       scanner = conn.createBatchScanner(tRT, Authorizations.EMPTY, 2);
@@ -866,6 +884,7 @@ public class BFSTest extends AccumuloTestBase {
         actualTranspose.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
+//      TestUtil.printExpectActual(expectTranspose, actualTranspose);
       Assert.assertEquals(expectTranspose, actualTranspose);
     }
     conn.tableOperations().delete(tE);

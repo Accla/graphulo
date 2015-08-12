@@ -61,6 +61,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.trace.DistributedTrace;
+import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.math3.linear.DefaultRealMatrixChangingVisitor;
 import org.apache.commons.math3.linear.DefaultRealMatrixPreservingVisitor;
 import org.apache.commons.math3.linear.MatrixUtils;
@@ -1146,6 +1147,51 @@ public class Graphulo {
                          IteratorSetting plusOp, int EScanIteratorPriority,
                          Authorizations Eauthorizations, Authorizations EDegauthorizations, String newVisibility,
                          boolean outputUnion) {
+    return EdgeBFS(Etable, v0, k, Rtable, RTtable, startPrefixes, endPrefixes, ETDegtable, degColumn, degInColQ, minDegree, maxDegree, plusOp, EScanIteratorPriority, Eauthorizations, EDegauthorizations, newVisibility, outputUnion, null);
+  }
+
+  /**
+   * Out-degree-filtered Breadth First Search on Incidence table.
+   * Conceptually k iterations of: v0 ==startPrefixes==> edge ==endPrefixes==> v1.
+   * Works for multi-edge search.
+   *  @param Etable        Incidence table; rows are edges, column qualifiers are nodes.
+   * @param v0            Starting vertices, like "v0,v5,v6,".
+   *                      v0 may be a range of nodes like "c,:,e,g,k,:,".
+   * @param k             Number of steps.
+   * @param Rtable        Name of table to store result. Null means don't store the result.
+   * @param RTtable       Name of table to store transpose of result. Null means don't store the transpose.
+   * @param startPrefixes   D4M String of Prefixes of edge 'starts' including separator, e.g. 'outA|,outB|,'.
+*                        The "empty prefix" takes the form of ','. Required; if null or empty, assumes the empty prefix.
+   * @param endPrefixes     D4M String of Prefixes of edge 'ends' including separator, e.g. 'inA|,inB|,'.
+*                        The "empty prefix" takes the form of ','. Required; if null or empty, assumes the empty prefix.
+*                        Important for multi-edge: None of the end prefixes may be a prefix of another end prefix.
+   * @param ETDegtable    Name of table holding out-degrees for ET. Must be provided if degree filtering is used.
+   * @param degColumn   Name of column for out-degrees in ETDegtable like "deg". Null means the empty column "".
+*                    If degInColQ==true, this is the prefix before the numeric portion of the column like "deg|", and null means no prefix.
+*                    Unused if ETDegtable is null.
+   * @param degInColQ   True means degree is in the Column Qualifier. False means degree is in the Value. Unused if ETDegtable is null.
+   * @param minDegree     Minimum out-degree. Checked before doing any searching, at every step, from ADegtable. Pass 0 for no filtering.
+   * @param maxDegree     Maximum out-degree. Checked before doing any searching, at every step, from ADegtable. Pass Integer.MAX_VALUE for no filtering.
+   * @param plusOp      An SKVI to apply to the result table that "sums" values. Not applied if null.
+   * @param EScanIteratorPriority Priority to use for Table Multiplication scan-time iterator on table E
+   * @param Eauthorizations Authorizations for scanning Etable. Null means use default: Authorizations.EMPTY
+   * @param EDegauthorizations Authorizations for scanning EDegtable. Null means use default: Authorizations.EMPTY
+   * @param newVisibility Visibility label for new entries created in Rtable and/or RTtable. Null means use the visibility of the parent keys.
+   *                      Important: this is one option for which null (don't change the visibiltity) is distinguished from the empty string
+   *                      (set the visibility of all Keys seen to the empty visibility).
+   * @param outputUnion Whether to output nodes reachable in EXACTLY (false) or UP TO (true) k BFS steps.
+   * @param numEntriesWritten An output variable that stores the number of entries passed through the RemoteWriteIterator
+   *                          (two times this number is written to Accumulo if both the output table and transpose is used).
+   *                          Default null means don't count the number of entries written.
+   *                          Whatever value is inside a passed non-null object is overwritten.
+   * @return  The nodes reachable in EXACTLY k steps from v0, unless outputUnion is true.
+   */
+  public String  EdgeBFS(String Etable, String v0, int k, String Rtable, String RTtable,
+                         String startPrefixes, String endPrefixes,
+                         String ETDegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree,
+                         IteratorSetting plusOp, int EScanIteratorPriority,
+                         Authorizations Eauthorizations, Authorizations EDegauthorizations, String newVisibility,
+                         boolean outputUnion, MutableLong numEntriesWritten) {
     boolean needDegreeFiltering = minDegree > 1 || maxDegree < Integer.MAX_VALUE;
     if (Etable == null || Etable.isEmpty())
       throw new IllegalArgumentException("Please specify Incidence table. Given: " + Etable);
@@ -1166,6 +1212,8 @@ public class Graphulo {
     Collection<String> allReachedNodes = null;
     if (outputUnion)
       allReachedNodes = new HashSet<>();
+    if (numEntriesWritten != null)
+      numEntriesWritten.setValue(0);
 
     if (degColumn == null)
       degColumn = "";
@@ -1310,7 +1358,9 @@ public class Graphulo {
         long t2 = System.currentTimeMillis();
         for (Map.Entry<Key, Value> entry : bs) {
 //        System.out.println("A Entry: "+entry.getKey() + " -> " + entry.getValue());
-          RemoteWriteIterator.decodeValue(entry.getValue(), reducer);
+          long c = RemoteWriteIterator.decodeValue(entry.getValue(), reducer);
+          if (numEntriesWritten != null)
+            numEntriesWritten.add(c);
         }
         long dur = System.currentTimeMillis() - t2;
         scanTime += dur;
@@ -1459,6 +1509,8 @@ public class Graphulo {
    * @param degSumType    Only used if computeInDegrees==true. If null, then the computed degrees are the count of colunns.
    *                      If not null, then the values of all entries the node is connected to are summed according to degSumType decoding.
    * @param newVisibility Only used if computeInDegrees==true. The visibility to apply to new Keys written to SDegtable.
+   *                      Unlike other functions, this is used no matter what since the new Keys do not have any parent Keys to inherit visibility from.
+   *                      Null means use empty visibility.
    * @param minDegree      Minimum out-degree. Checked before doing any searching, at every step, from SDegtable. Pass 0 for no filtering.
    * @param maxDegree      Maximum out-degree. Checked before doing any searching, at every step, from SDegtable. Pass Integer.MAX_VALUE for no filtering.
    * @param plusOp         An SKVI to apply to the result table that "sums" values. Not applied if null.
@@ -2278,7 +2330,7 @@ public class Graphulo {
 
     boolean DBG = false;
     if (DBG)
-      DebugUtil.printTable("0: W is NxK:", connector, Wfinal);
+      DebugUtil.printTable("0: W is NxK:", connector, Wfinal, 5);
 
     // No need to actually measure N and M
 ////    long N = countRows(Aorig);
@@ -2306,12 +2358,12 @@ public class Graphulo {
         nmfStep(K, Wfinal, Aorig, Hfinal, HTfinal, Ttmp1, Ttmp2, cutoffThreshold, maxColsPerTopic);
       }
       if (DBG)
-        DebugUtil.printTable(numiter + ": H is KxM:", connector, Hfinal);
+        DebugUtil.printTable(numiter + ": H is KxM:", connector, Hfinal, 5);
       try (TraceScope scope = Trace.startSpan("nmfStepToW", Sampler.ALWAYS)) {
         nmfStep(K, HTfinal, ATorig, WTfinal, Wfinal, Ttmp1, Ttmp2, cutoffThreshold, -1);
       }
       if (DBG)
-        DebugUtil.printTable(numiter + ": W is NxK:", connector, Wfinal);
+        DebugUtil.printTable(numiter + ": W is NxK:", connector, Wfinal, 5);
 
       if (numiter > 1) {
         try (TraceScope scope = Trace.startSpan("nmfFro", Sampler.ALWAYS)) {
@@ -2389,7 +2441,7 @@ public class Graphulo {
         MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE, false),
         null, null, null, false, false, null, null, PRESUMITER, null, null, -1, Authorizations.EMPTY, Authorizations.EMPTY);
     if (Trace.isTracing())
-      DebugUtil.printTable("WH is NxM:", connector, WHtmp);
+      DebugUtil.printTable("WH is NxM:", connector, WHtmp, 5);
 
     // Step 2: A - WH => ^2 => ((+all)) => Client w/ Reducer => Sq.Root. => newerr return
     // Prep.
@@ -2438,7 +2490,7 @@ public class Graphulo {
           null, null, null, false, false, null, null, PRESUMITER, null, null, -1, Authorizations.EMPTY, Authorizations.EMPTY);
     }
     if (DBG)
-      DebugUtil.printTable("tmp1 is KxK:", connector, tmp1);
+      DebugUtil.printTable("tmp1 is KxK:", connector, tmp1, 5);
 
     // Step 2: tmp1 => tmp1 inverse.
     try (TraceScope scope = Trace.startSpan("nmf2Inverse")) {
@@ -2462,7 +2514,7 @@ public class Graphulo {
       throw new RuntimeException(e);
     }
     if (DBG)
-      DebugUtil.printTable("tmp1 INVERSE is KxK:", connector, tmp1);
+      DebugUtil.printTable("tmp1 INVERSE is KxK:", connector, tmp1, 5);
 
     // Step 3: in1^T * in2 => tmp2.  This can run concurrently with step 1 and 2.
     try (TraceScope scope = Trace.startSpan("nmf3TableMult")) {

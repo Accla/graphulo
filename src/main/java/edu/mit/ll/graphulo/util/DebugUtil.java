@@ -21,7 +21,7 @@ import java.util.TreeSet;
 public class DebugUtil {
 
 
-  public static void printTable(String header, Connector conn, String table) {
+  public static void printTable(String header, Connector conn, String table, Integer w) {
     if (header != null)
       System.out.println(header);
     Scanner scan;
@@ -30,12 +30,15 @@ public class DebugUtil {
     } catch (TableNotFoundException e) {
       throw new RuntimeException(e);
     }
-    printMapFull(scan.iterator());
+    printMapFull(scan.iterator(), w);
     scan.close();
   }
 
 
-  public static void printMapFull(Iterator<Map.Entry<Key, Value>> iter) {
+  /** @param w Label Width of rows and columns; default 5 */
+  public static void printMapFull(Iterator<Map.Entry<Key, Value>> iter, Integer w) {
+    if (w == null)
+      w = 5;
     SortedSet<String> columnSet = new TreeSet<>();
     SortedMap<String,SortedMap<String,Value>> rowToColumnMap = new TreeMap<>();
 
@@ -51,7 +54,7 @@ public class DebugUtil {
 
         columnSet.add(col);
         if (!row.equals(curRow)) {
-          curRow = k.getRow().toString();
+          curRow = row;
           curRowMap = new TreeMap<>();
           rowToColumnMap.put(curRow, curRowMap);
         }
@@ -60,9 +63,9 @@ public class DebugUtil {
     }
 
     // print columns
-    System.out.printf("%5s ", "");
+    System.out.printf("%"+w+"s ", "");
     for (String col : columnSet) {
-      System.out.printf("%5s ", col.substring(0, Math.min(5, col.length())));
+      System.out.printf("%"+w+"s ", col.substring(0, Math.min(w, col.length())));
     }
     System.out.println();
 
@@ -70,14 +73,14 @@ public class DebugUtil {
     for (Map.Entry<String, SortedMap<String, Value>> rowEntry : rowToColumnMap.entrySet()) {
       String row = rowEntry.getKey();
       SortedMap<String, Value> colMap = rowEntry.getValue();
-      System.out.printf("%5s ", row.substring(0, Math.min(5, row.length())));
+      System.out.printf("%"+w+"s ", row.substring(0, Math.min(w, row.length())));
 
       for (String col : columnSet) {
         if (colMap.containsKey(col)) {
           String v = colMap.get(col).toString();
-          System.out.printf("%5s ", v.substring(0, Math.min(5, v.length())));
+          System.out.printf("%"+w+"s ", v.substring(0, Math.min(w, v.length())));
         } else {
-          System.out.printf("%5s ", "");
+          System.out.printf("%"+w+"s ", "");
         }
       }
       System.out.println();

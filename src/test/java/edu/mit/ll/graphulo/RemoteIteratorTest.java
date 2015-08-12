@@ -376,7 +376,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     itprops.remove(RemoteSourceIterator.COLFILTER); //, "a,b,:,b2,b3,c,:,cq15,"); // *
     IteratorSetting itsetFilter = new IteratorSetting(1, ColumnSliceFilter.class);
     ColumnSliceFilter.setSlice(itsetFilter, "c", "cq15");
-    DynamicIteratorSetting dis = new DynamicIteratorSetting();
+    DynamicIteratorSetting dis = new DynamicIteratorSetting(10, null);
     dis.append(itsetFilter);
     itprops.putAll(dis.buildSettingMap(RemoteSourceIterator.ITER_PREFIX));
 

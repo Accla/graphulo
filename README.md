@@ -387,6 +387,21 @@ for functions that take string arguments. Differentiating between them would cre
 
 ### Iterators
 
+##### Important Points
+Be careful about Iterator names and priorities.  
+Each iterator must have a unique name and unique priority for each scope 
+(scan, minor compaction, and major compaction).
+Iterator priority determines the order in which iterators are run.
+Mkae sure iterators run in the correct order intended.
+ 
+By default, combiners placed on result tables run at priority 6, 
+whereas the main OneTable and TwoTable operations run at priority 7.
+These can be user-configured.
+
+Using the same name for two iterators on the same table in the same scope
+may result in exceptions at best and logical errors at worst.
+Be especially careful with the name of a DynamicIterator.
+
 ##### RemoteSourceIterator
 * `rowRanges` Row ranges to fetch from remote Accumulo table, Matlab syntax. (default ":," all) 
 * `colFilter` String representation of column qualifiers, e.g. "a,b,c,".

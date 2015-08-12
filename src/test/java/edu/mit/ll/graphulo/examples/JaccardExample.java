@@ -93,10 +93,10 @@ public class JaccardExample extends AccumuloTestBase {
     // It must be run once more at the client to aggregate across tablets.
     // See ClientSideIteratorAggregatingScanner, which is usable because
     // we can hold one entry from each tablet in memory.
-    IteratorSetting scanIters = new DynamicIteratorSetting()
+    IteratorSetting scanIters = new DynamicIteratorSetting(19, "statsCombineAll")
         .append(KeyRetainOnlyApply.iteratorSetting(1, null))
         .append(DoubleStatsCombiner.iteratorSetting(1, null))
-        .toIteratorSetting(19, "statsCombineAll");
+        .toIteratorSetting();
     BatchScanner bs = conn.createBatchScanner(Rtable, Authorizations.EMPTY, 2);
     bs.setRanges(Collections.singleton(new Range()));   // Scan whole table.
     bs.addScanIterator(scanIters);  // Run at server.

@@ -962,11 +962,11 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
         }
       }
     }
-    DynamicIteratorSetting dis = new DynamicIteratorSetting()
+    DynamicIteratorSetting dis = new DynamicIteratorSetting(priority, name == null ? "TableMultIterator" : name)
         .append(new IteratorSetting(1, TwoTableIterator.class, optDM));
     if (!optC.isEmpty())
       dis.append(new IteratorSetting(1, RemoteWriteIterator.class, optC));
-    return dis.toIteratorSetting(priority, name == null ? "TableMultIterator" : name);
+    return dis.toIteratorSetting();
   }
 
 }

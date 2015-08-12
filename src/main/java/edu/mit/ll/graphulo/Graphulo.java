@@ -98,6 +98,7 @@ import java.util.TreeSet;
 public class Graphulo {
   private static final Logger log = LogManager.getLogger(Graphulo.class);
 
+  public static final int DEFAULT_COMBINER_PRIORITY = 6;
   public static final IteratorSetting PLUS_ITERATOR_BIGDECIMAL =
             MathTwoScalar.combinerSetting(6, null, ScalarOp.PLUS, ScalarType.BIGDECIMAL, false);
   public static final IteratorSetting PLUS_ITERATOR_LONG =
@@ -560,17 +561,17 @@ public class Graphulo {
     } else
       bs.setRanges(Collections.singleton(new Range()));
 
-    DynamicIteratorSetting dis = new DynamicIteratorSetting();
+    DynamicIteratorSetting dis = new DynamicIteratorSetting(BScanIteratorPriority, "itersBeforeA");
     for (IteratorSetting setting : iteratorsBeforeA)
       dis.append(setting);
     optTT.putAll(dis.buildSettingMap("AT.diter."));
 
-    dis = new DynamicIteratorSetting();
+    dis = new DynamicIteratorSetting(1, "itersBeforeB");
     for (IteratorSetting setting : iteratorsBeforeB)
       dis.append(setting);
     optTT.putAll(dis.buildSettingMap("B.diter."));
 
-    dis = new DynamicIteratorSetting();
+    dis = new DynamicIteratorSetting(BScanIteratorPriority, "TTiters");
     GraphuloUtil.applyGeneralColumnFilter(colFilterB, bs, dis, true);
     dis.append(new IteratorSetting(1, TwoTableIterator.class, optTT));
     for (IteratorSetting setting : iteratorsAfterTwoTable)
@@ -578,7 +579,7 @@ public class Graphulo {
 //    dis.append(new IteratorSetting(1, DebugInfoIterator.class)); // DEBUG
     if (useRWI)
       dis.append(new IteratorSetting(1, RemoteWriteIterator.class, optRWI));
-    bs.addScanIterator(dis.toIteratorSetting(BScanIteratorPriority));
+    dis.addToScanner(bs);
 
 
 
@@ -784,7 +785,7 @@ public class Graphulo {
 //    if (useRWI)
 //      optRWI.put("trace", String.valueOf(Trace.isTracing())); // logs timing on server
 
-    DynamicIteratorSetting dis = new DynamicIteratorSetting();
+    DynamicIteratorSetting dis = new DynamicIteratorSetting(AScanIteratorPriority, null);
 
     if (rowFilter != null) {
       Map<String,String> rowFilterOpt = Collections.singletonMap(RemoteSourceIterator.ROWRANGES, rowFilter);
@@ -809,7 +810,7 @@ public class Graphulo {
     if (useRWI)
       dis.append(new IteratorSetting(1, RemoteWriteIterator.class, optRWI));
 
-    dis.addToScanner(bs, AScanIteratorPriority);
+    dis.addToScanner(bs);
 
     long numEntries = 0, thisEntries;
     try {
@@ -1854,10 +1855,10 @@ public class Graphulo {
       
 
       // Filter out entries with < k-2
-      IteratorSetting sumAndFilter = new DynamicIteratorSetting()
+      IteratorSetting sumAndFilter = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, null)
         .append(PLUS_ITERATOR_LONG)
         .append(MinMaxFilter.iteratorSetting(10, ScalarType.LONG, k - 2, null))
-        .toIteratorSetting(PLUS_ITERATOR_LONG.getPriority());
+        .toIteratorSetting();
       // No Diagonal filter
       List<IteratorSetting> noDiagFilter = Collections.singletonList(
           TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.NoDiagonal));
@@ -1982,14 +1983,14 @@ public class Graphulo {
       // No Diagonal Filter
       IteratorSetting noDiagFilter = TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.NoDiagonal);
       // E*A -> sum -> ==2 -> Abs0 -> OnlyRow -> sum -> kTrussFilter -> TT_RowSelector
-      IteratorSetting itsBeforeR = new DynamicIteratorSetting()
+      IteratorSetting itsBeforeR = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, null)
           .append(PLUS_ITERATOR_LONG)
           .append(MinMaxFilter.iteratorSetting(1, ScalarType.LONG, 2, 2))
           .append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes())))
           .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))
           .append(PLUS_ITERATOR_LONG)
           .append(MinMaxFilter.iteratorSetting(10, ScalarType.LONG, k - 2, null))
-          .toIteratorSetting(PLUS_ITERATOR_LONG.getPriority());
+          .toIteratorSetting();
 
       do {
         nnzBefore = nnzAfter;
@@ -2067,10 +2068,10 @@ public class Graphulo {
     Preconditions.checkArgument(!tops.exists(Rfinal), "Output Jaccard table must not exist: Rfinal=%s", Rfinal); // this could be relaxed, at the possibility of peril
 
     // "Plus" iterator to set on Rfinal
-    IteratorSetting RPlusIteratorSetting = new DynamicIteratorSetting()
+    IteratorSetting RPlusIteratorSetting = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, null)
       .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.LONG, false))
       .append(JaccardDegreeApply.iteratorSetting(1, basicRemoteOpts(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX, ADeg, null, Aauthorizations)))
-      .toIteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority());
+      .toIteratorSetting();
 
     // use a deepCopy of the local iterator on A for the left part of the TwoTable
     long npp = TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Aorig, Rfinal, null, -1,
@@ -2117,14 +2118,14 @@ public class Graphulo {
     bs.setRanges(Collections.singleton(new Range()));
 
     {
-      DynamicIteratorSetting dis = new DynamicIteratorSetting();
+      DynamicIteratorSetting dis = new DynamicIteratorSetting(2, null);
       if (countColumns)
           dis.append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes()))); // Abs0
       dis
         .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))
         .append(PLUS_ITERATOR_BIGDECIMAL)
         .append(new IteratorSetting(1, RemoteWriteIterator.class, basicRemoteOpts("", Degtable, null, null)));
-      bs.addScanIterator(dis.toIteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority()));
+      dis.addToScanner(bs);
     }
 
     long totalRows = 0;
@@ -2185,13 +2186,13 @@ public class Graphulo {
     }
     bs.setRanges(Collections.singleton(new Range()));
 
-    bs.addScanIterator(new DynamicIteratorSetting()
+    new DynamicIteratorSetting(10, null)
         .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))  // strip to row field
         .append(new IteratorSetting(1, VersioningIterator.class))       // only count a row once
         .append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes()))) // Abs0
         .append(KeyRetainOnlyApply.iteratorSetting(1, null))            // strip all fields
         .append(PLUS_ITERATOR_BIGDECIMAL)                                  // Sum
-        .toIteratorSetting(10));
+        .addToScanner(bs);
 
     long cnt = 0l;
     try {
@@ -2262,7 +2263,7 @@ public class Graphulo {
     deleteTables(forceDelete, Ttmp1, Ttmp2, Hprev, HTprev);
 
     // Initialize W to a dense random matrix of size N x K
-    List<IteratorSetting> itCreateTopicList = new DynamicIteratorSetting()
+    List<IteratorSetting> itCreateTopicList = new DynamicIteratorSetting(1,null)
         .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))  // strip to row field
         .append(new IteratorSetting(1, VersioningIterator.class))       // only count a row once
         .append(RandomTopicApply.iteratorSetting(1, K))
@@ -2389,7 +2390,7 @@ public class Graphulo {
 
     // Step 2: A - WH => ^2 => ((+all)) => Client w/ Reducer => Sq.Root. => newerr return
     // Prep.
-    List<IteratorSetting> iterAfterMinus = new DynamicIteratorSetting()
+    List<IteratorSetting> iterAfterMinus = new DynamicIteratorSetting(1,null)
         .append(MathTwoScalar.applyOpDouble(1, true, ScalarOp.POWER, 2.0, false))
 //        .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.DOUBLE))
         .getIteratorSettingList();
@@ -2475,10 +2476,10 @@ public class Graphulo {
     // Step 4: tmp1^T * tmp2 => OnlyPositiveFilter => {out1, transpose to out2}
     // Filter out entries <= 0 after combining partial products.
     IteratorSetting sumFilterOp =
-        new DynamicIteratorSetting()
+        new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, "sumFilterOp")
         .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.DOUBLE, false))
         .append(MinMaxFilter.iteratorSetting(1, ScalarType.DOUBLE, cutoffThreshold, Double.MAX_VALUE))
-        .toIteratorSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), "sumFilterOp");
+        .toIteratorSetting();
 
     // plan to add maxColsPerTopic: write to tmp3 instead of {out1,out2}.
     // use OneTable: WholeRow => TopK => {out1,out2}

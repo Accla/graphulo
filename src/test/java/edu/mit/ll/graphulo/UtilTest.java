@@ -509,21 +509,21 @@ public class UtilTest {
 
   @Test
   public void testDynamicIteratorSetting() {
-    DynamicIteratorSetting dis = new DynamicIteratorSetting();
+    DynamicIteratorSetting dis = new DynamicIteratorSetting(5, null);
     dis.append(MinMaxFilter.iteratorSetting(1, MathTwoScalar.ScalarType.LONG, 5, null));
     dis.append(new IteratorSetting(1, MinMaxFilter.class, Collections.singletonMap("negate", Boolean.toString(true))));
 
-    IteratorSetting setting1 = dis.toIteratorSetting(5);
+    IteratorSetting setting1 = dis.toIteratorSetting();
     Map<String,String> mapCopy = new HashMap<>(setting1.getOptions());
     Assert.assertEquals(setting1,
-        DynamicIteratorSetting.fromMap(mapCopy).toIteratorSetting(5));
+        DynamicIteratorSetting.fromMap(mapCopy).toIteratorSetting());
 
-    DynamicIteratorSetting dis2 = new DynamicIteratorSetting();
+    DynamicIteratorSetting dis2 = new DynamicIteratorSetting(5, null);
     dis2.append(TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.Upper));
     dis2.prepend(setting1);
-    IteratorSetting setting2 = dis2.toIteratorSetting(5);
+    IteratorSetting setting2 = dis2.toIteratorSetting();
     Assert.assertEquals(setting2,
-        DynamicIteratorSetting.fromMap(setting2.getOptions()).toIteratorSetting(5));
+        DynamicIteratorSetting.fromMap(setting2.getOptions()).toIteratorSetting());
     log.info("DynamicIteratorSetting2: " + setting2);
   }
 

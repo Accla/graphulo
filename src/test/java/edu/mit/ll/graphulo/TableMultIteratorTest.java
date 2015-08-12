@@ -127,7 +127,7 @@ public class TableMultIteratorTest extends AccumuloTestBase {
 
     IteratorSetting itsetFilter = new IteratorSetting(1, ColumnSliceFilter.class);
     ColumnSliceFilter.setSlice(itsetFilter, "B", "B15");
-    DynamicIteratorSetting dis = new DynamicIteratorSetting();
+    DynamicIteratorSetting dis = new DynamicIteratorSetting(10, null);
     dis.append(itsetFilter);
     itprops.putAll(dis.buildSettingMap("B.diter."));
     itset = new IteratorSetting(25, TwoTableIterator.class, itprops);
@@ -256,7 +256,7 @@ public class TableMultIteratorTest extends AccumuloTestBase {
 
       IteratorSetting itsetFilter = new IteratorSetting(1, ColumnSliceFilter.class);
       ColumnSliceFilter.setSlice(itsetFilter, "B", "B15");
-      DynamicIteratorSetting dis = new DynamicIteratorSetting();
+      DynamicIteratorSetting dis = new DynamicIteratorSetting(10, null);
       dis.append(itsetFilter);
       itprops.putAll(dis.buildSettingMap("B.diter."));
 

@@ -178,10 +178,10 @@ public class CountTest extends AccumuloTestBase {
     opt.put(RemoteSourceIterator.USERNAME, user);
     opt.put(RemoteSourceIterator.PASSWORD, new String(tester.getPassword().getPassword()));
 
-    DynamicIteratorSetting dis = new DynamicIteratorSetting();
-    dis.append(new IteratorSetting(25, RowCountingIterator.class));
-    dis.append(new IteratorSetting(25, RemoteWriteIterator.class, opt));
-    scanner.addScanIterator(dis.toIteratorSetting(25));
+    DynamicIteratorSetting dis = new DynamicIteratorSetting(25, null);
+    dis.append(new IteratorSetting(111115, RowCountingIterator.class));
+    dis.append(new IteratorSetting(95, RemoteWriteIterator.class, opt));
+    scanner.addScanIterator(dis.toIteratorSetting());
 
     for (Map.Entry<Key, Value> entry : scanner) {
       log.debug(entry.getKey() + " -> " + entry.getValue() + " AS " + Key.toPrintableString(entry.getValue().get(), 0, entry.getValue().get().length, 40) + " RAW " + Arrays.toString(entry.getValue().get()));

@@ -31,6 +31,32 @@ public class DynamicIteratorSetting {
   private static final Logger log = LogManager.getLogger(DynamicIteratorSetting.class);
 
   private Deque<IteratorSetting> iteratorSettingList = new LinkedList<>();
+  private int diPriority;
+  private String diName;
+
+  public DynamicIteratorSetting(int diPriority, String diName) {
+    Preconditions.checkArgument(diPriority > 0, "iterator priority must be >0: %s", diPriority);
+    this.diPriority = diPriority;
+    if (diName == null || diName.isEmpty())
+      diName = DynamicIterator.class.getSimpleName();
+    this.diName = diName;
+  }
+
+  public int getDiPriority() {
+    return diPriority;
+  }
+
+  public void setDiPriority(int diPriority) {
+    this.diPriority = diPriority;
+  }
+
+  public String getDiName() {
+    return diName;
+  }
+
+  public void setDiName(String diName) {
+    this.diName = diName;
+  }
 
   public DynamicIteratorSetting prepend(IteratorSetting setting) {
     if (setting.getIteratorClass().equals(DynamicIterator.class.getName())) {
@@ -68,34 +94,27 @@ public class DynamicIteratorSetting {
   public Map<String,String> buildSettingMap(String pre) {
     if (pre == null) pre = "";
     Map<String,String> map = new HashMap<>();
+    map.put(pre+"0.diPriority", Integer.toString(diPriority)); // 0.diPriority -> 7
+    map.put(pre+"0.diName", diName);                           // 0.diName -> DynamicIterator
     int prio = 1;
     for (IteratorSetting setting : iteratorSettingList) {
       String prefix = pre+prio+"."+setting.getName()+".";
-      map.put(prefix+"class", setting.getIteratorClass());
+      map.put(prefix+"class", setting.getIteratorClass());        // 1.itername.class -> classname
       for (Map.Entry<String, String> entry : setting.getOptions().entrySet()) {
-        map.put(prefix+"opt."+entry.getKey(), entry.getValue());
+        map.put(prefix+"opt."+entry.getKey(), entry.getValue());  // 1.itername.opt.optkey -> optvalue
       }
       prio++;
     }
     return map;
   }
 
-  public IteratorSetting toIteratorSetting(int priority) {
-    return new IteratorSetting(priority, DynamicIterator.class, buildSettingMap());
+  public IteratorSetting toIteratorSetting() {
+    return new IteratorSetting(diPriority, diName, DynamicIterator.class, buildSettingMap());
   }
 
-  public IteratorSetting toIteratorSetting(int priority, String name) {
-    return new IteratorSetting(priority, name, DynamicIterator.class, buildSettingMap());
-  }
-
-  public void addToScanner(ScannerBase scanner, int priority) {
+  public void addToScanner(ScannerBase scanner) {
     if (!iteratorSettingList.isEmpty())
-      scanner.addScanIterator(toIteratorSetting(priority));
-  }
-
-  public void addToScanner(ScannerBase scanner, int priority, String name) {
-    if (!iteratorSettingList.isEmpty())
-      scanner.addScanIterator(toIteratorSetting(priority, name));
+      scanner.addScanIterator(toIteratorSetting());
   }
 
   public List<IteratorSetting> getIteratorSettingList() {
@@ -112,14 +131,17 @@ public class DynamicIteratorSetting {
   /**
    * Load a DynamicIteratorSetting from a Map&lt;String,String&gt;.
    * Used inside the Accumulo iterator stack {@link SortedKeyValueIterator#init}.
-   * @param pre A prefix that must be in front of every option, like ITER_PREFIX
-   * @param mapOrig A copy is made so that the original options are not consumed.
+   * @param pre A prefix that must be in front of every option
+   * @param mapOrig Map of options. Nothing is added or removed.
    * @return New DynamicIteratorSetting
    */
   public static DynamicIteratorSetting fromMap(String pre, Map<String,String> mapOrig) {
     if (pre == null) pre = "";
     Map<String,String> mapCopy = new LinkedHashMap<>(mapOrig);
-    DynamicIteratorSetting dis = new DynamicIteratorSetting();
+    Preconditions.checkArgument(mapOrig.containsKey(pre+"0.diPriority") && mapOrig.containsKey(pre+"0.diName"), "bad map %s", mapOrig);
+    int diPriotity = Integer.parseInt(mapCopy.remove(pre+"0.diPriority"));
+    String diName = mapCopy.remove(pre+"0.diName");
+    DynamicIteratorSetting dis = new DynamicIteratorSetting(diPriotity, diName);
     for (int prio = 1; true; prio++) {
       String prioPrefix = prio+".";
       String clazz = null, name = null, clazzStr = null, optPrefix = null;
@@ -128,8 +150,10 @@ public class DynamicIteratorSetting {
       for (Iterator<Map.Entry<String, String>> iterator = mapCopy.entrySet().iterator(); iterator.hasNext(); ) {
         Map.Entry<String, String> entry = iterator.next();
         String key = entry.getKey();
-        if (!key.startsWith(pre))
+        if (!key.startsWith(pre)) {
+          iterator.remove();
           continue;
+        }
         key = key.substring(pre.length());
 
         if (name == null && key.startsWith(prioPrefix)) {
@@ -159,7 +183,11 @@ public class DynamicIteratorSetting {
 
   @Override
   public String toString() {
-    return iteratorSettingList.toString();
+    StringBuilder sb = new StringBuilder();
+    for (Map.Entry<String, String> entry : buildSettingMap().entrySet()) {
+      sb.append(entry.getKey()).append(" -> ").append(entry.getValue()).append('\n');
+    }
+    return sb.toString();
   }
 
   /**
@@ -169,9 +197,9 @@ public class DynamicIteratorSetting {
    */
   @SuppressWarnings("unchecked")
   public SortedKeyValueIterator<Key,Value> loadIteratorStack(SortedKeyValueIterator<Key,Value> source, IteratorEnvironment env) throws IOException {
-    if (log.isDebugEnabled())
-      if (source.getClass().equals(DynamicIterator.class))
-        log.debug("Be Careful not to reuse names! Recursive DynamicIterator: "+source);
+//    if (log.isDebugEnabled())
+//      if (source.getClass().equals(DynamicIterator.class))
+//        log.debug("Be Careful not to reuse names! Recursive DynamicIterator: "+source);
     for (IteratorSetting setting : iteratorSettingList) {
       SortedKeyValueIterator<Key,Value> iter =
           (SortedKeyValueIterator<Key,Value>)GraphuloUtil.subclassNewInstance(

@@ -425,8 +425,8 @@ public class AlgorithmTest extends AccumuloTestBase {
     int maxIter = 25;
     boolean trace = false;
     long t = System.currentTimeMillis();
-    double error = graphulo.NMF_Client(tE, false, tW, false, tH, false,K, maxIter, 0.0, 3);
-    System.out.println("Trace is "+trace+"; Client NMF time "+(System.currentTimeMillis()-t));
+    double error = graphulo.NMF_Client(tE, false, tW, false, tH, false, K, maxIter, 0.0, 3);
+    System.out.println("Trace is " + trace + "; Client NMF time " + (System.currentTimeMillis() - t));
     log.info("NMF error " + error);
 
     System.out.println("A:");
@@ -469,6 +469,103 @@ public class AlgorithmTest extends AccumuloTestBase {
     conn.tableOperations().delete(tH);
 //    conn.tableOperations().delete(tHT);
 //    conn.tableOperations().delete(tWH);
+  }
+
+  /**
+   * ans =
+     7     6     0     0     0
+     2     0     6     0     0
+     3     0     0     0     1
+     0     2     0     0     0
+     0     0     0     9     1
+     2     0     1     4     0
+     ans =
+     0.4246    0.5071         0         0         0
+     0.1971         0    0.8240         0         0
+     0.5913         0         0         0    0.2747
+     0    1.0986         0         0         0
+     0         0         0    0.9888    0.1099
+     0.2253         0    0.1569    0.6278         0
+
+   */
+  @Test
+  public void testTfidf() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    Connector conn = tester.getConnector();
+    final String tEDeg, tET, tR, tRT;
+    {
+      String[] names = getUniqueNames(4);
+      tET = names[0];
+      tEDeg = names[1];
+      tR = names[2];
+      tRT = names[3];
+    }
+    Map<Key,Double> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key, Value> input = new HashMap<>(), indeg = new HashMap<>();
+    {
+      input.put(new Key("e1", "", "v1"), new Value("7".getBytes()));
+      input.put(new Key("e1", "", "v2"), new Value("6".getBytes()));
+      input.put(new Key("e2", "", "v1"), new Value("2".getBytes()));
+      input.put(new Key("e2", "", "v3"), new Value("6".getBytes()));
+      input.put(new Key("e3", "", "v1"), new Value("3".getBytes()));
+      input.put(new Key("e3", "", "v5"), new Value("1".getBytes()));
+      input.put(new Key("e4", "", "v2"), new Value("2".getBytes()));
+      input.put(new Key("e5", "", "v4"), new Value("9".getBytes()));
+      input.put(new Key("e5", "", "v5"), new Value("1".getBytes()));
+      input.put(new Key("e6", "", "v1"), new Value("2".getBytes()));
+      input.put(new Key("e6", "", "v3"), new Value("1".getBytes()));
+      input.put(new Key("e6", "", "v4"), new Value("4".getBytes()));
+      SortedSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("v22"));
+      TestUtil.createTestTable(conn, tET, splits, GraphuloUtil.transposeMap(input));
+
+      indeg.put(new Key("e1", "", "Degree"), new Value("13".getBytes()));
+      indeg.put(new Key("e2", "", "Degree"), new Value("8".getBytes()));
+      indeg.put(new Key("e3", "", "Degree"), new Value("4".getBytes()));
+      indeg.put(new Key("e4", "", "Degree"), new Value("2".getBytes()));
+      indeg.put(new Key("e5", "", "Degree"), new Value("10".getBytes()));
+      indeg.put(new Key("e6", "", "Degree"), new Value("7".getBytes()));
+      TestUtil.createTestTable(conn, tEDeg, null, indeg);
+
+      expect.put(new Key("e1", "", "v1"), 0.4246);
+      expect.put(new Key("e1", "", "v2"), 0.5071);
+      expect.put(new Key("e2", "", "v1"), 0.1971);
+      expect.put(new Key("e2", "", "v3"), 0.8240);
+      expect.put(new Key("e3", "", "v1"), 0.5913);
+      expect.put(new Key("e3", "", "v5"), 0.2747);
+      expect.put(new Key("e4", "", "v2"), 1.0986);
+      expect.put(new Key("e5", "", "v4"), 0.9888);
+      expect.put(new Key("e5", "", "v5"), 0.1099);
+      expect.put(new Key("e6", "", "v1"), 0.2253);
+      expect.put(new Key("e6", "", "v3"), 0.1569);
+      expect.put(new Key("e6", "", "v4"), 0.6278);
+    }
+
+    Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+    long numEntriesResultTable = graphulo.doTfidf(tET, tEDeg, -1, tR, tRT);
+
+
+    BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
+    scanner.setRanges(Collections.singleton(new Range()));
+    for (Map.Entry<Key, Value> entry : scanner) {
+      actual.put(entry.getKey(), Double.valueOf(entry.getValue().toString()));
+    }
+    scanner.close();
+    System.out.println("Tfidf test:");
+    TestUtil.printExpectActual(expect, actual);
+    Assert.assertEquals(input.size(), numEntriesResultTable);
+    // need to be careful about comparing doubles
+    for (Map.Entry<Key, Double> actualEntry : actual.entrySet()) {
+      double actualValue = actualEntry.getValue();
+      Assert.assertTrue(expect.containsKey(actualEntry.getKey()));
+      double expectValue = expect.get(actualEntry.getKey());
+      Assert.assertEquals(expectValue, actualValue, 0.001);
+    }
+
+    conn.tableOperations().delete(tET);
+    conn.tableOperations().delete(tEDeg);
+    conn.tableOperations().delete(tRT);
+    conn.tableOperations().delete(tR);
   }
 
 }

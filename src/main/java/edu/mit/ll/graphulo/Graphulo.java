@@ -5,6 +5,7 @@ import edu.mit.ll.graphulo.apply.ApplyIterator;
 import edu.mit.ll.graphulo.apply.JaccardDegreeApply;
 import edu.mit.ll.graphulo.apply.KeyRetainOnlyApply;
 import edu.mit.ll.graphulo.apply.RandomTopicApply;
+import edu.mit.ll.graphulo.apply.TfidfDegreeApply;
 import edu.mit.ll.graphulo.ewise.EWiseOp;
 import edu.mit.ll.graphulo.reducer.EdgeBFSReducer;
 import edu.mit.ll.graphulo.reducer.GatherReducer;
@@ -57,6 +58,7 @@ import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.ColumnSliceFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
+import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -2924,6 +2926,25 @@ public class Graphulo {
         probability >= 1 ? Collections.<IteratorSetting>emptyList() :
             Collections.singletonList(SamplingFilter.iteratorSetting(1, probability)),
         null, Authorizations.EMPTY);
+  }
+
+  /**
+   * Run TF-IDF on the transpose of the edge table and the degree table,
+   * and write the results to a NEW edge table Rtable and/or its transpose RtableR.
+   * @param numDocs Optional to avoid some recomputation. If <= 0, then counts the number of rows in TedgeDeg.
+   * @return Number of entries sent to the result table. Is the same as nnz(TedgeDeg).
+   */
+  public long doTfidf(String TedgeT, String TedgeDeg, long numDocs, String Rtable, String RtableT) {
+    if (numDocs <= 0)
+      numDocs = countRows(TedgeDeg);
+
+    List<IteratorSetting> midlist = new DynamicIteratorSetting(1, null)
+      .append(new IteratorSetting(1, WholeRowIterator.class))
+      .append(TfidfDegreeApply.iteratorSetting(1, numDocs,
+        basicRemoteOpts(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX, TedgeDeg, null, null)))
+        .getIteratorSettingList();
+
+    return OneTable(TedgeT, RtableT, Rtable, null, -1, null, null, null, null, null, midlist, null, null);
   }
 
 }

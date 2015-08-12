@@ -36,6 +36,7 @@ public class JaccardDegreeApply implements ApplyOp {
   private static final Logger log = LogManager.getLogger(JaccardDegreeApply.class);
 
   /** Setup with {@link edu.mit.ll.graphulo.Graphulo#basicRemoteOpts(String, String, String, Authorizations)}
+   * basicRemoteOpts(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX, ADeg, null, Aauthorizations)
    * options for RemoteSourceIterator. */
   public static IteratorSetting iteratorSetting(int priority, Map<String,String> remoteOpts) {
     IteratorSetting JDegApply = new IteratorSetting(priority, ApplyIterator.class, remoteOpts);

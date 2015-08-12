@@ -15,8 +15,10 @@ import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.FileNotFoundException;
@@ -53,6 +55,7 @@ public class AdjBFSExample extends AccumuloTestBase {
     Authorizations Aauth = Authorizations.EMPTY;        // Authorizations to use for scanning Atable.
     Authorizations ADegauth = Authorizations.EMPTY;     // Authorizations to use for scanning ADegtable.
     boolean outputUnion = false;                        // Return nodes reached in EXACTLY k steps.
+    MutableLong numEntriesWritten = new MutableLong();  // Counts number of entries written to Rtable.
 
 
     // In your code, you would connect to an Accumulo instance by writing something similar to:
@@ -87,7 +90,8 @@ public class AdjBFSExample extends AccumuloTestBase {
     // Adjacency Table Breadth First Search.
     // This call blocks until the BFS completes.
     String vReached = graphulo.AdjBFS(Atable, v0, numSteps, Rtable, RTtable, clientResultMap, AScanIteratorPriority,
-        ADegtable, degColumn, degInColQ, minDegree, maxDegree, plusOp, Aauth, ADegauth, outputUnion);
+        ADegtable, degColumn, degInColQ, minDegree, maxDegree, plusOp, Aauth, ADegauth, outputUnion, numEntriesWritten);
+    System.out.println("Wrote "+numEntriesWritten+" entries to Rtable.");
     log.info("First few nodes reachable in exactly "+numSteps+" steps: " +
             vReached.substring(0,Math.min(20,vReached.length())));
 
@@ -100,7 +104,9 @@ public class AdjBFSExample extends AccumuloTestBase {
 //      System.out.println(entry.getKey().toStringNoTime()+" -> "+entry.getValue());
     }
     bs.close();
-    log.info("# of entries in output table '" + Rtable + ": " + cnt);
+    log.info("# of entries in output table " + Rtable + ": " + cnt +
+        "\n  (this could be less than the total number of entries written " + numEntriesWritten + " because of summing)");
+    Assert.assertTrue(cnt <= numEntriesWritten.intValue());
   }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////

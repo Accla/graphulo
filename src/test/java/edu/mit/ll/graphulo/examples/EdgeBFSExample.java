@@ -15,8 +15,10 @@ import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.FileNotFoundException;
@@ -53,6 +55,7 @@ public class EdgeBFSExample extends AccumuloTestBase {
     String v0 = "1,25,:,27,";                           // Starting nodes: node 1 (the supernode) and all the nodes from 25 to 27 inclusive.
     int EScanIteratorPriority = -1;                     // Use default priority for scan-time iterators on table E
     boolean outputUnion = false;                        // Return nodes reached in EXACTLY k steps.
+    MutableLong numEntriesWritten = new MutableLong();  // Counts number of entries written to Rtable.
 
     // In your code, you would connect to an Accumulo instance by writing something similar to:
 //    ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance("instance").withZkHosts("localhost:2181").withZkTimeout(5000);
@@ -87,7 +90,8 @@ public class EdgeBFSExample extends AccumuloTestBase {
     // This call blocks until the BFS completes.
     String vReached = graphulo.EdgeBFS(Etable, v0, numSteps, Rtable, RTtable,
         startPrefixes, endPrefixes, EDegTtable, degColumn, degInColQ, minDegree, maxDegree,
-        plusOp, EScanIteratorPriority, Authorizations.EMPTY, Authorizations.EMPTY, "", outputUnion);
+        plusOp, EScanIteratorPriority, Authorizations.EMPTY, Authorizations.EMPTY, "", outputUnion, numEntriesWritten);
+    System.out.println("Wrote "+numEntriesWritten+" entries to Rtable.");
     System.out.println("First few nodes reachable in exactly "+numSteps+" steps: " +
         vReached.substring(0,Math.min(20,vReached.length())));
 
@@ -100,7 +104,9 @@ public class EdgeBFSExample extends AccumuloTestBase {
 //      System.out.println(entry.getKey().toStringNoTime()+" -> "+entry.getValue());
     }
     bs.close();
-    log.info("# of entries in output table '" + Rtable + ": " + cnt);
+    log.info("# of entries in output table " + Rtable + ": " + cnt+
+        "\n  (this could be less than the total number of entries written "+numEntriesWritten+" because of summing)");
+    Assert.assertTrue(cnt <= numEntriesWritten.intValue());
   }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////

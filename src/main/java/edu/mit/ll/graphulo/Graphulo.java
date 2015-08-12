@@ -891,7 +891,7 @@ public class Graphulo {
                        Map<Key, Value> clientResultMap, int AScanIteratorPriority,
                        String ADegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree,
                        IteratorSetting plusOp) {
-    return AdjBFS(Atable, v0, k, Rtable, RTtable, clientResultMap, AScanIteratorPriority, ADegtable, degColumn, degInColQ, minDegree, maxDegree, plusOp, Authorizations.EMPTY, Authorizations.EMPTY, false);
+    return AdjBFS(Atable, v0, k, Rtable, RTtable, clientResultMap, AScanIteratorPriority, ADegtable, degColumn, degInColQ, minDegree, maxDegree, plusOp, Authorizations.EMPTY, Authorizations.EMPTY, false, null);
   }
 
   /**
@@ -921,6 +921,10 @@ public class Graphulo {
    * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
    * @param ADegauthorizations Authorizations for scanning ADegtable. Null means use default: Authorizations.EMPTY
    * @param outputUnion  Whether to output nodes reachable in EXACTLY (false) or UP TO (true) k BFS steps.
+   * @param numEntriesWritten Output parameter that stores the number of entries passed through the RemoteWriteIterator
+   *                          (two times this number is written to Accumulo if both the output table and transpose is used).
+   *                          Default null means don't count the number of entries written.
+   *                          Whatever value is inside a passed non-null object is overwritten.
    * @return  The nodes reachable in EXACTLY k steps from v0, unless outputUnion is true.
    */
   @SuppressWarnings("unchecked")
@@ -928,7 +932,7 @@ public class Graphulo {
                        Map<Key, Value> clientResultMap, int AScanIteratorPriority,
                        String ADegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree,
                        IteratorSetting plusOp, Authorizations Aauthorizations, Authorizations ADegauthorizations,
-                       boolean outputUnion) {
+                       boolean outputUnion, MutableLong numEntriesWritten) {
     boolean needDegreeFiltering = minDegree > 1 || maxDegree < Integer.MAX_VALUE;
     boolean useRWI = clientResultMap == null;
     checkGiven(true, "Atable", Atable);
@@ -945,6 +949,8 @@ public class Graphulo {
     Collection<String> allReachedNodes = null;
     if (outputUnion)
       allReachedNodes = new HashSet<>();
+    if (numEntriesWritten != null)
+      numEntriesWritten.setValue(0);
 
     Preconditions.checkArgument(useRWI || (Rtable == null && RTtable == null),
         "clientResultMap must be null if given an Rtable or RTtable");
@@ -1023,11 +1029,13 @@ public class Graphulo {
         reducer.init(reducerOpts, null);
 
         long t2 = System.currentTimeMillis(), dur;
-        OneTable(Atable, Rtable, RTtable, clientResultMap, AScanIteratorPriority,
+        long c = OneTable(Atable, Rtable, RTtable, clientResultMap, AScanIteratorPriority,
             reducer, reducerOpts, plusOp,
             rowFilter, null, // no column filter
             iteratorSettingList, bs, Aauthorizations
         );
+        if (numEntriesWritten != null)
+          numEntriesWritten.add(c);
         // post-condition: reducer updated; clientResultMap updated if not null
 
         dur = System.currentTimeMillis() - t2;
@@ -1109,52 +1117,21 @@ public class Graphulo {
     return texts;
   }
 
-  /**
-   * Out-degree-filtered Breadth First Search on Incidence table.
-   * Conceptually k iterations of: v0 ==startPrefixes==> edge ==endPrefixes==> v1.
-   * Works for multi-edge search.
-   *  @param Etable        Incidence table; rows are edges, column qualifiers are nodes.
-   * @param v0            Starting vertices, like "v0,v5,v6,".
-   *                      v0 may be a range of nodes like "c,:,e,g,k,:,".
-   * @param k             Number of steps.
-   * @param Rtable        Name of table to store result. Null means don't store the result.
-   * @param RTtable       Name of table to store transpose of result. Null means don't store the transpose.
-   * @param startPrefixes   D4M String of Prefixes of edge 'starts' including separator, e.g. 'outA|,outB|,'.
-*                        The "empty prefix" takes the form of ','. Required; if null or empty, assumes the empty prefix.
-   * @param endPrefixes     D4M String of Prefixes of edge 'ends' including separator, e.g. 'inA|,inB|,'.
-*                        The "empty prefix" takes the form of ','. Required; if null or empty, assumes the empty prefix.
-*                        Important for multi-edge: None of the end prefixes may be a prefix of another end prefix.
-   * @param ETDegtable    Name of table holding out-degrees for ET. Must be provided if degree filtering is used.
-   * @param degColumn   Name of column for out-degrees in ETDegtable like "deg". Null means the empty column "".
-*                    If degInColQ==true, this is the prefix before the numeric portion of the column like "deg|", and null means no prefix.
-*                    Unused if ETDegtable is null.
-   * @param degInColQ   True means degree is in the Column Qualifier. False means degree is in the Value. Unused if ETDegtable is null.
-   * @param minDegree     Minimum out-degree. Checked before doing any searching, at every step, from ADegtable. Pass 0 for no filtering.
-   * @param maxDegree     Maximum out-degree. Checked before doing any searching, at every step, from ADegtable. Pass Integer.MAX_VALUE for no filtering.
-   * @param plusOp      An SKVI to apply to the result table that "sums" values. Not applied if null.
-   * @param EScanIteratorPriority Priority to use for Table Multiplication scan-time iterator on table E
-   * @param Eauthorizations Authorizations for scanning Etable. Null means use default: Authorizations.EMPTY
-   * @param EDegauthorizations Authorizations for scanning EDegtable. Null means use default: Authorizations.EMPTY
-   * @param newVisibility Visibility label for new entries created in Rtable and/or RTtable. Null means use the visibility of the parent keys.
-   *                      Important: this is one option for which null (don't change the visibiltity) is distinguished from the empty string
-   *                      (set the visibility of all Keys seen to the empty visibility).
-   * @param outputUnion Whether to output nodes reachable in EXACTLY (false) or UP TO (true) k BFS steps.
-   * @return  The nodes reachable in EXACTLY k steps from v0, unless outputUnion is true.
-   */
-  public String  EdgeBFS(String Etable, String v0, int k, String Rtable, String RTtable,
-                         String startPrefixes, String endPrefixes,
-                         String ETDegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree,
-                         IteratorSetting plusOp, int EScanIteratorPriority,
-                         Authorizations Eauthorizations, Authorizations EDegauthorizations, String newVisibility,
-                         boolean outputUnion) {
-    return EdgeBFS(Etable, v0, k, Rtable, RTtable, startPrefixes, endPrefixes, ETDegtable, degColumn, degInColQ, minDegree, maxDegree, plusOp, EScanIteratorPriority, Eauthorizations, EDegauthorizations, newVisibility, outputUnion, null);
-  }
 
   /**
    * Out-degree-filtered Breadth First Search on Incidence table.
    * Conceptually k iterations of: v0 ==startPrefixes==> edge ==endPrefixes==> v1.
-   * Works for multi-edge search.
-   *  @param Etable        Incidence table; rows are edges, column qualifiers are nodes.
+   * Works for multi-edge and hyper-edge search.
+   * <p>
+   * Here is an example of multi-edge search on a hypergraph:
+   * If in the original table the following three entries are present in (row,colQ,val) form:
+   * <pre> (e1, out|v1, 4), (e1, inTypeA|v2, 5), (e1, inTypeB|v3, 6) </pre>
+   * then these will be in the output of a one-step BFS with startPrefixes="out|," and endPrefixes="inTypeA|,inTypeB|,":
+   * <pre> (e1, out|v1, 8), (e1, inTypeA|v2, 5), (e1, inTypeB|v3, 6) </pre>
+   * Notice that the out-edge was traversed twice.
+   *
+   *
+   * @param Etable        Incidence table; rows are edges, column qualifiers are nodes.
    * @param v0            Starting vertices, like "v0,v5,v6,".
    *                      v0 may be a range of nodes like "c,:,e,g,k,:,".
    * @param k             Number of steps.
@@ -1180,7 +1157,7 @@ public class Graphulo {
    *                      Important: this is one option for which null (don't change the visibiltity) is distinguished from the empty string
    *                      (set the visibility of all Keys seen to the empty visibility).
    * @param outputUnion Whether to output nodes reachable in EXACTLY (false) or UP TO (true) k BFS steps.
-   * @param numEntriesWritten An output variable that stores the number of entries passed through the RemoteWriteIterator
+   * @param numEntriesWritten Output parameter that stores the number of entries passed through the RemoteWriteIterator
    *                          (two times this number is written to Accumulo if both the output table and transpose is used).
    *                          Default null means don't count the number of entries written.
    *                          Whatever value is inside a passed non-null object is overwritten.
@@ -1517,6 +1494,10 @@ public class Graphulo {
 *                       Be careful: this affects degrees in the result table as well as normal entries.
    * @param outputUnion    Whether to output nodes reachable in EXACTLY (false) or UP TO (true) k BFS steps.
    * @param Sauthorizations Authorizations for scanning Stable and SDegtable. Used for both degree scanning and normal scanning. Null means use default: Authorizations.EMPTY
+   * @param numEntriesWritten Output parameter that stores the number of entries passed through the RemoteWriteIterator
+   *                          (two times this number is written to Accumulo if both the output table and transpose is used).
+   *                          Default null means don't count the number of entries written.
+   *                          Whatever value is inside a passed non-null object is overwritten.
    * @return  The nodes reachable in EXACTLY k steps from v0, unless outputUnion is true.
    * */
   @SuppressWarnings("unchecked")
@@ -1525,7 +1506,7 @@ public class Graphulo {
                           boolean copyOutDegrees, boolean computeInDegrees,
                           ScalarType degSumType, ColumnVisibility newVisibility,
                           int minDegree, int maxDegree, IteratorSetting plusOp,
-                          boolean outputUnion, Authorizations Sauthorizations) {
+                          boolean outputUnion, Authorizations Sauthorizations, MutableLong numEntriesWritten) {
     boolean needDegreeFiltering = minDegree > 1 || maxDegree < Integer.MAX_VALUE;
     checkGiven(true, "Stable", Stable);
     if (needDegreeFiltering && (SDegtable == null || SDegtable.isEmpty()))
@@ -1542,6 +1523,8 @@ public class Graphulo {
       throw new IllegalArgumentException("maxDegree=" + maxDegree + " should be >= minDegree=" + minDegree);
     String edgeSepStr = String.valueOf(edgeSep);
     if (Sauthorizations == null) Sauthorizations = Authorizations.EMPTY;
+    if (numEntriesWritten != null)
+      numEntriesWritten.setValue(0);
 
     if (degColumn == null)
       degColumn = "";
@@ -1650,10 +1633,12 @@ public class Graphulo {
         reducer.init(optSingleReducer, null);
 
         long t2 = System.currentTimeMillis();
-        OneTable(Stable, Rtable, null, null, // feature addition: could gather entries at the client
+        long c = OneTable(Stable, Rtable, null, null, // feature addition: could gather entries at the client
             4, reducer, optSingleReducer,
             plusOp, rowFilter, null, // column filter applied through BatchScanner fetchColumn
             iteratorSettingList, bs, Sauthorizations);
+        if (numEntriesWritten != null)
+          numEntriesWritten.add(c);
         long dur = System.currentTimeMillis() - t2;
         scanTime += dur;
 
@@ -1685,13 +1670,17 @@ public class Graphulo {
     if (computeInDegrees) {
       allInNodes.removeAll(mostAllOutNodes);
 //      log.debug("allInNodes: "+allInNodes);
-      singleCheckWriteDegrees(allInNodes, Rtable, Sauthorizations, degColumn.getBytes(), edgeSepStr, degSumType, newVisibility);
+      long c = singleCheckWriteDegrees(allInNodes, Rtable, Sauthorizations, degColumn.getBytes(), edgeSepStr, degSumType, newVisibility);
+      if (numEntriesWritten != null)
+        numEntriesWritten.add(c);
     }
 
     return ret;
   }
 
-  private void singleCheckWriteDegrees(Collection<String> questionNodes, String Rtable,
+
+  /** @return # of entries written to Rtable */
+  private long singleCheckWriteDegrees(Collection<String> questionNodes, String Rtable,
                                        Authorizations Sauthorizations, byte[] degColumn,
                                        String edgeSepStr, ScalarType degSumType, ColumnVisibility newVisibility) {
     if (newVisibility == null)
@@ -1725,6 +1714,7 @@ public class Graphulo {
       rangeList = Range.mergeOverlapping(rs);
     }
 
+    long totalWritten = 0;
     try {
       Text row = new Text();
       RANGELOOP: for (Range range : rangeList) {
@@ -1754,6 +1744,7 @@ public class Graphulo {
         m.put(GraphuloUtil.EMPTY_BYTES, degColumn, newVisibility,
             summer == null ? String.valueOf(cnt).getBytes() : summer.getForClient());
         bw.addMutation(m);
+        totalWritten++;
       }
 
 
@@ -1768,7 +1759,7 @@ public class Graphulo {
         log.error("in-degree mutations rejected sending to Rtable "+Rtable, e);
       }
     }
-
+    return totalWritten;
   }
 
 
@@ -1790,8 +1781,9 @@ public class Graphulo {
    * @param separator The string to insert between the labels of two nodes.
    * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
    * @param newVisibility Visibility label for new entries created in Rtable. Null means no visibility label.
+   * @return total number of entries written to result table
    */
-  public void LineGraph(String Atable, String ATtable, String Rtable, String RTtable,
+  public long LineGraph(String Atable, String ATtable, String Rtable, String RTtable,
                         int BScanIteratorPriority, boolean isDirected, boolean includeExtraCycles, IteratorSetting plusOp,
                         String rowFilter, String colFilterAT, String colFilterB,
                         int numEntriesCheckpoint, String separator,
@@ -1806,7 +1798,7 @@ public class Graphulo {
       opt.put("rowMultiplyOp.opt." + LineRowMultiply.NEW_VISIBILITY, newVisibility);
     }
 
-    TwoTable(ATtable, Atable, Rtable, RTtable, BScanIteratorPriority,
+    return TwoTable(ATtable, Atable, Rtable, RTtable, BScanIteratorPriority,
         TwoTableIterator.DOTMODE.ROW, opt, plusOp,
         rowFilter, colFilterAT, colFilterB,
         false, false, Collections.<IteratorSetting>emptyList(),
@@ -1942,7 +1934,7 @@ public class Graphulo {
       // Atmp, ATtmp have the result table. Could be empty.
 
       if (RfinalExists)  // sum whole graph into existing graph
-        AdjBFS(Atmp, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Aauthorizations, Aauthorizations, false);
+        AdjBFS(Atmp, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Aauthorizations, Aauthorizations, false, null);
       else                                           // result is new;
         tops.clone(Atmp, Rfinal, true, null, null);  // flushes Atmp before cloning
 
@@ -1989,13 +1981,13 @@ public class Graphulo {
       if (k <= 2) {               // trivial case: every graph is a 2-truss
         if (RfinalExists && RTfinalExists) { // sum whole graph into existing graph
           // AdjBFS works just as well as EdgeBFS because we're not doing any filtering.
-          AdjBFS(Eorig, null, 1, Rfinal, RTfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Eauthorizations, Eauthorizations, false);
+          AdjBFS(Eorig, null, 1, Rfinal, RTfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Eauthorizations, Eauthorizations, false, null);
         } else if (RfinalExists) {
-          AdjBFS(Eorig, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Eauthorizations, Eauthorizations, false);
+          AdjBFS(Eorig, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Eauthorizations, Eauthorizations, false, null);
           if (RTfinal != null)
             tops.clone(ETorig, RTfinal, true, null, null);
         } else if (RTfinalExists) {
-          AdjBFS(Eorig, null, 1, null, RTfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Eauthorizations, Eauthorizations, false);
+          AdjBFS(Eorig, null, 1, null, RTfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Eauthorizations, Eauthorizations, false, null);
           if (Rfinal != null)
             tops.clone(Eorig, Rfinal, true, null, null);
         } else {                                          // both graphs are new;
@@ -2076,13 +2068,13 @@ public class Graphulo {
 
       if (RfinalExists && RTfinalExists) { // sum whole graph into existing graph
         // AdjBFS works just as well as EdgeBFS because we're not doing any filtering.
-        AdjBFS(Etmp, null, 1, Rfinal, RTfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Eauthorizations, Eauthorizations, false);
+        AdjBFS(Etmp, null, 1, Rfinal, RTfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Eauthorizations, Eauthorizations, false, null);
       } else if (RfinalExists) {
-        AdjBFS(Etmp, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Eauthorizations, Eauthorizations, false);
+        AdjBFS(Etmp, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Eauthorizations, Eauthorizations, false, null);
         if (RTfinal != null)
           tops.clone(ETtmp, RTfinal, true, null, null);
       } else if (RTfinalExists) {
-        AdjBFS(Etmp, null, 1, null, RTfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Eauthorizations, Eauthorizations, false);
+        AdjBFS(Etmp, null, 1, null, RTfinal, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Eauthorizations, Eauthorizations, false, null);
         if (Rfinal != null)
           tops.clone(Etmp, Rfinal, true, null, null);
       } else {                                          // both graphs are new;

@@ -16,8 +16,10 @@ import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.FileNotFoundException;
@@ -55,6 +57,7 @@ public class SingleBFSExample extends AccumuloTestBase {
     String v0 = "1,25,:,27,";                           // Starting nodes: node 1 (the supernode) and all the nodes from 25 to 27 inclusive.
     boolean outputUnion = false;                        // Output nodes reached in EXACTLY numSteps distance from the v0 nodes.
     boolean trace = false;                              // Disable debug printing.
+    MutableLong numEntriesWritten = new MutableLong();  // Counts number of entries written to Stable.
 
     // In your code, you would connect to an Accumulo instance by writing something similar to:
 //    ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance("instance").withZkHosts("localhost:2181").withZkTimeout(5000);
@@ -89,7 +92,8 @@ public class SingleBFSExample extends AccumuloTestBase {
     // This call blocks until the BFS completes.
     String vReached = graphulo.SingleBFS(Stable, edgeColumn, edgeSep, v0, numSteps,
         Rtable, Stable, degColumn, copyOutDegrees, computeInDegrees, degSumType, null, minDegree, maxDegree,
-        plusOp, outputUnion, Authorizations.EMPTY);
+        plusOp, outputUnion, Authorizations.EMPTY, numEntriesWritten);
+    System.out.println("Wrote "+numEntriesWritten+" entries to Stable.");
     System.out.println("First few nodes reachable in exactly "+numSteps+" steps: " +
         vReached.substring(0,Math.min(20,vReached.length())));
 
@@ -102,7 +106,9 @@ public class SingleBFSExample extends AccumuloTestBase {
       System.out.println(entry.getKey().toStringNoTime()+" -> "+entry.getValue());
     }
     bs.close();
-    log.info("# of entries in output table '" + Rtable + ": " + cnt);
+    log.info("# of entries in output table " + Rtable + ": " + cnt +
+        "\n  (this could be less than the total number of entries written " + numEntriesWritten + " because of summing)");
+    Assert.assertTrue(cnt <= numEntriesWritten.intValue());
   }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////

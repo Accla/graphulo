@@ -2167,7 +2167,7 @@ public class Graphulo {
     bs.setRanges(Collections.singleton(new Range()));
 
     {
-      DynamicIteratorSetting dis = new DynamicIteratorSetting(2, null);
+      DynamicIteratorSetting dis = new DynamicIteratorSetting(22, "genDegs");
       if (countColumns)
           dis.append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes()))); // Abs0
       dis

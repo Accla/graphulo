@@ -6,7 +6,7 @@
 
   <groupId>edu.mit.ll</groupId>
   <artifactId>graphulo</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>1.0.0-SNAPSHOT</version>
   <packaging>jar</packaging>
   <description>
     Graphulo: Accumulo library of matrix math primitives and graph algorithms.

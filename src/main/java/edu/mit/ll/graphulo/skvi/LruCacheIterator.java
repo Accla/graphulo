@@ -101,7 +101,7 @@ public class LruCacheIterator implements SortedKeyValueIterator<Key,Value> {
   @Override
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
     this.source = source;
-    this.initOptions = options;
+    this.initOptions = new HashMap<>(options);
     Map<String, String> combinerOpts = parseOptions(options);
     combiner.init(combinerOpts, env);
   }

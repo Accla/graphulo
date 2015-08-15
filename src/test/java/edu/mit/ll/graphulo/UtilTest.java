@@ -2,7 +2,9 @@ package edu.mit.ll.graphulo;
 
 import com.google.common.collect.Iterators;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
+import edu.mit.ll.graphulo.skvi.MapIterator;
 import edu.mit.ll.graphulo.skvi.MinMaxFilter;
+import edu.mit.ll.graphulo.skvi.TopColPerRowIterator;
 import edu.mit.ll.graphulo.skvi.TriangularFilter;
 import edu.mit.ll.graphulo.util.DoubletonIterator;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
@@ -10,12 +12,15 @@ import edu.mit.ll.graphulo.util.PeekingIterator2;
 import edu.mit.ll.graphulo.util.RangeSet;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.lexicoder.AbstractEncoder;
+import org.apache.accumulo.core.client.mock.IteratorAdapter;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.LongCombiner;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.log4j.LogManager;
@@ -24,6 +29,7 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -644,5 +650,53 @@ public class UtilTest {
     Assert.assertEquals(3, GraphuloUtil.NumD4mStr("zcsazfcdsf,sgrsdgf,asxcawsd,"));
     Assert.assertEquals(4, GraphuloUtil.NumD4mStr("235trwgrt5h5;ewr;34rf;;"));
   }
+
+  @Test
+  public void testTopColPerRowIterator() throws IOException {
+    Map<String,String> opts = TopColPerRowIterator.combinerSetting(1,3).getOptions();
+
+    SortedMap<Key,Value> input = new TreeMap<>();
+    input.put(new Key("r1", "", "c1"), new Value("4.5".getBytes()));
+    input.put(new Key("r1", "", "c2"), new Value("6.0".getBytes()));
+    input.put(new Key("r1", "", "c3"), new Value("5".getBytes()));
+    input.put(new Key("r1", "", "c4"), new Value("1.1".getBytes()));
+    input.put(new Key("r1", "", "c5"), new Value("8".getBytes()));
+
+    input.put(new Key("r2", "", "c1"), new Value("13".getBytes()));
+    input.put(new Key("r2", "", "c2"), new Value("12".getBytes()));
+
+    input.put(new Key("r3", "", "c1"), new Value("13".getBytes()));
+    input.put(new Key("r3", "", "c1"), new Value("19".getBytes()));
+    input.put(new Key("r3", "", "c1"), new Value("11".getBytes()));
+    input.put(new Key("r3", "", "c1"), new Value("10".getBytes()));
+    input.put(new Key("r3", "", "c1"), new Value("12".getBytes()));
+
+    SortedKeyValueIterator<Key,Value> skvi = new MapIterator(input);
+    skvi.init(null, null, null);
+    SortedKeyValueIterator<Key,Value> skviTop = new TopColPerRowIterator();
+    skviTop.init(skvi, opts, null);
+    skvi = skviTop;
+    skvi.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
+
+    SortedMap<Key,Value> expect = new TreeMap<>();
+    expect.put(new Key("r1", "", "c2"), new Value("6.0".getBytes()));
+    expect.put(new Key("r1", "", "c3"), new Value("5".getBytes()));
+    expect.put(new Key("r1", "", "c5"), new Value("8".getBytes()));
+    expect.put(new Key("r2", "", "c1"), new Value("13".getBytes()));
+    expect.put(new Key("r2", "", "c2"), new Value("12".getBytes()));
+    expect.put(new Key("r3", "", "c1"), new Value("13".getBytes()));
+    expect.put(new Key("r3", "", "c1"), new Value("19".getBytes()));
+    expect.put(new Key("r3", "", "c1"), new Value("12".getBytes()));
+
+    IteratorAdapter ia = new IteratorAdapter(skvi);
+    for (Map.Entry<Key, Value> expectEntry : expect.entrySet()) {
+      Assert.assertTrue(ia.hasNext());
+      Map.Entry<Key, Value> actualEntry = ia.next();
+      Assert.assertEquals(expectEntry, actualEntry);
+//      System.out.println("MATCH "+expectEntry);
+    }
+    Assert.assertFalse(ia.hasNext());
+  }
+
 
 }

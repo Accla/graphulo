@@ -12,7 +12,7 @@ import java.util.Map;
 
 /**
  * Iterates over a source SKVI until the row changes.
- * Does not call skvi.next() until second {@link #next()} call.
+ * Does not call skvi.next() until {@link #next()} call.
  */
 public class SKVIRowIterator implements Iterator<Map.Entry<Key,Value>> {
   private SortedKeyValueIterator<Key,Value> skvi;
@@ -23,8 +23,7 @@ public class SKVIRowIterator implements Iterator<Map.Entry<Key,Value>> {
     this.skvi = skvi;
     if (skvi.hasTop()) {
       byte[] b = skvi.getTopKey().getRowData().getBackingArray();
-      row = new byte[b.length];
-      System.arraycopy(b,0,row,0,b.length);
+      row = Arrays.copyOf(b, b.length);
       matchRow = true;
     } else
       matchRow = false;
@@ -53,5 +52,20 @@ public class SKVIRowIterator implements Iterator<Map.Entry<Key,Value>> {
   @Override
   public void remove() {
     throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Reuse this SKVIRowIterator instance after finished iterating over the current row for the next row.
+   * @return True if set up for the next row; false if there are no more rows.
+   * @throws IllegalStateException if called before finishing the current row.
+   */
+  public boolean reuseNextRow() {
+    if (matchRow)
+      throw new IllegalStateException("Do not reuse SKVIRowIterator until it finishes the current row: "+new String(row));
+    if (!skvi.hasTop())
+      return false; // cannot reuse; no more rows
+    byte[] b = skvi.getTopKey().getRowData().getBackingArray();
+    row = Arrays.copyOf(b, b.length);
+    return matchRow = true;
   }
 }

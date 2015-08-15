@@ -30,6 +30,7 @@ import edu.mit.ll.graphulo.skvi.SamplingFilter;
 import edu.mit.ll.graphulo.skvi.SeekFilterIterator;
 import edu.mit.ll.graphulo.skvi.SingleTransposeIterator;
 import edu.mit.ll.graphulo.skvi.SmallLargeRowFilter;
+import edu.mit.ll.graphulo.skvi.TopColPerRowIterator;
 import edu.mit.ll.graphulo.skvi.TriangularFilter;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import edu.mit.ll.graphulo.util.DebugUtil;
@@ -2360,7 +2361,7 @@ public class Graphulo {
         DebugUtil.printTable(numiter + ": W is NxK:", connector, Wfinal, 5);
 
       if (numiter > 1) {
-        try (TraceScope scope = Trace.startSpan("nmfFro", Sampler.ALWAYS)) {
+        try (TraceScope scope = Trace.startSpan("nmfHDiff", Sampler.ALWAYS)) {
           hdiff = nmfHDiff(Hfinal, Hprev);
 //        hdiff = nmfDiffFrobeniusNorm(Aorig, WTfinal, Hfinal, Ttmp1);
         }
@@ -2524,11 +2525,13 @@ public class Graphulo {
 
     // Step 4: tmp1^T * tmp2 => OnlyPositiveFilter => {out1, transpose to out2}
     // Filter out entries <= 0 after combining partial products.
-    IteratorSetting sumFilterOp =
+    DynamicIteratorSetting sumFilterOpDis =
         new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, "sumFilterOp")
         .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.DOUBLE, false))
-        .append(MinMaxFilter.iteratorSetting(1, ScalarType.DOUBLE, cutoffThreshold, Double.MAX_VALUE))
-        .toIteratorSetting();
+        .append(MinMaxFilter.iteratorSetting(1, ScalarType.DOUBLE, cutoffThreshold, Double.MAX_VALUE));
+    if (maxColsPerTopic > 0)
+      sumFilterOpDis.append(TopColPerRowIterator.combinerSetting(1, maxColsPerTopic));
+    IteratorSetting sumFilterOp = sumFilterOpDis.toIteratorSetting();
 
     // plan to add maxColsPerTopic: write to tmp3 instead of {out1,out2}.
     // use OneTable: WholeRow => TopK => {out1,out2}

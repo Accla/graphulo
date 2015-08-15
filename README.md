@@ -32,7 +32,6 @@ src/
   assembly/...        Files for building graphulo.
   main/               Main code and resources. Included in output JAR.
     java/...          
-    java-templates/...  Code from d4m_api_java that needs preprocessing for Accumulo 1.6-1.7 compatibility.
     resources/        Contents copied into output JAR.
       log4j.xml       Logging configuration for clients at runtime.
   test/               Test code and resources. Not included in output JAR.
@@ -472,13 +471,3 @@ before passing to the TwoTableIterator. Useful:
   * `emitEmptyEntries` Choose whether to emit entries with a Value of an empty byte array ""
   * `emitZeroEntries` Choose whether to emit entries with a Value encoding "0"
 
-
-### Misc
-The Maven profile `accumulo1.6` compiles the source code against the 1.6 Accumulo client library.
-This was found unnecessary as the 1.7 client library is backward-compatible with the 1.6 server library,
-such that compiling against 1.7 client Accumulo produces code that works on Accumulo 1.6 instances.
-
-To get the legacy 1.6 client code compilation, 
-run `mvn package -Paccumulo1.6 -DskipTests=true`,
-but this should not be necessary because Accumulo 1.7 is backward-compatible with 1.6.
-More generally, append `-Paccumulo1.6` to any mvn command to act on Accumulo 1.7. 

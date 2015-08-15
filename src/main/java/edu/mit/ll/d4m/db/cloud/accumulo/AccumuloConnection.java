@@ -6,8 +6,22 @@ package edu.mit.ll.d4m.db.cloud.accumulo;
 
 import edu.mit.ll.cloud.connection.ConnectionProperties;
 import edu.mit.ll.d4m.db.cloud.D4mException;
-import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
@@ -17,6 +31,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
+import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -32,12 +47,8 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.concurrent.TimeUnit;
 
-${accumulo.VERSION.1.6}import org.apache.accumulo.core.security.Credentials;  // 1.6
-${accumulo.VERSION.1.7}import org.apache.accumulo.core.client.impl.ClientContext; // 1.7
-${accumulo.VERSION.1.7}import org.apache.accumulo.core.client.impl.Credentials; // 1.7
-
-${accumulo.VERSION.1.6}import org.apache.accumulo.core.util.ThriftUtil; // 1.6
-${accumulo.VERSION.1.7}import org.apache.accumulo.core.rpc.ThriftUtil; // 1.7
+//${accumulo.VERSION.1.6}import org.apache.accumulo.core.security.Credentials;  // 1.6
+//${accumulo.VERSION.1.6}import org.apache.accumulo.core.util.ThriftUtil; // 1.6
 
 /**
  * @author cyee
@@ -137,14 +148,14 @@ public class AccumuloConnection {
 	}
 
 	public MasterClientService.Client getMasterClient() throws TTransportException {
-		${accumulo.VERSION.1.6}return MasterClient.getConnection(getInstance()); // 1.6
-    ${accumulo.VERSION.1.7}return MasterClient.getConnection(new ClientContext(instance, new Credentials(principal, token), instance.getConfiguration())); // 1.7
+		//${accumulo.VERSION.1.6}return MasterClient.getConnection(getInstance()); // 1.6
+    return MasterClient.getConnection(new ClientContext(instance, new Credentials(principal, token), instance.getConfiguration())); // 1.7
 	}
 
 	public TabletClientService.Iface getTabletClient (String tserverAddress) throws TTransportException {
-		${accumulo.VERSION.1.7}com.google.common.net.HostAndPort address = AddressUtil.parseAddress(tserverAddress,false);
-    ${accumulo.VERSION.1.6}return ThriftUtil.getTServerClient( tserverAddress, instance.getConfiguration()); // 1.6
-    ${accumulo.VERSION.1.7}return ThriftUtil.getTServerClient( address, new ClientContext(instance, new Credentials(principal, token), instance.getConfiguration())); // 1.7
+		com.google.common.net.HostAndPort address = AddressUtil.parseAddress(tserverAddress,false);
+    //${accumulo.VERSION.1.6}return ThriftUtil.getTServerClient( tserverAddress, instance.getConfiguration()); // 1.6
+    return ThriftUtil.getTServerClient( address, new ClientContext(instance, new Credentials(principal, token), instance.getConfiguration())); // 1.7
 	}
 
   public Map<String, String> getNameToIdMap() {
@@ -274,14 +285,14 @@ public class AccumuloConnection {
 	public String locateTablet(String tableName, String splitName) {
 		String tabletName = null;
 		try {
-			${accumulo.VERSION.1.6}TabletLocator tc = TabletLocator.getLocator(instance, new Text(Tables.getTableId(instance, tableName))); // 1.6 change to getLocator for 1.6
-      ${accumulo.VERSION.1.7}ClientContext cc = new ClientContext(instance, new Credentials(principal, token), instance.getConfiguration()); // 1.7
-      ${accumulo.VERSION.1.7}TabletLocator tc = TabletLocator.getLocator(cc, new Text(Tables.getTableId(instance, tableName))); // 1.7
+			//${accumulo.VERSION.1.6}TabletLocator tc = TabletLocator.getLocator(instance, new Text(Tables.getTableId(instance, tableName))); // 1.6 change to getLocator for 1.6
+      ClientContext cc = new ClientContext(instance, new Credentials(principal, token), instance.getConfiguration()); // 1.7
+      TabletLocator tc = TabletLocator.getLocator(cc, new Text(Tables.getTableId(instance, tableName))); // 1.7
 
 			
 			org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation loc =
-					${accumulo.VERSION.1.6}tc.locateTablet(new Credentials(principal, token), new Text(splitName), false, false); // 1.6
-          ${accumulo.VERSION.1.7}tc.locateTablet(cc, new Text(splitName), false, false); // 1.7
+					//${accumulo.VERSION.1.6}tc.locateTablet(new Credentials(principal, token), new Text(splitName), false, false); // 1.6
+          tc.locateTablet(cc, new Text(splitName), false, false); // 1.7
 			tabletName = loc.tablet_location;
 			log.debug("TableName="+tableName+", TABLET_NAME = "+tabletName);
 		} catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {

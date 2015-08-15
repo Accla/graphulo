@@ -24,8 +24,10 @@ import org.apache.accumulo.core.iterators.conf.ColumnSet;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
+import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
@@ -45,11 +47,8 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-${accumulo.VERSION.1.6}import org.apache.accumulo.core.util.ThriftUtil; // 1.6
-${accumulo.VERSION.1.7}import org.apache.accumulo.core.rpc.ThriftUtil; // 1.7
-
-${accumulo.VERSION.1.6}import org.apache.accumulo.trace.thrift.TInfo; // 1.6
-${accumulo.VERSION.1.7}import org.apache.accumulo.core.trace.thrift.TInfo; // 1.7
+//${accumulo.VERSION.1.6}import org.apache.accumulo.core.util.ThriftUtil; // 1.6
+//${accumulo.VERSION.1.6}import org.apache.accumulo.trace.thrift.TInfo; // 1.6
 
 /**
  * @author cyee

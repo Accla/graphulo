@@ -500,9 +500,9 @@ public class Graphulo {
     if (!tops.exists(Btable))
       throw new IllegalArgumentException("Table B does not exist. Given: " + Btable);
 
-    if (Ctable != null && !tops.exists(Ctable))
+    if (Ctable != null && !remoteGraphulo.connector.tableOperations().exists(Ctable))
       try {
-        tops.create(Ctable);
+        remoteGraphulo.connector.tableOperations().create(Ctable);
       } catch (AccumuloException | AccumuloSecurityException e) {
         log.error("error trying to create Ctable " + Ctable, e);
         throw new RuntimeException(e);
@@ -511,9 +511,9 @@ public class Graphulo {
         throw new RuntimeException(e);
       }
 
-    if (CTtable != null && !tops.exists(CTtable))
+    if (CTtable != null && !remoteGraphulo.connector.tableOperations().exists(CTtable))
       try {
-        tops.create(CTtable);
+        remoteGraphulo.connector.tableOperations().create(CTtable);
       } catch (AccumuloException | AccumuloSecurityException e) {
         log.error("error trying to create CTtable " + Ctable, e);
         throw new RuntimeException(e);
@@ -538,9 +538,9 @@ public class Graphulo {
     optTT.put("B.emitNoMatch", Boolean.toString(emitNoMatchB));
 
     if (Ctable != null && plusOp != null)
-      GraphuloUtil.applyIteratorSoft(plusOp, tops, Ctable);
+      GraphuloUtil.applyIteratorSoft(plusOp, remoteGraphulo.connector.tableOperations(), Ctable);
     if (CTtable != null && plusOp != null)
-      GraphuloUtil.applyIteratorSoft(plusOp, tops, CTtable);
+      GraphuloUtil.applyIteratorSoft(plusOp, remoteGraphulo.connector.tableOperations(), CTtable);
 
     if (reducer != null) {
       optRWI.put(RemoteWriteIterator.REDUCER, reducer.getClass().getName());
@@ -749,9 +749,9 @@ public class Graphulo {
       return -1;
     }*/
 
-    if (Rtable != null && !tops.exists(Rtable))
+    if (Rtable != null && !remoteGraphulo.connector.tableOperations().exists(Rtable))
       try {
-        tops.create(Rtable);
+        remoteGraphulo.connector.tableOperations().create(Rtable);
       } catch (AccumuloException | AccumuloSecurityException e) {
         log.error("error trying to create Rtable " + Rtable, e);
         throw new RuntimeException(e);
@@ -760,9 +760,9 @@ public class Graphulo {
         throw new RuntimeException(e);
       }
 
-    if (RTtable != null && !tops.exists(RTtable))
+    if (RTtable != null && !remoteGraphulo.connector.tableOperations().exists(RTtable))
       try {
-        tops.create(RTtable);
+        remoteGraphulo.connector.tableOperations().create(RTtable);
       } catch (AccumuloException | AccumuloSecurityException e) {
         log.error("error trying to create RTtable " + Rtable, e);
         throw new RuntimeException(e);
@@ -772,9 +772,9 @@ public class Graphulo {
       }
 
     if (Rtable != null && plusOp != null)
-      GraphuloUtil.applyIteratorSoft(plusOp, tops, Rtable);
+      GraphuloUtil.applyIteratorSoft(plusOp, remoteGraphulo.connector.tableOperations(), Rtable);
     if (RTtable != null && plusOp != null)
-      GraphuloUtil.applyIteratorSoft(plusOp, tops, RTtable);
+      GraphuloUtil.applyIteratorSoft(plusOp, remoteGraphulo.connector.tableOperations(), RTtable);
 
     boolean givenBS = bs != null;
     if (bs == null)

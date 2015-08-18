@@ -459,13 +459,13 @@ public class Graphulo {
     if (Btable == null || Btable.isEmpty())
       throw new IllegalArgumentException("Please specify table B. Given: " + Btable);
     // Prevent possibility for infinite loop:
-    if (ATtable.equals(Ctable))
+    if (ATtable.equals(Ctable)&& remoteGraphulo.connector.getInstance().getInstanceID().equals(connector.getInstance().getInstanceID()))
       throw new UnsupportedOperationException("Could lead to unpredictable results: ATtable=Ctable=" + ATtable);
-    if (Btable.equals(Ctable))
+    if (Btable.equals(Ctable)&& remoteGraphulo.connector.getInstance().getInstanceID().equals(connector.getInstance().getInstanceID()))
       throw new UnsupportedOperationException("Could lead to unpredictable results: Btable=Ctable=" + Btable);
-    if (ATtable.equals(CTtable))
+    if (ATtable.equals(CTtable)&& remoteGraphulo.connector.getInstance().getInstanceID().equals(connector.getInstance().getInstanceID()))
       throw new UnsupportedOperationException("Could lead to unpredictable results: ATtable=CTtable=" + ATtable);
-    if (Btable.equals(CTtable))
+    if (Btable.equals(CTtable)&& remoteGraphulo.connector.getInstance().getInstanceID().equals(connector.getInstance().getInstanceID()))
       throw new UnsupportedOperationException("Could lead to unpredictable results: Btable=CTtable=" + Btable);
     if (iteratorsAfterTwoTable == null) iteratorsAfterTwoTable = Collections.emptyList();
     if (iteratorsBeforeA == null) iteratorsBeforeA = Collections.emptyList();
@@ -522,9 +522,11 @@ public class Graphulo {
         throw new RuntimeException(e);
       }
 
-    Map<String, String>
-        optTT = basicRemoteOpts("AT.", ATtable, null, ATauthorizations),
-        optRWI = (useRWI) ? basicRemoteOpts("", Ctable, CTtable, null) : null;
+    Graphulo tempG = remoteGraphulo;
+    remoteGraphulo = this;
+    Map<String, String> optTT = basicRemoteOpts("AT.", ATtable, null, ATauthorizations);
+    remoteGraphulo = tempG;
+    Map<String, String> optRWI = (useRWI) ? basicRemoteOpts("", Ctable, CTtable, null) : null;
 //    optTT.put("trace", String.valueOf(Trace.isTracing())); // logs timing on server
     optTT.put("dotmode", dotmode.name());
     optTT.putAll(optsTT);
@@ -704,9 +706,9 @@ public class Graphulo {
     if (Atable == null || Atable.isEmpty())
       throw new IllegalArgumentException("Please specify table A. Given: " + Atable);
     // Prevent possibility for infinite loop:
-    if (Atable.equals(Rtable))
+    if (Atable.equals(Rtable) && remoteGraphulo.connector.getInstance().getInstanceID().equals(connector.getInstance().getInstanceID()))
       throw new UnsupportedOperationException("Could lead to unpredictable results: Atable=Rtable=" + Atable);
-    if (Atable.equals(RTtable))
+    if (Atable.equals(RTtable)&& remoteGraphulo.connector.getInstance().getInstanceID().equals(connector.getInstance().getInstanceID()))
       throw new UnsupportedOperationException("Could lead to unpredictable results: Atable=RTtable=" + Atable);
     if (midIterator == null) midIterator = Collections.emptyList();
     if (AScanIteratorPriority <= 0)
@@ -2196,6 +2198,14 @@ public class Graphulo {
 
   private Graphulo remoteGraphulo = this;
 
+  /**
+   * Usually the remote table we write to is in the same instance as the one
+   * this Graphulo object is connected to.
+   * Calling this method with a Graphulo object connected to a different Accumulo instance
+   * will cause OneTable and TwoTable to write to that different Accumulo instance.
+   * @param g Use connector from this Graphulo for writing to remote table.
+   *          Not used for the input table(s) of OneTable and TwoTable.
+   */
   public void setRemoteGraphulo(Graphulo g) {
     remoteGraphulo = g == null ? this : g;
   }

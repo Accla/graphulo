@@ -5,9 +5,12 @@ import edu.mit.ll.graphulo.skvi.LruCacheIterator;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -15,6 +18,7 @@ import org.apache.log4j.xml.DOMConfigurator;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Contains convenience functions for calling Graphulo functions from Matlab.
@@ -112,6 +116,36 @@ public class MatlabGraphulo extends Graphulo {
     return connector.tableOperations().exists(table);
   }
 
+  public void PrintTable(String table) {
+    Scanner scanner;
+    try {
+      scanner = connector.createScanner(table, Authorizations.EMPTY);
+    } catch (TableNotFoundException e) {
+      log.error("error scaning table "+table, e);
+      throw new RuntimeException(e);
+    }
 
+    for (Map.Entry<Key, Value> entry : scanner) {
+      System.out.println(entry.getKey().toStringNoTime()+"    "+entry.getValue());
+    }
+    scanner.close();
+  }
+
+  public void PrintTableDebug(String table) {
+    Scanner scanner;
+    try {
+      scanner = connector.createScanner(table, Authorizations.EMPTY);
+    } catch (TableNotFoundException e) {
+      log.error("error scaning table "+table, e);
+      throw new RuntimeException(e);
+    }
+
+    for (Map.Entry<Key, Value> entry : scanner) {
+      byte[] b = entry.getValue().get();
+      System.out.println(entry.getKey().toStringNoTime()+"    "+
+          Key.toPrintableString(b, 0, b.length, 300));
+    }
+    scanner.close();
+  }
 
 }

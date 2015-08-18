@@ -2194,6 +2194,12 @@ public class Graphulo {
 //    return basicRemoteOpts(prefix, remoteTable, null);
 //  }
 
+  private Graphulo remoteGraphulo = this;
+
+  public void setRemoteGraphulo(Graphulo g) {
+    remoteGraphulo = g == null ? this : g;
+  }
+
   /**
    * Create the basic iterator settings for the {@link RemoteWriteIterator}.
    * @param prefix A prefix to apply to keys in the option map, e.g., the "B" in "B.tableName".
@@ -2206,9 +2212,9 @@ public class Graphulo {
                                              String remoteTableTranspose, Authorizations authorizations) {
     if (prefix == null) prefix = "";
     Map<String,String> opt = new HashMap<>();
-    String instance = connector.getInstance().getInstanceName();
-    String zookeepers = connector.getInstance().getZooKeepers();
-    String user = connector.whoami();
+    String instance = remoteGraphulo.connector.getInstance().getInstanceName();
+    String zookeepers = remoteGraphulo.connector.getInstance().getZooKeepers();
+    String user = remoteGraphulo.connector.whoami();
     opt.put(prefix+RemoteSourceIterator.ZOOKEEPERHOST, zookeepers);
     opt.put(prefix + RemoteSourceIterator.INSTANCENAME, instance);
     if (remoteTable != null)
@@ -2216,7 +2222,7 @@ public class Graphulo {
     if (remoteTableTranspose != null)
       opt.put(prefix+RemoteWriteIterator.TABLENAMETRANSPOSE, remoteTableTranspose);
     opt.put(prefix + RemoteSourceIterator.USERNAME, user);
-    opt.put(prefix+RemoteSourceIterator.PASSWORD, new String(password.getPassword()));
+    opt.put(prefix+RemoteSourceIterator.PASSWORD, new String(remoteGraphulo.password.getPassword()));
     if (authorizations != null && !authorizations.equals(Authorizations.EMPTY))
       opt.put(prefix+"authorizations", authorizations.serialize());
     return opt;

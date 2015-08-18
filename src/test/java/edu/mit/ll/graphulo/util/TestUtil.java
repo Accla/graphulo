@@ -123,6 +123,13 @@ public class TestUtil {
     }
   }
 
+  public static <K,V> void printIterator(Iterator<Map.Entry<K,V>> it) {
+    while (it.hasNext()) {
+      Map.Entry<K, V> entry = it.next();
+      System.out.println(entry.getKey()+"  "+entry.getValue());
+    }
+  }
+
 //    public static Collection<Map.Entry<Key,Value>> pairsToEntries(Collection<Pair<Key,Value>> entries) {
 //        Collection<Map.Entry<Key,Value>> newset = new HashSet<>(entries.size());
 //        for (Pair<Key, Value> entry : entries) {

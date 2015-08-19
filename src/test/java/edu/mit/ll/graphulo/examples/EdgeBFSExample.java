@@ -54,6 +54,7 @@ public class EdgeBFSExample extends AccumuloTestBase {
     int maxDegree = Integer.MAX_VALUE;                  // Unbounded maximum degree.  This and the minimum degree make a High-pass Filter.
     String v0 = "1,25,:,27,";                           // Starting nodes: node 1 (the supernode) and all the nodes from 25 to 27 inclusive.
     int EScanIteratorPriority = -1;                     // Use default priority for scan-time iterators on table E
+    boolean useNewTimestamp = true;                     // New Keys written to Rtable/RTtable receive a new timestamp from System.currentTimeMillis()
     boolean outputUnion = false;                        // Return nodes reached in EXACTLY k steps.
     MutableLong numEntriesWritten = new MutableLong();  // Counts number of entries written to Rtable.
 
@@ -90,7 +91,7 @@ public class EdgeBFSExample extends AccumuloTestBase {
     // This call blocks until the BFS completes.
     String vReached = graphulo.EdgeBFS(Etable, v0, numSteps, Rtable, RTtable,
         startPrefixes, endPrefixes, EDegTtable, degColumn, degInColQ, minDegree, maxDegree,
-        plusOp, EScanIteratorPriority, Authorizations.EMPTY, Authorizations.EMPTY, "", outputUnion, numEntriesWritten);
+        plusOp, EScanIteratorPriority, Authorizations.EMPTY, Authorizations.EMPTY, "", useNewTimestamp, outputUnion, numEntriesWritten);
     System.out.println("Wrote "+numEntriesWritten+" entries to Rtable.");
     System.out.println("First few nodes reachable in exactly "+numSteps+" steps: " +
         vReached.substring(0,Math.min(20,vReached.length())));

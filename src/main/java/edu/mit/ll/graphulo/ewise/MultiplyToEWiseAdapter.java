@@ -53,11 +53,12 @@ public class MultiplyToEWiseAdapter implements EWiseOp {
 
   @Override
   public Iterator<? extends Map.Entry<Key, Value>> multiply(
-      ByteSequence Mrow, ByteSequence McolF, ByteSequence McolQ,
-      ByteSequence McolVis, Value Aval, Value Bval) {
+      ByteSequence Mrow, ByteSequence McolF, ByteSequence McolQ, ByteSequence McolVis,
+      long Atime, long Btime,
+      Value Aval, Value Bval) {
     if (switchArgs)
-      return multiplyOp.multiply(Mrow, McolF, McolQ, null, McolF, McolQ, null, Bval, Aval);
+      return multiplyOp.multiply(Mrow, McolF, McolQ, null, Btime, McolF, McolQ, null, Atime, Bval, Aval);
     else
-      return multiplyOp.multiply(Mrow, McolF, McolQ, null, McolF, McolQ, null, Aval, Bval);
+      return multiplyOp.multiply(Mrow, McolF, McolQ, null, Atime, McolF, McolQ, null, Btime, Aval, Bval);
   }
 }

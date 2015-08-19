@@ -49,7 +49,9 @@ public interface EWiseOp {
    *@param Aval  Pointer to data for A value. Do not modify. May be null in the case of <tt>emitNoMatchB</tt>.
    * @param Bval  Pointer to data for B value. Do not modify. May be null in the case of <tt>emitNoMatchA</tt>.   @return Iterator over result of multiplying the two entries. Use {@link Collections#emptyIterator()} if no entries to emit.
    */
-  Iterator<? extends Map.Entry<Key, Value>> multiply(ByteSequence Mrow, ByteSequence McolF, ByteSequence McolQ,
-                                                     ByteSequence McolVis, Value Aval, Value Bval);
+  Iterator<? extends Map.Entry<Key, Value>> multiply(
+      ByteSequence Mrow, ByteSequence McolF, ByteSequence McolQ, ByteSequence McolVis,
+      long Atime, long Btime,
+      Value Aval, Value Bval);
 
 }

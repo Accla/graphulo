@@ -1159,6 +1159,8 @@ public class Graphulo {
    * @param newVisibility Visibility label for new entries created in Rtable and/or RTtable. Null means use the visibility of the parent keys.
    *                      Important: this is one option for which null (don't change the visibiltity) is distinguished from the empty string
    *                      (set the visibility of all Keys seen to the empty visibility).
+   * @param useNewTimestamp If true, new Keys written to Rtable/RTtable receive a new timestamp from {@link System#currentTimeMillis()}.
+   *                        If false, retains the original timestamps of the Keys in Etable.
    * @param outputUnion Whether to output nodes reachable in EXACTLY (false) or UP TO (true) k BFS steps.
    * @param numEntriesWritten Output parameter that stores the number of entries passed through the RemoteWriteIterator
    *                          (two times this number is written to Accumulo if both the output table and transpose is used).
@@ -1171,6 +1173,7 @@ public class Graphulo {
                          String ETDegtable, String degColumn, boolean degInColQ, int minDegree, int maxDegree,
                          IteratorSetting plusOp, int EScanIteratorPriority,
                          Authorizations Eauthorizations, Authorizations EDegauthorizations, String newVisibility,
+                         boolean useNewTimestamp,
                          boolean outputUnion, MutableLong numEntriesWritten) {
     boolean needDegreeFiltering = minDegree > 1 || maxDegree < Integer.MAX_VALUE;
     if (Etable == null || Etable.isEmpty())
@@ -1255,6 +1258,7 @@ public class Graphulo {
       opt.put("multiplyOp.opt." + EdgeBFSMultiply.USE_NEW_VISIBILITY, Boolean.toString(true));
       opt.put("multiplyOp.opt." + EdgeBFSMultiply.NEW_VISIBILITY, newVisibility);
     }
+    opt.put("multiplyOp.opt." + EdgeBFSMultiply.USE_NEW_TIMESTAMP, Boolean.toString(useNewTimestamp));
 //    opt.put("AT.zookeeperHost", zookeepers);
 //    opt.put("AT.instanceName", instance);
     opt.put("AT.tableName", TwoTableIterator.CLONESOURCE_TABLENAME);

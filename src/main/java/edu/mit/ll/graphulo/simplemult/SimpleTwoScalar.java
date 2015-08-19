@@ -87,9 +87,12 @@ public abstract class SimpleTwoScalar extends KeyTwoScalar implements MultiplyOp
     return copy;
   }
 
-  // MultiplyOp
+  /** For {@link MultiplyOp}. Uses {@link System#currentTimeMillis()} for the timestamp. */
   @Override
-  public final Iterator<? extends Entry<Key, Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence ATcolVis, ByteSequence BcolF, ByteSequence BcolQ, ByteSequence BcolVis, Value ATval, Value Bval) {
+  public final Iterator<? extends Entry<Key, Value>> multiply(
+      ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence ATcolVis, long ATtime,
+      ByteSequence BcolF, ByteSequence BcolQ, ByteSequence BcolVis, long Btime,
+      Value ATval, Value Bval) {
 //    System.err.println("Mrow:"+Mrow+" ATcolQ:"+ATcolQ+" BcolQ:"+BcolQ+" ATval:"+ATval+" Bval:"+Bval);
     assert ATval != null || Bval != null;
     Key k = new Key(ATcolQ.getBackingArray(), ATcolF.getBackingArray(),
@@ -98,9 +101,12 @@ public abstract class SimpleTwoScalar extends KeyTwoScalar implements MultiplyOp
     return v == null ? Collections.<Entry<Key,Value>>emptyIterator() : Iterators.singletonIterator(new SimpleImmutableEntry<>(k, v));
   }
 
-  // EWiseOp
+  /** For {@link EWiseOp}. Uses {@link System#currentTimeMillis()} for the timestamp. */
   @Override
-  public final Iterator<? extends Entry<Key, Value>> multiply(ByteSequence Mrow, ByteSequence McolF, ByteSequence McolQ, ByteSequence McolVis, Value Aval, Value Bval) {
+  public final Iterator<? extends Entry<Key, Value>> multiply(
+      ByteSequence Mrow, ByteSequence McolF, ByteSequence McolQ, ByteSequence McolVis,
+      long Atime, long Btime,
+      Value Aval, Value Bval) {
     // Important!  Aval xor Bval could be null, if emitNoMatchA or emitNoMatchB are true in TwoTableIterator.
     // Decision is to emit the non-matching entries untouched by the operation.  This is a *SIMPLETwoScalar* operator.
     assert Aval != null || Bval != null;

@@ -432,7 +432,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
       if (writer != null) {
         m = new Mutation(k.getRowData().getBackingArray());
         m.put(k.getColumnFamilyData().getBackingArray(), k.getColumnQualifierData().getBackingArray(),
-            k.getColumnVisibilityParsed(), v.get()); // no ts? System.currentTimeMillis()
+            k.getColumnVisibilityParsed(), k.getTimestamp(), v.get()); // no ts? System.currentTimeMillis()
 //        watch.start(Watch.PerfSpan.WriteAddMut);
         try {
           writer.addMutation(m);
@@ -447,7 +447,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
       if (writerTranspose != null) {
         m = new Mutation(k.getColumnQualifierData().getBackingArray());
         m.put(k.getColumnFamilyData().getBackingArray(), k.getRowData().getBackingArray(),
-            k.getColumnVisibilityParsed(), v.get()); // no ts? System.currentTimeMillis()
+            k.getColumnVisibilityParsed(), k.getTimestamp(), v.get()); // no ts? System.currentTimeMillis()
 //        watch.start(Watch.PerfSpan.WriteAddMut);
         try {
           writerTranspose.addMutation(m);

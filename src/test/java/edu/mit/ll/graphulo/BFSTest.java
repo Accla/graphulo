@@ -733,9 +733,39 @@ public class BFSTest extends AccumuloTestBase {
       Assert.assertEquals(expectTranspose, actualTranspose);
     }
 
+    // check keep original timestamp
+    conn.tableOperations().delete(tR);
+    conn.tableOperations().delete(tRT);
+    actual.clear();
+    actualTranspose.clear();
+    {
+      MutableLong numEntriesWritten = new MutableLong();
+      Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+      String u3actual = graphulo.EdgeBFS(tE, v0, 3, tR, tRT, "out|,", "in|,", tETDeg, "", true, 1, 2,
+          null, 1, Authorizations.EMPTY, Authorizations.EMPTY, null, false, false,
+          numEntriesWritten);
+      Assert.assertEquals(u3expect, GraphuloUtil.d4mRowToTexts(u3actual));
+      Assert.assertEquals(12l, numEntriesWritten.longValue());
+
+      Map<Key,Value> e = new TreeMap<>(), a = new TreeMap<>();
+      TestUtil.scanTableToMap(conn, tR, a);
+      BatchScanner scanner = conn.createBatchScanner(tE, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        int i = entry.getKey().getRow().toString().charAt(1) - '0';
+        if (i >= 0 && i <= 5)
+          e.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+//      TestUtil.printExpectActual(e, a);
+      Assert.assertEquals(e, a);
+    }
+
     // sanity check out prefixes
     conn.tableOperations().delete(tR);
     conn.tableOperations().delete(tRT);
+    actual.clear();
+    actualTranspose.clear();
     {
       MutableLong numEntriesWritten = new MutableLong();
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
@@ -764,6 +794,8 @@ public class BFSTest extends AccumuloTestBase {
 
     conn.tableOperations().delete(tR);
     conn.tableOperations().delete(tRT);
+    actual.clear();
+    actualTranspose.clear();
     v0 = "v0,:,v000,";
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
@@ -1177,7 +1209,7 @@ public class BFSTest extends AccumuloTestBase {
         actual.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
-      TestUtil.printExpectActual(expect, actual);
+//      TestUtil.printExpectActual(expect, actual);
       Assert.assertEquals(expect, actual);
     }
 

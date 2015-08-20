@@ -2,6 +2,7 @@ package edu.mit.ll.graphulo.util;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -11,12 +12,15 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
@@ -26,96 +30,98 @@ import java.util.SortedSet;
  * Helper methods for testing.
  */
 public class TestUtil {
-    private static final Logger log = LogManager.getLogger(TestUtil.class);
+  private static final Logger log = LogManager.getLogger(TestUtil.class);
 
 
-    public static void createTestTable(Connector conn, String tableName) {
-        if (conn.tableOperations().exists(tableName)) {
-            try {
-                conn.tableOperations().delete(tableName);
-            } catch (AccumuloException | AccumuloSecurityException e) {
-                throw new RuntimeException("cannot delete table "+tableName, e);
-            } catch (TableNotFoundException e) {
-                throw new RuntimeException("crazy timing bug", e);
-            }
+  public static void createTestTable(Connector conn, String tableName) {
+    if (conn.tableOperations().exists(tableName)) {
+      try {
+        conn.tableOperations().delete(tableName);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        throw new RuntimeException("cannot delete table " + tableName, e);
+      } catch (TableNotFoundException e) {
+        throw new RuntimeException("crazy timing bug", e);
+      }
+    }
+    try {
+      conn.tableOperations().create(tableName);
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      throw new RuntimeException("cannot create table " + tableName, e);
+    } catch (TableExistsException e) {
+      throw new RuntimeException("crazy timing bug", e);
+    }
+  }
+
+  public static void createTestTable(Connector conn, String tableName, SortedSet<Text> splits) {
+    createTestTable(conn, tableName);
+
+    if (splits != null && !splits.isEmpty())
+      try {
+        conn.tableOperations().addSplits(tableName, splits);
+      } catch (TableNotFoundException e) {
+        throw new RuntimeException("crazy timing bug", e);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        throw new RuntimeException("failed to create table splits on " + tableName, e);
+      }
+  }
+
+  /**
+   * Delete table if it exists and make it afresh.
+   * Optionally insert entries into the new table.
+   */
+  public static void createTestTable(Connector conn, String tableName, SortedSet<Text> splits, Map<Key, Value> entriesToIngest) {
+    createTestTable(conn, tableName, splits);
+
+    if (entriesToIngest != null && !entriesToIngest.isEmpty()) {
+      BatchWriterConfig config = new BatchWriterConfig();
+      BatchWriter writer = null;
+      try {
+        writer = conn.createBatchWriter(tableName, config);
+      } catch (TableNotFoundException e) {
+        throw new RuntimeException("crazy timing bug", e);
+      }
+      Mutation m = null;
+      try {
+        for (Map.Entry<Key, Value> pair : entriesToIngest.entrySet()) {
+          Key k = pair.getKey();
+          Value v = pair.getValue();
+          m = new Mutation(k.getRowData().getBackingArray());
+          if (k.isDeleted())
+            m.putDelete(k.getColumnFamilyData().getBackingArray(), k.getColumnQualifierData().getBackingArray(),
+                k.getColumnVisibilityParsed()); // no ts? System.currentTimeMillis()
+          else
+            m.put(k.getColumnFamilyData().getBackingArray(), k.getColumnQualifierData().getBackingArray(),
+                k.getColumnVisibilityParsed(), v.get()); // no ts? System.currentTimeMillis()
+          writer.addMutation(m);
         }
+        writer.flush();
+      } catch (MutationsRejectedException e) {
+        throw new RuntimeException("rejected mutations; last one added is " + m, e);
+      } finally {
         try {
-            conn.tableOperations().create(tableName);
-        } catch (AccumuloException | AccumuloSecurityException e) {
-            throw new RuntimeException("cannot create table " + tableName, e);
-        } catch (TableExistsException e) {
-            throw new RuntimeException("crazy timing bug", e);
+          writer.close();
+        } catch (MutationsRejectedException e1) {
+          log.error("rejected mutations; last one added is " + m, e1);
         }
+      }
     }
+  }
 
-    public static void createTestTable(Connector conn, String tableName, SortedSet<Text> splits) {
-        createTestTable(conn, tableName);
-
-        if (splits != null && !splits.isEmpty())
-            try {
-                conn.tableOperations().addSplits(tableName, splits);
-            } catch (TableNotFoundException e) {
-                throw new RuntimeException("crazy timing bug", e);
-            } catch (AccumuloException | AccumuloSecurityException e) {
-                throw new RuntimeException("failed to create table splits on "+tableName, e);
-            }
+  /**
+   * Print out the expected next to the actual output from a table
+   */
+  public static <V> void printExpectActual(Map<Key, V> expect, Map<Key, V> actual) {
+    Iterator<Map.Entry<Key, V>> acit = actual.entrySet().iterator(),
+        exit = expect.entrySet().iterator();
+    while (acit.hasNext() || exit.hasNext()) {
+      if (acit.hasNext() && exit.hasNext())
+        System.out.printf("%-51s  %s\n", exit.next(), acit.next());
+      else if (acit.hasNext())
+        System.out.printf("%-51s  %s\n", "", acit.next());
+      else
+        System.out.printf("%s\n", exit.next());
     }
-
-    /**
-     * Delete table if it exists and make it afresh.
-     * Optionally insert entries into the new table.
-     */
-    public static void createTestTable(Connector conn, String tableName, SortedSet<Text> splits, Map<Key,Value> entriesToIngest) {
-        createTestTable(conn, tableName, splits);
-
-        if (entriesToIngest != null && !entriesToIngest.isEmpty()) {
-            BatchWriterConfig config = new BatchWriterConfig();
-            BatchWriter writer = null;
-            try {
-                writer = conn.createBatchWriter(tableName, config);
-            } catch (TableNotFoundException e) {
-                throw new RuntimeException("crazy timing bug", e);
-            }
-            Mutation m = null;
-            try {
-                for (Map.Entry<Key, Value> pair : entriesToIngest.entrySet()) {
-                    Key k = pair.getKey();
-                    Value v = pair.getValue();
-                    m = new Mutation(k.getRowData().getBackingArray());
-                    if (k.isDeleted())
-                        m.putDelete(k.getColumnFamilyData().getBackingArray(), k.getColumnQualifierData().getBackingArray(),
-                                k.getColumnVisibilityParsed()); // no ts? System.currentTimeMillis()
-                    else
-                        m.put(k.getColumnFamilyData().getBackingArray(), k.getColumnQualifierData().getBackingArray(),
-                                k.getColumnVisibilityParsed(), v.get()); // no ts? System.currentTimeMillis()
-                    writer.addMutation(m);
-                }
-                writer.flush();
-            } catch (MutationsRejectedException e) {
-                throw new RuntimeException("rejected mutations; last one added is " + m, e);
-            } finally {
-                try {
-                    writer.close();
-                } catch (MutationsRejectedException e1) {
-                    log.error("rejected mutations; last one added is " + m, e1);
-                }
-            }
-        }
-    }
-
-    /** Print out the expected next to the actual output from a table */
-    public static <V> void printExpectActual(Map<Key, V> expect, Map<Key, V> actual) {
-        Iterator<Map.Entry<Key, V>> acit = actual.entrySet().iterator(),
-            exit = expect.entrySet().iterator();
-        while (acit.hasNext() || exit.hasNext()) {
-            if (acit.hasNext() && exit.hasNext())
-                System.out.printf("%-51s  %s\n", exit.next(), acit.next());
-            else if (acit.hasNext())
-                System.out.printf("%-51s  %s\n", "", acit.next());
-            else
-                System.out.printf("%s\n", exit.next());
-        }
-    }
+  }
 
 //    public static Collection<Map.Entry<Key,Value>> pairsToEntries(Collection<Pair<Key,Value>> entries) {
 //        Collection<Map.Entry<Key,Value>> newset = new HashSet<>(entries.size());
@@ -125,14 +131,17 @@ public class TestUtil {
 //        return newset;
 //    }
 
-    /** Compare only the row, column family and column qualifier. */
-    public static class KeyRowColFColQComparator implements Comparator<Key> {
-        @Override
-        public int compare(Key k1, Key k2) {
-            return k1.compareTo(k2, PartialKey.ROW_COLFAM_COLQUAL);
-        }
+  /**
+   * Compare only the row, column family and column qualifier.
+   */
+  public static class KeyRowColFColQComparator implements Comparator<Key> {
+    @Override
+    public int compare(Key k1, Key k2) {
+      return k1.compareTo(k2, PartialKey.ROW_COLFAM_COLQUAL);
     }
-    public static final KeyRowColFColQComparator COMPARE_KEY_TO_COLQ = new KeyRowColFColQComparator();
+  }
+
+  public static final KeyRowColFColQComparator COMPARE_KEY_TO_COLQ = new KeyRowColFColQComparator();
 
 //    /**
 //     * Assert two collections of Keys are equal up to row, colummn family, column qulalifier.
@@ -190,6 +199,18 @@ public class TestUtil {
       double expectValue = expect.containsKey(actualEntry.getKey())
           ? Double.parseDouble(new String(expect.get(actualEntry.getKey()).get())) : 0.0;
       Assert.assertEquals(expectValue, actualValue, 0.001);
+    }
+  }
+
+  public static void scanTableToMap(Connector conn, String table, Map<Key,Value> map) throws TableNotFoundException {
+    BatchScanner scanner = conn.createBatchScanner(table, Authorizations.EMPTY, 2);
+    try {
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        map.put(entry.getKey(), entry.getValue());
+      }
+    } finally {
+      scanner.close();
     }
   }
 

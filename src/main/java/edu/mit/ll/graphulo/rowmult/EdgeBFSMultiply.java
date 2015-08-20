@@ -19,11 +19,13 @@ import java.util.Map;
 public class EdgeBFSMultiply implements MultiplyOp, Iterator<Map.Entry<Key,Value>> {
   private static final Logger log = LogManager.getLogger(EdgeBFSMultiply.class);
 
-  public static final String NEW_VISIBILITY = "newVisibility", USE_NEW_VISIBILITY = "useNewVisibility";
+  public static final String NEW_VISIBILITY = "newVisibility", USE_NEW_VISIBILITY = "useNewVisibility",
+    USE_NEW_TIMESTAMP = "useNewTimestamp";
 
 //  private Text outColumnPrefix, inColumnPrefix;
   private boolean useNewVisibility = false;
   private byte[] newVisibility = null;
+  private boolean useNewTimestamp = true;
 
 //  private enum FILTER_MODE { NONE, SIMPLE, RANGES }
 //  private Collection<Text> simpleFilter;
@@ -40,6 +42,7 @@ public class EdgeBFSMultiply implements MultiplyOp, Iterator<Map.Entry<Key,Value
 //        case "inColumnPrefix": inColumnPrefix = new Text(v); break;
         case USE_NEW_VISIBILITY: useNewVisibility = Boolean.parseBoolean(v); break;
         case NEW_VISIBILITY: newVisibility = v.getBytes(StandardCharsets.UTF_8); break;
+        case USE_NEW_TIMESTAMP: useNewTimestamp = Boolean.parseBoolean(v); break;
         default:
           log.warn("Unrecognized option: " + entry);
           break;
@@ -55,18 +58,29 @@ public class EdgeBFSMultiply implements MultiplyOp, Iterator<Map.Entry<Key,Value
 
 
   @Override
-  public Iterator<? extends Map.Entry<Key, Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence ATcolVis, ByteSequence BcolF, ByteSequence BcolQ,
-                                                            ByteSequence BcolVis, Value ATval, Value Bval) {
+  public Iterator<? extends Map.Entry<Key, Value>> multiply(
+      ByteSequence Mrow,
+      ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence ATcolVis, long ATtime,
+      ByteSequence BcolF, ByteSequence BcolQ, ByteSequence BcolVis, long Btime,
+      Value ATval, Value Bval) {
     // maybe todo: check whether ATcolQ is of the form "out|v0"
 //    if (ATcolQ.length() < outColumnPrefix.getLength() ||
 //        0 != WritableComparator.compareBytes(ATcolQ.getBackingArray(), 0, outColumnPrefix.getLength(), outColumnPrefix.getBytes(), 0, outColumnPrefix.getLength())) {
 //      emitKeyFirst = emitKeySecond = null;
 //      return;
 //    }
-    emitKeyFirst = new Key(Mrow.getBackingArray(), ATcolF.getBackingArray(), ATcolQ.getBackingArray(),
-        useNewVisibility ? newVisibility : ATcolVis.getBackingArray(), System.currentTimeMillis()); // experiment with copy=false?
-    emitKeySecond = new Key(Mrow.getBackingArray(), BcolF.getBackingArray(), BcolQ.getBackingArray(),
-        useNewVisibility ? newVisibility : BcolVis.getBackingArray(), System.currentTimeMillis()); // experiment with copy=false?
+    if (useNewTimestamp) {
+      long t = System.currentTimeMillis();
+      emitKeyFirst = new Key(Mrow.getBackingArray(), ATcolF.getBackingArray(), ATcolQ.getBackingArray(),
+          useNewVisibility ? newVisibility : ATcolVis.getBackingArray(), t); // experiment with copy=false?
+      emitKeySecond = new Key(Mrow.getBackingArray(), BcolF.getBackingArray(), BcolQ.getBackingArray(),
+          useNewVisibility ? newVisibility : BcolVis.getBackingArray(), t); // experiment with copy=false?
+    } else {
+      emitKeyFirst = new Key(Mrow.getBackingArray(), ATcolF.getBackingArray(), ATcolQ.getBackingArray(),
+          useNewVisibility ? newVisibility : ATcolVis.getBackingArray(), ATtime); // experiment with copy=false?
+      emitKeySecond = new Key(Mrow.getBackingArray(), BcolF.getBackingArray(), BcolQ.getBackingArray(),
+          useNewVisibility ? newVisibility : BcolVis.getBackingArray(), Btime); // experiment with copy=false?
+    }
     emitValueFirst = new Value(ATval);
     emitValueSecond = new Value(Bval);
     return this;

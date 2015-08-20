@@ -61,12 +61,14 @@ public class EWiseToApplyAdapter implements ApplyOp {
     ByteSequence
         Mrow = k.getRowData(),
         McolF = k.getColumnFamilyData(),
-        McolQ = k.getColumnQualifierData();
+        McolQ = k.getColumnQualifierData(),
+        colVis = k.getColumnVisibilityData();
+    long ts = k.getTimestamp();
     switch (fixSide) {
       case FIX_LEFT:
-        return eWiseOp.multiply(Mrow, McolF, McolQ, null, fixedValue, v);
+        return eWiseOp.multiply(Mrow, McolF, McolQ, colVis, ts, ts, fixedValue, v);
       case FIX_RIGHT:
-        return eWiseOp.multiply(Mrow, McolF, McolQ, null, v, fixedValue);
+        return eWiseOp.multiply(Mrow, McolF, McolQ, colVis, ts, ts, v, fixedValue);
       default:
         throw new AssertionError();
     }

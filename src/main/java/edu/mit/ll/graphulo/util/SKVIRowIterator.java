@@ -9,6 +9,8 @@ import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 /**
  * Iterates over a source SKVI until the row changes.
@@ -67,5 +69,19 @@ public class SKVIRowIterator implements Iterator<Map.Entry<Key,Value>> {
     byte[] b = skvi.getTopKey().getRowData().getBackingArray();
     row = Arrays.copyOf(b, b.length);
     return matchRow = true;
+  }
+
+  /**
+   * Read a row from skvi into an in-memory SortedMap, advancing the skvi to the start of the next row.
+   * No effect if <pre>!skvi.hasTop()</pre>.
+   */
+  public static SortedMap<Key,Value> readRowIntoMap(SortedKeyValueIterator<Key,Value> skvi) {
+    SortedMap<Key,Value> map = new TreeMap<>();
+    SKVIRowIterator rowIter = new SKVIRowIterator(skvi);
+    while (rowIter.hasNext()) {
+      Map.Entry<Key, Value> entry = rowIter.next();
+      map.put(entry.getKey(), entry.getValue());
+    }
+    return map;
   }
 }

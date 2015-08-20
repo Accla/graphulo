@@ -195,9 +195,13 @@ public class LineRowMultiply implements RowMultiplyOp {
     public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
     }
 
+    /** For {@link MultiplyOp}. Uses {@link System#currentTimeMillis()} for the timestamp. */
     @Override
-    public Iterator<? extends Map.Entry<Key, Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ,
-                                                              ByteSequence ATcolVis, ByteSequence BcolF, ByteSequence BcolQ, ByteSequence BcolVis, Value ATval, Value Bval) {
+    public Iterator<? extends Map.Entry<Key, Value>> multiply(
+        ByteSequence Mrow,
+        ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence ATcolVis, long ATtime,
+        ByteSequence BcolF, ByteSequence BcolQ, ByteSequence BcolVis, long Btime,
+        Value ATval, Value Bval) {
       if ((linemode == LINEMODE.UNDIR || linemode == LINEMODE.DIRAAT) &&
           Arrays.equals(BcolQ.getBackingArray(), ATcolQ.getBackingArray()))
         return Collections.emptyIterator(); // no diagonal

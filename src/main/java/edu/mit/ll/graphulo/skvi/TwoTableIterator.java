@@ -605,7 +605,9 @@ public class TwoTableIterator implements SaveStateIterator {
                 emitted = remoteAT.getTopKey();
                 bottomIter = new PeekingIterator2<>(
                     eWiseOp.multiply(emitted.getRowData(), emitted.getColumnFamilyData(),
-                        emitted.getColumnQualifierData(), emitted.getColumnVisibilityData(), remoteAT.getTopValue(), null));
+                        emitted.getColumnQualifierData(), emitted.getColumnVisibilityData(),
+                        emitted.getTimestamp(), Long.MAX_VALUE,
+                        remoteAT.getTopValue(), null));
                 remoteAT.next();
                 continue TOPLOOP;
               case NONE:
@@ -631,7 +633,9 @@ public class TwoTableIterator implements SaveStateIterator {
                 emitted = remoteB.getTopKey();
                 bottomIter = new PeekingIterator2<>(
                     eWiseOp.multiply(emitted.getRowData(), emitted.getColumnFamilyData(),
-                        emitted.getColumnQualifierData(), emitted.getColumnVisibilityData(), null, remoteB.getTopValue()));
+                        emitted.getColumnQualifierData(), emitted.getColumnVisibilityData(),
+                        Long.MAX_VALUE, emitted.getTimestamp(),
+                        null, remoteB.getTopValue()));
                 remoteB.next();
                 continue TOPLOOP;
               case NONE:
@@ -659,6 +663,7 @@ public class TwoTableIterator implements SaveStateIterator {
               bottomIter = new PeekingIterator2<>(
                   eWiseOp.multiply(emitted.getRowData(), emitted.getColumnFamilyData(),
                       emitted.getColumnQualifierData(), emitted.getColumnVisibilityData(),
+                      emitted.getTimestamp(), remoteB.getTopKey().getTimestamp(),
                       remoteAT.getTopValue(), remoteB.getTopValue()));
               remoteAT.next();
               remoteB.next();

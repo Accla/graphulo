@@ -41,13 +41,18 @@ public interface MultiplyOp {
    * @param ATcolF Pointer to data for AT column family. Do not modify.
    * @param ATcolQ Pointer to data for AT column qualifier. Do not modify.
    * @param ATcolVis Pointer to data for AT column visibility. Do not modify.
+   * @param ATtime Timestamp for AT.
    * @param BcolF  Pointer to data for B column family. Do not modify.
    * @param BcolQ  Pointer to data for B column qualifier. Do not modify.
    * @param BcolVis Pointer to data for B column visibility. Do not modify.
+   * @param Btime  Timestamp for B.
    * @param ATval  Pointer to data for AT value. Do not modify.
    * @param Bval   Pointer to data for B value. Do not modify.
    * @return Iterator over result of multiplying the two entries. Use {@link Collections#emptyIterator()} if no entries to emit.
    */
-  Iterator<? extends Map.Entry<Key, Value>> multiply(ByteSequence Mrow, ByteSequence ATcolF, ByteSequence ATcolQ,
-                                                     ByteSequence ATcolVis, ByteSequence BcolF, ByteSequence BcolQ, ByteSequence BcolVis, Value ATval, Value Bval);
+  Iterator<? extends Map.Entry<Key, Value>> multiply(
+      ByteSequence Mrow,
+      ByteSequence ATcolF, ByteSequence ATcolQ, ByteSequence ATcolVis, long ATtime,
+      ByteSequence BcolF, ByteSequence BcolQ, ByteSequence BcolVis, long Btime,
+      Value ATval, Value Bval);
 }

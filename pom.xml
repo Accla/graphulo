@@ -232,25 +232,26 @@
               <shadedArtifactAttached>true</shadedArtifactAttached>
               <shadedClassifierName>alldeps</shadedClassifierName>
               <minimizeJar>true</minimizeJar>
-              <!--<artifactSet>-->
-                <!--<includes>-->
-                  <!--<include>org.apache.commons:commons-math3</include>-->
-                <!--</includes>-->
-                <!--&lt;!&ndash;<excludes>&ndash;&gt;-->
-                  <!--&lt;!&ndash;<exclude>*:maven-core</exclude>&ndash;&gt;-->
-                <!--&lt;!&ndash;</excludes>&ndash;&gt;-->
-              <!--</artifactSet>-->
-              <!--<filters>-->
-                <!--<filter>-->
-                  <!--<artifact>org.apache.commons:commons-math3</artifact>-->
-                  <!--<includes>-->
-                    <!--<include>org/apache/commons/math3/linear/**</include>-->
-                  <!--</includes>-->
-                  <!--&lt;!&ndash;<excludes>&ndash;&gt;-->
-                    <!--&lt;!&ndash;<exclude>org/junit/experimental/**</exclude>&ndash;&gt;-->
-                  <!--&lt;!&ndash;</excludes>&ndash;&gt;-->
-                <!--</filter>-->
-              <!--</filters>-->
+              <artifactSet>
+                <includes>
+                  <include>org.apache.htrace:htrace-zipkin</include>
+                  <!--<include>org.apache.htrace:htrace-core</include>-->
+                </includes>
+                <!--<excludes>-->
+                  <!--<exclude>*:maven-core</exclude>-->
+                <!--</excludes>-->
+              </artifactSet>
+              <filters>
+                <filter>
+                  <artifact>org.apache.htrace:*</artifact>
+                  <includes>
+                    <include>**</include>
+                  </includes>
+                  <!--<excludes>-->
+                    <!--<exclude>org/junit/experimental/**</exclude>-->
+                  <!--</excludes>-->
+                </filter>
+              </filters>
             </configuration>
           </execution>
         </executions>
@@ -361,6 +362,18 @@
         <version>chargebee-1.0</version>
         <scope>runtime</scope>
       </dependency>
+      <dependency>
+        <groupId>org.apache.htrace</groupId>
+        <artifactId>htrace-zipkin</artifactId>
+        <version>3.1.0-incubating</version>
+        <scope>runtime</scope>
+      </dependency>
+      <!--<dependency>-->
+        <!--<groupId>org.apache.htrace</groupId>-->
+        <!--<artifactId>htrace-core</artifactId>-->
+        <!--<version>3.1.0-incubating</version>-->
+        <!--<scope>runtime</scope>-->
+      <!--</dependency>-->
 
       <!-- Accumulo server-side dependencies-->
       <!--<dependency>-->

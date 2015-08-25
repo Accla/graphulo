@@ -355,18 +355,21 @@
         <artifactId>commons-collections4</artifactId>
         <version>4.0</version>
       </dependency>
-      <!-- Used by some JSON functions, in D4M Matlab. -->
+      <!-- Used by some JSON functions in D4M Matlab. -->
       <dependency>
         <groupId>org.json</groupId>
         <artifactId>org.json</artifactId>
         <version>chargebee-1.0</version>
         <scope>runtime</scope>
+        <optional>true</optional>
       </dependency>
+
       <dependency>
         <groupId>org.apache.htrace</groupId>
         <artifactId>htrace-zipkin</artifactId>
         <version>3.1.0-incubating</version>
         <scope>runtime</scope>
+        <optional>true</optional>
       </dependency>
       <!--<dependency>-->
         <!--<groupId>org.apache.htrace</groupId>-->

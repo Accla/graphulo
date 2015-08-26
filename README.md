@@ -51,7 +51,8 @@ docs/...              Papers and presentations related to Graphulo.
   
 pom.xml               Maven Project Object Model. Defines how to build graphulo.
 post-test.bash        Script to display output of tests from shippable/testresults.
-viewMiniServerLogs.sh Script to display server-side MiniAccumulo logs for most recent singleton test.
+lessMiniServerLogs.sh Script to display server-side MiniAccumulo logs for most recent singleton test.
+tailMiniServerLogs.sh Similar to above.
 deploy.sh             Script to deploy a graphulo build to Accumulo and Matlab D4M.
 README.md             This file.
 README-D4M.md         Readme for d4m_api_java, also included in this distribution.
@@ -176,7 +177,7 @@ Graphulo graphulo = new Graphulo(connector, PASSWORD_TOKEN);
 
 // call Graphulo functions...
 graphulo.AdjBFS("Atable", "v0,", 3, "Rtable", null, null, -1, 
-                "ADegtable", "deg", false, 5, 15, null, false);
+                "ADegtable", "deg", false, 5, 15);
 ```
 
 See Examples above for more elaborate client code usage.
@@ -463,11 +464,4 @@ IteratorSetting sumFilterOp =
   .toIteratorSetting(6);
 ```
 
-##### Other places to use iterators
-* Can place an iterator before a TwoTableIterator (meaning lower priority), which runs on data from the local table 
-before passing to the TwoTableIterator. Useful:
-  * `SmallLargeRowFilter` Filter out too rows with too few or too many entries.
-* Can place an iterator after a TwoTableIterator (meaning higher priority). Useful iterators:
-  * `emitEmptyEntries` Choose whether to emit entries with a Value of an empty byte array ""
-  * `emitZeroEntries` Choose whether to emit entries with a Value encoding "0"
 

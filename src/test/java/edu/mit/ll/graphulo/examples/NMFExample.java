@@ -28,6 +28,7 @@ import java.util.Map;
  * (2) sample the graph uniformly with a given probability;
  * (3) create new Accumulo tables ex10AEdgeW, -WT, -H, and -HT as output from Non-negative Matrix Factorization;
  * (4) multiply the factor tables W and H into a new table ex10AEdgeApprox that approximates the original incidence matrix.
+ * In-memory NMF runs fast.  Fully distributed NMF runs slow but does not require holding the input table in memory.
  */
 public class NMFExample extends AccumuloTestBase {
   private static final Logger log = LogManager.getLogger(NMFExample.class);

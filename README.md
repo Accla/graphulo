@@ -1,29 +1,35 @@
 Graphulo
 ========
 
-Graphulo is a Java library that provides graph primitives and algorithms
-that run server-side on the Apache [Accumulo][] database.
+Graphulo is a Java library for the [Apache Accumulo][] database delivering server-side sparse matrix math primitives that enable higher-level graph algorithms and analytics.
 
 Graph primitives loosely follow the [GraphBLAS][] spec.
-Graph algorithms include Breadth First Search, finding a k-Truss subgraph, 
-computing Jaccard coefficients, and performing non-negative matrix factorization. 
-
-Our use case is *queued* analytics that run on a table subset,
-as opposed to *whole table* analytics that are better off using a filesystem than a database.
-We therefore prioritize low latency over high throughput when tradeoffs are necessary.
+Example algorithms include Breadth First Search, finding a k-Truss subgraph, 
+computing Jaccard coefficients, transforming by [TF-IDF][],
+and performing non-negative matrix factorization. 
+We encourage developers to use Graphulo's primitives to build 
+more algorithms and applications.
 
 Graphulo's design resembles that of a stored procedure in classic relational databases.
-The client calls a graph primitive that creates a new table 
-in the database rather than gathering results at the client.
-Our core approach is performing a scan with iterators that allow reading from multiple tables
-and writing to multiple tables, as opposed to ordinary scans 
-that read from a single table and send results back to the client.
+The client calls (directly or through delagate functions)
+the OneTable or TwoTable core functions, 
+which create new tables to store results in Accumulo
+rather than gather results at the client.
+Both functions scan Accumulo with iterators that themselves
+open Scanners and BatchWriters, allowing reading from multiple tables
+and writing to multiple tables in one client call, 
+as opposed to ordinary scans that read from a single table 
+and send results back to the client.
 
-Graphulo is tested on Accumulo 1.6 and 1.7 
+Graphulo is tested on Accumulo 1.6 and 1.7.
 
-[Accumulo]: https://accumulo.apache.org/
+[Apache Accumulo]: https://accumulo.apache.org/
 [GraphBLAS]: http://istc-bigdata.org/GraphBlas/
+[TF-IDF]: https://en.wikipedia.org/wiki/Tf%E2%80%93idf
 
+### How do I get started?
+Look at the material in the `docs/` folder, especially the Use and Design slide deck.
+Read and run the examples-- see below for how.
 
 ### Directory Structure
 
@@ -42,7 +48,7 @@ src/
 
 target/
   graphulo-${version}.jar         Graphulo binaries, enough for client usage.
-  graphulo-${version}-alldeps.zip Graphulo + all referenced binaries, for easy server installation.
+  graphulo-${version}-alldeps.jar Graphulo + all referenced binaries, for easy server installation.
   graphulo-${version}-libext.zip  ZIP of the JARs of all dependencies.
   site/apidocs/...                Javadoc.
   graphulo-${version}-dist.zip    Distribution ZIP. Contains all source and binaries.
@@ -76,7 +82,7 @@ This creates three primary Graphulo artifacts inside the `target/` sub-directory
 
 1. `graphulo-${version}.jar`         Graphulo binaries, enough for client usage.
 Include this on the classpath of Java client applications that call Graphulo functions. 
-2. `graphulo-${version}-alldeps.zip` Graphulo + all referenced binaries, for easy server installation.
+2. `graphulo-${version}-alldeps.jar` Graphulo + all referenced binaries, for easy server installation.
 Include this in the `lib/ext/` directory of Accumulo server installations 
 in order to provide the Graphulo code and every class referenced by Graphulo,
 so that the Accumulo instance has everything it could possibly need to instantiate Graphulo code.
@@ -119,11 +125,16 @@ Here is a list of included examples:
 
 1. `TableMultExample` -- inserts two SCALE 10 adjacency tables,
 stores the result of multiplying them, and counts the number of resulting entries.
-2. `AdjBFSExample` -- inserts a SCALE 10 adjacency table,
+2. `AdjBFSExample` -- inserts a SCALE 10 adjacency table with degree table,
 creates a new table with the union sum of three steps of Breadth First Search, 
 and counts the number of resulting entries.
-3. `EdgeBFSExample` -- similar to #2, using an incidence table.
+3. `EdgeBFSExample` -- similar to #2, using an incidence table with degree table.
 4. `SingleBFSExample` -- similar to #2, using a single-table schema.
+5. `JaccardExample` -- inserts a SCALE 10 adjacency table with degree table, 
+applies a low-pass filter to subset the table and forces it undirected,
+creates a new table holding Jaccard coefficients,
+and calculates statistics over the Jaccard coefficients.
+6. `NMFExample` -- Fringe example factoring a table into two tables W and H.
 
 ### Deploy to Accumulo and D4M
 Execute `./deploy.sh`. This script will do the following:
@@ -148,7 +159,7 @@ which enables using Graphulo as a Maven dependency in a derivative client projec
 As a summary, these are:
 
 1. `graphulo-${version}.jar` 
-2. `graphulo-${version}-alldeps.zip` 
+2. `graphulo-${version}-alldeps.jar` 
 3. `graphulo-${version}-libext.zip`
 4. `graphulo-${version}.pom`
 
@@ -346,9 +357,9 @@ The rest are partially implemented ideas.
 
 ### GraphBLAS mapping
 * SpGEMM uses TwoTableIterator connected to a RemoteSourceIterator on table AT and a local iterator on table B.
-TwoTableIterator configured with ROW_CARTESIAN_PRODUCT and emitNoMatchEntries=false.
+TwoTableIterator configured with ROW mode and emitNoMatchEntries=false.
 * SpEWiseX uses TwoTableIterator connected to a RemoteSourceIterator on table A and a local iterator on table B.
-TwoTableIterator configured with ROW_COLF_COLQ_MATCH and emitNoMatchEntries=false.
+TwoTableIterator configured with EWISE mode and emitNoMatchEntries=false.
 * SpEWiseSum uses TwoTableIterator connected to a RemoteSourceIterator on table A and a local iterator on table B.
 TwoTableIterator configured with no multiplication and emitNoMatchEntries=true.
 PreSumCacheIterator is important for efficiency.
@@ -365,6 +376,7 @@ Here are several examples of this format and the ranges they represent:
 
 D4M String  | Range
 ------------|-----------------
+`null`      | (-inf,+inf)
 `:,`        | (-inf,+inf)
 `:,c,`      | (-inf,c]
 `f,:,`      | [f,+inf)
@@ -464,4 +476,9 @@ IteratorSetting sumFilterOp =
   .toIteratorSetting(6);
 ```
 
+## Other 
+
+We encourage the use case of *queued* analytics that run on a table subset,
+as opposed to *whole table* analytics that are better off using a filesystem than a database.
+We therefore prioritize low latency over high throughput when tradeoffs are necessary.
 

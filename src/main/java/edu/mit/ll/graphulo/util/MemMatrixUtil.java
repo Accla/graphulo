@@ -27,7 +27,7 @@ public class MemMatrixUtil {
   /** numIterations >= 0 means use Newton's method with the given numIterations.
    * numIterations < 0 means use an exact LU decomposition to solve for the inverse. */
   public static RealMatrix doInverse(RealMatrix matrix, int numIterations) {
-    long t = System.currentTimeMillis();
+//    long t = System.currentTimeMillis();
     RealMatrix X;
     if (numIterations >= 0) {
       int numRows = matrix.getRowDimension();
@@ -40,7 +40,7 @@ public class MemMatrixUtil {
     } else {
       X = new LUDecomposition(matrix).getSolver().getInverse();
     }
-    log.debug("Inverse time for "+numIterations+" iterations: "+(System.currentTimeMillis()-t));
+//    log.debug("Inverse time for "+numIterations+" iterations: "+(System.currentTimeMillis()-t));
     return X;
   }
 

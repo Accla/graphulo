@@ -138,7 +138,7 @@ public class TwoTableIterator implements SaveStateIterator {
       Map<String, String> map, boolean emitNoMatch, String rowRanges, String colFilter,
       DynamicIteratorSetting remoteIterators) {
     map = RemoteSourceIterator.optionMap(map, CLONESOURCE_TABLENAME, null, -1, null,
-        null, null, null, rowRanges, colFilter, false, remoteIterators);
+        null, (String)null, null, rowRanges, colFilter, false, remoteIterators);
     map.put(EMITNOMATCH, Boolean.toString(emitNoMatch));
     return map;
   }
@@ -428,7 +428,10 @@ public class TwoTableIterator implements SaveStateIterator {
           case RemoteSourceIterator.INSTANCENAME:
           case RemoteSourceIterator.USERNAME:
           case RemoteSourceIterator.PASSWORD:
+          case RemoteSourceIterator.AUTHENTICATION_TOKEN:
+          case RemoteSourceIterator.AUTHENTICATION_TOKEN_CLASS:
           case RemoteSourceIterator.DOCLIENTSIDEITERATORS:
+          case RemoteSourceIterator.AUTHORIZATIONS: // <-- not sure about this one
             // these are ok to ignore
             break;
           case RemoteSourceIterator.TABLENAME:

@@ -36,6 +36,7 @@ import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import edu.mit.ll.graphulo.util.DebugUtil;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.MemMatrixUtil;
+import edu.mit.ll.graphulo.util.SerializationUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -2220,9 +2221,10 @@ public class Graphulo {
     if (remoteTableTranspose != null)
       opt.put(prefix+RemoteWriteIterator.TABLENAMETRANSPOSE, remoteTableTranspose);
     opt.put(prefix + RemoteSourceIterator.USERNAME, user);
-    opt.put(prefix+RemoteSourceIterator.PASSWORD, new String(password.getPassword()));
+    opt.put(prefix + RemoteSourceIterator.AUTHENTICATION_TOKEN, SerializationUtil.serializeWritableBase64(password));
+    opt.put(prefix + RemoteSourceIterator.AUTHENTICATION_TOKEN_CLASS, password.getClass().getName());
     if (authorizations != null && !authorizations.equals(Authorizations.EMPTY))
-      opt.put(prefix+"authorizations", authorizations.serialize());
+      opt.put(prefix+RemoteSourceIterator.AUTHORIZATIONS, authorizations.serialize());
     return opt;
   }
 

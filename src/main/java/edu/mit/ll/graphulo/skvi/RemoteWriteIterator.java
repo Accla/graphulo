@@ -1,10 +1,12 @@
 package edu.mit.ll.graphulo.skvi;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 import edu.mit.ll.graphulo.reducer.Reducer;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.PeekingIterator1;
 import edu.mit.ll.graphulo.util.RangeSet;
+import edu.mit.ll.graphulo.util.SerializationUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -192,6 +194,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
   @SuppressWarnings("unchecked")
   private void parseOptions(Map<String, String> map) {
+    String token = null, tokenClass = null;
     for (Map.Entry<String, String> optionEntry : map.entrySet()) {
       String optionKey = optionEntry.getKey();
       String optionValue = optionEntry.getValue();
@@ -225,6 +228,12 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
           case RemoteSourceIterator.PASSWORD:
             auth = new PasswordToken(optionValue);
             break;
+          case RemoteSourceIterator.AUTHENTICATION_TOKEN:
+            token = optionValue;
+            break;
+          case RemoteSourceIterator.AUTHENTICATION_TOKEN_CLASS:
+            tokenClass = optionValue;
+            break;
 
           case REDUCER:
             reducer = GraphuloUtil.subclassNewInstance(optionValue, Reducer.class);
@@ -246,6 +255,14 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
             break;
         }
       }
+    }
+    Preconditions.checkArgument((auth == null && token != null && tokenClass != null) ||
+            (token == null && tokenClass == null && auth != null),
+        "must specify only one kind of authentication: password=%s, token=%s, tokenClass=%s",
+        auth, token, tokenClass);
+    if (auth == null) {
+      auth = GraphuloUtil.subclassNewInstance(tokenClass, AuthenticationToken.class);
+      SerializationUtil.deserializeWritableBase64(auth, token);
     }
     // Required options
     if (//(tableName == null && tableNameTranspose == null && reducer.getClass().equals(NOOP_REDUCER.class)) ||

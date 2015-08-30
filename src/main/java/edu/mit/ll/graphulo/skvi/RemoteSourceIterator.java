@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import edu.mit.ll.graphulo.DynamicIteratorSetting;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.PeekingIterator1;
+import edu.mit.ll.graphulo.util.SerializationUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
@@ -50,7 +51,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
   private String tableName;
   private String zookeeperHost;
   private String username;
-  private AuthenticationToken auth;
+  private AuthenticationToken auth = null;
   private Authorizations authorizations = Authorizations.EMPTY;
   /**
    * Zookeeper timeout in milliseconds
@@ -87,8 +88,13 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
       TIMEOUT = "timeout",
       INSTANCENAME = "instanceName",
       TABLENAME = "tableName",
-      USERNAME = "username",
-      PASSWORD = "password",
+      USERNAME = "username";
+
+  public static final String
+      PASSWORD = "password"; // alternative to AUTHENTICATION_TOKEN that passes password directly
+  public static final String
+      AUTHENTICATION_TOKEN = "authenticationToken", // base64 encoding of token
+      AUTHENTICATION_TOKEN_CLASS = "authenticationTokenClass", // class of token
       AUTHORIZATIONS = "authorizations",
       ROWRANGES = "rowRanges",
       COLFILTER = "colFilter",
@@ -96,12 +102,23 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
       ITER_PREFIX = "diter.";
 
   public static IteratorSetting iteratorSetting(
-      int priority, String zookeeperHost, int timeout, String instanceName, String tableName, String username, String password,
+      int priority, String zookeeperHost, int timeout, String instanceName, String tableName, String username,
+      String password,
       Authorizations authorizations, String rowRanges, String colFilter, boolean doClientSideIterators,
       DynamicIteratorSetting remoteIterators) {
     Preconditions.checkNotNull(tableName, "Param %s is required", TABLENAME);
     return new IteratorSetting(priority, RemoteSourceIterator.class, optionMap(null, tableName, zookeeperHost, timeout, instanceName,
         username, password, authorizations, rowRanges, colFilter, doClientSideIterators, remoteIterators));
+  }
+
+  public static IteratorSetting iteratorSetting(
+      int priority, String zookeeperHost, int timeout, String instanceName, String tableName, String username,
+      AuthenticationToken token,
+      Authorizations authorizations, String rowRanges, String colFilter, boolean doClientSideIterators,
+      DynamicIteratorSetting remoteIterators) {
+    Preconditions.checkNotNull(tableName, "Param %s is required", TABLENAME);
+    return new IteratorSetting(priority, RemoteSourceIterator.class, optionMap(null, tableName, zookeeperHost, timeout, instanceName,
+        username, token, authorizations, rowRanges, colFilter, doClientSideIterators, remoteIterators));
   }
 
   /**
@@ -123,7 +140,8 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
    * @return map with options filled in.
    */
   public static Map<String,String> optionMap(
-      Map<String, String> map, String tableName, String zookeeperHost, int timeout, String instanceName, String username, String password,
+      Map<String, String> map, String tableName, String zookeeperHost, int timeout, String instanceName, String username,
+      String password,
       Authorizations authorizations, String rowRanges, String colFilter, Boolean doClientSideIterators,
       DynamicIteratorSetting remoteIterators) {
     if (map == null)
@@ -153,8 +171,61 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
     return map;
   }
 
+  /**
+   *
+   * @param map Map to reuse. Pass null to create a new HashMap.
+   * @param tableName Name of table to read from.
+   * @param zookeeperHost Zookeeper host for Connector to remote table.
+   * @param timeout Timeout for Connector to remote table. <= 0 means use default timeout.
+   * @param instanceName Instance name for Connector to remote table.
+   * @param username Accumulo Username for Connector to remote table.
+   * @param token AuthenticationToken containing credentials for user. Passed via Base64 encoding (no encryption).
+   * @param authorizations Authorizations to use while scanning. Null means {@link Authorizations#EMPTY}
+   * @param rowRanges Applied to this class's Scanner. Null means all rows. TODO: Would using a SeekFilterIterator lead to better performance?
+   * @param colFilter Column filter, see {@link GraphuloUtil#applyGeneralColumnFilter(String, SortedKeyValueIterator, IteratorEnvironment)}.
+   * @param doClientSideIterators Whether to apply remoteIterators at the remote table or locally. Meaningless if remoteIterators is null. Null means false.
+   * @param remoteIterators If doClientSideIterators=false, these iterators are applied on the remote server.
+   *                        If doClientSideIterators=true, these iterators are applied locally.
+   *                        Null means no extra iterators.
+   * @return map with options filled in.
+   */
+  public static Map<String,String> optionMap(
+      Map<String, String> map, String tableName, String zookeeperHost, int timeout, String instanceName, String username,
+      AuthenticationToken token,
+      Authorizations authorizations, String rowRanges, String colFilter, Boolean doClientSideIterators,
+      DynamicIteratorSetting remoteIterators) {
+    if (map == null)
+      map = new HashMap<>();
+    if (tableName != null)
+      map.put(TABLENAME, tableName);
+    if (zookeeperHost != null)
+      map.put(ZOOKEEPERHOST, zookeeperHost);
+    if (timeout > 0)
+      map.put(TIMEOUT, Integer.toString(timeout));
+    if (instanceName != null)
+      map.put(INSTANCENAME, instanceName);
+    if (username != null)
+      map.put(USERNAME, username);
+    if (token != null) {
+      map.put(AUTHENTICATION_TOKEN_CLASS, token.getClass().getName());
+      map.put(AUTHENTICATION_TOKEN, SerializationUtil.serializeWritableBase64(token));
+    }
+    if (authorizations != null && !authorizations.equals(Authorizations.EMPTY))
+      map.put(AUTHORIZATIONS, authorizations.serialize());
+    if (rowRanges != null)
+      map.put(ROWRANGES, rowRanges);
+    if (colFilter != null)
+      map.put(COLFILTER, colFilter);
+    if (doClientSideIterators != null)
+      map.put(DOCLIENTSIDEITERATORS, doClientSideIterators.toString());
+    if (remoteIterators != null)
+      map.putAll(remoteIterators.buildSettingMap(ITER_PREFIX));
+    return map;
+  }
+
   private void parseOptions(Map<String, String> map) {
     Map<String,String> diterMap = new HashMap<>();
+    String token = null, tokenClass = null;
     for (Map.Entry<String, String> optionEntry : map.entrySet()) {
       String optionKey = optionEntry.getKey();
       String optionValue = optionEntry.getValue();
@@ -179,13 +250,20 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
           case USERNAME:
             username = optionValue;
             break;
+
           case PASSWORD:
             auth = new PasswordToken(optionValue);
             break;
+          case AUTHENTICATION_TOKEN:
+            token = optionValue;
+            break;
+          case AUTHENTICATION_TOKEN_CLASS:
+            tokenClass = optionValue;
+            break;
+
           case AUTHORIZATIONS: // passed value must be from Authorizations.serialize()
             authorizations = new Authorizations(optionValue.getBytes(StandardCharsets.UTF_8));
             break;
-
           case "doWholeRow":
             doWholeRow = Boolean.parseBoolean(optionValue);
             break;
@@ -200,11 +278,20 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
             break;
           default:
             log.warn("Unrecognized option: " + optionEntry);
-            continue;
+            break;
         }
       }
-      log.trace("Option OK: " + optionEntry);
+//      log.trace("Option OK: " + optionEntry);
     }
+    Preconditions.checkArgument((auth == null && token != null && tokenClass != null) ||
+        (token == null && tokenClass == null && auth != null),
+        "must specify only one kind of authentication: password=%s, token=%s, tokenClass=%s",
+        auth, token, tokenClass);
+    if (auth == null) {
+      auth = GraphuloUtil.subclassNewInstance(tokenClass, AuthenticationToken.class);
+      SerializationUtil.deserializeWritableBase64(auth, token);
+    }
+
     if (!diterMap.isEmpty())
       dynamicIteratorSetting = DynamicIteratorSetting.fromMap(diterMap);
     // Required options

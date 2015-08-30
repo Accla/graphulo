@@ -6,6 +6,7 @@ import edu.mit.ll.graphulo.skvi.RemoteSourceIterator;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
+import edu.mit.ll.graphulo.util.SerializationUtil;
 import edu.mit.ll.graphulo.util.TestUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -103,7 +104,7 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     reducer.init(GatherReducer.reducerOptions(GatherReducer.KeyPart.COLQ), null);
     for (Map.Entry<Key, Value> entry : bs) {
       RemoteWriteIterator.decodeValue(entry.getValue(), reducer);
-//      setUniqueColQsActual.addAll((HashSet<String>) SerializationUtils.deserialize(entry.getValue().get()));
+//      setUniqueColQsActual.addAll((HashSet<String>) SerializationUtil.deserialize(entry.getValue().get()));
     }
     setUniqueColQsActual = reducer.getSerializableForClient();
     Assert.assertEquals(setUniqueColQsExpect, setUniqueColQsActual);
@@ -189,7 +190,9 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     itprops.put(RemoteSourceIterator.ZOOKEEPERHOST, conn.getInstance().getZooKeepers());
     //itprops.put(RemoteSourceIterator.TIMEOUT,"5000");
     itprops.put(RemoteSourceIterator.USERNAME, tester.getUsername());
-    itprops.put(RemoteSourceIterator.PASSWORD, new String(tester.getPassword().getPassword()));
+//    itprops.put(RemoteSourceIterator.PASSWORD, new String(tester.getPassword().getPassword()));
+    itprops.put(RemoteSourceIterator.AUTHENTICATION_TOKEN_CLASS, tester.getPassword().getClass().getName());
+    itprops.put(RemoteSourceIterator.AUTHENTICATION_TOKEN, SerializationUtil.serializeWritableBase64(tester.getPassword()));
     itprops.put("doWholeRow", "true"); // *
     IteratorSetting itset = new IteratorSetting(5, RemoteSourceIterator.class, itprops); //"edu.mit.ll.graphulo.skvi.RemoteSourceIterator", itprops);
     scanner.addScanIterator(itset);

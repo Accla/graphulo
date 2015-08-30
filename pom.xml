@@ -232,15 +232,15 @@
               <shadedArtifactAttached>true</shadedArtifactAttached>
               <shadedClassifierName>alldeps</shadedClassifierName>
               <minimizeJar>true</minimizeJar>
-              <artifactSet>
-                <includes>
-                  <include>org.apache.htrace:htrace-zipkin</include>
-                  <!--<include>org.apache.htrace:htrace-core</include>-->
-                </includes>
-                <!--<excludes>-->
-                  <!--<exclude>*:maven-core</exclude>-->
-                <!--</excludes>-->
-              </artifactSet>
+              <!--<artifactSet>-->
+                <!--<includes>-->
+                  <!--<include>org.apache.htrace:htrace-zipkin</include>-->
+                  <!--&lt;!&ndash;<include>org.apache.htrace:htrace-core</include>&ndash;&gt;-->
+                <!--</includes>-->
+                <!--&lt;!&ndash;<excludes>&ndash;&gt;-->
+                  <!--&lt;!&ndash;<exclude>*:maven-core</exclude>&ndash;&gt;-->
+                <!--&lt;!&ndash;</excludes>&ndash;&gt;-->
+              <!--</artifactSet>-->
               <filters>
                 <filter>
                   <artifact>org.apache.htrace:*</artifact>

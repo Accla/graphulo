@@ -12,9 +12,12 @@ import edu.mit.ll.graphulo.util.DoubletonIterator;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.PeekingIterator2;
 import edu.mit.ll.graphulo.util.RangeSet;
+import edu.mit.ll.graphulo.util.SerializationUtil;
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.lexicoder.AbstractEncoder;
 import org.apache.accumulo.core.client.mock.IteratorAdapter;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -836,6 +839,16 @@ public class UtilTest {
       }
       Assert.assertFalse(ia.hasNext());
     }
+  }
+
+  @Test
+  public void testTableConfigSerializes() {
+    TableConfig tcOrig = new TableConfig(
+        ClientConfiguration.loadDefault().withInstance("some_instance"),
+        "tablename", "user", new PasswordToken("bla"));
+    String str = SerializationUtil.serializeBase64(tcOrig);
+    TableConfig tcAfter = (TableConfig)SerializationUtil.deserializeBase64(str);
+    Assert.assertEquals(tcOrig, tcAfter);
   }
 
 }

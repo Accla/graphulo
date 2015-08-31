@@ -59,7 +59,7 @@ public class MiniAccumuloTester extends ExternalResource implements IAccumuloTes
 
   @Override
   protected void before() throws Throwable {
-    if (miniaccumulo == null) {
+    if (instance == null) {
       StopWatch sw = new StopWatch();
       sw.start();
       tempDir = Files.createTempDirectory("tempMini", new FileAttribute<?>[]{}).toFile();
@@ -102,6 +102,7 @@ public class MiniAccumuloTester extends ExternalResource implements IAccumuloTes
       }
       boolean b = tempDir.delete();
       miniaccumulo = null;
+      instance = null;
       log.debug("tearDown ok - instance destroyed; tempDir deleted=" + b);
     }
   }

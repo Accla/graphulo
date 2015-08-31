@@ -116,6 +116,43 @@ public class TableMultTest extends AccumuloTestBase {
     conn.tableOperations().delete(tCT);
   }
 
+  /** @return null if user already has these authorizations; otherwise previous authorizations of the user. */
+  private Authorizations grantAuthorizations(String... auths) throws AccumuloSecurityException, AccumuloException {
+    Connector conn = tester.getConnector();
+    String user = conn.whoami();
+
+    Authorizations beforeAuthorizations = conn.securityOperations().getUserAuthorizations(user);
+    boolean hasAllAuths = true;
+    for (String auth : auths) {
+      if (!beforeAuthorizations.contains(auth)) {
+        hasAllAuths = false;
+        break;
+      }
+    }
+    if (hasAllAuths) {
+      log.info("User " + user + " already has authorizations for " + auths + "; no need to modify user permissions");
+      return null;
+    }
+    else {
+      Assume.assumeTrue("Cannot test authorizations because user " + user + " does not have ALTER_USER permission",
+              conn.securityOperations().hasSystemPermission(user, SystemPermission.ALTER_USER));
+      Authorizations tempAuthorizations;
+      {
+        List<byte[]> beforeAuthorizationsList = beforeAuthorizations.getAuthorizations();
+        List<byte[]> tempAuthorizationsList = new ArrayList<>(beforeAuthorizationsList);
+        for (String auth : auths) {
+          if (!beforeAuthorizations.contains(auth))
+            tempAuthorizationsList.add(auth.getBytes(StandardCharsets.UTF_8));
+        }
+        tempAuthorizations = new Authorizations(tempAuthorizationsList);
+      }
+      conn.securityOperations().changeUserAuthorizations(user, tempAuthorizations);
+      log.info("Changing user "+user+" authorizations to: " + tempAuthorizations);
+      return beforeAuthorizations;
+    }
+  }
+
+
   /**
    * <pre>
    *      C1 C2        C1 C2 C3          B1  B2
@@ -130,27 +167,7 @@ public class TableMultTest extends AccumuloTestBase {
 
     String authA = "testvisA", authB = "testvisB", authC = "testvisC";
     String user = conn.whoami();
-    Assume.assumeTrue("Cannot test authorizations because user " + user + " does not have ALTER_USER permission",
-        conn.securityOperations().hasSystemPermission(user, SystemPermission.ALTER_USER));
-    Authorizations beforeAuthorizations = conn.securityOperations().getUserAuthorizations(user);
-    if (beforeAuthorizations.contains(authA) && beforeAuthorizations.contains(authB) && beforeAuthorizations.contains(authC))
-      log.info("User " + user + " already has authorizations for "+authA+" and "+authB+" and "+authC+"; no need to modify user permissions");
-    else {
-      Authorizations tempAuthorizations;
-      {
-        List<byte[]> beforeAuthorizationsList = beforeAuthorizations.getAuthorizations();
-        List<byte[]> tempAuthorizationsList = new ArrayList<>(beforeAuthorizationsList);
-        if (!beforeAuthorizations.contains(authA))
-          tempAuthorizationsList.add(authA.getBytes(StandardCharsets.UTF_8));
-        if (!beforeAuthorizations.contains(authB))
-          tempAuthorizationsList.add(authB.getBytes(StandardCharsets.UTF_8));
-        if (!beforeAuthorizations.contains(authC))
-          tempAuthorizationsList.add(authC.getBytes(StandardCharsets.UTF_8));
-        tempAuthorizations = new Authorizations(tempAuthorizationsList);
-      }
-      conn.securityOperations().changeUserAuthorizations(user, tempAuthorizations);
-      log.info("Changing user "+user+" authorizations to: " + tempAuthorizations);
-    }
+    Authorizations beforeAuthorizations = grantAuthorizations(authA, authB, authC);
 
     try {
       final String tC, tAT, tB, tCT;
@@ -218,8 +235,10 @@ public class TableMultTest extends AccumuloTestBase {
       conn.tableOperations().delete(tC);
       conn.tableOperations().delete(tCT);
     } finally {
-      conn.securityOperations().changeUserAuthorizations(user, beforeAuthorizations);
-      log.info("Reverting user " + user + " authorizations to: " + beforeAuthorizations);
+      if (beforeAuthorizations != null) {
+        conn.securityOperations().changeUserAuthorizations(user, beforeAuthorizations);
+        log.info("Reverting user " + user + " authorizations to: " + beforeAuthorizations);
+      }
     }
   }
 

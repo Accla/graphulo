@@ -49,7 +49,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
@@ -110,24 +110,24 @@ public class Graphulo {
             MathTwoScalar.combinerSetting(6, null, ScalarOp.PLUS, ScalarType.LONG, false);
 
   protected Connector connector;
-  protected PasswordToken password;
+  protected AuthenticationToken authenticationToken;
 
-  public Graphulo(Connector connector, PasswordToken password) {
+  public Graphulo(Connector connector, AuthenticationToken password) {
     this.connector = connector;
-    this.password = password;
+    this.authenticationToken = password;
     checkCredentials();
     checkGraphuloInstalled();
   }
 
   /**
-   * Check password works for this user.
+   * Check authenticationToken works for this user.
    */
   private void checkCredentials() {
     try {
-      if (!connector.securityOperations().authenticateUser(connector.whoami(), password))
-        throw new IllegalArgumentException("instance " + connector.getInstance().getInstanceName() + ": bad username " + connector.whoami() + " with password " + new String(password.getPassword()));
+      if (!connector.securityOperations().authenticateUser(connector.whoami(), authenticationToken))
+        throw new IllegalArgumentException("instance " + connector.getInstance().getInstanceName() + ": bad username " + connector.whoami() + " with token " + authenticationToken);
     } catch (AccumuloException | AccumuloSecurityException e) {
-      throw new IllegalArgumentException("instance " + connector.getInstance().getInstanceName() + ": error with username " + connector.whoami() + " with password " + new String(password.getPassword()), e);
+      throw new IllegalArgumentException("instance " + connector.getInstance().getInstanceName() + ": error with username " + connector.whoami() + " with token " + authenticationToken, e);
     }
   }
 
@@ -2224,8 +2224,8 @@ public class Graphulo {
     if (remoteTableTranspose != null)
       opt.put(prefix+RemoteWriteIterator.TABLENAMETRANSPOSE, remoteTableTranspose);
     opt.put(prefix + RemoteSourceIterator.USERNAME, user);
-    opt.put(prefix + RemoteSourceIterator.AUTHENTICATION_TOKEN, SerializationUtil.serializeWritableBase64(password));
-    opt.put(prefix + RemoteSourceIterator.AUTHENTICATION_TOKEN_CLASS, password.getClass().getName());
+    opt.put(prefix + RemoteSourceIterator.AUTHENTICATION_TOKEN, SerializationUtil.serializeWritableBase64(authenticationToken));
+    opt.put(prefix + RemoteSourceIterator.AUTHENTICATION_TOKEN_CLASS, authenticationToken.getClass().getName());
     if (authorizations != null && !authorizations.equals(Authorizations.EMPTY))
       opt.put(prefix+RemoteSourceIterator.AUTHORIZATIONS, authorizations.serialize());
     return opt;

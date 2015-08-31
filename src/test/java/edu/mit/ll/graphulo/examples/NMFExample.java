@@ -63,7 +63,7 @@ public class NMFExample extends AccumuloTestBase {
     Connector conn = tester.getConnector();
 
     // Delete result table if it exists, so that we don't sum in previous runs with our results.
-    GraphuloUtil.deleteTables(conn, true, Htable, HTtable, Wtable, WTtable);
+    GraphuloUtil.deleteTables(conn, Htable, HTtable, Wtable, WTtable);
     if (conn.tableOperations().exists(Htable))
       conn.tableOperations().delete(Htable);
 
@@ -96,7 +96,7 @@ public class NMFExample extends AccumuloTestBase {
     // Result is in Htable, HTtable, Wtable, WTtable. Do whatever you like with it.
     // For this example we will multiply H*W into a new table that approximates the original incidence matrix.
     String APtable = "ex" + SCALE + "AEdgeApprox";        // Approximation of the incidence table Etable.
-    GraphuloUtil.deleteTables(conn, true, APtable);
+    GraphuloUtil.deleteTables(conn, APtable);
     graphulo.TableMult(WTtable, Htable, APtable, null, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.DOUBLE, newVisibility, false),
         MathTwoScalar.combinerSetting(Graphulo.PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.DOUBLE, false),

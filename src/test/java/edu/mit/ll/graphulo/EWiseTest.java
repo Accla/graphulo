@@ -170,6 +170,9 @@ public class EWiseTest extends AccumuloTestBase {
       scanner.close();
       Assert.assertEquals(expect, actual);
     }
+    conn.tableOperations().delete(tA);
+    conn.tableOperations().delete(tB);
+    conn.tableOperations().delete(tC);
   }
 
   /**

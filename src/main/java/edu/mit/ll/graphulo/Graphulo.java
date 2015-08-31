@@ -1889,7 +1889,7 @@ public class Graphulo {
       Atmp = tmpBaseName+"tmpA";
       A2tmp = tmpBaseName+"tmpA2";
       AtmpAlt = tmpBaseName+"tmpAalt";
-      deleteTables(forceDelete, Atmp, A2tmp, AtmpAlt);
+      deleteTables(Atmp, A2tmp, AtmpAlt);
 
       if (filterRowCol == null) {
         tops.clone(Aorig, Atmp, true, null, null);
@@ -1946,6 +1946,7 @@ public class Graphulo {
       else                                           // result is new;
         tops.clone(Atmp, Rfinal, true, null, null);  // flushes Atmp before cloning
 
+      tops.delete(Atmp);
       return nnzAfter;
 
     } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
@@ -2017,7 +2018,7 @@ public class Graphulo {
       Rtmp = tmpBaseName+"tmpR";
       EtmpAlt = tmpBaseName+"tmpEalt";
       ETtmpAlt = tmpBaseName+"tmpETalt";
-      deleteTables(forceDelete, Etmp, ETtmp, Atmp, Rtmp, EtmpAlt, ETtmpAlt);
+      deleteTables(Etmp, ETtmp, Atmp, Rtmp, EtmpAlt, ETtmpAlt);
 
       if (edgeFilter == null && ETorig != null && tops.exists(ETorig)) {
         tops.clone(Eorig, Etmp, true, null, null);
@@ -2092,6 +2093,8 @@ public class Graphulo {
           tops.clone(ETtmp, RTfinal, true, null, null);
       }
 
+      tops.delete(Etmp);
+      tops.delete(ETtmp);
       return nnzAfter;
 
     } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
@@ -2263,8 +2266,8 @@ public class Graphulo {
 
   /** Delete tables. If they already exist, delete and re-create them if forceDelete==true,
    * otherwise throw an IllegalStateException. */
-  private void deleteTables(boolean forceDelete, String... tns) {
-    GraphuloUtil.deleteTables(connector, forceDelete, tns);
+  private void deleteTables(String... tns) {
+    GraphuloUtil.deleteTables(connector, tns);
   }
 
   /** Ensure arugments are not null and not empty. If mustExist, ensures the arguments exist as Accumulo tables. */
@@ -2308,7 +2311,7 @@ public class Graphulo {
     checkGiven(true, "Aorig, ATorig", Aorig, ATorig);
     checkGiven(false, "Wfinal, WTfinal, Hfinal, HTfinal", Wfinal, WTfinal, Hfinal, HTfinal);
     Preconditions.checkArgument(K > 0, "# of topics K must be > 0: "+K);
-    deleteTables(false, Wfinal, WTfinal, Hfinal, HTfinal);
+    deleteTables(Wfinal, WTfinal, Hfinal, HTfinal);
 
     String Ttmp1, Ttmp2, Hprev, HTprev;
     String tmpBaseName = Aorig+"_NMF_";
@@ -2316,7 +2319,7 @@ public class Graphulo {
     Ttmp2 = tmpBaseName+"tmp2";
     Hprev = tmpBaseName+"Hprev";
     HTprev = tmpBaseName+"HTprev";
-    deleteTables(forceDelete, Ttmp1, Ttmp2, Hprev, HTprev);
+    deleteTables(Ttmp1, Ttmp2, Hprev, HTprev);
 
     // Initialize W to a dense random matrix of size N x K
     List<IteratorSetting> itCreateTopicList = new DynamicIteratorSetting(1,null)
@@ -2347,8 +2350,8 @@ public class Graphulo {
 
     do {
       if (numiter > 2) {
-        deleteTables(true, Hprev);
-        deleteTables(true, HTprev);
+        deleteTables(Hprev);
+        deleteTables(HTprev);
       }
 
       numiter++;
@@ -2385,14 +2388,19 @@ public class Graphulo {
       log.debug("NMF Iteration "+numiter+" to "+Hfinal+": hdiff " + hdiff);
     } while (numiter < maxiter);
 
-    // at end of loop, if numiter is 2, 4, 6, 8, ... then Hfinal is correct
+    // at end of loop, if numiter is 2, 4, 6, 8, ... no need to swap
     // 1, 3, 5, ... need to swap
-    if (numiter % 2 == 1) {
-      deleteTables(true, Hfinal);
-      deleteTables(true, HTfinal);
+    if (numiter % 2 == 0) {
+      log.debug("EVEN Hfinal is "+Hfinal);
+      log.debug("EVEN Hprev is " + Hprev);
+      deleteTables(Hprev, HTprev);
+    } else {
+      log.debug("ODD  Hfinal is "+Hfinal);
+      log.debug("ODD  Hprev is " + Hprev);
+      deleteTables(Hprev, HTprev);
       try {
-        connector.tableOperations().clone(Hprev, Hfinal, true, null, null);
-        connector.tableOperations().clone(HTprev, HTfinal, true, null, null);
+        connector.tableOperations().clone(Hfinal, Hprev, true, null, null);
+        connector.tableOperations().clone(HTfinal, HTprev, true, null, null);
       } catch (AccumuloException | AccumuloSecurityException e) {
         log.warn("problem cloning to final table "+Hfinal, e);
         throw new RuntimeException(e);
@@ -2400,9 +2408,7 @@ public class Graphulo {
         log.warn("crazy", e);
         throw new RuntimeException(e);
       }
-    } else {
-      deleteTables(true, Hprev);
-      deleteTables(true, HTprev);
+      deleteTables(Hfinal, HTfinal);
     }
 
     return hdiff;
@@ -2463,7 +2469,7 @@ public class Graphulo {
         -1, Authorizations.EMPTY, Authorizations.EMPTY);
 
     // Delete temporary WH table.
-    deleteTables(true, WHtmp);
+    deleteTables(WHtmp);
 
     if (!sumReducer.hasTopForClient())
       return 0.0; // no error. This will never happen realistically.
@@ -2479,7 +2485,7 @@ public class Graphulo {
                        double cutoffThreshold, int maxColsPerTopic) {
     boolean DBG = false;
     // delete out1, out2
-    deleteTables(true, out1, out2);
+    deleteTables(out1, out2);
 
     IteratorSetting plusCombiner = MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE, false);
 
@@ -2554,7 +2560,7 @@ public class Graphulo {
     }
 
     // Delete temporary tables.
-    deleteTables(true, tmp1, tmp2);
+    deleteTables(tmp1, tmp2);
   }
 
 
@@ -2611,7 +2617,7 @@ public class Graphulo {
     Hfinal = emptyToNull(Hfinal);
     Preconditions.checkArgument(Wfinal != null || Hfinal != null, "Either W or H must be given or the method is useless.");
     Preconditions.checkArgument(K > 0, "# of topics K must be > 0: " + K);
-    deleteTables(false, Wfinal, Hfinal); // WTfinal, HTfinal
+    deleteTables(Wfinal, Hfinal); // WTfinal, HTfinal
 
     // Scan A into memory
     Map<Key,Value> Aentries = new TreeMap<>(); //GraphuloUtil.scanAll(connector, Aorig);
@@ -2885,12 +2891,12 @@ public class Graphulo {
     checkGiven(true, "Htable, HTtable", Htable, HTtable);
     checkGiven(false, "Rtable", Rtable);
     Preconditions.checkArgument(K > 0, "# of topics K must be > 0: " + K);
-    deleteTables(false, Rtable);
+    deleteTables(Rtable);
 
     String Ttmp1;
     String tmpBaseName = Htable+"_NMF_";
     Ttmp1 = tmpBaseName+"tmp1";
-    deleteTables(forceDelete, Ttmp1);
+    deleteTables(Ttmp1);
 
     // H*HT
     TableMult(HTtable, HTtable, Ttmp1, null, -1,
@@ -2921,7 +2927,7 @@ public class Graphulo {
         MathTwoScalar.combinerSetting(PLUS_ITERATOR_BIGDECIMAL.getPriority(), null, ScalarOp.PLUS, ScalarType.DOUBLE, false),
         null, null, null, false, false, -1);
 
-    deleteTables(true, Ttmp1);
+    deleteTables(Ttmp1);
   }
 
 

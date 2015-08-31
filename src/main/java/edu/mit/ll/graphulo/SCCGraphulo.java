@@ -59,7 +59,7 @@ public class SCCGraphulo extends Graphulo {
       throw new IllegalArgumentException("Please specify table A. Given: " + Atable);
     if (Rtable == null || Rtable.isEmpty())
       throw new IllegalArgumentException("Please specify table AT. Given: " + Rtable);
-    if (rowCount < 1)
+    if (rowCount <= 1)
       throw new IllegalArgumentException("Table too small.");
 
     TableOperations tops = connector.tableOperations();
@@ -151,6 +151,11 @@ public class SCCGraphulo extends Graphulo {
 
     SpEWiseX(tR, tRT, tRf, null, -1, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, "", false), null, null, null, null, -1);
 
+    // delete temporary tables
+    tops.delete(tRT);
+    tops.delete(tR);
+    tops.delete(tAT);
+    tops.delete(tAC);
   }
 
   /**

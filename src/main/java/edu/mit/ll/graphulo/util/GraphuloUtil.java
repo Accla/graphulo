@@ -875,22 +875,19 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
 
   /** Delete tables. If they already exist, delete and re-create them if forceDelete==true,
    * otherwise throw an IllegalStateException. */
-  public static void deleteTables(Connector connector, boolean forceDelete, String... tns) {
+  public static void deleteTables(Connector connector, String... tns) {
     TableOperations tops = connector.tableOperations();
     for (String tn : tns) {
-      if (tn != null) {
-        if (!forceDelete)
-          Preconditions.checkState(!tops.exists(tn), "Temporary table already exists: %s. Set forceDelete=true to delete.", tn);
-        else if (tops.exists(tn))
-          try {
-            tops.delete(tn);
-          } catch (AccumuloException | AccumuloSecurityException e) {
-            log.error("Problem deleing temporary table " + tn, e);
-            throw new RuntimeException(e);
-          } catch (TableNotFoundException e) {
-            log.error("crazy", e);
-            throw new RuntimeException(e);
-          }
+      if (tn != null && tops.exists(tn)) {
+        try {
+          tops.delete(tn);
+        } catch (AccumuloException | AccumuloSecurityException e) {
+          log.error("Problem deleing temporary table " + tn, e);
+          throw new RuntimeException(e);
+        } catch (TableNotFoundException e) {
+          log.error("crazy", e);
+          throw new RuntimeException(e);
+        }
       }
     }
   }

@@ -30,7 +30,7 @@ import java.util.Map;
 public class DynamicIteratorSetting {
   private static final Logger log = LogManager.getLogger(DynamicIteratorSetting.class);
 
-  private Deque<IteratorSetting> iteratorSettingList = new LinkedList<>();
+  private Deque<IteratorSetting> iteratorSettingList;
   private int diPriority;
   private String diName;
 
@@ -40,6 +40,12 @@ public class DynamicIteratorSetting {
     if (diName == null || diName.isEmpty())
       diName = DynamicIterator.class.getSimpleName();
     this.diName = diName;
+    this.iteratorSettingList = new LinkedList<>();
+  }
+
+  public DynamicIteratorSetting(int diPriority, String diName, Deque<IteratorSetting> iterList) {
+    this(diPriority, diName);
+    iteratorSettingList.addAll(iterList);
   }
 
   public int getDiPriority() {

@@ -2,7 +2,7 @@ package edu.mit.ll.graphulo.util;
 
 import com.google.common.base.Preconditions;
 import edu.mit.ll.graphulo.DynamicIteratorSetting;
-import edu.mit.ll.graphulo.skvi.D4mColumnRangeFilter;
+import edu.mit.ll.graphulo.skvi.D4mRangeFilter;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -405,7 +405,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
    1. Null or blank ("") `colFilter`: do nothing.
    2. No ranges `colFilter`: use scanner.fetchColumn() which invokes an Accumulo system ColumnQualifierFilter.
    3. Singleton range `colFilter`: use Accumulo user ColumnSliceFilter.
-   4. Multi-range `colFilter`: use Graphulo D4mColumnRangeFilter.
+   4. Multi-range `colFilter`: use Graphulo D4mRangeFilter.
    * @param colFilter column filter string
    * @param scanner to call fetchColumn() on, for case #2; and addScanIterator(), for cases #3 and #4
    * @param priority to use for scan iterator setting, for case #3 and #4
@@ -436,9 +436,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
 //          System.err.println("!ok "+GraphuloUtil.d4mRowToRanges(colFilter));
         } else { // multiple ranges
 //          System.err.println("ok "+GraphuloUtil.d4mRowToRanges(colFilter));
-          Map<String,String> map = new HashMap<>();
-          map.put(D4mColumnRangeFilter.COLRANGES,colFilter);
-          s = new IteratorSetting(priority, D4mColumnRangeFilter.class, map);
+          s = D4mRangeFilter.iteratorSetting(1, D4mRangeFilter.KeyPart.COLQ, colFilter);
         }
         scanner.addScanIterator(s);
       }
@@ -452,7 +450,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
    <li>1. Null or blank ("") `colFilter`: do nothing.</li>
    <li>2. No ranges `colFilter`: use scanner.fetchColumn() which invokes an Accumulo system {@link ColumnQualifierFilter}.</li>
    <li>3. Singleton range `colFilter`: use Accumulo user {@link ColumnSliceFilter}.</li>
-   <li>4. Multi-range `colFilter`: use Graphulo {@link D4mColumnRangeFilter}.</li>
+   <li>4. Multi-range `colFilter`: use Graphulo {@link D4mRangeFilter}.</li>
    </ol>
    * @param colFilter column filter string
    * @param scanner to call fetchColumn() on, for case #2
@@ -482,9 +480,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
 //          System.err.println("!ok "+GraphuloUtil.d4mRowToRanges(colFilter));
         } else { // multiple ranges
 //          System.err.println("ok "+GraphuloUtil.d4mRowToRanges(colFilter));
-          Map<String,String> map = new HashMap<>();
-          map.put(D4mColumnRangeFilter.COLRANGES,colFilter);
-          s = new IteratorSetting(1, D4mColumnRangeFilter.class, map);
+          s = D4mRangeFilter.iteratorSetting(1, D4mRangeFilter.KeyPart.COLQ, colFilter);
         }
         if (append)
           dis.append(s);
@@ -501,7 +497,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
    1. Null or blank ("") `colFilter`: do nothing.
    2. No ranges `colFilter`: use Accumulo system ColumnQualifierFilter.
    3. Singleton range `colFilter`: use Accumulo user ColumnSliceFilter.
-   4. Multi-range `colFilter`: use Graphulo D4mColumnRangeFilter.
+   4. Multi-range `colFilter`: use Graphulo D4mRangeFilter.
    * @param colFilter column filter string
    * @param skvi Parent / source iterator
    * @return SKVI with appropriate filter iterators placed in front of it.
@@ -546,11 +542,8 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
         return filter;
 
       } else { // multiple ranges
-        Map<String,String> map = new HashMap<>();
-        map.put(D4mColumnRangeFilter.COLRANGES,colFilter);
-
-        SortedKeyValueIterator<Key,Value> filter = new D4mColumnRangeFilter();
-        filter.init(skvi, map, env);
+        SortedKeyValueIterator<Key,Value> filter = new D4mRangeFilter();
+        filter.init(skvi, D4mRangeFilter.iteratorSetting(1, D4mRangeFilter.KeyPart.COLQ, colFilter).getOptions(), env);
         return filter;
       }
     }

@@ -2,6 +2,7 @@ package edu.mit.ll.graphulo;
 
 import com.google.common.collect.Iterators;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
+import edu.mit.ll.graphulo.skvi.D4mRangeFilter;
 import edu.mit.ll.graphulo.skvi.MapIterator;
 import edu.mit.ll.graphulo.skvi.MinMaxFilter;
 import edu.mit.ll.graphulo.skvi.NoConsecutiveDuplicateRowsIterator;
@@ -729,7 +730,7 @@ public class UtilTest {
     SortedKeyValueIterator<Key,Value> skvi = new MapIterator(input);
     skvi.init(null, null, null);
     SortedKeyValueIterator<Key,Value> skviTop = new NoConsecutiveDuplicateRowsIterator();
-    skviTop.init(skvi, Collections.<String,String>emptyMap(), null);
+    skviTop.init(skvi, Collections.<String, String>emptyMap(), null);
     skvi = skviTop;
     skvi.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
 
@@ -742,6 +743,99 @@ public class UtilTest {
 //      System.out.println("MATCH "+expectEntry);
     }
     Assert.assertFalse(ia.hasNext());
+  }
+
+  @Test
+  public void testD4mRangeFilter() throws IOException {
+    SortedMap<Key,Value> input = new TreeMap<>();
+    input.put(new Key("r1", "", "c1"), new Value("4.5".getBytes()));
+    input.put(new Key("r1", "", "c2"), new Value("6.0".getBytes()));
+    input.put(new Key("r1", "", "c3"), new Value("5".getBytes()));
+    input.put(new Key("r1", "", "c4"), new Value("1.1".getBytes()));
+    input.put(new Key("r1", "", "c5"), new Value("8".getBytes()));
+
+    input.put(new Key("r2", "", "c1"), new Value("13".getBytes()));
+    input.put(new Key("r2", "", "c2"), new Value("12".getBytes()));
+
+    input.put(new Key("r3", "", "c1"), new Value("13".getBytes()));
+    input.put(new Key("r3", "", "c1"), new Value("19".getBytes()));
+    input.put(new Key("r3", "", "c1"), new Value("11".getBytes()));
+    input.put(new Key("r3", "", "c1"), new Value("10".getBytes()));
+    input.put(new Key("r3", "", "c1"), new Value("12".getBytes()));
+
+    {
+      SortedKeyValueIterator<Key, Value> skvi = new MapIterator(input);
+      skvi.init(null, null, null);
+      SortedKeyValueIterator<Key, Value> skviTop = new D4mRangeFilter();
+      Map<String, String> opts = D4mRangeFilter.iteratorSetting(1, D4mRangeFilter.KeyPart.ROW, "r2,:,r3,").getOptions();
+      skviTop.init(skvi, opts, null);
+      skvi = skviTop;
+      skvi.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
+
+      SortedMap<Key, Value> expect = new TreeMap<>();
+      expect.put(new Key("r2", "", "c1"), new Value("13".getBytes()));
+      expect.put(new Key("r2", "", "c2"), new Value("12".getBytes()));
+      expect.put(new Key("r3", "", "c1"), new Value("13".getBytes()));
+      expect.put(new Key("r3", "", "c1"), new Value("19".getBytes()));
+      expect.put(new Key("r3", "", "c1"), new Value("11".getBytes()));
+      expect.put(new Key("r3", "", "c1"), new Value("10".getBytes()));
+      expect.put(new Key("r3", "", "c1"), new Value("12".getBytes()));
+
+      IteratorAdapter ia = new IteratorAdapter(skvi);
+      for (Map.Entry<Key, Value> expectEntry : expect.entrySet()) {
+        Assert.assertTrue(ia.hasNext());
+        Map.Entry<Key, Value> actualEntry = ia.next();
+        Assert.assertEquals(expectEntry, actualEntry);
+//      System.out.println("MATCH "+expectEntry);
+      }
+      Assert.assertFalse(ia.hasNext());
+    }
+    {
+      SortedKeyValueIterator<Key, Value> skvi = new MapIterator(input);
+      skvi.init(null, null, null);
+      SortedKeyValueIterator<Key, Value> skviTop = new D4mRangeFilter();
+      Map<String, String> opts = D4mRangeFilter.iteratorSetting(1, D4mRangeFilter.KeyPart.ROW, "r2,:,r3,", true).getOptions();
+      skviTop.init(skvi, opts, null);
+      skvi = skviTop;
+      skvi.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
+
+      SortedMap<Key, Value> expect = new TreeMap<>();
+      expect.put(new Key("r1", "", "c1"), new Value("4.5".getBytes()));
+      expect.put(new Key("r1", "", "c2"), new Value("6.0".getBytes()));
+      expect.put(new Key("r1", "", "c3"), new Value("5".getBytes()));
+      expect.put(new Key("r1", "", "c4"), new Value("1.1".getBytes()));
+      expect.put(new Key("r1", "", "c5"), new Value("8".getBytes()));
+
+      IteratorAdapter ia = new IteratorAdapter(skvi);
+      for (Map.Entry<Key, Value> expectEntry : expect.entrySet()) {
+        Assert.assertTrue(ia.hasNext());
+        Map.Entry<Key, Value> actualEntry = ia.next();
+        Assert.assertEquals(expectEntry, actualEntry);
+      }
+      Assert.assertFalse(ia.hasNext());
+    }
+    {
+      SortedKeyValueIterator<Key, Value> skvi = new MapIterator(input);
+      skvi.init(null, null, null);
+      SortedKeyValueIterator<Key, Value> skviTop = new D4mRangeFilter();
+      Map<String, String> opts = D4mRangeFilter.iteratorSetting(1, D4mRangeFilter.KeyPart.VAL, "5,:,69,8,").getOptions();
+      skviTop.init(skvi, opts, null);
+      skvi = skviTop;
+      skvi.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
+
+      SortedMap<Key, Value> expect = new TreeMap<>();
+      expect.put(new Key("r1", "", "c2"), new Value("6.0".getBytes()));
+      expect.put(new Key("r1", "", "c3"), new Value("5".getBytes()));
+      expect.put(new Key("r1", "", "c5"), new Value("8".getBytes()));
+
+      IteratorAdapter ia = new IteratorAdapter(skvi);
+      for (Map.Entry<Key, Value> expectEntry : expect.entrySet()) {
+        Assert.assertTrue(ia.hasNext());
+        Map.Entry<Key, Value> actualEntry = ia.next();
+        Assert.assertEquals(expectEntry, actualEntry);
+      }
+      Assert.assertFalse(ia.hasNext());
+    }
   }
 
 }

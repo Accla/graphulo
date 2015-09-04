@@ -232,6 +232,7 @@ public class LineTest extends AccumuloTestBase {
       tR = names[2];
       tRT = names[3];
     }
+    GraphuloUtil.deleteTables(conn, tR, tRT);
     Map<Key,Double> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
         actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
         expectTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),

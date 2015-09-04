@@ -107,6 +107,23 @@ See TEST_CONFIG.java for changing connection parameters, such as testing on a re
 * Test results are saved in the `shippable/testresults` folder.
 * Run `mvn clean` to delete output from previously run tests.
 
+#### Testing on Standalone Accumulo via a configuration file
+Another way to specify an Accumulo instance for running tests on, 
+if not through the shortcut keywords defined in TEST_CONFIG.java,
+is by passing `-DTEST_CONFIG=filepath` to `mvn test`. The file specified in the path should look like this template:
+
+    accumulo.it.cluster.standalone.admin.principal=username  #ideally user has all System permissions
+    accumulo.it.cluster.standalone.admin.password=password
+    accumulo.it.cluster.standalone.zookeepers=localhost:2181
+    accumulo.it.cluster.standalone.instance.name=instance 
+
+The default filepath is `./GraphuloTest.conf`. If this file exists and has the correct properties inside, 
+then it is loaded and used instead of MiniAccumulo if no TEST_CONFIG is specified.
+
+These parameters may also be defined on the command line as in
+
+    mvn test -Daccumulo.it.cluster.standalone.admin.principal=bla -Daccumulo.it.cluster.standalone.admin.password=bla ...
+
 [MiniAccumulo]: https://accumulo.apache.org/1.7/accumulo_user_manual.html#_mini_accumulo_cluster
 
 ### Examples

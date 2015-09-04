@@ -15,9 +15,9 @@ public class RealAccumuloTester extends ExternalResource implements IAccumuloTes
 
     private Instance instance;
 
-    public RealAccumuloTester(String instanceName, String zookeeperHost, int timeout,
+    public RealAccumuloTester(String instanceName, String zookeeperHost,
                               String username, PasswordToken auth) {
-        cc = ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeeperHost).withZkTimeout(timeout);
+        cc = ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeeperHost); // .withZkTimeout(timeout)
         this.username = username;
         this.auth = auth;
     }

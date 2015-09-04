@@ -1,6 +1,9 @@
 package edu.mit.ll.graphulo;
 
 import com.google.common.collect.Iterators;
+import edu.mit.ll.graphulo.apply.ApplyIterator;
+import edu.mit.ll.graphulo.apply.ApplyOp;
+import edu.mit.ll.graphulo.apply.MultiApply;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import edu.mit.ll.graphulo.skvi.D4mRangeFilter;
 import edu.mit.ll.graphulo.skvi.MapIterator;
@@ -24,6 +27,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.hadoop.io.Text;
@@ -36,6 +40,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -835,6 +840,106 @@ public class UtilTest {
       for (Map.Entry<Key, Value> expectEntry : expect.entrySet()) {
         Assert.assertTrue(ia.hasNext());
         Map.Entry<Key, Value> actualEntry = ia.next();
+        Assert.assertEquals(expectEntry, actualEntry);
+      }
+      Assert.assertFalse(ia.hasNext());
+    }
+  }
+
+  public static class AppendApply implements ApplyOp {
+    private String str;
+    @Override
+    public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
+      str = options.get("str");
+    }
+    @Override
+    public Iterator<? extends Map.Entry<Key, Value>> apply(Key k, Value v) throws IOException {
+      return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(
+          k, new Value(v.toString().concat(str).getBytes())));
+    }
+    @Override
+    public void seekApplyOp(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+    }
+  }
+  public static class DuplicateApply implements ApplyOp {
+    @Override
+    public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
+    }
+    @Override
+    public Iterator<? extends Map.Entry<Key, Value>> apply(Key k, Value v) throws IOException {
+      return Iterators.concat(
+          Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(k, new Value(v))),
+          Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(k, new Value(v))));
+    }
+    @Override
+    public void seekApplyOp(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+    }
+  }
+
+  @Test
+  public void testMultiApply() throws IOException {
+    SortedMap<Key,Value> input = new TreeMap<>();
+    input.put(new Key("r1", "", "c1"), new Value("a".getBytes()));
+    input.put(new Key("r1", "", "c2"), new Value("b".getBytes()));
+    input.put(new Key("r2", "", "c1"), new Value("c".getBytes()));
+
+    String str = "X";
+    SortedMap<Key,Value> expect = new TreeMap<>();
+    expect.put(new Key("r1", "", "c1"), new Value("aX".getBytes()));
+    expect.put(new Key("r1", "", "c2"), new Value("bX".getBytes()));
+    expect.put(new Key("r2", "", "c1"), new Value("cX".getBytes()));
+
+    {
+      List<Class<? extends ApplyOp>> applyOps = new ArrayList<>(2);
+      applyOps.add(AppendApply.class);
+      applyOps.add(DuplicateApply.class);
+      List<Map<String, String>> optionMaps = new ArrayList<>(2);
+      optionMaps.add(Collections.singletonMap("str", str));
+      optionMaps.add(Collections.<String, String>emptyMap());
+      IteratorSetting multiApplyItset = MultiApply.iteratorSetting(1, applyOps, optionMaps);
+
+      SortedKeyValueIterator<Key, Value> skvi = new MapIterator(input);
+      skvi.init(null, null, null);
+      SortedKeyValueIterator<Key, Value> skviTop = new ApplyIterator();
+      skviTop.init(skvi, multiApplyItset.getOptions(), null);
+      skvi = skviTop;
+      skvi.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
+
+      IteratorAdapter ia = new IteratorAdapter(skvi);
+      for (Map.Entry<Key, Value> expectEntry : expect.entrySet()) {
+        Assert.assertTrue(ia.hasNext());
+        Map.Entry<Key, Value> actualEntry = ia.next();
+        Assert.assertEquals(expectEntry, actualEntry);
+        Assert.assertTrue(ia.hasNext()); // now for the duplicate
+        actualEntry = ia.next();
+        Assert.assertEquals(expectEntry, actualEntry);
+//      System.out.println("MATCH "+expectEntry);
+      }
+      Assert.assertFalse(ia.hasNext());
+    }
+    {
+      List<Class<? extends ApplyOp>> applyOps = new ArrayList<>(2);
+      applyOps.add(DuplicateApply.class);
+      applyOps.add(AppendApply.class);
+      List<Map<String, String>> optionMaps = new ArrayList<>(2);
+      optionMaps.add(Collections.<String, String>emptyMap());
+      optionMaps.add(Collections.singletonMap("str", str));
+      IteratorSetting multiApplyItset = MultiApply.iteratorSetting(1, applyOps, optionMaps);
+
+      SortedKeyValueIterator<Key, Value> skvi = new MapIterator(input);
+      skvi.init(null, null, null);
+      SortedKeyValueIterator<Key, Value> skviTop = new ApplyIterator();
+      skviTop.init(skvi, multiApplyItset.getOptions(), null);
+      skvi = skviTop;
+      skvi.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
+
+      IteratorAdapter ia = new IteratorAdapter(skvi);
+      for (Map.Entry<Key, Value> expectEntry : expect.entrySet()) {
+        Assert.assertTrue(ia.hasNext());
+        Map.Entry<Key, Value> actualEntry = ia.next();
+        Assert.assertEquals(expectEntry, actualEntry);
+        Assert.assertTrue(ia.hasNext()); // now for the duplicate
+        actualEntry = ia.next();
         Assert.assertEquals(expectEntry, actualEntry);
       }
       Assert.assertFalse(ia.hasNext());

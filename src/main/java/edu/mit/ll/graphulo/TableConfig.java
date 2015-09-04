@@ -4,19 +4,17 @@ import com.google.common.base.Preconditions;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.security.Authorizations;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Field;
-import java.util.Map;
 
 import static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 
 /**
  * Immutable class representing a table and options passed around when referring to it.
  * Used at the tablet server by RemoteSourceIterator and RemoteWriteIterator.
- *
+ * Convert to an {@link InputTableConfig} or {@link OutputTableConfig}.
  */
 public final class TableConfig implements Serializable {
 
@@ -28,12 +26,6 @@ public final class TableConfig implements Serializable {
   private final String tableName;
   private final String username;
   private final transient AuthenticationToken authenticationToken; // clone this
-  private final Authorizations authorizations; // immutable and Serializable
-  private final String rowRanges; // allow null
-  private final String colFilter; // allow null
-  private final Map<String,String> itersBefore; // allow null; copy on read, return Collections.unmodifiableMap()
-  private final Map<String,String> itersAfter;  // no need for special measues because DIS.buildSettingMap() and .fromMap() make new objects
-
 
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
@@ -91,27 +83,16 @@ public final class TableConfig implements Serializable {
     this.username = username;
     Preconditions.checkNotNull(authenticationToken, "authenticationToken must be specified not null for user %s", username);
     this.authenticationToken = authenticationToken.clone();
-    authorizations = Authorizations.EMPTY;
-    rowRanges = null;
-    colFilter = null;
-    itersAfter = itersBefore = null;
   }
 
   private TableConfig(String zookeeperHost, long timeout, String instanceName,
-                     String tableName, String username, AuthenticationToken authenticationToken,
-                      Authorizations authorizations, String rowRanges, String colFilter,
-                      Map<String, String> itersBefore, Map<String, String> itersAfter) {
+                      String tableName, String username, AuthenticationToken authenticationToken) {
     this.zookeeperHost = zookeeperHost;
     this.timeout = timeout;
     this.instanceName = instanceName;
     this.tableName = tableName;
     this.username = username;
     this.authenticationToken = authenticationToken.clone();
-    this.authorizations = authorizations;
-    this.rowRanges = rowRanges;
-    this.colFilter = colFilter;
-    this.itersBefore = itersBefore;
-    this.itersAfter = itersAfter;
   }
 
   @Override
@@ -132,12 +113,7 @@ public final class TableConfig implements Serializable {
     if (!instanceName.equals(that.instanceName)) return false;
     if (!tableName.equals(that.tableName)) return false;
     if (!username.equals(that.username)) return false;
-    if (!authenticationToken.equals(that.authenticationToken)) return false;
-    if (!authorizations.equals(that.authorizations)) return false;
-    if (rowRanges != null ? !rowRanges.equals(that.rowRanges) : that.rowRanges != null) return false;
-    if (colFilter != null ? !colFilter.equals(that.colFilter) : that.colFilter != null) return false;
-    if (itersBefore != null ? !itersBefore.equals(that.itersBefore) : that.itersBefore != null) return false;
-    return !(itersAfter != null ? !itersAfter.equals(that.itersAfter) : that.itersAfter != null);
+    return authenticationToken.equals(that.authenticationToken);
 
   }
 
@@ -149,120 +125,81 @@ public final class TableConfig implements Serializable {
     result = 31 * result + tableName.hashCode();
     result = 31 * result + username.hashCode();
     result = 31 * result + authenticationToken.hashCode();
-    result = 31 * result + authorizations.hashCode();
-    result = 31 * result + (rowRanges != null ? rowRanges.hashCode() : 0);
-    result = 31 * result + (colFilter != null ? colFilter.hashCode() : 0);
-    result = 31 * result + (itersBefore != null ? itersBefore.hashCode() : 0);
-    result = 31 * result + (itersAfter != null ? itersAfter.hashCode() : 0);
     return result;
   }
 
   public TableConfig withInstanceName(String instanceName) {
     Preconditions.checkNotNull(instanceName);
     return new TableConfig(zookeeperHost, timeout, instanceName,
-        tableName, username, authenticationToken, authorizations, rowRanges, colFilter,
-        itersBefore, itersAfter);
+        tableName, username, authenticationToken
+    );
   }
 
   public TableConfig withZookeeperTimeout(long timeout) {
     return new TableConfig(zookeeperHost, timeout, instanceName,
-        tableName, username, authenticationToken, authorizations, rowRanges, colFilter,
-        itersBefore, itersAfter);
+        tableName, username, authenticationToken
+    );
   }
 
   public TableConfig withZookeeperHost(String zookeeperHost) {
     Preconditions.checkNotNull(zookeeperHost);
     return new TableConfig(zookeeperHost, timeout, instanceName,
-        tableName, username, authenticationToken, authorizations, rowRanges, colFilter,
-        itersBefore, itersAfter);
+        tableName, username, authenticationToken
+    );
   }
 
   public TableConfig withTableName(String tableName) {
     Preconditions.checkNotNull(tableName);
     return new TableConfig(zookeeperHost, timeout, instanceName,
-        tableName, username, authenticationToken, authorizations, rowRanges, colFilter,
-        itersBefore, itersAfter);
+        tableName, username, authenticationToken
+    );
   }
   public TableConfig withUsername(String username) {
     Preconditions.checkNotNull(username);
     return new TableConfig(zookeeperHost, timeout, instanceName,
-        tableName, username, authenticationToken, authorizations, rowRanges, colFilter,
-        itersBefore, itersAfter);
+        tableName, username, authenticationToken
+    );
   }
   public TableConfig withAuthenticationToken(AuthenticationToken authenticationToken) {
     Preconditions.checkNotNull(authenticationToken);
     return new TableConfig(zookeeperHost, timeout, instanceName,
-        tableName, username, authenticationToken, authorizations, rowRanges, colFilter,
-        itersBefore, itersAfter);
-  }
-  public TableConfig withAuthorizations(Authorizations authorizations) {
-    if (authorizations == null) authorizations = Authorizations.EMPTY;
-    return new TableConfig(zookeeperHost, timeout, instanceName,
-        tableName, username, authenticationToken, authorizations, rowRanges, colFilter,
-        itersBefore, itersAfter);
+        tableName, username, authenticationToken
+    );
   }
   public TableConfig withRowRanges(String rowRanges) {
     return new TableConfig(zookeeperHost, timeout, instanceName,
-        tableName, username, authenticationToken, authorizations, rowRanges, colFilter,
-        itersBefore, itersAfter);
+        tableName, username, authenticationToken
+    );
   }
   public TableConfig withColFilter(String colFilter) {
     return new TableConfig(zookeeperHost, timeout, instanceName,
-        tableName, username, authenticationToken, authorizations, rowRanges, colFilter,
-        itersBefore, itersAfter);
+        tableName, username, authenticationToken
+    );
   }
-  public TableConfig withItersBefore(DynamicIteratorSetting itersBefore) {
-    return new TableConfig(zookeeperHost, timeout, instanceName,
-        tableName, username, authenticationToken, authorizations, rowRanges, colFilter,
-        itersBefore == null ? null : itersBefore.buildSettingMap(), itersAfter);
+
+  public InputTableConfig asInputTable() {
+    return new InputTableConfig(this);
   }
-  public TableConfig withItersAfter(DynamicIteratorSetting itersAfter) {
-    return new TableConfig(zookeeperHost, timeout, instanceName,
-        tableName, username, authenticationToken, authorizations, rowRanges, colFilter,
-        itersBefore, itersAfter == null ? null : itersAfter.buildSettingMap());
+  public OutputTableConfig asOutputTable() {
+    return new OutputTableConfig(this);
   }
 
   public String getZookeeperHost() {
     return zookeeperHost;
   }
-
   public long getTimeout() {
     return timeout;
   }
-
   public String getInstanceName() {
     return instanceName;
   }
-
   public String getTableName() {
     return tableName;
   }
-
   public String getUsername() {
     return username;
   }
-
   public AuthenticationToken getAuthenticationToken() {
     return authenticationToken.clone(); // don't leak the token
-  }
-
-  public Authorizations getAuthorizations() {
-    return authorizations;
-  }
-
-  public String getRowRanges() {
-    return rowRanges;
-  }
-
-  public String getColFilter() {
-    return colFilter;
-  }
-
-  public DynamicIteratorSetting getItersBefore() {
-    return DynamicIteratorSetting.fromMap(itersBefore);
-  }
-
-  public DynamicIteratorSetting getItersAfter() {
-    return DynamicIteratorSetting.fromMap(itersAfter);
   }
 }

@@ -17,7 +17,7 @@
 package edu.mit.ll.graphulo.util;
 
 import com.google.common.base.Preconditions;
-import org.apache.accumulo.core.util.Base64;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.io.Writable;
 
 import java.io.ByteArrayInputStream;

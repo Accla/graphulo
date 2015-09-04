@@ -14,7 +14,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 /**
- * Apply a function to each entry. Can generate zero, one or more entries per apply.
+ * Apply a function to each entry. Can generate zero, one, or more entries per apply.
  */
 public interface ApplyOp {
   /**
@@ -25,8 +25,6 @@ public interface ApplyOp {
    *          <tt>Map</tt> map of string option names to option values.
    * @param env
    *          <tt>IteratorEnvironment</tt> environment in which iterator is being run.
-   * @throws IOException
-   *           unused.
    * @exception IllegalArgumentException
    *              if there are problems with the options.
    */
@@ -35,8 +33,8 @@ public interface ApplyOp {
 
   /**
    * The function to apply.
-   * If modifying the row portion of the Key, be careful to stay within the seek range.
-   * @return Iterator over result of multiplying the two entries. Use {@link Collections#emptyIterator()} if no entries to emit.
+   * If modifying the row portion of the Key, be careful to stay within the seek range unless you know what you are doing.
+   * @return Iterator over result of applying the function this class represents to an entry. Use {@link Collections#emptyIterator()} if no entries to emit.
    */
   Iterator<? extends Map.Entry<Key, Value>> apply(Key k, Value v) throws IOException;
 

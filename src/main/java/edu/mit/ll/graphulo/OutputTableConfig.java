@@ -1,11 +1,14 @@
 package edu.mit.ll.graphulo;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import edu.mit.ll.graphulo.apply.ApplyOp;
+import edu.mit.ll.graphulo.util.GraphuloUtil;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
 
 import java.io.Serializable;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 import static edu.mit.ll.graphulo.InputTableConfig.DEFAULT_ITERS_MAP;
@@ -46,7 +49,7 @@ public final class OutputTableConfig implements Serializable {
   }
   public OutputTableConfig withApplyLocal(Class<? extends ApplyOp> applyLocal, Map<String,String> applyLocalOptions) {
     return new OutputTableConfig(tableConfig, applyLocal,
-        applyLocal == null || applyLocalOptions == null ? Collections.<String,String>emptyMap() : new HashMap<>(applyLocalOptions),
+        applyLocal == null || applyLocalOptions == null ? Collections.<String,String>emptyMap() : ImmutableMap.copyOf(applyLocalOptions),
         tableItersRemote);
   }
   public OutputTableConfig withTableItersRemote(DynamicIteratorSetting tableItersRemote) {
@@ -75,7 +78,7 @@ public final class OutputTableConfig implements Serializable {
     return applyLocal;
   }
   public Map<String, String> getApplyLocalOptions() {
-    return Collections.unmodifiableMap(applyLocalOptions);
+    return applyLocalOptions;
   }
 
   @Override
@@ -100,4 +103,17 @@ public final class OutputTableConfig implements Serializable {
     result = 31 * result + tableItersRemote.hashCode();
     return result;
   }
+
+  /**
+   * Applies the DynamicIterator stored as tableItersRemote to the remote table.
+   */
+  public void applyRemoteIterators() {
+    Connector connector = tableConfig.getConnector();
+    DynamicIteratorSetting dis = getTableItersRemote();
+    if (!dis.isEmpty()) {
+      IteratorSetting itset = dis.toIteratorSetting();
+      GraphuloUtil.applyIteratorSoft(itset, connector.tableOperations(), tableConfig.getTableName());
+    }
+  }
+
 }

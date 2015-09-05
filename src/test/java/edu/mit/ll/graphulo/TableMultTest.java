@@ -1,5 +1,6 @@
 package edu.mit.ll.graphulo;
 
+import com.google.common.collect.ImmutableMap;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
@@ -283,10 +284,10 @@ public class TableMultTest extends AccumuloTestBase {
 
     TestUtil.createTestTable(conn, tC);
 
-    Map<Key, Value> expect = new HashMap<>();
-    expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
-    expect.put(new Key("A1", "", "B2"), new Value("6".getBytes()));
-    expect = Collections.unmodifiableMap(expect);
+    Map<Key, Value> expect = ImmutableMap.<Key,Value>builder()
+        .put(new Key("A1", "", "B1"), new Value("6".getBytes()))
+        .put(new Key("A1", "", "B2"), new Value("6".getBytes()))
+        .build();
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     long numpp = graphulo.TableMult(tAT, tB, tC, null, -1,

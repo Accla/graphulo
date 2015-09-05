@@ -92,6 +92,10 @@ public class DynamicIteratorSetting {
     return this;
   }
 
+  public boolean isEmpty() {
+    return iteratorSettingList.isEmpty();
+  }
+
   public Map<String,String> buildSettingMap() {
     return buildSettingMap("");
   }

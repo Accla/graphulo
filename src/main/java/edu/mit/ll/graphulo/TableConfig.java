@@ -1,7 +1,11 @@
 package edu.mit.ll.graphulo;
 
 import com.google.common.base.Preconditions;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 
@@ -21,7 +25,7 @@ public final class TableConfig implements Serializable {
   private static final long serialVersionUID = 1L;
 
   private final String zookeeperHost;
-  private final long timeout;
+  private final int timeout;
   private final String instanceName;
   private final String tableName;
   private final String username;
@@ -58,18 +62,18 @@ public final class TableConfig implements Serializable {
   public TableConfig(ClientConfiguration cc, String tableName, String username,
                      AuthenticationToken authenticationToken) {
     this(cc.get(ClientProperty.INSTANCE_ZK_HOST), cc.get(ClientProperty.INSTANCE_NAME),
-        AccumuloConfiguration.getTimeInMillis(cc.get(ClientProperty.INSTANCE_ZK_TIMEOUT)),
+        (int)AccumuloConfiguration.getTimeInMillis(cc.get(ClientProperty.INSTANCE_ZK_TIMEOUT)),
         tableName, username, authenticationToken);
   }
 
   public TableConfig(String zookeeperHost, String instanceName, String tableName, String username,
                      AuthenticationToken authenticationToken) {
     this(zookeeperHost, instanceName,
-        AccumuloConfiguration.getTimeInMillis(ClientProperty.INSTANCE_ZK_HOST.getDefaultValue()),
+        (int)AccumuloConfiguration.getTimeInMillis(ClientProperty.INSTANCE_ZK_TIMEOUT.getDefaultValue()),
         tableName, username, authenticationToken);
   }
 
-  public TableConfig(String zookeeperHost, String instanceName, long timeout, String tableName, String username,
+  public TableConfig(String zookeeperHost, String instanceName, int timeout, String tableName, String username,
                      AuthenticationToken authenticationToken) {
     Preconditions.checkNotNull(instanceName,
         "No instance name provided and none found in the default ClientConfiguration (usually loaded from a client.conf file)");
@@ -85,7 +89,7 @@ public final class TableConfig implements Serializable {
     this.authenticationToken = authenticationToken.clone();
   }
 
-  private TableConfig(String zookeeperHost, long timeout, String instanceName,
+  private TableConfig(String zookeeperHost, int timeout, String instanceName,
                       String tableName, String username, AuthenticationToken authenticationToken) {
     this.zookeeperHost = zookeeperHost;
     this.timeout = timeout;
@@ -120,7 +124,7 @@ public final class TableConfig implements Serializable {
   @Override
   public int hashCode() {
     int result = zookeeperHost.hashCode();
-    result = 31 * result + (int) (timeout ^ (timeout >>> 32));
+    result = 31 * result + timeout;
     result = 31 * result + instanceName.hashCode();
     result = 31 * result + tableName.hashCode();
     result = 31 * result + username.hashCode();
@@ -135,7 +139,7 @@ public final class TableConfig implements Serializable {
     );
   }
 
-  public TableConfig withZookeeperTimeout(long timeout) {
+  public TableConfig withZookeeperTimeout(int timeout) {
     return new TableConfig(zookeeperHost, timeout, instanceName,
         tableName, username, authenticationToken
     );
@@ -187,7 +191,7 @@ public final class TableConfig implements Serializable {
   public String getZookeeperHost() {
     return zookeeperHost;
   }
-  public long getTimeout() {
+  public int getTimeout() {
     return timeout;
   }
   public String getInstanceName() {
@@ -202,4 +206,25 @@ public final class TableConfig implements Serializable {
   public AuthenticationToken getAuthenticationToken() {
     return authenticationToken.clone(); // don't leak the token
   }
+
+  //////////// Calculated lazily, not serialized, derived from other properties
+  private transient Connector connector;
+
+  public Connector getConnector() {
+    if (connector == null)
+      try {
+        connector = new ZooKeeperInstance(ClientConfiguration.loadDefault()
+            .withInstance(instanceName)
+            .withZkTimeout(timeout)
+            .withZkHosts(zookeeperHost))
+            .getConnector(username, authenticationToken);
+      } catch (AccumuloSecurityException | AccumuloException e) {
+        throw new RuntimeException("failed to connect to Accumulo instance " + instanceName +" with user "+username, e);
+      }
+    return connector; // please don't use the deprecated set methods on the Instance from connector.getInstance();
+  }
+
+
+
+
 }

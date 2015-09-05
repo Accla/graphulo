@@ -382,7 +382,7 @@ TwoTableIterator configured with no multiplication and emitNoMatchEntries=true.
 PreSumCacheIterator is important for efficiency.
 * Sparse -- insert from client to table.
 * Find -- scan from table to client.
-* SpRef -- use RemoteWriteIterator with rowRanges and colFilter to output results to another table.
+* SpRef -- use RemoteWriteIterator with rowFilter and colFilter to output results to another table.
 * SpAsgn -- unimplemented. An awkward primitive.
 * Apply -- use an iterator with the function to apply + RemoteWriteIterator.
 * Reduce -- use a RemoteWriteIterator's `reduce` function.
@@ -432,7 +432,7 @@ may result in exceptions at best and logical errors at worst.
 Be especially careful with the name of a DynamicIterator.
 
 ##### RemoteSourceIterator
-* `rowRanges` Row ranges to fetch from remote Accumulo table, Matlab syntax. (default ":," all) 
+* `rowFilter` Row ranges to fetch from remote Accumulo table, Matlab syntax. (default ":," all) 
 * `colFilter` String representation of column qualifiers, e.g. "a,b,c,".
 Four modes of operation:
   1. Blank `colFilter`: do nothing.

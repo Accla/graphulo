@@ -1,5 +1,6 @@
 package edu.mit.ll.graphulo.skvi;
 
+import com.google.common.collect.ImmutableMap;
 import edu.mit.ll.graphulo.util.PeekingIterator1;
 import edu.mit.ll.graphulo.util.RangeSet;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -14,7 +15,6 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -53,7 +53,7 @@ public class SeekFilterIterator implements SortedKeyValueIterator<Key, Value>, O
     optDesc.put(RemoteSourceIterator.ROWRANGES, "Row ranges to scan for remote Accumulo table, Matlab syntax. (default ':,' all)");
     iteratorOptions = new IteratorOptions("SeekFilterIterator",
         "Intersects seek ranges with the option given, passing the reduced range to the parent.",
-        Collections.unmodifiableMap(optDesc), null);
+        ImmutableMap.copyOf(optDesc), null);
   }
 
   @Override

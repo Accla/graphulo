@@ -1,6 +1,7 @@
 package edu.mit.ll.graphulo.util;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSortedSet;
 import edu.mit.ll.graphulo.DynamicIteratorSetting;
 import edu.mit.ll.graphulo.skvi.D4mRangeFilter;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
@@ -121,12 +122,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
     return res;
   }
 
-  private static final SortedSet<Range> SETINFRNG;
-  static {
-    SortedSet<Range> tmp = new TreeSet<>();
-    tmp.add(new Range());
-    SETINFRNG = Collections.unmodifiableSortedSet(tmp);
-  }
+  private static final SortedSet<Range> SETINFRNG = ImmutableSortedSet.of(new Range());
 
   /**
    * Convert D4M string representation of rows to Ranges.

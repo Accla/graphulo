@@ -1,5 +1,6 @@
 package edu.mit.ll.graphulo.util;
 
+import com.google.common.collect.ImmutableSortedSet;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 
@@ -11,7 +12,7 @@ import java.util.*;
  * Results is iteration returning [b,g], (j,k].
  */
 public class RangeSet {
-  private static final SortedSet<Range> INF_RANGE_SET = Collections.unmodifiableSortedSet(new TreeSet<>(Collections.singleton(new Range())));
+  private static final SortedSet<Range> INF_RANGE_SET = ImmutableSortedSet.of(new Range());
 
   private SortedSet<Range> targetRanges = INF_RANGE_SET;
 

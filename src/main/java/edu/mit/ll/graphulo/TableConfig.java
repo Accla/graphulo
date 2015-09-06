@@ -224,7 +224,9 @@ public final class TableConfig implements Serializable {
     return connector; // please don't use the deprecated set methods on the Instance from connector.getInstance();
   }
 
-
+  public boolean exists() {
+    return getConnector().tableOperations().exists(tableName);
+  }
 
 
 }

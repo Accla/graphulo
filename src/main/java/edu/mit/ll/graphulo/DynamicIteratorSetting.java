@@ -48,6 +48,16 @@ public class DynamicIteratorSetting {
     iteratorSettingList.addAll(iterList);
   }
 
+  /**
+   * Create a DynamicIteratorSetting with a single iterator setting.
+   * Uses the priority and name of the iterator setting.
+   * @return Newly constructed DynamicIteratorSetting
+   */
+  public static DynamicIteratorSetting of(IteratorSetting itset) {
+    return new DynamicIteratorSetting(itset.getPriority(), itset.getName())
+        .append(itset);
+  }
+
   public int getDiPriority() {
     return diPriority;
   }

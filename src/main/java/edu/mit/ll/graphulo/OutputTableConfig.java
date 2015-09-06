@@ -11,16 +11,15 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.Map;
 
-import static edu.mit.ll.graphulo.InputTableConfig.DEFAULT_ITERS_MAP;
-
 /**
  * Immutable class representing a table used as output from an iterator stack via RemoteWriteIterator.
  */
 public final class OutputTableConfig implements Serializable {
+  private static final long serialVersionUID = 1L;
 
   public static final int DEFAULT_COMBINER_PRIORITY = 6;
-
-  private static final long serialVersionUID = 1L;
+  private static final Map<String,String> DEFAULT_ITERS_MAP =
+      ImmutableMap.copyOf(new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, null).buildSettingMap());
 
   private final TableConfig tableConfig;
   private final Class<? extends ApplyOp> applyLocal;  // allow null

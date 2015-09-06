@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Range;
@@ -23,7 +24,7 @@ import java.util.SortedSet;
 public final class InputTableConfig implements Serializable {
 
   public static final int DEFAULT_ITERS_REMOTE_PRIORITY = 50;
-  static final Map<String,String> DEFAULT_ITERS_MAP =
+  private static final Map<String,String> DEFAULT_ITERS_MAP =
       ImmutableMap.copyOf(new DynamicIteratorSetting(DEFAULT_ITERS_REMOTE_PRIORITY, null).buildSettingMap());
   private static final SortedSet<Range> ALL_RANGE = ImmutableSortedSet.of(new Range()); // please do not call the readFields() method of the range inside
   private static final String ALL_RANGE_STR = ":,";
@@ -92,8 +93,16 @@ public final class InputTableConfig implements Serializable {
   public InputTableConfig withItersRemote(DynamicIteratorSetting itersRemote) {
     return new InputTableConfig(tableConfig, authorizations, itersRemote == null ? DEFAULT_ITERS_MAP : itersRemote.buildSettingMap(), itersClientSide, rowFilter, colFilter, rowFilterRanges, colFilterRanges);
   }
+  /** Use a single remote iterator. */
+  public InputTableConfig withItersRemote(IteratorSetting iterRemote) {
+    return withItersRemote(DynamicIteratorSetting.of(iterRemote));
+  }
   public InputTableConfig withItersLocal(DynamicIteratorSetting itersLocal) {
     return new InputTableConfig(tableConfig, authorizations, itersRemote, itersLocal == null ? DEFAULT_ITERS_MAP : itersLocal.buildSettingMap(), rowFilter, colFilter, rowFilterRanges, colFilterRanges);
+  }
+  /** Use a single local iterator. */
+  public InputTableConfig withItersLocal(IteratorSetting iterLocal) {
+    return withItersLocal(DynamicIteratorSetting.of(iterLocal));
   }
   public InputTableConfig withRowFilter(String rowFilter) {
     if (rowFilter == null || rowFilter.isEmpty())

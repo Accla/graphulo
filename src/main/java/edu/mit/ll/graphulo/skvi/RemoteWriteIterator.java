@@ -69,21 +69,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   private int timeout = -1;
   private int numEntriesCheckpoint = -1;
   /** Reduce-like functionality. */
-  private Reducer reducer = new NOOP_REDUCER();
-  static final class NOOP_REDUCER implements Reducer {
-    @Override
-    public void init(Map<String,String> options, IteratorEnvironment env) throws IOException {}
-    @Override
-    public void reset() throws IOException {}
-    @Override
-    public void update(Key k, Value v) {}
-    @Override
-    public void combine(byte[] another) {}
-    @Override
-    public boolean hasTopForClient() { return false; }
-    @Override
-    public byte[] getForClient() { return null; }
-  }
+  private Reducer reducer = new Reducer.NoReducer();
   private Map<String,String> reducerOptions = new HashMap<>();
 
   /**
@@ -265,7 +251,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
       SerializationUtil.deserializeWritableBase64(auth, token);
     }
     // Required options
-    if (//(tableName == null && tableNameTranspose == null && reducer.getClass().equals(NOOP_REDUCER.class)) ||
+    if (//(tableName == null && tableNameTranspose == null && reducer.getClass().equals(NoReducer.class)) ||
         // ^ Allowing case where RWI just acts as a RowRangeFilter / column range filter effectively
         ((tableName != null || tableNameTranspose != null) &&
             (zookeeperHost == null ||
@@ -480,7 +466,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
       if (numRejects >= REJECT_FAILURE_THRESHOLD) { // declare global failure after 10 rejects
         // last entry emitted declares failure
         rowRangeIterator = new PeekingIterator1<>(Iterators.<Range>emptyIterator());
-        reducer = new NOOP_REDUCER();
+        reducer = new Reducer.NoReducer();
         return true;
       }
 

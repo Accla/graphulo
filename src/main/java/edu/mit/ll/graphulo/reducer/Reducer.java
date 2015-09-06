@@ -53,6 +53,22 @@ public interface Reducer {
    */
   byte[] getForClient();
 
+  /** A Reducer that does nothing. */
+  final class NoReducer implements Reducer {
+    @Override
+    public void init(Map<String,String> options, IteratorEnvironment env) throws IOException {}
+    @Override
+    public void reset() throws IOException {}
+    @Override
+    public void update(Key k, Value v) {}
+    @Override
+    public void combine(byte[] another) {}
+    @Override
+    public boolean hasTopForClient() { return false; }
+    @Override
+    public byte[] getForClient() { return null; }
+  }
+
 //  /**
 //   * Entries sent to result tables in {@link RemoteWriteIterator} instead of the client.
 //   * Use this when one needs to emit a small number of entries to result tables

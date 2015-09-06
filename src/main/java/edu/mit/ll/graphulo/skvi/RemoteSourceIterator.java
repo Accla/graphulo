@@ -2,6 +2,8 @@ package edu.mit.ll.graphulo.skvi;
 
 import com.google.common.base.Preconditions;
 import edu.mit.ll.graphulo.DynamicIteratorSetting;
+import edu.mit.ll.graphulo.InputTableConfig;
+import edu.mit.ll.graphulo.TableConfig;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.PeekingIterator1;
 import edu.mit.ll.graphulo.util.SerializationUtil;
@@ -46,6 +48,9 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
 
   /** The original options passed to init. Retaining this makes deepCopy much easier-- call init again and done! */
   private Map<String,String> origOptions;
+
+  private InputTableConfig tconf;
+  public static final String TABLECONFIG = TableConfig.class.getSimpleName();
 
   private String instanceName;
   private String tableName;
@@ -224,83 +229,98 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
   }
 
   private void parseOptions(Map<String, String> map) {
-    Map<String,String> diterMap = new HashMap<>();
-    String token = null, tokenClass = null;
-    for (Map.Entry<String, String> optionEntry : map.entrySet()) {
-      String optionKey = optionEntry.getKey();
-      String optionValue = optionEntry.getValue();
-      if (optionValue.isEmpty())
-        continue;
-      if (optionKey.startsWith(ITER_PREFIX)) {
-        diterMap.put(optionKey.substring(ITER_PREFIX.length()), optionValue);
-      } else {
-        switch (optionKey) {
-          case ZOOKEEPERHOST:
-            zookeeperHost = optionValue;
-            break;
-          case TIMEOUT:
-            timeout = Integer.parseInt(optionValue);
-            break;
-          case INSTANCENAME:
-            instanceName = optionValue;
-            break;
-          case TABLENAME:
-            tableName = optionValue;
-            break;
-          case USERNAME:
-            username = optionValue;
-            break;
+    if (map.containsKey(TABLECONFIG) && !map.get(TABLECONFIG).isEmpty()) {
+      tconf = (InputTableConfig)SerializationUtil.deserializeBase64(map.get(TABLECONFIG));
+    } else {
+      Map<String, String> diterMap = new HashMap<>();
+      String token = null, tokenClass = null,
+          instanceName = null, zookeeperHost = null,
+          tableName = null, username = null, rowRangesStr = null;
+      Authorizations authorizations = Authorizations.EMPTY;
+      boolean doClientSideIterators = false;
+      int timeout = -1;
+      for (Map.Entry<String, String> optionEntry : map.entrySet()) {
+        String optionKey = optionEntry.getKey();
+        String optionValue = optionEntry.getValue();
+        if (optionValue.isEmpty())
+          continue;
+        if (optionKey.startsWith(ITER_PREFIX)) {
+          diterMap.put(optionKey.substring(ITER_PREFIX.length()), optionValue);
+        } else {
+          switch (optionKey) {
+            case ZOOKEEPERHOST:
+              zookeeperHost = optionValue;
+              break;
+            case TIMEOUT:
+              timeout = Integer.parseInt(optionValue);
+              break;
+            case INSTANCENAME:
+              instanceName = optionValue;
+              break;
+            case TABLENAME:
+              tableName = optionValue;
+              break;
+            case USERNAME:
+              username = optionValue;
+              break;
 
-          case PASSWORD:
-            auth = new PasswordToken(optionValue);
-            break;
-          case AUTHENTICATION_TOKEN:
-            token = optionValue;
-            break;
-          case AUTHENTICATION_TOKEN_CLASS:
-            tokenClass = optionValue;
-            break;
+            case PASSWORD:
+              auth = new PasswordToken(optionValue);
+              break;
+            case AUTHENTICATION_TOKEN:
+              token = optionValue;
+              break;
+            case AUTHENTICATION_TOKEN_CLASS:
+              tokenClass = optionValue;
+              break;
 
-          case AUTHORIZATIONS: // passed value must be from Authorizations.serialize()
-            authorizations = new Authorizations(optionValue.getBytes(StandardCharsets.UTF_8));
-            break;
-          case "doWholeRow":
-            doWholeRow = Boolean.parseBoolean(optionValue);
-            break;
-          case ROWRANGES:
-            rowRanges = parseRanges(optionValue);
-            break;
-          case COLFILTER:
-            colFilter = optionValue; //GraphuloUtil.d4mRowToTexts(optionValue);
-            break;
-          case DOCLIENTSIDEITERATORS:
-            doClientSideIterators = Boolean.parseBoolean(optionValue);
-            break;
-          default:
-            log.warn("Unrecognized option: " + optionEntry);
-            break;
+            case AUTHORIZATIONS: // passed value must be from Authorizations.serialize()
+              authorizations = new Authorizations(optionValue.getBytes(StandardCharsets.UTF_8));
+              break;
+            case "doWholeRow":
+              doWholeRow = Boolean.parseBoolean(optionValue);
+              break;
+            case ROWRANGES:
+              rowRangesStr = optionValue;
+              break;
+            case COLFILTER:
+              colFilter = optionValue; //GraphuloUtil.d4mRowToTexts(optionValue);
+              break;
+            case DOCLIENTSIDEITERATORS:
+              doClientSideIterators = Boolean.parseBoolean(optionValue);
+              break;
+            default:
+              log.warn("Unrecognized option: " + optionEntry);
+              break;
+          }
         }
-      }
 //      log.trace("Option OK: " + optionEntry);
-    }
-    Preconditions.checkArgument((auth == null && token != null && tokenClass != null) ||
-        (token == null && tokenClass == null && auth != null),
-        "must specify only one kind of authentication: password=%s, token=%s, tokenClass=%s",
-        auth, token, tokenClass);
-    if (auth == null) {
-      auth = GraphuloUtil.subclassNewInstance(tokenClass, AuthenticationToken.class);
-      SerializationUtil.deserializeWritableBase64(auth, token);
-    }
+      }
+      Preconditions.checkArgument((auth == null && token != null && tokenClass != null) ||
+              (token == null && tokenClass == null && auth != null),
+          "must specify only one kind of authentication: password=%s, token=%s, tokenClass=%s",
+          auth, token, tokenClass);
+      if (auth == null) {
+        auth = GraphuloUtil.subclassNewInstance(tokenClass, AuthenticationToken.class);
+        SerializationUtil.deserializeWritableBase64(auth, token);
+      }
 
-    if (!diterMap.isEmpty())
-      dynamicIteratorSetting = DynamicIteratorSetting.fromMap(diterMap);
-    // Required options
-    if (zookeeperHost == null ||
-        instanceName == null ||
-        tableName == null ||
-        username == null ||
-        auth == null)
-      throw new IllegalArgumentException("not enough options provided");
+      TableConfig tc = new TableConfig(zookeeperHost, instanceName, tableName, username, auth);
+      if (timeout != -1)
+        tc = tc.withZookeeperTimeout(timeout);
+      tconf = tc.asInputTable()
+          .withAuthorizations(authorizations)
+          .withRowFilter(rowRangesStr)
+          .withColFilter(colFilter);
+
+      if (!diterMap.isEmpty()) {
+        dynamicIteratorSetting = DynamicIteratorSetting.fromMap(diterMap);
+        tconf = doClientSideIterators ? tconf.withItersLocal(dynamicIteratorSetting) 
+            : tconf.withItersRemote(dynamicIteratorSetting);
+      }
+
+      rowRanges = parseRanges(rowRangesStr);
+    }
   }
 
   /**
@@ -329,7 +349,9 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
   }
 
   private void setupConnectorScanner() {
-    ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeeperHost);
+    ClientConfiguration cc = ClientConfiguration.loadDefault()
+        .withInstance(tconf.getTableConfig().getInstanceName())
+        .withZkHosts(zookeeperHost);
     if (timeout != -1)
       cc = cc.withZkTimeout(timeout);
     Instance instance = new ZooKeeperInstance(cc);
@@ -337,15 +359,13 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
     try {
       connector = instance.getConnector(username, auth);
     } catch (AccumuloException | AccumuloSecurityException e) {
-      log.error("failed to connect to Accumulo instance " + instanceName, e);
-      throw new RuntimeException(e);
+      throw new RuntimeException("failed to connect to Accumulo instance " + tconf.getTableConfig().getInstanceName(), e);
     }
 
     try {
       scanner = connector.createScanner(tableName, authorizations);
     } catch (TableNotFoundException e) {
-      log.error(tableName + " does not exist in instance " + instanceName, e);
-      throw new RuntimeException(e);
+      throw new RuntimeException(tableName + " does not exist in instance " + tconf.getTableConfig().getInstanceName(), e);
     }
 
     if (doClientSideIterators)

@@ -50,6 +50,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
@@ -95,6 +96,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.Future;
 
 /**
  * Holds a {@link org.apache.accumulo.core.client.Connector} to an Accumulo instance for calling client Graphulo operations.
@@ -2123,8 +2125,7 @@ public class Graphulo {
                       String filterRowCol, Authorizations Aauthorizations, String RNewVisibility) {
     checkGiven(true, "Aorig, ADeg", Aorig, ADeg);
     Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
-    TableOperations tops = connector.tableOperations();
-    Preconditions.checkArgument(!tops.exists(Rfinal), "Output Jaccard table must not exist: Rfinal=%s", Rfinal); // this could be relaxed, at the possibility of peril
+    Preconditions.checkArgument(!connector.tableOperations().exists(Rfinal), "Output Jaccard table must not exist: Rfinal=%s", Rfinal); // this could be relaxed, at the possibility of peril
 
     // "Plus" iterator to set on Rfinal
     IteratorSetting RPlusIteratorSetting = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, null)
@@ -2147,6 +2148,44 @@ public class Graphulo {
     log.debug("Jaccard #partial products " + npp);
     return npp;
   }
+
+  void clientCallJaccard() {
+    // suppose we have these authorizations:
+    Authorizations Aauthorizations;
+
+    TableConfig common = new TableConfig("localhost:2181", "instance", "Aorig",
+        "root", new PasswordToken("secret"));
+    InputTableConfig Aorig = common.asInputTable().withAuthorizations(Aauthorizations);
+    InputTableConfig ADeg = common.withTableName("ADeg").asInputTable().withAuthorizations(Aauthorizations);
+    OutputTableConfig Rfinal = common.withTableName("Rfinal").asOutputTable();
+    Jaccard(Aorig, ADeg, Rfinal, null, null);
+  }
+
+  // The extra arguments could be eliminated, but they are helpful to include here instead of making the user
+  // set them in the config objects.
+  public Future<GraphloResult> Jaccard(InputTableConfig Aorig, InputTableConfig ADeg, OutputTableConfig Rfinal,
+                                       String filterRowCol, String RNewVisibility) {
+    Preconditions.checkArgument(Aorig != null && ADeg != null && Rfinal != null);
+    Preconditions.checkArgument(Rfinal.getTableConfig().exists(), "Output Jaccard table must not exist: Rfinal=%s", Rfinal); // this could be relaxed, at the possibility of peril
+
+    // "Plus" iterator to set on Rfinal
+    Rfinal = Rfinal.withTableItersRemote(Rfinal.getTableItersRemote()
+        .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.LONG, false))
+        .append(JaccardDegreeApply.iteratorSetting(1, ADeg)));
+
+    Aorig = Aorig.withRowFilter(filterRowCol).withColFilter(filterRowCol);
+
+    return Aorig
+        .withItersRemote(TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.Lower))
+        .tableMult(Aorig.withItersRemote(TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.Upper)),
+            MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.LONG, RNewVisibility, false))
+        .outputTo(Rfinal)
+        .execute();  // Submit task to static Graphulo thread pool that eventually returns #partial products in Jaccard calc.
+    // Users can pass their own ExecutorService for custom execution.
+    // The calling thread can wait for the task to finish by calling Future.get().
+  }
+
+
 
 
   /**

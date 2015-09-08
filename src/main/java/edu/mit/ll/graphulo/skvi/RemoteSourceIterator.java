@@ -308,7 +308,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
       TableConfig tc = new TableConfig(zookeeperHost, instanceName, tableName, username, auth);
       if (timeout != -1)
         tc = tc.withZookeeperTimeout(timeout);
-      tconf = tc.asInputTable()
+      tconf = tc.asInput()
           .withAuthorizations(authorizations)
           .withRowFilter(rowRangesStr)
           .withColFilter(colFilter);

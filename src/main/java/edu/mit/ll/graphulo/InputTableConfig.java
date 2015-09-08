@@ -33,8 +33,8 @@ public final class InputTableConfig implements Serializable {
 
   private final TableConfig tableConfig;
   private final Authorizations authorizations; // immutable and Serializable
-  private final Map<String,String> itersRemote; // no null; copy on read, return ImmutableMap
-  private final Map<String,String> itersClientSide;  // no need for special measures because DIS.buildSettingMap() and .fromMap() make new objects
+  private final Map<String,String> itersRemote;     // no null; copy on read, return ImmutableMap
+  private final Map<String,String> itersClientSide; // no need for special measures because DIS.buildSettingMap() and .fromMap() make new objects
                                                 // combine the two when used as a local iterator as opposed to a RemoteSourceIterator
   private final String rowFilter, colFilter;    // no null, always store in sorted merged form, always keep aligned with the SortedSet<Range> versions
   private final transient SortedSet<Range> rowFilterRanges, colFilterRanges; // ^^

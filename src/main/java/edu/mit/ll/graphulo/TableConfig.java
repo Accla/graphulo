@@ -181,10 +181,10 @@ public final class TableConfig implements Serializable {
     );
   }
 
-  public InputTableConfig asInputTable() {
+  public InputTableConfig asInput() {
     return new InputTableConfig(this);
   }
-  public OutputTableConfig asOutputTable() {
+  public OutputTableConfig asOutput() {
     return new OutputTableConfig(this);
   }
 

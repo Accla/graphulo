@@ -1970,101 +1970,73 @@ public class Graphulo {
         .withRowFilter(filterRowCol).withColFilter(filterRowCol);
     OutputTableConfig Rfinal = common.withTableName("Rfinal").asOutput();
     int k = 3;
-    kTrussAdj(Aorig, Rfinal, k, null, null);
+    kTrussAdj(Aorig, Rfinal, k, null);
   }
 
-  public static Future<GraphuloResult> kTrussAdj(InputTableConfig Aorig, OutputTableConfig Rfinal, int k,
-                        String filterRowCol, String RNewVisibility) {
+  // todo - KTrussAdj config? Yea, that could work
+  public static Future<GraphuloResult> kTrussAdj(InputTableConfig Aorig, OutputTableConfig Rfinal, int k, String RNewVisibility) {
     Preconditions.checkArgument(Aorig != null && Rfinal != null);
-    boolean RfinalExists = Rfinal.getTableConfig().exists();
 
     // detect in oneTable() that we have no subsetting or scan-time iterators on the scan
     // and Rfinal does not exist ==> okay to clone
 
-    try {
-      if (k <= 2) {               // trivial case: every graph is a 2-truss
-        return Aorig.oneTable()
-            .withOutputs(Rfinal)
-            .execute();
-      }
+    if (k <= 2)               // trivial case: every graph is a 2-truss
+      return Aorig.oneTable().withOutput(Rfinal).execute();
 
+    // non-trivial case: k is 3 or more.
+    long nnzBefore, nnzAfter;
+    InputTableConfig AtmpIn, A2tmpIn, AtmpAltIn;
 
+    // choosing not to keep iter properties on the tmp tables
+    TableConfig common = Aorig.appendTableName("_kTrussAdj_")                 // drop all except authorizations for tmp tables
+        .dropInput().asInput().withAuthorizations(Aorig.getAuthorizations()); // only other prop to consider clearing is numThreads
+    AtmpIn = common.appendTableName("tmpA").deleteForce().asInput();
+    A2tmpIn = common.appendTableName("tmpA2").deleteForce().asInput();
+    AtmpAltIn = common.appendTableName("tmpAalt").deleteForce().asInput();
+    OutputTableConfig A2tmpOut = A2tmpIn.dropInput().asOutput().withTableItersRemote(sumAndFilter);
 
-      // non-trivial case: k is 3 or more.
-      InputTableConfig Atmp, A2tmp, AtmpAlt;
-      long nnzBefore, nnzAfter;
-      String tmpBaseName = Aorig.getTableConfig().getTableName()+"_kTrussAdj_";
-      Atmp = tmpBaseName+"tmpA";
-      A2tmp = tmpBaseName+"tmpA2";
-      AtmpAlt = tmpBaseName+"tmpAalt";
-      deleteTables(Atmp, A2tmp, AtmpAlt);
+    // auto handle clone, auto handle getSeenEntries()
+    // get() blocks. Expand for asynchronous operation.
+    nnzAfter = Aorig.oneTable().withOutput(AtmpIn).execute().get().getSeenEntries();
+    // todo elsewhere: relax withOutput to take a TableConfig, using defaults for all other stuff
 
-      // InputTableConfig.asOutput() throws an exception if there is a local iterator that is not an ApplyIterator.
-      // aghh no -- no way to automatically determine whether iterator should run as an apply locally (meaning it works on unsorted data streams)
-      // or whether we need to set it as a table combiner
+    // Filter out entries with < k-2
+    IteratorSetting sumAndFilter = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, null)
+        .append(PLUS_ITERATOR_LONG)
+        .append(MinMaxFilter.iteratorSetting(10, ScalarType.LONG, k - 2, null))
+        .toIteratorSetting();
+    // No Diagonal filter
+    IteratorSetting noDiagFilter = TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.NoDiagonal);
 
-      if (filterRowCol == null) {
-        tops.clone(Aorig, Atmp, true, null, null);
-        nnzAfter = countEntries(Aorig);
-      }
-      else
-        nnzAfter = OneTable(Aorig, Atmp, null, null, -1, null, null, null,
-            filterRowCol,
-            filterRowCol, null, null, Aauthorizations);
+    Map<String,String> constantTwoScalarOpts = ConstantTwoScalar.optionMap(new Value("1".getBytes(StandardCharsets.UTF_8)), RNewVisibility);
 
-      // Inital nnz
-      // Careful: nnz figure will be inaccurate if there are multiple versions of an entry in Aorig.
-      // The truly accurate count is to count them first!
-//      D4mDbTableOperations d4mtops = new D4mDbTableOperations(connector.getInstance().getInstanceName(),
-//          connector.getInstance().getZooKeepers(), connector.whoami(), new String(password.getPassword()));
-//      nnzAfter = d4mtops.getNumberOfEntries(Collections.singletonList(Aorig))
-      // Above method dangerous. Instead:
+    do {
+      nnzBefore = nnzAfter;
 
+      // todo elsewhere: check if authorization of table multiplied by itself are the same
+      AtmpIn.tableMult(AtmpIn, ConstantTwoScalar.class, constantTwoScalarOpts)
+          .withOutput(A2tmpOut)
+          .withItersMid(noDiagFilter) // make nicer. itersAfterTwoTable
+          .execute()
+          .get();
 
-      // Filter out entries with < k-2
-      IteratorSetting sumAndFilter = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, null)
-          .append(PLUS_ITERATOR_LONG)
-          .append(MinMaxFilter.iteratorSetting(10, ScalarType.LONG, k - 2, null))
-          .toIteratorSetting();
-      // No Diagonal filter
-      List<IteratorSetting> noDiagFilter = Collections.singletonList(
-          TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.NoDiagonal));
+      nnzAfter = A2tmpIn.ewiseMult(AtmpIn, ConstantTwoScalar.class, constantTwoScalarOpts)
+          .withOutput(AtmpAltIn)
+          .execute()
+          .get().getSeenEntries();
 
-      do {
-        nnzBefore = nnzAfter;
+      AtmpIn.deleteForce(); A2tmpIn.deleteForce();
+      { InputTableConfig t = AtmpIn; AtmpIn = AtmpAltIn; AtmpAltIn = t; }
 
-        // Use Atmp for both AT and B
-        TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Atmp, A2tmp, null, -1, ConstantTwoScalar.class,
-            ConstantTwoScalar.optionMap(new Value("1".getBytes(StandardCharsets.UTF_8)), RNewVisibility),
-            sumAndFilter, null, null, null, false, false,
-            null, null, noDiagFilter,
-            null, null, -1, Aauthorizations, Aauthorizations);
-        // A2tmp has a SummingCombiner
+      log.debug("nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter);
+    } while (nnzBefore != nnzAfter);
+    // Atmp, ATtmp have the result table. Could be empty.
 
-        nnzAfter = SpEWiseX(A2tmp, Atmp, AtmpAlt, null, -1, ConstantTwoScalar.class,
-            ConstantTwoScalar.optionMap(new Value("1".getBytes(StandardCharsets.UTF_8)), RNewVisibility),
-            null, null, null, null, null, null, null, null, null, -1, Aauthorizations, Aauthorizations);
+    // todo AdjBFS - use clone if output table does not exist
+    new AdjBFSConfig(AtmpIn).withOutput(Rfinal).call().get();
 
-        tops.delete(Atmp);
-        tops.delete(A2tmp);
-        { String t = Atmp; Atmp = AtmpAlt; AtmpAlt = t; }
-
-        log.debug("nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter);
-      } while (nnzBefore != nnzAfter);
-      // Atmp, ATtmp have the result table. Could be empty.
-
-      if (RfinalExists)  // sum whole graph into existing graph
-        AdjBFS(Atmp, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Aauthorizations, Aauthorizations, false, null);
-      else                                           // result is new;
-        tops.clone(Atmp, Rfinal, true, null, null);  // flushes Atmp before cloning
-
-      tops.delete(Atmp);
-      return nnzAfter;
-
-    } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
-      log.error("Exception in kTrussAdj", e);
-      throw new RuntimeException(e);
-    }
+    AtmpIn.deleteForce();
+    return nnzAfter;
   }
 
 
@@ -2264,21 +2236,23 @@ public class Graphulo {
   }
 
   void clientCallJaccard() {
-    // suppose we have these authorizations:
+    // suppose we have these authorizations and filterRowCol:
     Authorizations Aauthorizations;
+    String filterRowCol;
 
     TableConfig common = new TableConfig("localhost:2181", "instance", "Aorig",
         "root", new PasswordToken("secret"));
     InputTableConfig Aorig = common.asInput().withAuthorizations(Aauthorizations);
+    Aorig = Aorig.withRowFilter(filterRowCol).withColFilter(filterRowCol);
     InputTableConfig ADeg = common.withTableName("ADeg").asInput().withAuthorizations(Aauthorizations);
     OutputTableConfig Rfinal = common.withTableName("Rfinal").asOutput();
-    Jaccard(Aorig, ADeg, Rfinal, null, null);
+    Jaccard(Aorig, ADeg, Rfinal, null);
   }
 
   // The extra arguments could be eliminated, but they are helpful to include here instead of making the user
   // set them in the config objects.
   public Future<GraphloResult> Jaccard(InputTableConfig Aorig, InputTableConfig ADeg, OutputTableConfig Rfinal,
-                                       String filterRowCol, String RNewVisibility) {
+                                       String RNewVisibility) {
     Preconditions.checkArgument(Aorig != null && ADeg != null && Rfinal != null);
     Preconditions.checkArgument(Rfinal.getTableConfig().exists(), "Output Jaccard table must not exist: Rfinal=%s", Rfinal); // this could be relaxed, at the possibility of peril
 
@@ -2286,8 +2260,6 @@ public class Graphulo {
     Rfinal = Rfinal.withTableItersRemote(Rfinal.getTableItersRemote()
         .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.LONG, false))
         .append(JaccardDegreeApply.iteratorSetting(1, ADeg)));
-
-    Aorig = Aorig.withRowFilter(filterRowCol).withColFilter(filterRowCol);
 
     // detect in tableMult() that we multiply a table by itself (transposed) --> use CLONESOURCE optimization
     return Aorig

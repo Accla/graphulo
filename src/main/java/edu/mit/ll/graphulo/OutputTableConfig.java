@@ -66,10 +66,13 @@ public final class OutputTableConfig implements Serializable, Cloneable {
   }
   public OutputTableConfig withApplyLocal(Class<? extends ApplyOp> applyLocal, Map<String,String> applyLocalOptions) {
     return clone().set("applyLocal", applyLocal)
-        .set("applyLocalOptions", applyLocal == null || applyLocalOptions == null ? Collections.<String,String>emptyMap() : ImmutableMap.copyOf(applyLocalOptions));
+        .set("applyLocalOptions", applyLocal == null || applyLocalOptions == null ? Collections.<String, String>emptyMap() : ImmutableMap.copyOf(applyLocalOptions));
   }
   public OutputTableConfig withTableItersRemote(DynamicIteratorSetting tableItersRemote) {
     return clone().set("tableItersRemote", tableItersRemote == null ? DEFAULT_ITERS_MAP : tableItersRemote.buildSettingMap());
+  }
+  public OutputTableConfig withTableItersRemote(IteratorSetting tableItersRemote) {
+    return withTableItersRemote(DynamicIteratorSetting.of(tableItersRemote));
   }
 
   // will enable these shortcut methods if determined to be a safe, common use case

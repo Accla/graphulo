@@ -3,12 +3,16 @@ package edu.mit.ll.graphulo;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
+import edu.mit.ll.graphulo.skvi.CountAllIterator;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 
 import java.io.IOException;
@@ -209,7 +213,9 @@ public final class InputTableConfig implements Serializable, Cloneable {
   }
 
   ///////////////////////////////
-  public Scanner createScannerWithColFilterAndIters() {
+  // todo - cache or otherwise use DynamicIteratorSetting for itersRemote
+
+  public Scanner createScanner(boolean scannerRowFilterUnionAll) {
     Connector connector = tableConfig.getConnector();
     Scanner scanner;
     try {
@@ -217,6 +223,8 @@ public final class InputTableConfig implements Serializable, Cloneable {
     } catch (TableNotFoundException e) {
       throw new RuntimeException(tableConfig.getTableName() + " does not exist in instance " + tableConfig.getInstanceName(), e);
     }
+//    if (scannerRowFilterUnionAll)
+//      scanner.setRange(GraphuloUtil.unionAll(rowFilterRanges)); // todo
 
     DynamicIteratorSetting disRemote = getItersRemote();
     GraphuloUtil.applyGeneralColumnFilter(colFilter, scanner, disRemote, false); // prepend
@@ -224,8 +232,51 @@ public final class InputTableConfig implements Serializable, Cloneable {
       scanner.addScanIterator(disRemote.toIteratorSetting());
     }
 
+    // todo - local iterators, check the other options
+
     return scanner;
     // todo play with how this is used in RSI and OneTable and TwoTable etc.
+  }
+
+  public BatchScanner createBatchScanner(boolean scannerRowFilter) {
+    BatchScanner scanner;
+    try {
+      scanner = tableConfig.getConnector().createBatchScanner(tableConfig.getTableName(), authorizations, tableConfig.getNumThreads());
+    } catch (TableNotFoundException e) {
+      throw new RuntimeException(tableConfig.getTableName() + " does not exist in instance " + tableConfig.getInstanceName(), e);
+    }
+    if (scannerRowFilter)
+      scanner.setRanges(rowFilterRanges);
+
+    DynamicIteratorSetting disRemote = getItersRemote();
+    GraphuloUtil.applyGeneralColumnFilter(colFilter, scanner, disRemote, false); // prepend
+    if (!disRemote.isEmpty()) {
+      scanner.addScanIterator(disRemote.toIteratorSetting());
+    }
+
+    // todo - local iterators, check the other options
+
+    return scanner;
+  }
+
+  /**
+   * Count number of entries in a table using a BatchScanner with {@link CountAllIterator}.
+   */
+  public long countEntries() {
+    DynamicIteratorSetting disRemote = getItersRemote();
+    disRemote.append(new IteratorSetting(52, CountAllIterator.class));
+
+    BatchScanner bs = this.withItersRemote(disRemote).createBatchScanner(true);
+
+    long cnt = 0l;
+    try {
+      for (Map.Entry<Key, Value> entry : bs) {
+        cnt += new Long(new String(entry.getValue().get()));
+      }
+    } finally {
+      bs.close();
+    }
+    return cnt;
   }
 
 

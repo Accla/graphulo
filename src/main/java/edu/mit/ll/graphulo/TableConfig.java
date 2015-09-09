@@ -5,7 +5,9 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 
@@ -21,8 +23,9 @@ import static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty
  * Convert to an {@link InputTableConfig} or {@link OutputTableConfig}.
  */
 public final class TableConfig implements Serializable, Cloneable {
-
   private static final long serialVersionUID = 1L;
+
+  public static final int DEFAULT_NUM_THREADS = 50;
 
   private final String zookeeperHost;
   private final int timeout;
@@ -30,6 +33,7 @@ public final class TableConfig implements Serializable, Cloneable {
   private final String tableName;
   private final String username;
   private final transient AuthenticationToken authenticationToken; // clone on creation, clone on get. No need to clone in the middle
+  private final int numThreads = DEFAULT_NUM_THREADS;
 
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
@@ -144,6 +148,7 @@ public final class TableConfig implements Serializable, Cloneable {
     return clone().set("instanceName", Preconditions.checkNotNull(instanceName));
   }
   public TableConfig withZookeeperTimeout(int timeout) {
+    Preconditions.checkArgument(timeout > 0, "Need a positive Zookeeper timeout; given %s", timeout);
     return clone().set("timeout", timeout);
   }
   public TableConfig withZookeeperHost(String zookeeperHost) {
@@ -157,6 +162,10 @@ public final class TableConfig implements Serializable, Cloneable {
   }
   public TableConfig withAuthenticationToken(AuthenticationToken authenticationToken) {
     return clone().set("authenticationToken", Preconditions.checkNotNull(authenticationToken).clone());
+  }
+  public TableConfig withNumThreads(int numThreads) {
+    Preconditions.checkArgument(numThreads > 0, "Need a positive number of threads; given %s", numThreads);
+    return clone().set("numThreads", numThreads);
   }
 
   public InputTableConfig asInput() {
@@ -184,6 +193,7 @@ public final class TableConfig implements Serializable, Cloneable {
   public AuthenticationToken getAuthenticationToken() {
     return authenticationToken.clone(); // don't leak the token
   }
+  public int getNumThreads() { return numThreads; }
 
   // Calculated lazily, not serialized, derived from other properties.
   // Cloned versions only keep reference after this is set.
@@ -205,6 +215,18 @@ public final class TableConfig implements Serializable, Cloneable {
 
   public boolean exists() {
     return getConnector().tableOperations().exists(tableName);
+  }
+  public TableConfig deleteForce() {
+    try {
+      TableOperations tops =getConnector().tableOperations();
+      if (tops.exists(tableName))
+        tops.delete(tableName);
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      throw new RuntimeException("Problem deleting table "+tableName, e);
+    } catch (TableNotFoundException e) {
+      throw new RuntimeException("crazy", e);
+    }
+    return this;
   }
 
 

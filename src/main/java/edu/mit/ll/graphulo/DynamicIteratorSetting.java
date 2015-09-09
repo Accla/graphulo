@@ -54,6 +54,7 @@ public class DynamicIteratorSetting {
    * @return Newly constructed DynamicIteratorSetting
    */
   public static DynamicIteratorSetting of(IteratorSetting itset) {
+    Preconditions.checkNotNull(itset);
     return new DynamicIteratorSetting(itset.getPriority(), itset.getName())
         .append(itset);
   }

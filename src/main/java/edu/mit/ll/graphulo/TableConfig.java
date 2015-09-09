@@ -20,7 +20,7 @@ import static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty
  * Used at the tablet server by RemoteSourceIterator and RemoteWriteIterator.
  * Convert to an {@link InputTableConfig} or {@link OutputTableConfig}.
  */
-public final class TableConfig implements Serializable {
+public final class TableConfig implements Serializable, Cloneable {
 
   private static final long serialVersionUID = 1L;
 
@@ -29,7 +29,7 @@ public final class TableConfig implements Serializable {
   private final String instanceName;
   private final String tableName;
   private final String username;
-  private final transient AuthenticationToken authenticationToken; // clone this
+  private final transient AuthenticationToken authenticationToken; // clone on creation, clone on get. No need to clone in the middle
 
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
@@ -43,15 +43,30 @@ public final class TableConfig implements Serializable {
     Class<? extends AuthenticationToken> authenticationTokenClass = (Class<? extends AuthenticationToken>)in.readObject();
     // small hack that enables setting a final variable
     try {
-      Field authField = TableConfig.class.getDeclaredField("authenticationToken");
-      authField.setAccessible(true);
-      authField.set(this, authenticationTokenClass.newInstance()); // set to specific instance saved in class
-    } catch (NoSuchFieldException e) {
-      throw new RuntimeException("impossible: field is named authenticationToken", e);
-    } catch (InstantiationException | IllegalAccessException e) {
+      set("authenticationToken", authenticationTokenClass.newInstance()); // set to specific instance saved in class
+    } catch (InstantiationException e) {
       throw new RuntimeException("trouble creating new authenticationToken of class "+authenticationTokenClass, e);
+    } catch (IllegalAccessException e) {
+      throw new RuntimeException("trouble accessing authenticationToken field for TableConfig "+this, e);
     }
     authenticationToken.readFields(in);
+  }
+
+  /**
+   * Used to set final fields. Only used immediately after object creation,
+   * while only one thread can access the new object.
+   */
+  private TableConfig set(String field, Object val) {
+    try {
+      Field f = TableConfig.class.getDeclaredField(field);
+      f.setAccessible(true);
+      f.set(this, val); // set to specific instance saved in class
+    } catch (NoSuchFieldException e) {
+      throw new RuntimeException("no TableConfig field named "+field, e);
+    } catch (IllegalAccessException e) {
+      throw new RuntimeException("trouble accessing field "+field+" for TableConfig "+this+" and setting to "+val, e);
+    }
+    return this;
   }
 
 
@@ -89,20 +104,13 @@ public final class TableConfig implements Serializable {
     this.authenticationToken = authenticationToken.clone();
   }
 
-  private TableConfig(String zookeeperHost, int timeout, String instanceName,
-                      String tableName, String username, AuthenticationToken authenticationToken) {
-    this.zookeeperHost = zookeeperHost;
-    this.timeout = timeout;
-    this.instanceName = instanceName;
-    this.tableName = tableName;
-    this.username = username;
-    this.authenticationToken = authenticationToken.clone();
-  }
-
   @Override
-  protected void finalize() throws Throwable {
-    super.finalize();
-    authenticationToken.destroy(); // destroy when this class is about to be garbage collected // PERF
+  protected TableConfig clone() {
+    try {
+      return (TableConfig)super.clone();
+    } catch (CloneNotSupportedException e) {
+      throw new RuntimeException("somehow cannot clone TableConfig "+this, e);
+    }
   }
 
   @Override
@@ -133,52 +141,22 @@ public final class TableConfig implements Serializable {
   }
 
   public TableConfig withInstanceName(String instanceName) {
-    Preconditions.checkNotNull(instanceName);
-    return new TableConfig(zookeeperHost, timeout, instanceName,
-        tableName, username, authenticationToken
-    );
+    return clone().set("instanceName", Preconditions.checkNotNull(instanceName));
   }
-
   public TableConfig withZookeeperTimeout(int timeout) {
-    return new TableConfig(zookeeperHost, timeout, instanceName,
-        tableName, username, authenticationToken
-    );
+    return clone().set("timeout", timeout);
   }
-
   public TableConfig withZookeeperHost(String zookeeperHost) {
-    Preconditions.checkNotNull(zookeeperHost);
-    return new TableConfig(zookeeperHost, timeout, instanceName,
-        tableName, username, authenticationToken
-    );
+    return clone().set("zookeeperHost", Preconditions.checkNotNull(zookeeperHost));
   }
-
   public TableConfig withTableName(String tableName) {
-    Preconditions.checkNotNull(tableName);
-    return new TableConfig(zookeeperHost, timeout, instanceName,
-        tableName, username, authenticationToken
-    );
+    return clone().set("tableName", Preconditions.checkNotNull(tableName));
   }
   public TableConfig withUsername(String username) {
-    Preconditions.checkNotNull(username);
-    return new TableConfig(zookeeperHost, timeout, instanceName,
-        tableName, username, authenticationToken
-    );
+    return clone().set("username", Preconditions.checkNotNull(username));
   }
   public TableConfig withAuthenticationToken(AuthenticationToken authenticationToken) {
-    Preconditions.checkNotNull(authenticationToken);
-    return new TableConfig(zookeeperHost, timeout, instanceName,
-        tableName, username, authenticationToken
-    );
-  }
-  public TableConfig withRowRanges(String rowRanges) {
-    return new TableConfig(zookeeperHost, timeout, instanceName,
-        tableName, username, authenticationToken
-    );
-  }
-  public TableConfig withColFilter(String colFilter) {
-    return new TableConfig(zookeeperHost, timeout, instanceName,
-        tableName, username, authenticationToken
-    );
+    return clone().set("authenticationToken", Preconditions.checkNotNull(authenticationToken).clone());
   }
 
   public InputTableConfig asInput() {
@@ -207,7 +185,8 @@ public final class TableConfig implements Serializable {
     return authenticationToken.clone(); // don't leak the token
   }
 
-  //////////// Calculated lazily, not serialized, derived from other properties
+  // Calculated lazily, not serialized, derived from other properties.
+  // Cloned versions only keep reference after this is set.
   private transient Connector connector;
 
   public Connector getConnector() {

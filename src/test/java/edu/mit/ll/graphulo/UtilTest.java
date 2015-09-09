@@ -956,4 +956,24 @@ public class UtilTest {
     Assert.assertEquals(tcOrig, tcAfter);
   }
 
+  @Test
+  public void testInputTableConfigSerializes() {
+    InputTableConfig tcOrig = new TableConfig(
+        ClientConfiguration.loadDefault().withInstance("some_instance"),
+        "tablename", "user", new PasswordToken("bla")).asInput().withColFilter("bla,");
+    String str = SerializationUtil.serializeBase64(tcOrig);
+    InputTableConfig tcAfter = (InputTableConfig)SerializationUtil.deserializeBase64(str);
+    Assert.assertEquals(tcOrig, tcAfter);
+  }
+
+  @Test
+  public void testOutputTableConfigSerializes() {
+    OutputTableConfig tcOrig = new TableConfig(
+        ClientConfiguration.loadDefault().withInstance("some_instance"),
+        "tablename", "user", new PasswordToken("bla")).asOutput().withApplyLocal(DuplicateApply.class, null);
+    String str = SerializationUtil.serializeBase64(tcOrig);
+    OutputTableConfig tcAfter = (OutputTableConfig)SerializationUtil.deserializeBase64(str);
+    Assert.assertEquals(tcOrig, tcAfter);
+  }
+
 }

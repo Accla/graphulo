@@ -8,13 +8,14 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 
 import java.io.Serializable;
+import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.Map;
 
 /**
  * Immutable class representing a table used as output from an iterator stack via RemoteWriteIterator.
  */
-public final class OutputTableConfig implements Serializable {
+public final class OutputTableConfig implements Serializable, Cloneable {
   private static final long serialVersionUID = 1L;
 
   public static final int DEFAULT_COMBINER_PRIORITY = 6;
@@ -34,25 +35,41 @@ public final class OutputTableConfig implements Serializable {
     tableItersRemote = DEFAULT_ITERS_MAP;
   }
 
-  private OutputTableConfig(TableConfig tableConfig, Class<? extends ApplyOp> applyLocal,
-                            Map<String, String> applyLocalOptions, Map<String, String> tableItersRemote) {
-    this.tableConfig = tableConfig;
-    this.tableItersRemote = tableItersRemote;
-    this.applyLocalOptions = applyLocalOptions;
-    this.applyLocal = applyLocal;
+  /**
+   * Used to set final fields. Only used immediately after object creation,
+   * while only one thread can access the new object.
+   */
+  private OutputTableConfig set(String field, Object val) {
+    try {
+      Field f = OutputTableConfig.class.getDeclaredField(field);
+      f.setAccessible(true);
+      f.set(this, val); // set to specific instance saved in class
+    } catch (NoSuchFieldException e) {
+      throw new RuntimeException("no OutputTableConfig field named "+field, e);
+    } catch (IllegalAccessException e) {
+      throw new RuntimeException("trouble accessing field "+field+" for TableConfig "+this+" and setting to "+val, e);
+    }
+    return this;
+  }
+
+  @Override
+  protected OutputTableConfig clone() {
+    try {
+      return (OutputTableConfig)super.clone();
+    } catch (CloneNotSupportedException e) {
+      throw new RuntimeException("somehow cannot clone OutputTableConfig "+this, e);
+    }
   }
 
   public OutputTableConfig withTableConfig(TableConfig tableConfig) {
-    Preconditions.checkNotNull(tableConfig);
-    return new OutputTableConfig(tableConfig, applyLocal, applyLocalOptions, tableItersRemote);
+    return clone().set("tableConfig", Preconditions.checkNotNull(tableConfig));
   }
   public OutputTableConfig withApplyLocal(Class<? extends ApplyOp> applyLocal, Map<String,String> applyLocalOptions) {
-    return new OutputTableConfig(tableConfig, applyLocal,
-        applyLocal == null || applyLocalOptions == null ? Collections.<String,String>emptyMap() : ImmutableMap.copyOf(applyLocalOptions),
-        tableItersRemote);
+    return clone().set("applyLocal", applyLocal)
+        .set("applyLocalOptions", applyLocal == null || applyLocalOptions == null ? Collections.<String,String>emptyMap() : ImmutableMap.copyOf(applyLocalOptions));
   }
   public OutputTableConfig withTableItersRemote(DynamicIteratorSetting tableItersRemote) {
-    return new OutputTableConfig(tableConfig, applyLocal, applyLocalOptions, tableItersRemote == null ? DEFAULT_ITERS_MAP : tableItersRemote.buildSettingMap());
+    return clone().set("tableItersRemote", tableItersRemote == null ? DEFAULT_ITERS_MAP : tableItersRemote.buildSettingMap());
   }
 
   // will enable these shortcut methods if determined to be a safe, common use case
@@ -104,7 +121,9 @@ public final class OutputTableConfig implements Serializable {
   }
 
   /**
-   * Applies the DynamicIterator stored as tableItersRemote to the remote table.
+   * Applies the DynamicIterator stored as tableItersRemote to the remote table on all scopes (scan, minc, majc).
+   * No effect for a scope if an iterator already exists at the same priority and name.
+   * @throws RuntimeException if another iterator already exists at the same priority or the same name
    */
   public void applyRemoteIterators() {
     Connector connector = tableConfig.getConnector();

@@ -21,7 +21,8 @@ import java.util.SortedSet;
 /**
  * Immutable class representing a table used for input to an iterator stack via a local iterator or a RemoteSourceIterator.
  */
-public final class InputTableConfig implements Serializable {
+public final class InputTableConfig implements Serializable, Cloneable {
+  private static final long serialVersionUID = 1L;
 
   public static final int DEFAULT_ITERS_REMOTE_PRIORITY = 50;
   private static final Map<String,String> DEFAULT_ITERS_MAP =
@@ -29,11 +30,9 @@ public final class InputTableConfig implements Serializable {
   private static final SortedSet<Range> ALL_RANGE = ImmutableSortedSet.of(new Range()); // please do not call the readFields() method of the range inside
   private static final String ALL_RANGE_STR = ":,";
 
-  private static final long serialVersionUID = 1L;
-
   private final TableConfig tableConfig;
   private final Authorizations authorizations; // immutable and Serializable
-  private final Map<String,String> itersRemote;     // no null; copy on read, return ImmutableMap
+  private final Map<String,String> itersRemote;     // no null; copy on read, return ImmutableMap. Controls priority.
   private final Map<String,String> itersClientSide; // no need for special measures because DIS.buildSettingMap() and .fromMap() make new objects
                                                 // combine the two when used as a local iterator as opposed to a RemoteSourceIterator
   private final String rowFilter, colFilter;    // no null, always store in sorted merged form, always keep aligned with the SortedSet<Range> versions
@@ -41,21 +40,25 @@ public final class InputTableConfig implements Serializable {
 
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
-    // small hack that enables setting a final variable
+    set("rowFilterRanges", GraphuloUtil.d4mRowToRanges(rowFilter));
+    set("colFilterRanges", GraphuloUtil.d4mRowToRanges(colFilter));
+  }
+
+  /**
+   * Used to set final fields. Only used immediately after object creation,
+   * while only one thread can access the new object.
+   */
+  private InputTableConfig set(String field, Object val) {
     try {
-      Class<InputTableConfig> c = InputTableConfig.class;
-      Field f;
-      f = c.getDeclaredField("rowFilterRanges");
+      Field f = InputTableConfig.class.getDeclaredField(field);
       f.setAccessible(true);
-      f.set(this, GraphuloUtil.d4mRowToRanges(rowFilter)); // set to specific instance saved in class
-      f = c.getDeclaredField("colFilterRanges");
-      f.setAccessible(true);
-      f.set(this, GraphuloUtil.d4mRowToRanges(colFilter));
+      f.set(this, val); // set to specific instance saved in class
     } catch (NoSuchFieldException e) {
-      throw new RuntimeException("impossible: fields rowFilterRanges and colFilterRanges exist", e);
+      throw new RuntimeException("no InputTableConfig field named "+field, e);
     } catch (IllegalAccessException e) {
-      throw new RuntimeException("trouble setting rowFilterRanges and colFilterRanges", e);
+      throw new RuntimeException("trouble accessing field "+field+" for TableConfig "+this+" and setting to "+val, e);
     }
+    return this;
   }
 
   public InputTableConfig(TableConfig tableConfig) {
@@ -68,37 +71,30 @@ public final class InputTableConfig implements Serializable {
     rowFilterRanges = colFilterRanges = ALL_RANGE;
   }
 
-  private InputTableConfig(TableConfig tableConfig, Authorizations authorizations,
-                           Map<String, String> itersRemote, Map<String, String> itersClientSide,
-                           String rowFilter, String colFilter,
-                           SortedSet<Range> rowFilterRanges, SortedSet<Range> colFilterRanges) {
-    this.tableConfig = tableConfig;
-    this.authorizations = authorizations;
-    this.itersClientSide = itersClientSide;
-    this.itersRemote = itersRemote;
-    this.rowFilter = rowFilter;
-    this.colFilter = colFilter;
-    this.rowFilterRanges = rowFilterRanges;
-    this.colFilterRanges = colFilterRanges;
+  @Override
+  protected InputTableConfig clone() {
+    try {
+      return (InputTableConfig)super.clone();
+    } catch (CloneNotSupportedException e) {
+      throw new RuntimeException("somehow cannot clone InputTableConfig "+this, e);
+    }
   }
 
   public InputTableConfig withTableConfig(TableConfig tableConfig) {
-    Preconditions.checkNotNull(tableConfig);
-    return new InputTableConfig(tableConfig, authorizations, itersRemote, itersClientSide, rowFilter, colFilter, rowFilterRanges, colFilterRanges);
+    return clone().set("tableConfig", Preconditions.checkNotNull(tableConfig));
   }
   public InputTableConfig withAuthorizations(Authorizations authorizations) {
-    if (authorizations == null) authorizations = Authorizations.EMPTY;
-    return new InputTableConfig(tableConfig, authorizations, itersRemote, itersClientSide, rowFilter, colFilter, rowFilterRanges, colFilterRanges);
+    return clone().set("authorizations", Preconditions.checkNotNull(authorizations));
   }
   public InputTableConfig withItersRemote(DynamicIteratorSetting itersRemote) {
-    return new InputTableConfig(tableConfig, authorizations, itersRemote == null ? DEFAULT_ITERS_MAP : itersRemote.buildSettingMap(), itersClientSide, rowFilter, colFilter, rowFilterRanges, colFilterRanges);
+    return clone().set("itersRemote", itersRemote == null ? DEFAULT_ITERS_MAP : itersRemote.buildSettingMap());
   }
   /** Use a single remote iterator. */
   public InputTableConfig withItersRemote(IteratorSetting iterRemote) {
     return withItersRemote(DynamicIteratorSetting.of(iterRemote));
   }
   public InputTableConfig withItersLocal(DynamicIteratorSetting itersLocal) {
-    return new InputTableConfig(tableConfig, authorizations, itersRemote, itersLocal == null ? DEFAULT_ITERS_MAP : itersLocal.buildSettingMap(), rowFilter, colFilter, rowFilterRanges, colFilterRanges);
+    return clone().set("itersLocal", itersLocal == null ? DEFAULT_ITERS_MAP : itersLocal.buildSettingMap());
   }
   /** Use a single local iterator. */
   public InputTableConfig withItersLocal(IteratorSetting iterLocal) {
@@ -106,31 +102,43 @@ public final class InputTableConfig implements Serializable {
   }
   public InputTableConfig withRowFilter(String rowFilter) {
     if (rowFilter == null || rowFilter.isEmpty())
-      return new InputTableConfig(tableConfig, authorizations, itersRemote, itersClientSide, ALL_RANGE_STR, colFilter, ALL_RANGE, colFilterRanges);
+      return clone()
+          .set("rowFilter", ALL_RANGE_STR)
+          .set("rowFilterRanges", ALL_RANGE);
     else {
       SortedSet<Range> set = ImmutableSortedSet.copyOf(Range.mergeOverlapping(GraphuloUtil.d4mRowToRanges(rowFilter)));
       rowFilter = GraphuloUtil.rangesToD4MString(set);
-      return new InputTableConfig(tableConfig, authorizations, itersRemote, itersClientSide, rowFilter, colFilter, set, colFilterRanges);
+      return clone()
+          .set("rowFilter", rowFilter)
+          .set("rowFilterRanges", set);
     }
   }
   public InputTableConfig withColFilter(String colFilter) {
     if (colFilter == null || colFilter.isEmpty())
-      return new InputTableConfig(tableConfig, authorizations, itersRemote, itersClientSide, rowFilter, ALL_RANGE_STR, rowFilterRanges, ALL_RANGE);
+      return clone()
+          .set("colFilter", ALL_RANGE_STR)
+          .set("colFilterRanges", ALL_RANGE);
     else {
       SortedSet<Range> set = ImmutableSortedSet.copyOf(Range.mergeOverlapping(GraphuloUtil.d4mRowToRanges(colFilter)));
       colFilter = GraphuloUtil.rangesToD4MString(set);
-      return new InputTableConfig(tableConfig, authorizations, itersRemote, itersClientSide, rowFilter, colFilter, set, colFilterRanges);
+      return clone()
+          .set("colFilter", colFilter)
+          .set("colFilterRanges", set);
     }
   }
   public InputTableConfig withRowFilter(Collection<Range> rowFilterRanges) {
     Preconditions.checkArgument(rowFilterRanges != null && !rowFilterRanges.isEmpty());
     SortedSet<Range> rset = ImmutableSortedSet.copyOf(Range.mergeOverlapping(rowFilterRanges));
-    return new InputTableConfig(tableConfig, authorizations, itersRemote, itersClientSide, GraphuloUtil.rangesToD4MString(rset), colFilter, rset, colFilterRanges);
+    return clone()
+        .set("rowFilter", GraphuloUtil.rangesToD4MString(rset))
+        .set("rowFilterRanges", rset);
   }
   public InputTableConfig withColFilter(Collection<Range> colFilterRanges) {
     Preconditions.checkArgument(colFilterRanges != null && !colFilterRanges.isEmpty());
     SortedSet<Range> rset = ImmutableSortedSet.copyOf(Range.mergeOverlapping(colFilterRanges));
-    return new InputTableConfig(tableConfig, authorizations, itersRemote, itersClientSide, rowFilter, GraphuloUtil.rangesToD4MString(rset), rowFilterRanges, rset);
+    return clone()
+        .set("colFilter", GraphuloUtil.rangesToD4MString(rset))
+        .set("colFilterRanges", rset);
   }
 
   // less efficient way to do rowFilter and colFilter

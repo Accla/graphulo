@@ -11,6 +11,9 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Field;
@@ -24,6 +27,7 @@ import static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty
  * <p>
  * Child classes should preserve immutability.
  */
+@Immutable
 public class TableConfig implements Serializable, Cloneable {
   private static final long serialVersionUID = 1L;
 
@@ -36,12 +40,12 @@ public class TableConfig implements Serializable, Cloneable {
   3. Check how it is serialized. Possibly add "transient" and modify writeObject, readObject.
   4. Modify equals() and hashCode().
    */
-  private final String zookeeperHost;
+  @Nonnull private final String zookeeperHost;
   private final int timeout;
-  private final String instanceName;
-  private final String tableName;
-  private final String username;
-  private final transient AuthenticationToken authenticationToken; // clone on creation, clone on get. No need to clone in the middle
+  @Nonnull private final String instanceName;
+  @Nonnull private final String tableName;
+  @Nonnull private final String username;
+  @Nonnull private final transient AuthenticationToken authenticationToken; // clone on creation, clone on get. No need to clone in the middle
   private final int numThreads;
 
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
@@ -220,7 +224,7 @@ public class TableConfig implements Serializable, Cloneable {
 
   // Calculated lazily, not serialized, derived from other properties.
   // Cloned versions only keep reference after this is set.
-  private transient Connector connector;
+  @Nullable private transient Connector connector;
 
   public Connector getConnector() {
     if (connector == null)

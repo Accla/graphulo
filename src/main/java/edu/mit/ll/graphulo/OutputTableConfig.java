@@ -6,7 +6,9 @@ import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 
-import java.io.Serializable;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.Map;
@@ -14,16 +16,17 @@ import java.util.Map;
 /**
  * Immutable class representing a table used as output from an iterator stack via RemoteWriteIterator.
  */
-public class OutputTableConfig extends TableConfig implements Serializable, Cloneable {
+@Immutable
+public class OutputTableConfig extends TableConfig {
   private static final long serialVersionUID = 1L;
 
   public static final int DEFAULT_COMBINER_PRIORITY = 6;
   private static final Map<String,String> DEFAULT_ITERS_MAP =
       ImmutableMap.copyOf(new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, null).buildSettingMap());
 
-  private final Class<? extends ApplyOp> applyLocal;  // allow null
-  private final Map<String,String> applyLocalOptions;
-  private final Map<String,String> tableItersRemote;
+  @Nullable private final Class<? extends ApplyOp> applyLocal;  // allow null
+  @Nonnull private final Map<String,String> applyLocalOptions;
+  @Nonnull private final Map<String,String> tableItersRemote;
 
   protected OutputTableConfig(TableConfig tableConfig) {
     super(tableConfig);

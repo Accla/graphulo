@@ -15,8 +15,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 
+import javax.annotation.Nonnull;
+import javax.annotation.concurrent.Immutable;
 import java.io.IOException;
-import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Map;
@@ -25,7 +26,8 @@ import java.util.SortedSet;
 /**
  * Immutable class representing a table used for input to an iterator stack via a local iterator or a RemoteSourceIterator.
  */
-public class InputTableConfig extends TableConfig implements Serializable, Cloneable {
+@Immutable
+public class InputTableConfig extends TableConfig {
   private static final long serialVersionUID = 1L;
 
   public static final int DEFAULT_ITERS_REMOTE_PRIORITY = 50;
@@ -34,12 +36,12 @@ public class InputTableConfig extends TableConfig implements Serializable, Clone
   private static final SortedSet<Range> ALL_RANGE = ImmutableSortedSet.of(new Range()); // please do not call the readFields() method of the range inside
   private static final String ALL_RANGE_STR = ":,";
 
-  private final Authorizations authorizations; // immutable and Serializable
-  private final Map<String,String> itersRemote;     // no null; copy on read, return ImmutableMap. Controls priority.
-  private final Map<String,String> itersClientSide; // no need for special measures because DIS.buildSettingMap() and .fromMap() make new objects
+  @Nonnull private final Authorizations authorizations; // immutable and Serializable
+  @Nonnull private final Map<String,String> itersRemote;     // no null; copy on read, return ImmutableMap. Controls priority.
+  @Nonnull private final Map<String,String> itersClientSide; // no need for special measures because DIS.buildSettingMap() and .fromMap() make new objects
                                                 // combine the two when used as a local iterator as opposed to a RemoteSourceIterator
-  private final String rowFilter, colFilter;    // no null, always store in sorted merged form, always keep aligned with the SortedSet<Range> versions
-  private final transient SortedSet<Range> rowFilterRanges, colFilterRanges; // ^^
+  @Nonnull private final String rowFilter, colFilter;    // no null, always store in sorted merged form, always keep aligned with the SortedSet<Range> versions
+  @Nonnull private final transient SortedSet<Range> rowFilterRanges, colFilterRanges; // ^^
 
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
@@ -278,7 +280,7 @@ public class InputTableConfig extends TableConfig implements Serializable, Clone
     long cnt = 0l;
     try {
       for (Map.Entry<Key, Value> entry : bs) {
-        cnt += new Long(new String(entry.getValue().get()));
+        cnt += Long.parseLong(new String(entry.getValue().get()));
       }
     } finally {
       bs.close();

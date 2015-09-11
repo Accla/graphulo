@@ -27,6 +27,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.DevNull;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -976,4 +977,38 @@ public class UtilTest {
     Assert.assertEquals(tcOrig, tcAfter);
   }
 
+  @Test
+  public void testTableConfigCopyConstructor() {
+    TableConfig tcOrig = new TableConfig(
+        ClientConfiguration.loadDefault().withInstance("some_instance"),
+        "tablename", "user", new PasswordToken("bla"));
+    TableConfig tcClone = tcOrig.clone();
+    TableConfig tcCopy = new TableConfig(tcOrig);
+    Assert.assertEquals(tcClone, tcCopy);
+    Assert.assertEquals(tcClone.hashCode(), tcCopy.hashCode());
+  }
+
+  @Test
+  public void testInputTableConfigCopyConstructor() {
+    InputTableConfig tcOrig = new TableConfig(
+        ClientConfiguration.loadDefault().withInstance("some_instance"),
+        "tablename", "user", new PasswordToken("bla")).asInput()
+        .withColFilter(Collections.singleton(new Range("a", "b")));
+    InputTableConfig tcClone = tcOrig.clone();
+    InputTableConfig tcCopy = new InputTableConfig(tcOrig);
+    Assert.assertEquals(tcClone, tcCopy);
+    Assert.assertEquals(tcClone.hashCode(), tcCopy.hashCode());
+  }
+
+  @Test
+  public void testOutputTableConfigCopyConstructor() {
+    OutputTableConfig tcOrig = new TableConfig(
+        ClientConfiguration.loadDefault().withInstance("some_instance"),
+        "tablename", "user", new PasswordToken("bla")).asOutput()
+        .withTableItersRemote(DynamicIteratorSetting.of(new IteratorSetting(2, DevNull.class)));
+    OutputTableConfig tcClone = tcOrig.clone();
+    OutputTableConfig tcCopy = new OutputTableConfig(tcOrig);
+    Assert.assertEquals(tcClone, tcCopy);
+    Assert.assertEquals(tcClone.hashCode(), tcCopy.hashCode());
+  }
 }

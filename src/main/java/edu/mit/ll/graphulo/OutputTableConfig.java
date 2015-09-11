@@ -1,6 +1,5 @@
 package edu.mit.ll.graphulo;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import edu.mit.ll.graphulo.apply.ApplyOp;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
@@ -15,24 +14,30 @@ import java.util.Map;
 /**
  * Immutable class representing a table used as output from an iterator stack via RemoteWriteIterator.
  */
-public final class OutputTableConfig implements Serializable, Cloneable {
+public class OutputTableConfig extends TableConfig implements Serializable, Cloneable {
   private static final long serialVersionUID = 1L;
 
   public static final int DEFAULT_COMBINER_PRIORITY = 6;
   private static final Map<String,String> DEFAULT_ITERS_MAP =
       ImmutableMap.copyOf(new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, null).buildSettingMap());
 
-  private final TableConfig tableConfig;
   private final Class<? extends ApplyOp> applyLocal;  // allow null
   private final Map<String,String> applyLocalOptions;
   private final Map<String,String> tableItersRemote;
 
-  public OutputTableConfig(TableConfig tableConfig) {
-    Preconditions.checkNotNull(tableConfig);
-    this.tableConfig = tableConfig;
+  protected OutputTableConfig(TableConfig tableConfig) {
+    super(tableConfig);
     applyLocal = null;
     applyLocalOptions = Collections.emptyMap();
     tableItersRemote = DEFAULT_ITERS_MAP;
+  }
+
+  /** Copy constructor. Not public because there is no need to copy an immutable object. */
+  protected OutputTableConfig(OutputTableConfig that) {
+    super(that);
+    applyLocal = that.applyLocal;
+    applyLocalOptions = that.applyLocalOptions;
+    tableItersRemote = that.tableItersRemote;
   }
 
   /**
@@ -54,16 +59,9 @@ public final class OutputTableConfig implements Serializable, Cloneable {
 
   @Override
   protected OutputTableConfig clone() {
-    try {
-      return (OutputTableConfig)super.clone();
-    } catch (CloneNotSupportedException e) {
-      throw new RuntimeException("somehow cannot clone OutputTableConfig "+this, e);
-    }
+    return (OutputTableConfig)super.clone();
   }
 
-  public OutputTableConfig withTableConfig(TableConfig tableConfig) {
-    return clone().set("tableConfig", Preconditions.checkNotNull(tableConfig));
-  }
   public OutputTableConfig withApplyLocal(Class<? extends ApplyOp> applyLocal, Map<String,String> applyLocalOptions) {
     return clone().set("applyLocal", applyLocal)
         .set("applyLocalOptions", applyLocal == null || applyLocalOptions == null ? Collections.<String, String>emptyMap() : ImmutableMap.copyOf(applyLocalOptions));
@@ -87,9 +85,6 @@ public final class OutputTableConfig implements Serializable, Cloneable {
 //    return withItersRemote(dis);
 //  }
 
-  public TableConfig getTableConfig() {
-    return tableConfig;
-  }
   public DynamicIteratorSetting getTableItersRemote() {
     return DynamicIteratorSetting.fromMap(tableItersRemote);
   }
@@ -104,10 +99,10 @@ public final class OutputTableConfig implements Serializable, Cloneable {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
+    if (!super.equals(o)) return false;
 
     OutputTableConfig that = (OutputTableConfig) o;
 
-    if (!tableConfig.equals(that.tableConfig)) return false;
     if (applyLocal != null ? !applyLocal.equals(that.applyLocal) : that.applyLocal != null) return false;
     if (!applyLocalOptions.equals(that.applyLocalOptions)) return false;
     return tableItersRemote.equals(that.tableItersRemote);
@@ -116,7 +111,7 @@ public final class OutputTableConfig implements Serializable, Cloneable {
 
   @Override
   public int hashCode() {
-    int result = tableConfig.hashCode();
+    int result = super.hashCode();
     result = 31 * result + (applyLocal != null ? applyLocal.hashCode() : 0);
     result = 31 * result + applyLocalOptions.hashCode();
     result = 31 * result + tableItersRemote.hashCode();
@@ -129,11 +124,11 @@ public final class OutputTableConfig implements Serializable, Cloneable {
    * @throws RuntimeException if another iterator already exists at the same priority or the same name
    */
   public void applyRemoteIterators() {
-    Connector connector = tableConfig.getConnector();
+    Connector connector = getConnector();
     DynamicIteratorSetting dis = getTableItersRemote();
     if (!dis.isEmpty()) {
       IteratorSetting itset = dis.toIteratorSetting();
-      GraphuloUtil.applyIteratorSoft(itset, connector.tableOperations(), tableConfig.getTableName());
+      GraphuloUtil.applyIteratorSoft(itset, connector.tableOperations(), getTableName());
     }
   }
 

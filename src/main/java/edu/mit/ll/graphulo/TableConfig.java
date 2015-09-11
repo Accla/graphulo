@@ -21,19 +21,28 @@ import static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty
  * Immutable class representing a table and options passed around when referring to it.
  * Used at the tablet server by RemoteSourceIterator and RemoteWriteIterator.
  * Convert to an {@link InputTableConfig} or {@link OutputTableConfig}.
+ * <p>
+ * Child classes should preserve immutability.
  */
-public final class TableConfig implements Serializable, Cloneable {
+public class TableConfig implements Serializable, Cloneable {
   private static final long serialVersionUID = 1L;
 
   public static final int DEFAULT_NUM_THREADS = 50;
 
+  /*
+  Perform the following steps when adding a new field:
+  1. Add get and with methods.
+  2. Add to constructors.
+  3. Check how it is serialized. Possibly add "transient" and modify writeObject, readObject.
+  4. Modify equals() and hashCode().
+   */
   private final String zookeeperHost;
   private final int timeout;
   private final String instanceName;
   private final String tableName;
   private final String username;
   private final transient AuthenticationToken authenticationToken; // clone on creation, clone on get. No need to clone in the middle
-  private final int numThreads = DEFAULT_NUM_THREADS;
+  private final int numThreads;
 
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
@@ -106,6 +115,18 @@ public final class TableConfig implements Serializable, Cloneable {
     this.username = username;
     Preconditions.checkNotNull(authenticationToken, "authenticationToken must be specified not null for user %s", username);
     this.authenticationToken = authenticationToken.clone();
+    numThreads = DEFAULT_NUM_THREADS;
+  }
+
+  /** Copy constructor. Not public because there is no need to copy an immutable object. */
+  protected TableConfig(TableConfig that) {
+    zookeeperHost = that.zookeeperHost;
+    instanceName = that.instanceName;
+    timeout = that.timeout;
+    username = that.username;
+    authenticationToken = that.authenticationToken;
+    numThreads = that.numThreads;
+    tableName = that.tableName;
   }
 
   @Override
@@ -125,6 +146,7 @@ public final class TableConfig implements Serializable, Cloneable {
     TableConfig that = (TableConfig) o;
 
     if (timeout != that.timeout) return false;
+    if (numThreads != that.numThreads) return false;
     if (!zookeeperHost.equals(that.zookeeperHost)) return false;
     if (!instanceName.equals(that.instanceName)) return false;
     if (!tableName.equals(that.tableName)) return false;
@@ -141,6 +163,7 @@ public final class TableConfig implements Serializable, Cloneable {
     result = 31 * result + tableName.hashCode();
     result = 31 * result + username.hashCode();
     result = 31 * result + authenticationToken.hashCode();
+    result = 31 * result + numThreads;
     return result;
   }
 

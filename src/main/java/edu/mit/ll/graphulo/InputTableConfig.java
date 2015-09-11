@@ -25,7 +25,7 @@ import java.util.SortedSet;
 /**
  * Immutable class representing a table used for input to an iterator stack via a local iterator or a RemoteSourceIterator.
  */
-public final class InputTableConfig implements Serializable, Cloneable {
+public class InputTableConfig extends TableConfig implements Serializable, Cloneable {
   private static final long serialVersionUID = 1L;
 
   public static final int DEFAULT_ITERS_REMOTE_PRIORITY = 50;
@@ -34,7 +34,6 @@ public final class InputTableConfig implements Serializable, Cloneable {
   private static final SortedSet<Range> ALL_RANGE = ImmutableSortedSet.of(new Range()); // please do not call the readFields() method of the range inside
   private static final String ALL_RANGE_STR = ":,";
 
-  private final TableConfig tableConfig;
   private final Authorizations authorizations; // immutable and Serializable
   private final Map<String,String> itersRemote;     // no null; copy on read, return ImmutableMap. Controls priority.
   private final Map<String,String> itersClientSide; // no need for special measures because DIS.buildSettingMap() and .fromMap() make new objects
@@ -65,9 +64,8 @@ public final class InputTableConfig implements Serializable, Cloneable {
     return this;
   }
 
-  public InputTableConfig(TableConfig tableConfig) {
-    Preconditions.checkNotNull(tableConfig);
-    this.tableConfig = tableConfig;
+  protected InputTableConfig(TableConfig tableConfig) {
+    super(tableConfig);
     authorizations = Authorizations.EMPTY;
     itersClientSide = itersRemote = DEFAULT_ITERS_MAP;
     rowFilter = ALL_RANGE_STR;
@@ -75,18 +73,23 @@ public final class InputTableConfig implements Serializable, Cloneable {
     rowFilterRanges = colFilterRanges = ALL_RANGE;
   }
 
-  @Override
-  protected InputTableConfig clone() {
-    try {
-      return (InputTableConfig)super.clone();
-    } catch (CloneNotSupportedException e) {
-      throw new RuntimeException("somehow cannot clone InputTableConfig "+this, e);
-    }
+  /** Copy constructor. Not public because there is no need to copy an immutable object. */
+  protected InputTableConfig(InputTableConfig that) {
+    super(that);
+    authorizations = that.authorizations;
+    itersClientSide = that.itersClientSide;
+    itersRemote = that.itersRemote;
+    rowFilter = that.rowFilter;
+    colFilter = that.colFilter;
+    rowFilterRanges = that.rowFilterRanges;
+    colFilterRanges = that.colFilterRanges;
   }
 
-  public InputTableConfig withTableConfig(TableConfig tableConfig) {
-    return clone().set("tableConfig", Preconditions.checkNotNull(tableConfig));
+  @Override
+  protected InputTableConfig clone() {
+    return (InputTableConfig)super.clone();
   }
+
   public InputTableConfig withAuthorizations(Authorizations authorizations) {
     return clone().set("authorizations", Preconditions.checkNotNull(authorizations));
   }
@@ -157,9 +160,6 @@ public final class InputTableConfig implements Serializable, Cloneable {
 //    return withItersRemote(dis);
 //  }
 
-  public TableConfig getTableConfig() {
-    return tableConfig;
-  }
   public Authorizations getAuthorizations() {
     return authorizations;
   }
@@ -182,46 +182,53 @@ public final class InputTableConfig implements Serializable, Cloneable {
     return colFilterRanges;
   }
 
+  // micro-optimization
+//  private transient Integer hashCode = 0; // lazy caching
+//  if (hashCode != 0) // ignoring super-rare case when the hashCode calculates to 0
+//      return hashCode;
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
+    if (!super.equals(o)) return false;
 
     InputTableConfig that = (InputTableConfig) o;
 
-    if (!tableConfig.equals(that.tableConfig)) return false;
     if (!authorizations.equals(that.authorizations)) return false;
     if (!itersRemote.equals(that.itersRemote)) return false;
     if (!itersClientSide.equals(that.itersClientSide)) return false;
     if (!rowFilter.equals(that.rowFilter)) return false;
-    return colFilter.equals(that.colFilter);
+    if (!colFilter.equals(that.colFilter)) return false;
+    if (!rowFilterRanges.equals(that.rowFilterRanges)) return false;
+    return colFilterRanges.equals(that.colFilterRanges);
 
   }
 
-  private transient Integer hashCode = 0; // lazy caching
   @Override
   public int hashCode() {
-    if (hashCode != 0) // ignoring super-rare case when the hashCode calculates to 0
-      return hashCode;
-    int result = tableConfig.hashCode();
+    int result = super.hashCode();
     result = 31 * result + authorizations.hashCode();
     result = 31 * result + itersRemote.hashCode();
     result = 31 * result + itersClientSide.hashCode();
     result = 31 * result + rowFilter.hashCode();
     result = 31 * result + colFilter.hashCode();
-    return hashCode = result;
+    result = 31 * result + rowFilterRanges.hashCode();
+    result = 31 * result + colFilterRanges.hashCode();
+    return result;
   }
+
 
   ///////////////////////////////
   // todo - cache or otherwise use DynamicIteratorSetting for itersRemote
 
   public Scanner createScanner(boolean scannerRowFilterUnionAll) {
-    Connector connector = tableConfig.getConnector();
+    Connector connector = getConnector();
     Scanner scanner;
     try {
-      scanner = connector.createScanner(tableConfig.getTableName(), authorizations);
+      scanner = connector.createScanner(getTableName(), authorizations);
     } catch (TableNotFoundException e) {
-      throw new RuntimeException(tableConfig.getTableName() + " does not exist in instance " + tableConfig.getInstanceName(), e);
+      throw new RuntimeException(getTableName() + " does not exist in instance " + getInstanceName(), e);
     }
 //    if (scannerRowFilterUnionAll)
 //      scanner.setRange(GraphuloUtil.unionAll(rowFilterRanges)); // todo
@@ -241,9 +248,9 @@ public final class InputTableConfig implements Serializable, Cloneable {
   public BatchScanner createBatchScanner(boolean scannerRowFilter) {
     BatchScanner scanner;
     try {
-      scanner = tableConfig.getConnector().createBatchScanner(tableConfig.getTableName(), authorizations, tableConfig.getNumThreads());
+      scanner = getConnector().createBatchScanner(getTableName(), authorizations, getNumThreads());
     } catch (TableNotFoundException e) {
-      throw new RuntimeException(tableConfig.getTableName() + " does not exist in instance " + tableConfig.getInstanceName(), e);
+      throw new RuntimeException(getTableName() + " does not exist in instance " + getInstanceName(), e);
     }
     if (scannerRowFilter)
       scanner.setRanges(rowFilterRanges);

@@ -36,7 +36,7 @@ public class D4MTableWriter implements AutoCloseable {
   public static final Text EMPTYCF =new Text("");
 
   /** Holds configuration options to pass to constructor of D4MTableWriter. */
-  public static class D4MTableConfig implements Cloneable {
+  public static class D4MTableConfig {
     public String baseName;
     public Connector connector;
     public boolean
@@ -269,7 +269,7 @@ public class D4MTableWriter implements AutoCloseable {
   }
 
   @Override
-  public void finalize() throws Throwable {
+  protected void finalize() throws Throwable {
     super.finalize();
     if (state == State.Open)
       closeIngest();

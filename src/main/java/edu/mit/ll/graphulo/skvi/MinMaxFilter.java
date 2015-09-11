@@ -88,7 +88,7 @@ public class MinMaxFilter extends Filter {
     boolean bad = false;
     switch (scalarType) {
       case LONG:        if (maxValue.longValue() < minValue.longValue()) bad = true; break;
-      case DOUBLE:      if (maxValue.longValue() < minValue.longValue()) bad = true; break;
+      case DOUBLE:      if (maxValue.doubleValue() < minValue.doubleValue()) bad = true; break;
       case BIGDECIMAL:  if (((BigDecimal)maxValue).compareTo((BigDecimal)minValue) < 0) bad = true; break;
     }
     if (bad)
@@ -207,7 +207,7 @@ public class MinMaxFilter extends Filter {
     boolean bad = false;
     switch (scalarType) {
       case LONG:        if (maxValue.longValue() < minValue.longValue()) bad = true; break;
-      case DOUBLE:      if (maxValue.longValue() < minValue.longValue()) bad = true; break;
+      case DOUBLE:      if (maxValue.doubleValue() < minValue.doubleValue()) bad = true; break;
       case BIGDECIMAL:  if (((BigDecimal)maxValue).compareTo((BigDecimal)minValue) < 0) bad = true; break;
     }
     if (bad)

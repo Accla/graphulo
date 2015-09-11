@@ -2,12 +2,12 @@
  * 
  */
 package edu.mit.ll.d4m.db.cloud;
-import java.net.URL;
-
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
+
+import java.net.URL;
 /**
  * D4M configuration
  * @author CHV8091
@@ -16,8 +16,8 @@ import org.apache.log4j.PropertyConfigurator;
 public class D4mConfig {
 	private static Logger log = Logger.getLogger(D4mConfig.class);
 
-	public static String ACCUMULO="Accumulo";
-	public static boolean DEBUG=false;
+	public static final String ACCUMULO="Accumulo";
+	public static boolean DEBUG;
 
   // DH2015: This is redundant with D4mParent
 

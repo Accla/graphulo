@@ -70,7 +70,7 @@ public class KnownBugSuite extends Suite {
       testFinishedCount++;
       long dur = System.currentTimeMillis() - t;
       if (dur > NOTIFY_DUR) {
-        psOut.printf("Finished %2d tests in the last %4.1f seconds\n", testFinishedCount, dur/1000.0);
+        psOut.printf("Finished %2d tests in the last %4.1f seconds%n", testFinishedCount, dur/1000.0);
         testFinishedCount = 0;
         t = System.currentTimeMillis();
       }
@@ -82,7 +82,7 @@ public class KnownBugSuite extends Suite {
 //      psOut.print('F') ; psOut.println();
       testFinishedCount = 0;
       t = System.currentTimeMillis();
-      psOut.println("Failure " + failure.toString() + '\n' + failure.getTrace());
+      psOut.println("Failure " + failure.toString() + System.lineSeparator() + failure.getTrace());
     }
 
     @Override

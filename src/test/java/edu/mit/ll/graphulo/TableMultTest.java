@@ -24,6 +24,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -130,7 +131,7 @@ public class TableMultTest extends AccumuloTestBase {
       }
     }
     if (hasAllAuths) {
-      log.info("User " + user + " already has authorizations for " + auths + "; no need to modify user permissions");
+      log.info("User " + user + " already has authorizations for " + Arrays.toString(auths) + "; no need to modify user permissions");
       return null;
     }
     else {

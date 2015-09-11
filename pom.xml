@@ -97,7 +97,7 @@
           <effort>Max</effort>
           <failOnError>false</failOnError>
           <!--<threshold>Low</threshold>-->
-          <inclugitdeTests>true</inclugit deTests>
+          <includeTests>true</includeTests>
           <!--<maxRank>16</maxRank>-->
           <findbugsXmlOutputDirectory>${project.build.directory}/findbugs</findbugsXmlOutputDirectory>
         </configuration>
@@ -415,6 +415,7 @@
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-minicluster</artifactId>
         <version>${accumulo.version}</version>
+        <scope>test</scope>
       </dependency>
       <!-- Replaces Accumulo dependency on Apache Commons 3.2, which does not use Java Generics. -->
       <dependency>

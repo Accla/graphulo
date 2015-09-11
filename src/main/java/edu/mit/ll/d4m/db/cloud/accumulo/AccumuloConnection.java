@@ -61,8 +61,8 @@ public class AccumuloConnection {
 	private ZooKeeperInstance instance=null;
 	private Connector connector= null;
 	private Authorizations auth= Authorizations.EMPTY;
-	public static long maxMemory= 1024000L;
-	public static long maxLatency = 30;
+	public static final long maxMemory= 1024000L;
+	public static final long maxLatency = 30;
 
 	private String principal;
 	private AuthenticationToken token;

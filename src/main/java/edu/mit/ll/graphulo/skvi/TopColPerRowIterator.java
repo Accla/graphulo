@@ -45,7 +45,7 @@ public class TopColPerRowIterator implements SortedKeyValueIterator<Key,Value> {
   // for returning in sorted Key order
   private PeekingIterator1<Map.Entry<Key,Value>> retIter;
 
-  private class NumberKeyValue implements Comparable<NumberKeyValue> {
+  private static class NumberKeyValue implements Comparable<NumberKeyValue> {
     Double n;
     Key k;
     Value v;
@@ -63,10 +63,19 @@ public class TopColPerRowIterator implements SortedKeyValueIterator<Key,Value> {
     }
     @Override
     public int compareTo(NumberKeyValue o) {
-      double diff = n - o.n;
-      if (diff > 0) return 1;
-      if (diff < 0) return -1;
-      return 0;
+      return Double.compare(n, o.n);
+    }
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+      NumberKeyValue that = (NumberKeyValue) o;
+      return n.equals(that.n);
+    }
+
+    @Override
+    public int hashCode() {
+      return n.hashCode();
     }
 
     public NumberKeyValue setToCopy(double d, Key k, Value v) {

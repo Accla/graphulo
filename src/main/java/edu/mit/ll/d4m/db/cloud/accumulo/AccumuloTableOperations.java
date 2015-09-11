@@ -365,9 +365,9 @@ public class AccumuloTableOperations {
 		IteratorSetting itSet = getIteratorSetting(tableName, ct.getIteratorName(), IteratorUtil.IteratorScope.scan); // any scope is ok
 		if (itSet == null) {
 			// iterator does not exist yet - create it and set it equal to the given columns
-			itSet = new IteratorSetting(ct.getCombinerPriority(), ct.getIteratorName(), ct.cl);
+			itSet = new IteratorSetting(ct.getCombinerPriority(), ct.getIteratorName(), ct.getCl());
 
-			if (LongCombiner.class.isAssignableFrom(ct.cl)) // if using one of the Long Combiner classes, use the String en-/de-coder
+			if (LongCombiner.class.isAssignableFrom(ct.getCl())) // if using one of the Long Combiner classes, use the String en-/de-coder
 				LongCombiner.setEncodingType(itSet, LongCombiner.Type.STRING);
 			//LongCombiner.setEncodingType(itSet, BigDecimalEncoder.class);
 			TypedValueCombiner.setLossyness(itSet, true); // silently ignore bad values

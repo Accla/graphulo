@@ -1,10 +1,14 @@
 package edu.mit.ll.d4m.db.cloud.accumulo;
 
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
+import edu.mit.ll.cloud.connection.ConnectionProperties;
+import edu.mit.ll.d4m.db.cloud.D4mConfig;
+import edu.mit.ll.d4m.db.cloud.D4mDbResultSet;
+import edu.mit.ll.d4m.db.cloud.D4mDbRow;
+import edu.mit.ll.d4m.db.cloud.D4mException;
+import edu.mit.ll.d4m.db.cloud.D4mParentQuery;
+import edu.mit.ll.d4m.db.cloud.util.CompareUtil;
+import edu.mit.ll.d4m.db.cloud.util.D4mDataObj;
+import edu.mit.ll.d4m.db.cloud.util.RegExpUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -19,15 +23,16 @@ import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
-import edu.mit.ll.cloud.connection.ConnectionProperties;
-import edu.mit.ll.d4m.db.cloud.D4mConfig;
-import edu.mit.ll.d4m.db.cloud.D4mDbResultSet;
-import edu.mit.ll.d4m.db.cloud.D4mDbRow;
-import edu.mit.ll.d4m.db.cloud.D4mException;
-import edu.mit.ll.d4m.db.cloud.D4mParentQuery;
-import edu.mit.ll.d4m.db.cloud.util.CompareUtil;
-import edu.mit.ll.d4m.db.cloud.util.D4mDataObj;
-import edu.mit.ll.d4m.db.cloud.util.RegExpUtil;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
@@ -222,7 +227,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 
 	}
 
-    private class ParsedInfo {
+    private static class ParsedInfo {
         private String delimiter;
         private String[] content;
 
@@ -1001,48 +1006,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 
 
 	}
-	private void SearchIt(HashSet<Range> ranges, String col) {
-		//BatchScanner scanner = null;
-		//		Entry<Key, Value> entry =null;
-		try {
-			if( this.bscanner == null || !this.hasNext) {
-				bscanner = getBatchScanner();
-				bscanner.setRanges(ranges);
 
-				//loop over columns
-				//reset column by scanner.clearColumns()s
-				//set new columns fetchColumn(fam,col)
-				//iterate
-				//fill output buffer
-				String regexName="D4mRegEx";
-				//Accum-1.4 Use IteratorSetting
-				//           scanner.addScanIterator
-				IteratorSetting itSet  = new IteratorSetting(1, regexName, RegExFilter.class);
-				//IteratorSetting.addOption(option, value)
-				itSet.addOption(RegExFilter.COLQ_REGEX, col);
-				bscanner.addScanIterator(itSet);
-				/*  Accum-1.3.5-incubating
-				scanner.setScanIterators(1, RegExIterator.class.getName(), regexName);
-				scanner.setScanIteratorOption(regexName, RegExFilter.COLQ_REGEX, colRegex);
-                 */
-				//scanner.setColumnQualifierRegex(colRegex);
-				bscanner.fetchColumnFamily(new Text(this.family));
-			}
-			if(scannerIter == null)
-				scannerIter = bscanner.iterator();
-			//int count=0;
-
-			iterateOverEntries(this.scannerIter);
-
-		} catch (AccumuloException | RuntimeException | TableNotFoundException | AccumuloSecurityException e) {
-			e.printStackTrace();
-		} finally {
-			setNewRowKeyInMap(null, this.rowInfo);
-			if(!this.hasNext)
-				close();
-		}
-
-	}
 	private void SearchIt(HashSet<Range> ranges, Pattern col) {
 		//BatchScanner scanner = null;
 		Entry<Key, Value> entry =null;
@@ -1110,7 +1074,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		String tableName = args[1];
 		String rows = args[2];
 		String cols = args[3];
-		int limit = Integer.valueOf(args[4]);
+		int limit = Integer.parseInt(args[4]);
 		D4mDbQueryAccumulo tool = new D4mDbQueryAccumulo("org.apache.accumulo", hostName, tableName, "root", "ALL4114ALL");
 		tool.setLimit(limit);
 		tool.doTest = false;

@@ -14,7 +14,7 @@ import org.apache.log4j.Logger;
 public class RegExpUtil {
 	private static Logger log = Logger.getLogger(RegExpUtil.class);
 	static int i127=127;
-	static String ASCII_127 = new Character((char)i127).toString();
+	static String ASCII_127 = Character.toString((char)127);
 
 	/*
 	 *  str -  String array - eg   a,:,b

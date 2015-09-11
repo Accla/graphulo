@@ -99,7 +99,7 @@ public class TripleFileWriter {
           if (trackTime && count % 100000 == 0) {
             long stopTime = System.currentTimeMillis();
             if (startTime - stopTime > 1000*60) {
-              System.out.printf("Ingest: %9d cnt, %6d secs, %8d entries/sec\n", count, (stopTime - origStartTime)/1000,
+              System.out.printf("Ingest: %9d cnt, %6d secs, %8d entries/sec%n", count, (stopTime - origStartTime)/1000,
                   Math.round(count / ((stopTime - origStartTime)/1000.0)));
               startTime = stopTime;
             }
@@ -185,7 +185,7 @@ public class TripleFileWriter {
           if (trackTime && count % 100000 == 0) {
             long stopTime = System.currentTimeMillis();
             if (startTime - stopTime > 1000*60) {
-              System.out.printf("Ingest: %9d cnt, %6d secs, %8d entries/sec\n", count, (stopTime - origStartTime)/1000,
+              System.out.printf("Ingest: %9d cnt, %6d secs, %8d entries/sec%n", count, (stopTime - origStartTime)/1000,
                   Math.round(count / ((stopTime - origStartTime)/1000.0)));
               startTime = stopTime;
             }
@@ -251,7 +251,7 @@ public class TripleFileWriter {
         if (trackTime && count % 100000 == 0) {
           long stopTime = System.currentTimeMillis();
           if (startTime - stopTime > 1000 * 60) {
-            System.out.printf("Ingest: %9d cnt, %6d secs, %8d entries/sec\n", count, (stopTime - origStartTime) / 1000,
+            System.out.printf("Ingest: %9d cnt, %6d secs, %8d entries/sec%n", count, (stopTime - origStartTime) / 1000,
                 Math.round(count / ((stopTime - origStartTime) / 1000.0)));
             startTime = stopTime;
           }
@@ -349,7 +349,7 @@ public class TripleFileWriter {
           if (trackTime && count % 100000 == 0) {
             long stopTime = System.currentTimeMillis();
             if (startTime - stopTime > 1000*60) {
-              System.out.printf("Ingest: %9d cnt, %6d secs, %8d entries/sec\n", count, (stopTime - origStartTime)/1000,
+              System.out.printf("Ingest: %9d cnt, %6d secs, %8d entries/sec%n", count, (stopTime - origStartTime)/1000,
                   Math.round(count / ((stopTime - origStartTime)/1000.0)));
               startTime = stopTime;
             }

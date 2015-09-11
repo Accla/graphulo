@@ -7,7 +7,7 @@ public class ConnectionProperties {
 	private String pass;
 	private String instanceName;
 	private String [] authorizations=null;
-	public static int MAX_NUM_THREADS=25;
+	public static final int MAX_NUM_THREADS=25;
     private int maxNumThreads=MAX_NUM_THREADS;  //50
     private int sessionTimeOut=100000; //millisec
 

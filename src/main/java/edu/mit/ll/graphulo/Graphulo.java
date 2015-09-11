@@ -78,6 +78,7 @@ import org.apache.htrace.TraceScope;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -112,7 +113,7 @@ public class Graphulo {
   protected Connector connector;
   protected AuthenticationToken authenticationToken;
 
-  public Graphulo(Connector connector, AuthenticationToken password) {
+  public Graphulo(@Nonnull Connector connector, @Nonnull AuthenticationToken password) {
     this.connector = connector;
     this.authenticationToken = password;
     checkCredentials();
@@ -974,7 +975,7 @@ public class Graphulo {
     BatchScanner bs, bsDegree = null;
     try {
       bs = connector.createBatchScanner(Atable, Aauthorizations, 50); // TODO P2: set number of batch scan threads
-      if (needDegreeFiltering & ADegtable != null)
+      if (needDegreeFiltering && ADegtable != null)
         bsDegree = connector.createBatchScanner(ADegtable, ADegauthorizations, 4); // TODO P2: set number of batch scan threads
     } catch (TableNotFoundException e) {
       log.error("crazy", e);
@@ -1444,7 +1445,7 @@ public class Graphulo {
    * @param vktexts Set of nodes like "v1,v3,v0,"
    * @return "out|v1,out|v3,out|v0," or "out|,:,out}," if vktexts is null or empty
    */
-  static String prependStartPrefix_Single(String prefix, char sep, Collection<Text> vktexts) {
+  private static String prependStartPrefix_Single(String prefix, char sep, Collection<Text> vktexts) {
     if (prefix == null)
       prefix = "";
     if (vktexts == null || vktexts.isEmpty()) {
@@ -1838,7 +1839,7 @@ public class Graphulo {
     long cnt = 0l;
     try {
       for (Map.Entry<Key, Value> entry : bs) {
-        cnt += new Long(new String(entry.getValue().get()));
+        cnt += Long.parseLong(new String(entry.getValue().get()));
       }
     } finally {
       bs.close();
@@ -2256,7 +2257,7 @@ public class Graphulo {
     long cnt = 0l;
     try {
       for (Map.Entry<Key, Value> entry : bs) {
-        cnt += new Long(new String(entry.getValue().get()));
+        cnt += Long.parseLong(new String(entry.getValue().get()));
       }
     } finally {
       bs.close();
@@ -2714,9 +2715,9 @@ public class Graphulo {
       for (int i = 0; i < header.length; i++) {
         header[i] = String.format("%4d", i);
       }
-      System.out.printf("( K, M) %s\n", Arrays.toString(header));
+      System.out.printf("( K, M) %s%n", Arrays.toString(header));
       for (int i = 0; i < K * M; i++) {
-        System.out.printf("(%2d,%2d) %s\n", i / M, i % M, Arrays.toString(HARR[i]));
+        System.out.printf("(%2d,%2d) %s%n", i / M, i % M, Arrays.toString(HARR[i]));
       }
       String[] footer = new String[maxiter+1];
       footer[0] = String.format("%4s", "");
@@ -2736,7 +2737,7 @@ public class Graphulo {
         }
         footer[j] = String.format("%4s", changeAllTopics ? "c" : "NO");
       }
-      System.out.printf("CHANGE? %s\n", Arrays.toString(footer));
+      System.out.printf("CHANGE? %s%n", Arrays.toString(footer));
     }
 
     // Write out results!
@@ -2831,10 +2832,18 @@ public class Graphulo {
         }
         @Override
         public int compareTo(Entry o) {
-          double diff = k - o.k;
-          if (diff > 0) return 1;
-          if (diff < 0) return -1;
-          return 0;
+          return Double.compare(k, o.k);
+        }
+        @Override
+        public boolean equals(Object o) {
+          if (this == o) return true;
+          if (o == null || getClass() != o.getClass()) return false;
+          Entry entry = (Entry) o;
+          return k.equals(entry.k);
+        }
+        @Override
+        public int hashCode() {
+          return k.hashCode();
         }
       }
 

@@ -154,7 +154,7 @@ public class LruCacheIterator implements SortedKeyValueIterator<Key,Value> {
         if (cache.isEmpty()) {
           log.info(String.format("Performance: cap=%5d hitFullCache=%b in=%6d out=%6d diff=%6d -> %2d%% less",
               cache.maxSize(), hitFullCache, ppIn, ppOut, ppIn - ppOut, (int)(100*((float)(ppIn-ppOut))/ppIn)));
-          System.out.printf(": cap=%5d hitFullCache=%b in=%6d out=%6d diff=%6d -> %2d%% less\n",
+          System.out.printf(": cap=%5d hitFullCache=%b in=%6d out=%6d diff=%6d -> %2d%% less%n",
               cache.maxSize(), hitFullCache, ppIn, ppOut, ppIn - ppOut, (int)(100*((float)(ppIn-ppOut))/ppIn));
           return;
         }
@@ -195,6 +195,8 @@ public class LruCacheIterator implements SortedKeyValueIterator<Key,Value> {
 
 
   static class LruMapKV extends LRUMap<Key,Value> {
+    private static final long serialVersionUID = 1;
+
     public LruMapKV(int capacity) {
       super(capacity);
     }

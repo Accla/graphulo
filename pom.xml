@@ -87,6 +87,74 @@
         <!--</executions>-->
       <!--</plugin>-->
 
+      <!-- FindBugs at verify lifecycle phase. Generate XML and HTML report. -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>findbugs-maven-plugin</artifactId>
+        <version>3.0.2</version>
+        <configuration>
+          <xmlOutput>true</xmlOutput>
+          <effort>Max</effort>
+          <failOnError>false</failOnError>
+          <!--<threshold>Low</threshold>-->
+          <inclugitdeTests>true</inclugit deTests>
+          <!--<maxRank>16</maxRank>-->
+          <findbugsXmlOutputDirectory>${project.build.directory}/findbugs</findbugsXmlOutputDirectory>
+        </configuration>
+        <executions>
+          <execution>
+            <id>run-findbugs</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>xml-maven-plugin</artifactId>
+        <version>1.0</version>
+        <configuration>
+          <transformationSets>
+            <transformationSet>
+              <!-- Configures the source directory of XML files. -->
+              <dir>${project.build.directory}/findbugs</dir>
+              <!-- Configures the directory in which the FindBugs report is written.-->
+              <outputDir>${project.build.directory}/findbugs</outputDir>
+              <!-- Selects the used stylesheet. -->
+              <!-- <stylesheet>fancy-hist.xsl</stylesheet> -->
+              <stylesheet>default.xsl</stylesheet>
+              <!--<stylesheet>plain.xsl</stylesheet>-->
+              <!--<stylesheet>fancy.xsl</stylesheet>-->
+              <!--<stylesheet>summary.xsl</stylesheet>-->
+              <fileMappers>
+                <!-- Configures the file extension of the output files. -->
+                <fileMapper implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
+                  <targetExtension>.html</targetExtension>
+                </fileMapper>
+              </fileMappers>
+            </transformationSet>
+          </transformationSets>
+        </configuration>
+        <executions>
+          <!-- Ensures that the XSLT transformation is run when the project is compiled. -->
+          <execution>
+            <phase>verify</phase>
+            <goals>
+              <goal>transform</goal>
+            </goals>
+          </execution>
+        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>findbugs</artifactId>
+            <version>3.0.1</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -354,6 +422,7 @@
         <artifactId>commons-collections4</artifactId>
         <version>4.0</version>
       </dependency>
+
       <!-- Used by some JSON functions in D4M Matlab. -->
       <dependency>
         <groupId>org.json</groupId>

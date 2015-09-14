@@ -1,5 +1,6 @@
 package edu.mit.ll.graphulo;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import edu.mit.ll.graphulo.apply.ApplyOp;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
@@ -23,16 +24,19 @@ public class OutputTableConfig extends TableConfig {
   public static final int DEFAULT_COMBINER_PRIORITY = 6;
   private static final Map<String,String> DEFAULT_ITERS_MAP =
       ImmutableMap.copyOf(new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, null).buildSettingMap());
+  public static final int DEFAULT_NUM_THREADS = 50;
 
   @Nullable private final Class<? extends ApplyOp> applyLocal;  // allow null
   @Nonnull private final Map<String,String> applyLocalOptions;
   @Nonnull private final Map<String,String> tableItersRemote;
+  private final int numThreads;
 
   protected OutputTableConfig(TableConfig tableConfig) {
     super(tableConfig);
     applyLocal = null;
     applyLocalOptions = Collections.emptyMap();
     tableItersRemote = DEFAULT_ITERS_MAP;
+    numThreads = DEFAULT_NUM_THREADS;
   }
 
   /** Copy constructor. Not public because there is no need to copy an immutable object. */
@@ -41,6 +45,7 @@ public class OutputTableConfig extends TableConfig {
     applyLocal = that.applyLocal;
     applyLocalOptions = that.applyLocalOptions;
     tableItersRemote = that.tableItersRemote;
+    numThreads = that.numThreads;
   }
 
   /**
@@ -75,6 +80,10 @@ public class OutputTableConfig extends TableConfig {
   public OutputTableConfig withTableItersRemote(IteratorSetting tableItersRemote) {
     return withTableItersRemote(DynamicIteratorSetting.of(tableItersRemote));
   }
+  public TableConfig withNumThreads(int numThreads) {
+    Preconditions.checkArgument(numThreads > 0, "Need a positive number of threads; given %s", numThreads);
+    return clone().set("numThreads", numThreads);
+  }
 
   // will enable these shortcut methods if determined to be a safe, common use case
 //  public InputTableConfig withRowFilter(String rowFilter) {
@@ -97,6 +106,7 @@ public class OutputTableConfig extends TableConfig {
   public Map<String, String> getApplyLocalOptions() {
     return applyLocalOptions;
   }
+  public int getNumThreads() { return numThreads; }
 
   @Override
   public boolean equals(Object o) {
@@ -108,6 +118,7 @@ public class OutputTableConfig extends TableConfig {
 
     if (applyLocal != null ? !applyLocal.equals(that.applyLocal) : that.applyLocal != null) return false;
     if (!applyLocalOptions.equals(that.applyLocalOptions)) return false;
+    if (numThreads != that.numThreads) return false;
     return tableItersRemote.equals(that.tableItersRemote);
 
   }
@@ -118,6 +129,7 @@ public class OutputTableConfig extends TableConfig {
     result = 31 * result + (applyLocal != null ? applyLocal.hashCode() : 0);
     result = 31 * result + applyLocalOptions.hashCode();
     result = 31 * result + tableItersRemote.hashCode();
+    result = 31 * result + numThreads;
     return result;
   }
 

@@ -31,8 +31,6 @@ import static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty
 public class TableConfig implements Serializable, Cloneable {
   private static final long serialVersionUID = 1L;
 
-  public static final int DEFAULT_NUM_THREADS = 50;
-
   /*
   Perform the following steps when adding a new field:
   1. Add get and with methods.
@@ -46,7 +44,6 @@ public class TableConfig implements Serializable, Cloneable {
   @Nonnull private final String tableName;
   @Nonnull private final String username;
   @Nonnull private final transient AuthenticationToken authenticationToken; // clone on creation, clone on get. No need to clone in the middle
-  private final int numThreads;
 
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
@@ -86,7 +83,6 @@ public class TableConfig implements Serializable, Cloneable {
     return this;
   }
 
-
   /**
    *
    * @param cc Use {@link ClientConfiguration#loadDefault()} to read standard client.conf and related files.
@@ -119,7 +115,6 @@ public class TableConfig implements Serializable, Cloneable {
     this.username = username;
     Preconditions.checkNotNull(authenticationToken, "authenticationToken must be specified not null for user %s", username);
     this.authenticationToken = authenticationToken.clone();
-    numThreads = DEFAULT_NUM_THREADS;
   }
 
   /** Copy constructor. Not public because there is no need to copy an immutable object. */
@@ -129,7 +124,6 @@ public class TableConfig implements Serializable, Cloneable {
     timeout = that.timeout;
     username = that.username;
     authenticationToken = that.authenticationToken;
-    numThreads = that.numThreads;
     tableName = that.tableName;
   }
 
@@ -150,13 +144,11 @@ public class TableConfig implements Serializable, Cloneable {
     TableConfig that = (TableConfig) o;
 
     if (timeout != that.timeout) return false;
-    if (numThreads != that.numThreads) return false;
     if (!zookeeperHost.equals(that.zookeeperHost)) return false;
     if (!instanceName.equals(that.instanceName)) return false;
     if (!tableName.equals(that.tableName)) return false;
     if (!username.equals(that.username)) return false;
     return authenticationToken.equals(that.authenticationToken);
-
   }
 
   @Override
@@ -167,7 +159,6 @@ public class TableConfig implements Serializable, Cloneable {
     result = 31 * result + tableName.hashCode();
     result = 31 * result + username.hashCode();
     result = 31 * result + authenticationToken.hashCode();
-    result = 31 * result + numThreads;
     return result;
   }
 
@@ -189,10 +180,6 @@ public class TableConfig implements Serializable, Cloneable {
   }
   public TableConfig withAuthenticationToken(AuthenticationToken authenticationToken) {
     return clone().set("authenticationToken", Preconditions.checkNotNull(authenticationToken).clone());
-  }
-  public TableConfig withNumThreads(int numThreads) {
-    Preconditions.checkArgument(numThreads > 0, "Need a positive number of threads; given %s", numThreads);
-    return clone().set("numThreads", numThreads);
   }
 
   public InputTableConfig asInput() {
@@ -220,7 +207,7 @@ public class TableConfig implements Serializable, Cloneable {
   public AuthenticationToken getAuthenticationToken() {
     return authenticationToken.clone(); // don't leak the token
   }
-  public int getNumThreads() { return numThreads; }
+
 
   // Calculated lazily, not serialized, derived from other properties.
   // Cloned versions only keep reference after this is set.

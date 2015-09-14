@@ -35,6 +35,7 @@ public class InputTableConfig extends TableConfig {
       ImmutableMap.copyOf(new DynamicIteratorSetting(DEFAULT_ITERS_REMOTE_PRIORITY, null).buildSettingMap());
   private static final SortedSet<Range> ALL_RANGE = ImmutableSortedSet.of(new Range()); // please do not call the readFields() method of the range inside
   private static final String ALL_RANGE_STR = ":,";
+  public static final int DEFAULT_NUM_THREADS = 50;
 
   @Nonnull private final Authorizations authorizations; // immutable and Serializable
   @Nonnull private final Map<String,String> itersRemote;     // no null; copy on read, return ImmutableMap. Controls priority.
@@ -42,6 +43,7 @@ public class InputTableConfig extends TableConfig {
                                                 // combine the two when used as a local iterator as opposed to a RemoteSourceIterator
   @Nonnull private final String rowFilter, colFilter;    // no null, always store in sorted merged form, always keep aligned with the SortedSet<Range> versions
   @Nonnull private final transient SortedSet<Range> rowFilterRanges, colFilterRanges; // ^^
+  private final int numThreads;
 
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
@@ -73,6 +75,7 @@ public class InputTableConfig extends TableConfig {
     rowFilter = ALL_RANGE_STR;
     colFilter = ALL_RANGE_STR;
     rowFilterRanges = colFilterRanges = ALL_RANGE;
+    numThreads = DEFAULT_NUM_THREADS;
   }
 
   /** Copy constructor. Not public because there is no need to copy an immutable object. */
@@ -85,6 +88,7 @@ public class InputTableConfig extends TableConfig {
     colFilter = that.colFilter;
     rowFilterRanges = that.rowFilterRanges;
     colFilterRanges = that.colFilterRanges;
+    numThreads = that.numThreads;
   }
 
   @Override
@@ -149,6 +153,10 @@ public class InputTableConfig extends TableConfig {
         .set("colFilter", GraphuloUtil.rangesToD4MString(rset))
         .set("colFilterRanges", rset);
   }
+  public TableConfig withNumThreads(int numThreads) {
+    Preconditions.checkArgument(numThreads > 0, "Need a positive number of threads; given %s", numThreads);
+    return clone().set("numThreads", numThreads);
+  }
 
   // less efficient way to do rowFilter and colFilter
 //  public InputTableConfig withRowFilter(String rowFilter) {
@@ -183,6 +191,7 @@ public class InputTableConfig extends TableConfig {
   public SortedSet<Range> getColFilterRanges() {
     return colFilterRanges;
   }
+  public int getNumThreads() { return numThreads; }
 
   // micro-optimization
 //  private transient Integer hashCode = 0; // lazy caching
@@ -199,6 +208,7 @@ public class InputTableConfig extends TableConfig {
 
     if (!authorizations.equals(that.authorizations)) return false;
     if (!itersRemote.equals(that.itersRemote)) return false;
+    if (numThreads != that.numThreads) return false;
     if (!itersClientSide.equals(that.itersClientSide)) return false;
     if (!rowFilter.equals(that.rowFilter)) return false;
     if (!colFilter.equals(that.colFilter)) return false;
@@ -217,6 +227,7 @@ public class InputTableConfig extends TableConfig {
     result = 31 * result + colFilter.hashCode();
     result = 31 * result + rowFilterRanges.hashCode();
     result = 31 * result + colFilterRanges.hashCode();
+    result = 31 * result + numThreads;
     return result;
   }
 

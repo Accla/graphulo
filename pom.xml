@@ -21,6 +21,16 @@
     <developerConnection>scm:git:git@github.com:Accla/graphulo.git</developerConnection>
     <tag>HEAD</tag>
   </scm>
+  <developers>
+    <developer>
+      <id>dhutchis</id>
+      <name>Dylan Hutchison</name>
+      <email>dhutchis@uw.edu</email>
+      <url>http://db.cs.washington.edu/people.html</url>
+      <organization>University of Washington</organization>
+      <organizationUrl>https://www.cs.washington.edu/</organizationUrl>
+    </developer>
+  </developers>
 
   <properties>
     <DBinit.path.libextFolder>libext/</DBinit.path.libextFolder>

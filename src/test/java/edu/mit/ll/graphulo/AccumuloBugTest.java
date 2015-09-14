@@ -18,6 +18,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -42,7 +43,7 @@ public class AccumuloBugTest extends AccumuloTestBase {
   /**
    * This will deadlock an Accumulo tablet server if numtablets >= 16 and there is only one tablet server.
    */
-  //@Ignore("KnownBug ACCUMULO-XXXX")
+  @Ignore("NORUN KnownBug ACCUMULO-XXXX")
   @Test
   public void testDeadlockWithManyScans() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
     // 16 is the default max number of threads allowed in the read-ahead pool. >16 tablets means a deadlock is possible.

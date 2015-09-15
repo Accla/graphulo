@@ -1011,4 +1011,29 @@ public class UtilTest {
     Assert.assertEquals(tcClone, tcCopy);
     Assert.assertEquals(tcClone.hashCode(), tcCopy.hashCode());
   }
+
+  private volatile TableConfig GlobalTableConfig;
+
+  @Test
+  public void testTableConfigMultithreadVisibility() throws InterruptedException {
+    GlobalTableConfig = new TableConfig(
+        ClientConfiguration.loadDefault().withInstance("some_instance"),
+        "tablename", "user", new PasswordToken("bla"));
+
+    Thread thread = new Thread() {
+      @Override
+      public void run() {
+        GlobalTableConfig = GlobalTableConfig.withTableName("NewName");
+        Assert.assertEquals("NewName", GlobalTableConfig.getTableName());
+      }
+    };
+    long ts = System.currentTimeMillis();
+    thread.run();
+    while (!GlobalTableConfig.getTableName().equals("NewName")) {
+      if (System.currentTimeMillis() - ts > 10000)
+        Assert.fail("main thread did not see update to GlobalTableConfig");
+    }
+    thread.join();
+  }
+
 }

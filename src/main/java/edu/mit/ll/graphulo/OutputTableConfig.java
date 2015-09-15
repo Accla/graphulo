@@ -6,6 +6,7 @@ import edu.mit.ll.graphulo.apply.ApplyOp;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -96,6 +97,27 @@ public class OutputTableConfig extends TableConfig {
 //    dis.prepend(D4mRangeFilter.iteratorSetting(1, D4mRangeFilter.KeyPart.COLQ, colFilter));
 //    return withItersRemote(dis);
 //  }
+
+  // --------------- Boilerplate covariant return ------------------------
+  @Override public OutputTableConfig withInstanceName(String instanceName) {
+    return (OutputTableConfig)super.withInstanceName(instanceName);
+  }
+  @Override public OutputTableConfig withZookeeperTimeout(int timeout) {
+    return (OutputTableConfig)super.withZookeeperTimeout(timeout);
+  }
+  @Override public OutputTableConfig withZookeeperHost(String zookeeperHost) {
+    return (OutputTableConfig)super.withZookeeperHost(zookeeperHost);
+  }
+  @Override public OutputTableConfig withTableName(String tableName) {
+    return (OutputTableConfig)super.withTableName(tableName);
+  }
+  @Override public OutputTableConfig withUsername(String username) {
+    return (OutputTableConfig)super.withUsername(username);
+  }
+  @Override public OutputTableConfig withAuthenticationToken(AuthenticationToken authenticationToken) {
+    return (OutputTableConfig)super.withAuthenticationToken(authenticationToken);
+  }
+  // ---------------------------------------------------------------------
 
   public DynamicIteratorSetting getTableItersRemote() {
     return DynamicIteratorSetting.fromMap(tableItersRemote);

@@ -10,6 +10,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -169,6 +170,28 @@ public class InputTableConfig extends TableConfig {
 //    dis.prepend(D4mRangeFilter.iteratorSetting(1, D4mRangeFilter.KeyPart.COLQ, colFilter));
 //    return withItersRemote(dis);
 //  }
+
+  // --------------- Boilerplate covariant return ------------------------
+  @Override public InputTableConfig withInstanceName(String instanceName) {
+    return (InputTableConfig)super.withInstanceName(instanceName);
+  }
+  @Override public InputTableConfig withZookeeperTimeout(int timeout) {
+    return (InputTableConfig)super.withZookeeperTimeout(timeout);
+  }
+  @Override public InputTableConfig withZookeeperHost(String zookeeperHost) {
+    return (InputTableConfig)super.withZookeeperHost(zookeeperHost);
+  }
+  @Override public InputTableConfig withTableName(String tableName) {
+    return (InputTableConfig)super.withTableName(tableName);
+  }
+  @Override public InputTableConfig withUsername(String username) {
+    return (InputTableConfig)super.withUsername(username);
+  }
+  @Override public InputTableConfig withAuthenticationToken(AuthenticationToken authenticationToken) {
+    return (InputTableConfig)super.withAuthenticationToken(authenticationToken);
+  }
+  // ---------------------------------------------------------------------
+
 
   public Authorizations getAuthorizations() {
     return authorizations;

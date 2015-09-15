@@ -26,6 +26,10 @@ import java.util.SortedSet;
 
 /**
  * Immutable class representing a table used for input to an iterator stack via a local iterator or a RemoteSourceIterator.
+ * <p>
+ *   SUBCLASSES STRONGLY ADVISED TO MAINTAIN IMMUTABILITY.
+ *   Class is not marked final so that subclasses that have an "is-a" relationship with this one
+ *   can be used in place of the parent.
  */
 @Immutable
 public class InputTableConfig extends TableConfig {

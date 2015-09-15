@@ -25,7 +25,9 @@ import static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty
  * Used at the tablet server by RemoteSourceIterator and RemoteWriteIterator.
  * Convert to an {@link InputTableConfig} or {@link OutputTableConfig}.
  * <p>
- * Child classes should preserve immutability.
+ *   SUBCLASSES STRONGLY ADVISED TO MAINTAIN IMMUTABILITY.
+ *   Class is not marked final so that subclasses that have an "is-a" relationship with this one
+ *   can be used in place of the parent.
  */
 @Immutable
 public class TableConfig implements Serializable, Cloneable {
@@ -54,7 +56,7 @@ public class TableConfig implements Serializable, Cloneable {
   @SuppressWarnings("unchecked")
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
-    Class<? extends AuthenticationToken> authenticationTokenClass = (Class<? extends AuthenticationToken>)in.readObject();
+    Class<? extends AuthenticationToken> authenticationTokenClass = (Class<? extends AuthenticationToken>) in.readObject();
     // small hack that enables setting a final variable
     try {
       set("authenticationToken", authenticationTokenClass.newInstance()); // set to specific instance saved in class

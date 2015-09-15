@@ -17,6 +17,10 @@ import java.util.Map;
 
 /**
  * Immutable class representing a table used as output from an iterator stack via RemoteWriteIterator.
+ * <p>
+ *   SUBCLASSES STRONGLY ADVISED TO MAINTAIN IMMUTABILITY.
+ *   Class is not marked final so that subclasses that have an "is-a" relationship with this one
+ *   can be used in place of the parent.
  */
 @Immutable
 public class OutputTableConfig extends TableConfig {

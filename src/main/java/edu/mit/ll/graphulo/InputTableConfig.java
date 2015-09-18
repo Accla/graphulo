@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableSortedSet;
 import edu.mit.ll.graphulo.skvi.CountAllIterator;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -262,6 +263,10 @@ public class InputTableConfig extends TableConfig {
   ///////////////////////////////
   // todo - cache or otherwise use DynamicIteratorSetting for itersRemote
 
+  public Scanner createScanner() {
+    return createScanner(false);
+  }
+
   public Scanner createScanner(boolean scannerRowFilterUnionAll) {
     Connector connector = getConnector();
     Scanner scanner;
@@ -270,8 +275,8 @@ public class InputTableConfig extends TableConfig {
     } catch (TableNotFoundException e) {
       throw new RuntimeException(getTableName() + " does not exist in instance " + getInstanceName(), e);
     }
-//    if (scannerRowFilterUnionAll)
-//      scanner.setRange(GraphuloUtil.unionAll(rowFilterRanges)); // todo
+    if (scannerRowFilterUnionAll)
+      scanner.setRange(GraphuloUtil.unionAll(rowFilterRanges)); // todo
 
     DynamicIteratorSetting disRemote = getItersRemote();
     GraphuloUtil.applyGeneralColumnFilter(colFilter, scanner, disRemote, false); // prepend
@@ -280,6 +285,8 @@ public class InputTableConfig extends TableConfig {
     }
 
     // todo - local iterators, check the other options
+    scanner = new ClientSideIteratorScanner(scanner);
+    scanner.addScanIterator(getItersClientSide().toIteratorSetting()); // write individual iterators instead of dynamic?
 
     return scanner;
     // todo play with how this is used in RSI and OneTable and TwoTable etc.

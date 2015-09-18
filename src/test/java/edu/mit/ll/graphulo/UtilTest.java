@@ -1036,4 +1036,15 @@ public class UtilTest {
     thread.join();
   }
 
+  @Test
+  public void testRangeUnion() {
+    SortedSet<Range> ranges = new TreeSet<>();
+    ranges.add(new Range("a"));
+    ranges.add(new Range("g"));
+    ranges.add(new Range("x5", "y4"));
+    ranges.add(new Range("k"));
+    Range union = GraphuloUtil.unionAll(ranges);
+    Assert.assertEquals(new Range("a", "y4"), union);
+  }
+
 }

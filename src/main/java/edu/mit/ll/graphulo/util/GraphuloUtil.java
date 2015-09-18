@@ -955,4 +955,12 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
     return dis.toIteratorSetting();
   }
 
+  public static Range unionAll(SortedSet<Range> ranges) {
+    Preconditions.checkArgument(!Preconditions.checkNotNull(ranges).isEmpty(), "cannot union 0 ranges");
+    Range first = ranges.first();
+    if (ranges.size() == 1)
+      return first;
+    Range last = ranges.last();
+    return new Range(first.getStartKey(), first.isStartKeyInclusive(), last.getEndKey(), last.isEndKeyInclusive());
+  }
 }

@@ -89,7 +89,8 @@ so that the Accumulo instance has everything it could possibly need to instantia
 3. `graphulo-${version}-libext.zip`  ZIP of the JARs of all dependencies.
 Unzip this in a D4M installation directory to make Graphulo available in D4M.  
 
-The maven script will build everything on Unix-like systems (including Mac).
+The maven script will build everything on Unix-like systems (including Mac),
+as long as the *zip* utility is installed.
 On Windows systems, `DBinit.m` may not be built (used in D4M installation). 
 See the message in the build after running `mvn package`.
 

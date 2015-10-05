@@ -347,7 +347,7 @@
             <configuration>
               <tasks>
                 <chmod file="${basedir}/src/assembly/build_DBinit/build_DBinit.bash" perm="u+x" />
-                <echo>If you are on linux, DBinit will build automatically.</echo>
+                <echo>If you are on linux and have 'zip' installed, DBinit will build automatically.</echo>
                 <echo>If not building on linux, you may not be able to build DBinit.m.</echo>
                 <echo>Try and execute the following script once: (do not move the file)</echo>
                 <echo>  ${basedir}/src/assembly/build_DBinit/build_DBinit.bash</echo>

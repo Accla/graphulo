@@ -18,7 +18,7 @@ rather than gather results at the client.
 Both functions scan Accumulo with iterators that themselves
 open Scanners and BatchWriters, allowing reading from multiple tables
 and writing to multiple tables in one client call, 
-as opposed to ordinary scans that read from a single table 
+as opposed to ordinary scans that read fconfrom a single table 
 and send results back to the client.
 
 Graphulo is tested on Accumulo 1.6 and 1.7.
@@ -62,6 +62,7 @@ tailMiniServerLogs.sh Similar to above.
 deploy.sh             Script to deploy a graphulo build to Accumulo and Matlab D4M.
 README.md             This file.
 README-D4M.md         Readme for d4m_api_java, also included in this distribution.
+example.conf          Example configuration file for testing.
 
    -Below files only in git repository-
 .gitignore            Files and folders to exclude from git.

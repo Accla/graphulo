@@ -68,9 +68,11 @@ public class MatlabGraphulo extends Graphulo {
                         String rowFilter, String colFilterAT, String colFilterB,
                         int presumCacheSize,
                         int numEntriesCheckpoint, boolean trace) {
-    List<IteratorSetting> itAfterTT = Collections.singletonList(LruCacheIterator.combinerSetting(
-        1, null, presumCacheSize, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.LONG, "", false)
-    ));
+    List<IteratorSetting> itAfterTT =
+        presumCacheSize <= 0 ? null :
+            Collections.singletonList(LruCacheIterator.combinerSetting(
+                1, null, presumCacheSize, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.LONG, "", false)
+            ));
 
     return TableMult(ATtable, Btable, Ctable, CTtable, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, "", false), Graphulo.PLUS_ITERATOR_LONG,

@@ -1,5 +1,6 @@
 package edu.mit.ll.graphulo.skvi;
 
+import com.google.common.base.Preconditions;
 import edu.mit.ll.graphulo.simplemult.KeyTwoScalar;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -50,6 +51,7 @@ public class LruCacheIterator implements SortedKeyValueIterator<Key,Value> {
     else
       Combiner.setColumns(itset, columns);
     itset.addOption(COMBINER, combiner.getName());
+    Preconditions.checkArgument(capacity > 0, "To use the LruCacheIterator, specify a positive capacity instead of "+capacity);
     itset.addOption(CAPACITY, Integer.toString(capacity));
     if (combinerOpts != null)
       for (Map.Entry<String, String> entry : combinerOpts.entrySet())

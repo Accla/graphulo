@@ -74,7 +74,7 @@ public class TestUtil {
 
     if (entriesToIngest != null && !entriesToIngest.isEmpty()) {
       BatchWriterConfig config = new BatchWriterConfig();
-      BatchWriter writer = null;
+      BatchWriter writer;
       try {
         writer = conn.createBatchWriter(tableName, config);
       } catch (TableNotFoundException e) {

@@ -186,7 +186,6 @@ public class CartesianRowMultiply implements RowMultiplyOp {
         if (isRowStartMultiplyOp)
           if (!((RowStartMultiplyOp)multiplyOp).startRow(ArowMap, null, true)) {
             // skip rest of row at skviB
-            ArowMap = null;
             while (itBonce.hasNext())
               itBonce.next();
             return Collections.emptyIterator();
@@ -207,7 +206,6 @@ public class CartesianRowMultiply implements RowMultiplyOp {
         if (isRowStartMultiplyOp)
           if (!((RowStartMultiplyOp)multiplyOp).startRow(null, BrowMap, true)) {
             // skip rest of row at skviA
-            BrowMap = null;
             while (itAonce.hasNext())
               itAonce.next();
             return Collections.emptyIterator();

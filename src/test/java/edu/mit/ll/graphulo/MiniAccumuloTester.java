@@ -37,7 +37,7 @@ public class MiniAccumuloTester extends ExternalResource implements IAccumuloTes
   }
 
   public Connector getConnector() {
-    Connector c = null;
+    Connector c;
     try {
       c = instance.getConnector(USER, new PasswordToken(PASSWORD));
     } catch (AccumuloException | AccumuloSecurityException e) {

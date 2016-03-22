@@ -9,8 +9,11 @@ package edu.mit.ll.d4m.db.cloud.util;
  */
 public class ArgumentChecker {
 	  private static final String NULL_ARG_MSG = "argument was null";
-	  
-	  public static void notNull(final Object arg1) {
+
+	private ArgumentChecker() {
+	}
+
+	public static void notNull(final Object arg1) {
 	    if (arg1 == null)
 	      throw new IllegalArgumentException(NULL_ARG_MSG + ":Is null- arg1? ");
 	  }

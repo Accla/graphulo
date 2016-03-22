@@ -19,6 +19,9 @@ public class D4mQueryUtil {
 	public static final String POSITIVE_INFINITY_RANGE = "POSITIVE_INFINITY_RANGE";
 	public static final String NEGATIVE_INFINITY_RANGE = "NEGATIVE_INFINITY_RANGE";
 
+	private D4mQueryUtil() {
+	}
+
 
 	public static D4mDataObj whatQueryMethod (String rows, String cols) {
 

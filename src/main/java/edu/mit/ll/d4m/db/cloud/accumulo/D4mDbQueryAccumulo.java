@@ -340,7 +340,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 
 	private D4mDbResultSet doMatlabQuery(String rows, String cols) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
-		if ((!rows.equals(":")) && (cols.equals(":"))) {
+		if (!rows.equals(":") && cols.equals(":")) {
 
 			ParsedInfo rowInfo = this.processParam(rows);
 			this.rowInfo = rowInfo;
@@ -355,15 +355,15 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 				return this.doMatlabQueryOnRows(rows, cols);
 			}
 		}
-		if ((rows.equals(":")) && (!cols.equals(":"))) {
+		if (rows.equals(":") && !cols.equals(":")) {
 			log.debug("MATLAB_QUERY_ON_COLS");
 			return this.doMatlabQueryOnColumns(rows, cols);
 		}
-		if ((rows.equals(":")) && (cols.equals(":"))) {
+		if (rows.equals(":") && cols.equals(":")) {
 			log.debug("GET_ALL_DATA");
 			return this.getAllData();
 		}
-		if( !rows.startsWith(":") && !rows.equals(":") && (!cols.startsWith(":")) && (!cols.equals(":")) ) {
+		if( !rows.startsWith(":") && !rows.equals(":") && !cols.startsWith(":") && !cols.equals(":")) {
 			log.debug("SEARCH_BY_ROW_&_COL");
 			return this.searchByRowAndColumn(rows, cols, null,null);
 		}
@@ -398,7 +398,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 			String value = new String(entry.getValue().get());
 			String finalColumn = column.replace(this.family, "");
 
-			if ((rowMap.containsKey(rowKey)) && (rowMap.containsValue(finalColumn))) {
+			if (rowMap.containsKey(rowKey) && rowMap.containsValue(finalColumn)) {
 
 				if(this.buildReturnString(entry.getKey(),rowKey, finalColumn, value)) {
 					break;
@@ -492,7 +492,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	private Entry<Key, Value>  iterateMatlabQueryOnRows (Iterator<Entry<Key, Value>> scannerIter, List<String> rowMap) {
 		String rowKey;
 		Entry<Key, Value> entry = null;
-		while ((this.hasNext =scannerIter.hasNext())) {
+		while (this.hasNext =scannerIter.hasNext()) {
 			entry = scannerIter.next();
 			rowKey = entry.getKey().getRow().toString();
 
@@ -770,7 +770,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 			range = new Range(rowkey1,true,rowkey2, true);
 			SearchIt(range,columnArray);
 			rowArrayGood=true;
-		} else if(length == 2 & !rowArray[(length-1)].equals(":")) {
+		} else if(length == 2 & !rowArray[length-1].equals(":")) {
 			// Ex, rowQuery='a,c,'
 			// Query for rows with 'a' and 'c'
 			// Then, we should do use BatchScanner
@@ -842,7 +842,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 			Iterator<Entry<Key,Value>> iter = this.scannerIter;
 			Entry<Key, Value> entry;
 			Pattern pat = Pattern.compile(colRegex);
-			while((this.hasNext=iter.hasNext())) {
+			while(this.hasNext=iter.hasNext()) {
 				entry = iter.next();
 				Key colkey = entry.getKey();
 
@@ -917,7 +917,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		Entry<Key, Value> entry =null;
 		String rowKey;
 		int count=0;
-		while ((this.hasNext =scannerIter.hasNext())) {
+		while (this.hasNext =scannerIter.hasNext()) {
 			if(this.limit == 0 || this.count < this.limit) {
 				entry = scannerIter.next();
 				this.startKey = entry.getKey();
@@ -947,7 +947,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		Entry<Key, Value> entry =null;
 		String rowKey;
 		int count=0;
-		while ((this.hasNext =scannerIter.hasNext())) {
+		while (this.hasNext =scannerIter.hasNext()) {
 			if(this.limit == 0 || this.count < this.limit) {
 				entry = scannerIter.next();
 				startKey = entry.getKey();

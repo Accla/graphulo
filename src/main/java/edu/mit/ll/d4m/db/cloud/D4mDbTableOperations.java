@@ -12,7 +12,7 @@ import java.util.logging.Logger;
  * @author wi20909
  */
 public class D4mDbTableOperations extends D4mParent {
-	private static  Logger log = Logger.getLogger(D4mDbTableOperations.class.getName());
+	private static final Logger log = Logger.getLogger(D4mDbTableOperations.class.getName());
 	private ConnectionProperties connProps = new ConnectionProperties();
 
 	AccumuloTableOperations d4mTableOp = null;

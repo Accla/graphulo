@@ -6,7 +6,7 @@ import org.apache.log4j.Logger;
 import edu.mit.ll.d4m.db.cloud.accumulo.D4mDbQueryAccumulo;
 
 public class TestD4mDbQuery {
-	private static Logger log = Logger.getLogger(TestD4mDbQuery.class);
+	private static final Logger log = Logger.getLogger(TestD4mDbQuery.class);
 	private static int count=0;
 	
 	// public void testQueryForAll() {

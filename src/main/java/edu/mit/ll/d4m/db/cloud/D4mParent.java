@@ -4,7 +4,7 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.xml.DOMConfigurator;
 
 public abstract class D4mParent {
-	private static Logger log = Logger.getLogger(D4mParent.class);
+	private static final Logger log = Logger.getLogger(D4mParent.class);
 
   // DH2015: This is redundant with D4mConfig
 

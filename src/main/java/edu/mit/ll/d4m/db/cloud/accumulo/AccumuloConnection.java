@@ -55,7 +55,7 @@ import java.util.concurrent.TimeUnit;
  *
  */
 public class AccumuloConnection {
-	private static Logger log = Logger.getLogger(AccumuloConnection.class);
+	private static final Logger log = Logger.getLogger(AccumuloConnection.class);
 
 	private ConnectionProperties conn=null;
 	private ZooKeeperInstance instance=null;

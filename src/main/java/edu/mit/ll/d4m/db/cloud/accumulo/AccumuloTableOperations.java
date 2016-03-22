@@ -55,7 +55,7 @@ import java.util.TreeSet;
  *
  */
 public class AccumuloTableOperations {
-	private static Logger log = Logger.getLogger(AccumuloTableOperations.class);
+	private static final Logger log = Logger.getLogger(AccumuloTableOperations.class);
 
 	AccumuloConnection connection= null;
 	ConnectionProperties connProp= null;

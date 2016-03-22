@@ -13,7 +13,7 @@ import org.apache.log4j.Logger;
  */
 public class D4mQueryUtil {
 
-	private static Logger log = Logger.getLogger(D4mQueryUtil.class);
+	private static final Logger log = Logger.getLogger(D4mQueryUtil.class);
 	public static final String KEY_RANGE = "KEY_RANGE";
 	public static final String REGEX_RANGE = "REGEX_RANGE";
 	public static final String POSITIVE_INFINITY_RANGE = "POSITIVE_INFINITY_RANGE";

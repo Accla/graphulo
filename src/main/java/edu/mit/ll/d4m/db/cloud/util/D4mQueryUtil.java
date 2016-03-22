@@ -72,15 +72,11 @@ public class D4mQueryUtil {
 	 */
 	public static boolean isRangeQuery(String[] paramContent) {
 		boolean rangeQuery = false;
-		if (paramContent.length == 1) {
-			if (paramContent[0].contains("*")) {
-				rangeQuery = true;
-			}
+		if (paramContent.length == 1 && paramContent[0].contains("*")) {
+			rangeQuery = true;
 		}
-		if (paramContent.length == 3) {
-			if (paramContent[1].contains(":")) {
-				rangeQuery = true;
-			}
+		if (paramContent.length == 3 && paramContent[1].contains(":")) {
+			rangeQuery = true;
 		}
 		return rangeQuery;
 	}
@@ -94,10 +90,8 @@ public class D4mQueryUtil {
 		if (paramContent[0].contains("*")) {
 			rangeQueryType = D4mQueryUtil.REGEX_RANGE;
 		}
-		if (paramContent.length == 3) {
-			if (paramContent[1].contains(":")) {
-				rangeQueryType = D4mQueryUtil.KEY_RANGE;
-			}
+		if (paramContent.length == 3 && paramContent[1].contains(":")) {
+			rangeQueryType = D4mQueryUtil.KEY_RANGE;
 		}
 		if (paramContent.length == 3) {
 			if (paramContent[1].contains(":") && paramContent[2].toLowerCase().contains("end")) {

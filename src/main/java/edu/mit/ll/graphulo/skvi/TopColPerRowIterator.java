@@ -175,9 +175,8 @@ public class TopColPerRowIterator implements SortedKeyValueIterator<Key,Value> {
   @Override
   public void next() throws IOException {
     retIter.next();
-    if (!retIter.hasNext())
-      if (sourceRows.reuseNextRow())
-        prepareNext();
+    if (!retIter.hasNext() && sourceRows.reuseNextRow()) 
+      prepareNext();
   }
 
 }

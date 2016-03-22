@@ -71,7 +71,7 @@ public class CombinerTest {
 		IteratorSetting cfg = new IteratorSetting(1, iterName, SummingCombiner.class);
 		LongCombiner.setEncodingType(cfg, LongCombiner.Type.STRING);
 		// add columns to act on
-		List<IteratorSetting.Column> combineColumns = new ArrayList<IteratorSetting.Column>();
+		List<IteratorSetting.Column> combineColumns = new ArrayList<>();
 		combineColumns.add(new IteratorSetting.Column(columnFamily, "leg"));
 		combineColumns.add(new IteratorSetting.Column(columnFamily, "pet"));
 		Combiner.setColumns(cfg, combineColumns);

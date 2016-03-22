@@ -143,7 +143,7 @@ public class SomeTest {
             conn.tableOperations().create(tableName);
 
 	// make a table split in tableName
-        SortedSet<Text> splitset = new TreeSet<Text>();
+        SortedSet<Text> splitset = new TreeSet<>();
         splitset.add(new Text("f"));
         conn.tableOperations().addSplits(tableName, splitset);
 

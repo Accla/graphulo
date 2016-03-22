@@ -241,7 +241,7 @@ public class D4mDbTableOperations extends D4mParent {
 		String oldSplitsString = getSplitsString(tableName);
 
 		List<String> newSplitsList = Arrays.asList(D4mQueryUtil.processParam(newSplitsString));
-		NavigableSet<String> oldSplitsSet = new TreeSet<String>();
+		NavigableSet<String> oldSplitsSet = new TreeSet<>();
 
 		if (!oldSplitsString.isEmpty())
 			oldSplitsSet.addAll(Arrays.asList(D4mQueryUtil.processParam(oldSplitsString)));

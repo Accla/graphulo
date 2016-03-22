@@ -110,7 +110,7 @@ public class EWiseTest extends AccumuloTestBase {
       tC = names[2];
     }
 
-    Map<Key,Value> expect = new TreeMap<Key,Value>(TestUtil.COMPARE_KEY_TO_COLQ);
+    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
     {
       Map<Key,Value> input = new HashMap<>();
       input.put(new Key("v0", "", "v0"), new Value("1".getBytes()));

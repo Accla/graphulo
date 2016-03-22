@@ -35,7 +35,7 @@ public class KnownBugSuite extends Suite {
   }
 
   public static List<Runner> getRunners(Class<?>[] classes) throws InitializationError {
-    List<Runner> runners = new LinkedList<Runner>();
+    List<Runner> runners = new LinkedList<>();
 
     for (Class<?> klazz : classes) {
       runners.add(new KnownBugRunner(klazz));

@@ -84,7 +84,7 @@ public class D4mQueryTest10 {
 			ArrayList<D4mDbRow> rowList = results.getMatlabDbRow();
 			int size = rowList.size();
 
-			HashSet<String> map = new HashSet<String>();
+			HashSet<String> map = new HashSet<>();
 			String [] rowArray = rows.split(",");
 			map.add(rowArray[0]);
 
@@ -140,7 +140,7 @@ public class D4mQueryTest10 {
 			ArrayList<D4mDbRow> rowList = results.getMatlabDbRow();
 			int size = rowList.size();
 
-			HashSet<String> map = new HashSet<String>();
+			HashSet<String> map = new HashSet<>();
 			String [] rowArray = rows.split(",");
 			map.add("a");
 			map.add("aa");
@@ -202,7 +202,7 @@ public class D4mQueryTest10 {
 			ArrayList<D4mDbRow> rowList = results.getMatlabDbRow();
 			int size = rowList.size();
 
-			HashSet<String> map = new HashSet<String>();
+			HashSet<String> map = new HashSet<>();
 			String [] rowArray = cols.split(",");
 			map.add("a");
 			map.add("aa");
@@ -253,7 +253,7 @@ public class D4mQueryTest10 {
 			ArrayList<D4mDbRow> rowList = results.getMatlabDbRow();
 			int size = rowList.size();
 
-			HashSet<String> map = new HashSet<String>();
+			HashSet<String> map = new HashSet<>();
 			//String [] rowArray = cols.split(",");
 			map.add("a");
 			map.add("aa");

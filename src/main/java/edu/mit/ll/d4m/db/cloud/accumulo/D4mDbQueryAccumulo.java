@@ -67,7 +67,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	private StringBuilder sbRowReturn = new StringBuilder();
 	private StringBuilder sbColumnReturn = new StringBuilder();
 	private StringBuilder sbValueReturn = new StringBuilder();
-	ArrayList<D4mDbRow> rowList = new ArrayList<D4mDbRow>();  //for testing
+	ArrayList<D4mDbRow> rowList = new ArrayList<>();  //for testing
 
 	private boolean startRowInclusive=true;
 	private boolean endRowInclusive=true;
@@ -84,7 +84,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	public D4mDbResultSet testResultSet=null;
 	public boolean hasNext=false;
 	private boolean getAllData = false;
-	private LinkedList<Range> rangesList= new LinkedList<Range>();
+	private LinkedList<Range> rangesList= new LinkedList<>();
 	private CompareUtil compareUtil=null;
 	AccumuloConnection connection=null;
 	//private ConcurrentLinkedQueue <Entry<Key, Value>> dataQue=new ConcurrentLinkedQueue<Entry<Key,Value>>();
@@ -256,7 +256,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		String[] rowArray = rowInfo.getContent();
 		String[] columnArray = columnInfo.getContent();
 
-		HashMap<String, String> resultMap = new HashMap<String, String>();
+		HashMap<String, String> resultMap = new HashMap<>();
 		for (int i = 0; i < rowArray.length; i++) {
 			resultMap.put(rowArray[i], columnArray[i]);
 		}
@@ -530,7 +530,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		}
 		String[] rowArray = rowInfo.getContent();
 
-		HashSet<Range> ranges = new HashSet<Range>();
+		HashSet<Range> ranges = new HashSet<>();
 		if(!this.hasNext) {
 
 			if(this.bscanner == null)
@@ -1156,7 +1156,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	}
 
 	private ArrayList<Key> param2keys(String [] params) {
-		ArrayList<Key> keys = new ArrayList<Key> ();
+		ArrayList<Key> keys = new ArrayList<>();
 		for(String s : params) {
 			if(s.equals(":")) continue;
 			Key k = new Key(s);
@@ -1194,7 +1194,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	}
 
 	public HashSet<Range> loadRanges(HashMap<String, String> queryMap) {
-		HashSet<Range> ranges = new HashSet<Range>();
+		HashSet<Range> ranges = new HashSet<>();
 		for (String rowId : queryMap.keySet()) {
 			//System.out.println("==>>ROW_ID="+rowId+"<<++");
 			if (rowId != null) {
@@ -1208,7 +1208,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		return ranges;
 	}
 	public HashSet<Range> loadRanges(String [] rowsRange) {
-		HashSet<Range> ranges = new HashSet<Range>();
+		HashSet<Range> ranges = new HashSet<>();
 		//Iterator<String> it = rangeQuery.iterator();
 		//	System.out.println("<<< ROW_ARRAY_LENGTH="+rowsRange.length+" >>>");
 		int len = rowsRange.length;
@@ -1225,7 +1225,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	}
 
 	public HashSet<Range> loadRanges(ArrayList<Key> rowsRange) {
-		HashSet<Range> ranges = new HashSet<Range>();
+		HashSet<Range> ranges = new HashSet<>();
 		for(Key key : rowsRange) {
 			Range range = new Range(key, true, key.followingKey(PartialKey.ROW), false);
 			ranges.add(range);

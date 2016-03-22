@@ -30,7 +30,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -376,7 +378,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 			String [] rowsArray = this.rowInfo.getContent();
 			this.rowKeys = param2keys(rowsArray);
 		}
-		HashMap<String, String> rowMap = this.rowStringMap;
+		Map<String, String> rowMap = this.rowStringMap;
 
 		D4mDbResultSet results = new D4mDbResultSet();
 		long start = System.currentTimeMillis();
@@ -530,7 +532,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		}
 		String[] rowArray = rowInfo.getContent();
 
-		HashSet<Range> ranges = new HashSet<Range>();
+		Set<Range> ranges = new HashSet<Range>();
 		if(!this.hasNext) {
 
 			if(this.bscanner == null)
@@ -1091,7 +1093,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		D4mDbResultSet resultSet = tool.doMatlabQuery(rows, cols);
 		double totalQueryTime = resultSet.getQueryTime();
 		System.out.println("totalQueryTime = " + totalQueryTime);
-		ArrayList<?> rowsArr = resultSet.getMatlabDbRow();
+		List<?> rowsArr = resultSet.getMatlabDbRow();
 
 		Iterator<?> it = rowsArr.iterator();
 		System.out.println("");
@@ -1193,7 +1195,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		this.connProps.setAuthorizations(authorizations);
 	}
 
-	public HashSet<Range> loadRanges(HashMap<String, String> queryMap) {
+	public HashSet<Range> loadRanges(Map<String, String> queryMap) {
 		HashSet<Range> ranges = new HashSet<Range>();
 		for (String rowId : queryMap.keySet()) {
 			//System.out.println("==>>ROW_ID="+rowId+"<<++");

@@ -93,7 +93,7 @@ public class AccumuloTableOperations {
 
 		//Get TServers
 		try {
-			ArrayList<TabletServerStatus> tserverStatusList = getTabletServers();
+			List<TabletServerStatus> tserverStatusList = getTabletServers();
 			List<TabletStats> tabletStatsList = getTabletStatsList(tserverStatusList,  tableNames);
 			retval = getNumberOfEntries_help(tabletStatsList);
 		} catch (D4mException | TException e) {
@@ -125,7 +125,7 @@ public class AccumuloTableOperations {
 
 		//Get TServers
 		try {
-			ArrayList<TabletServerStatus> tserverStatusList = getTabletServers();
+			List<TabletServerStatus> tserverStatusList = getTabletServers();
 			retval = getTabletStatsList(tserverStatusList,  tableNames);
 		} catch ( D4mException | TException e)  {
 			log.warn(e);    
@@ -244,7 +244,7 @@ public class AccumuloTableOperations {
 	 * Split table at partitions
 	 */
 	public void splitTable(String tableName, String[] partitions) {
-		TreeSet<Text> tset = new TreeSet<>();
+		SortedSet<Text> tset = new TreeSet<>();
 		for(String pt : partitions) {
 			tset.add(new Text(pt));
 		}

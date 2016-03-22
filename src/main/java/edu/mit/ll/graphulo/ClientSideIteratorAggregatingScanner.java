@@ -54,7 +54,7 @@ public class ClientSideIteratorAggregatingScanner extends ScannerOptions impleme
     }
     SortedKeyValueIterator<Key, Value> skvi = new MapIterator(allEntriesMap);
 
-    final TreeMap<Integer,IterInfo> tm = new TreeMap<>();
+    final SortedMap<Integer,IterInfo> tm = new TreeMap<>();
     for (IterInfo iterInfo : serverSideIteratorList) {
       tm.put(iterInfo.getPriority(), iterInfo);
     }

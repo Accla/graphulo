@@ -133,13 +133,13 @@ public class LineRowMultiply implements RowMultiplyOp {
     dout = !isDirected ? din : mapA.size();
     assert din >= 1 && dout >= 1;
     win = sumValues(mapAT);
-    if (win == 0)
+    if (Double.doubleToRawLongBits(win) == 0)
       return false; // case where weights sum to zero; very rare.
 
     nume = !isDirected ? din * (din-1) / 2 : // undirected: (din choose 2)
         (!includeExtraCycles ? din * dout :  // directed without AAT term: din*dout
             din * dout + din * (din-1));     // directed with AAT term: din*dout + 2*(din choose 2)
-    if (nume == 0)
+    if (Double.doubleToRawLongBits(nume) == 0)
       return false; // no edges emit
     winPerEdge = !isDirected ? win / nume / 2 : win / nume;
     winPerEdgeValue = new Value(Double.toString(winPerEdge).getBytes());

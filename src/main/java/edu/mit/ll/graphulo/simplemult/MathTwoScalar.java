@@ -253,7 +253,7 @@ public class MathTwoScalar extends SimpleTwoScalar {
     if (!keepZero) {
       switch (scalarType) {
         case LONG: if (nnew.longValue() == 0) return null; break;
-        case DOUBLE: if (nnew.doubleValue() == 0) return null; break;
+        case DOUBLE: if (Double.doubleToRawLongBits(nnew.doubleValue()) == 0) return null; break;
         case BIGDECIMAL: if (nnew.equals(BigDecimal.ZERO)) return null; break;
       }
     }

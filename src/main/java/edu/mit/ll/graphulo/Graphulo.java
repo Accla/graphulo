@@ -2757,7 +2757,7 @@ public class Graphulo {
     matrix.walkInOptimizedOrder(new DefaultRealMatrixPreservingVisitor() {
       @Override
       public void visit(int row, int column, double value) {
-        arr[row * M + column][numiter] = value == 0 ? "    " : String.format("%4.2f", value);
+        arr[row * M + column][numiter] = Double.doubleToRawLongBits(value) == 0 ? "    " : String.format("%4.2f", value);
       }
     });
   }

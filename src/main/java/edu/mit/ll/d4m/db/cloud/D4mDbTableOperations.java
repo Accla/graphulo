@@ -1,12 +1,14 @@
 package edu.mit.ll.d4m.db.cloud;
 
+import com.google.common.base.Preconditions;
 import edu.mit.ll.cloud.connection.ConnectionProperties;
 import edu.mit.ll.d4m.db.cloud.accumulo.AccumuloTableOperations;
-import edu.mit.ll.d4m.db.cloud.util.ArgumentChecker;
 import edu.mit.ll.d4m.db.cloud.util.D4mQueryUtil;
 
 import java.util.*;
 import java.util.logging.Logger;
+
+import static com.google.common.base.Preconditions.*;
 
 /**
  * @author wi20909
@@ -132,7 +134,8 @@ public class D4mDbTableOperations extends D4mParent {
 	 */
 	public void addSplits(String tableName, String splitsStr) throws Exception
 	{
-		ArgumentChecker.notNull(tableName, splitsStr);
+		checkNotNull(tableName);
+		checkNotNull(splitsStr);
 		doInit();
 		String[] splitStrArr = D4mQueryUtil.processParam(splitsStr);
 
@@ -204,7 +207,7 @@ public class D4mDbTableOperations extends D4mParent {
 	 * @throws Exception
 	 */
 	public String[] getSplits(String tableName, boolean getNumInEachTablet) throws Exception {
-		ArgumentChecker.notNull(tableName);
+		checkNotNull(tableName);
 		doInit();
     return getAllSplitsInfo(tableName);
 	}
@@ -215,7 +218,7 @@ public class D4mDbTableOperations extends D4mParent {
 	 */
 	public void mergeSplits(String tableName, String startRow, String endRow) throws Exception
 	{
-		ArgumentChecker.notNull(tableName);
+		checkNotNull(tableName);
 		doInit();
 		if (startRow != null && startRow.isEmpty())
 			startRow = null;
@@ -232,7 +235,7 @@ public class D4mDbTableOperations extends D4mParent {
 	 */
 	public void putSplits(String tableName, String newSplitsString) throws Exception // TableNotFoundException
 	{
-		ArgumentChecker.notNull(tableName);
+		checkNotNull(tableName);
 		doInit();
 		if (newSplitsString == null || newSplitsString.isEmpty()) {
 			mergeSplits(tableName, null, null);

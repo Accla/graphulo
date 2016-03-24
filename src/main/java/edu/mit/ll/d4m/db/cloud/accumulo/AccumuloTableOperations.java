@@ -3,10 +3,11 @@
  */
 package edu.mit.ll.d4m.db.cloud.accumulo;
 
+import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkNotNull;
 import edu.mit.ll.cloud.connection.ConnectionProperties;
 import edu.mit.ll.d4m.db.cloud.D4mException;
 import edu.mit.ll.d4m.db.cloud.accumulo.AccumuloCombiner.CombiningType;
-import edu.mit.ll.d4m.db.cloud.util.ArgumentChecker;
 import edu.mit.ll.d4m.db.cloud.util.D4mQueryUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -290,7 +291,7 @@ public class AccumuloTableOperations {
 	 * @see edu.mit.ll.d4m.db.cloud.D4mTableOpsIF#getSplits(java.lang.String, boolean)
 	 */
 	public List<String> getSplits(String tableName, boolean getNumInEachTablet) throws Exception {
-		ArgumentChecker.notNull(tableName);
+		checkNotNull(tableName);
 		//doInit();
 		List<String> splitList = getSplits(tableName);
 
@@ -348,7 +349,9 @@ public class AccumuloTableOperations {
 
 	public void designateCombiningColumns(String tableName, String columnStrAll, String combineType, String columnFamily) throws D4mException
 	{
-		ArgumentChecker.notNull(tableName, columnStrAll, combineType);
+		checkNotNull(tableName);
+		checkNotNull(columnStrAll);
+		checkNotNull(combineType);
 		if (columnFamily == null)
 			columnFamily = "";
 		//doInit();
@@ -403,7 +406,7 @@ public class AccumuloTableOperations {
 
 	public String listCombiningColumns(String tableName) throws D4mException
 	{
-		ArgumentChecker.notNull(tableName);
+		checkNotNull(tableName);
 		//	doInit();
 		StringBuilder sb = new StringBuilder();
 
@@ -425,7 +428,8 @@ public class AccumuloTableOperations {
 
 	public void revokeCombiningColumns(String tableName, String columnStr, String columnFamily) throws D4mException
 	{
-		ArgumentChecker.notNull(tableName, columnStr);
+		checkNotNull(tableName);
+		checkNotNull(columnStr);
 		///doInit();
 
 		// split the columns with processParam(columnStr)

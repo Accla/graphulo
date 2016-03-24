@@ -9,13 +9,16 @@ package edu.mit.ll.d4m.db.cloud.util;
  */
 public class D4mKeyUtil {
 
+	private D4mKeyUtil() {
+	}
+
 	/*
-	 * Convert will extract the row key, column family, column qualifier, and value.
-	 * 
-	 * key   Key ( org.apache.accumulo.core.data.Key)
-	 * value Value ( org.apache.accumulo.core.data.Value)
-	 * d4mKey  is the generic object to hold the row, col family, col qualifier, and value
-	 */
+         * Convert will extract the row key, column family, column qualifier, and value.
+         * 
+         * key   Key ( org.apache.accumulo.core.data.Key)
+         * value Value ( org.apache.accumulo.core.data.Value)
+         * d4mKey  is the generic object to hold the row, col family, col qualifier, and value
+         */
 	public static D4mDataObj convert(Object key, Object value, D4mDataObj d4mKey)  {
 	    String rowKey = null; //row key
 		String column = null; //ColumnQualifier

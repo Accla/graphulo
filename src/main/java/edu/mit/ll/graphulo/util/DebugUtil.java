@@ -21,6 +21,9 @@ import java.util.TreeSet;
 public class DebugUtil {
 
 
+  private DebugUtil() {
+  }
+
   public static void printTable(String header, Connector conn, String table, Integer w) {
     if (header != null)
       System.out.println(header);

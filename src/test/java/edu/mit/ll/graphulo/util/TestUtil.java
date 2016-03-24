@@ -32,6 +32,9 @@ import java.util.SortedSet;
 public class TestUtil {
   private static final Logger log = LogManager.getLogger(TestUtil.class);
 
+  private TestUtil() {
+  }
+
 
   public static void createTestTable(Connector conn, String tableName) {
     if (conn.tableOperations().exists(tableName)) {

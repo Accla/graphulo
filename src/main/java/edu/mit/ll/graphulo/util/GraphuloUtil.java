@@ -60,6 +60,9 @@ public class GraphuloUtil {
   private static final Text EMPTY_TEXT = new Text();
   public static final String OPT_SUFFIX = ".opt.";
 
+  private GraphuloUtil() {
+  }
+
 
   /* Motivation for using -1 argument in String.split() call:
 System.out.println(",".split(",",-1 ).length + Arrays.toString(",".split(",",-1 )));

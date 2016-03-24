@@ -16,6 +16,9 @@ public class RegExpUtil {
 	static int i127=127;
 	static String ASCII_127 = Character.toString((char)127);
 
+	private RegExpUtil() {
+	}
+
 	/*
 	 *  str -  String array - eg   a,:,b
 	 *   This array follows the Matlab-like syntax

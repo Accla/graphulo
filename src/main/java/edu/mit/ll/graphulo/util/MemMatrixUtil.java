@@ -24,6 +24,9 @@ import java.util.TreeMap;
 public class MemMatrixUtil {
   private static final Logger log = LogManager.getLogger(MemMatrixUtil.class);
 
+  private MemMatrixUtil() {
+  }
+
   /** numIterations >= 0 means use Newton's method with the given numIterations.
    * numIterations < 0 means use an exact LU decomposition to solve for the inverse. */
   public static RealMatrix doInverse(RealMatrix matrix, int numIterations) {

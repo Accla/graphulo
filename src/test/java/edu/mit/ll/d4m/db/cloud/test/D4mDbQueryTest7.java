@@ -211,7 +211,7 @@ bbb :bbb []    bbb-bbb
 			ArrayList<D4mDbRow> rowList = results.getMatlabDbRow();
 			int size = rowList.size();
 
-			HashMap<String,String> map = new HashMap<String,String>();
+			HashMap<String,String> map = new HashMap<>();
 			String [] rowArray = rows.split(",");
 			map.put(rowArray[0], rowArray[0]);
 			map.put(rowArray[1], rowArray[1]);
@@ -257,7 +257,7 @@ bbb :bbb []    bbb-bbb
 			ArrayList<D4mDbRow> rowList = results.getMatlabDbRow();
 			int size = rowList.size();
 
-			HashMap<String,String> map = new HashMap<String,String>();
+			HashMap<String,String> map = new HashMap<>();
 			String [] rowArray = rows.split(",");
 			map.put(rowArray[0], rowArray[0]);
 			map.put(rowArray[1], rowArray[1]);
@@ -302,7 +302,7 @@ bbb :bbb []    bbb-bbb
 			ArrayList<D4mDbRow> rowList = results.getMatlabDbRow();
 			int size = rowList.size();
 
-			HashMap<String,String> map = new HashMap<String,String>();
+			HashMap<String,String> map = new HashMap<>();
 			String [] rowArray = rows.split(",");
 			map.put(rowArray[0], rowArray[0]);
 			//map.put(rowArray[1], rowArray[1]);
@@ -349,7 +349,7 @@ bbb :bbb []    bbb-bbb
 			ArrayList<D4mDbRow> rowList = results.getMatlabDbRow();
 			int size = rowList.size();
 
-			HashMap<String,String> map = new HashMap<String,String>();
+			HashMap<String,String> map = new HashMap<>();
 			String [] rowArray = cols.split(",");
 			map.put(rowArray[0], rowArray[0]);
 			//map.put(rowArray[1], rowArray[1]);
@@ -402,7 +402,7 @@ bbb :bbb []    bbb-bbb
 			ArrayList<D4mDbRow> rowList = results.getMatlabDbRow();
 			int size = rowList.size();
 
-			HashMap<String,String> map = new HashMap<String,String>();
+			HashMap<String,String> map = new HashMap<>();
 			String [] rowArray = cols.split(",");
                         log.debug("RowArray[0]="+rowArray[0]);
 			map.put(rowArray[0], rowArray[0]);
@@ -453,7 +453,7 @@ bbb :bbb []    bbb-bbb
 			ArrayList<D4mDbRow> rowList = results.getMatlabDbRow();
 			int size = rowList.size();
 
-			HashMap<String,String> map = new HashMap<String,String>();
+			HashMap<String,String> map = new HashMap<>();
 			String [] tmpArray = cols.split(",");
 			map.put(tmpArray[0], tmpArray[0]);
 			map.put(tmpArray[1], tmpArray[1]);
@@ -506,7 +506,7 @@ bbb :bbb []    bbb-bbb
 			ArrayList<D4mDbRow> rowList = results.getMatlabDbRow();
 			int size = rowList.size();
 
-			HashSet<String> map = new HashSet<String>();
+			HashSet<String> map = new HashSet<>();
 			String [] tmpArray = rows.split(",");
 			map.add("b");
 			map.add("bb");

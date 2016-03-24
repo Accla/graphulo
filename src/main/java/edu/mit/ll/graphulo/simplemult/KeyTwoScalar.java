@@ -211,7 +211,7 @@ public abstract class KeyTwoScalar extends Combiner implements ApplyOp {
   /** Adapts a Combiner to a KeyTwoScalar operation. */
   public static KeyTwoScalar toKeyTwoScalar(final Combiner combiner) {
     return new KeyTwoScalar() {
-      DoubletonIterator<Value> iter = new DoubletonIterator<Value>();
+      DoubletonIterator<Value> iter = new DoubletonIterator<>();
 
       @Override
       public Value multiply(Key key, Value Aval, Value Bval) {

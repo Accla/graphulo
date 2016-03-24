@@ -29,7 +29,7 @@ public class D4mQueryUtil {
 		dataObj.setRow(rows);
 		dataObj.setColQualifier(cols);
 
-		if ((!rows.equals(":")) && (cols.equals(":"))) {
+		if (!rows.equals(":") && cols.equals(":")) {
 
 //			HashMap<String, Object> rowMap = processParam(rows);
 			//this.rowMap = rowMap;
@@ -45,15 +45,15 @@ public class D4mQueryUtil {
 				dataObj.setQueryMethod(QueryMethod.MATLAB_QUERY_ON_ROWS);
 				//				return this.doMatlabQueryOnRows(rows, cols);
 			}
-		} else if ((rows.equals(":")) && (!cols.equals(":"))) {
+		} else if (rows.equals(":") && !cols.equals(":")) {
 			log.debug("MATLAB_QUERY_ON_COLS");
 			dataObj.setQueryMethod(QueryMethod.MATLAB_QUERY_ON_COLS);
 			//			return this.doMatlabQueryOnColumns(rows, cols);
-		} else if ((rows.equals(":")) && (cols.equals(":"))) {
+		} else if (rows.equals(":") && cols.equals(":")) {
 			log.debug("GET_ALL_DATA");
 			dataObj.setQueryMethod(QueryMethod.GET_ALL_DATA);
 			//		return this.getAllData();
-		} else if( (!rows.startsWith(":") && !rows.equals(":") ) && (!cols.startsWith(":")) && (!cols.equals(":")) ) {
+		} else if( !rows.startsWith(":") && !rows.equals(":") && !cols.startsWith(":") && !cols.equals(":")) {
 			log.debug("SEARCH_BY_ROW_&_COL");
 			dataObj.setQueryMethod(QueryMethod.SEARCH_BY_ROW_AND_COL);
 			//	return this.searchByRowAndColumn(rows, cols, null,null);

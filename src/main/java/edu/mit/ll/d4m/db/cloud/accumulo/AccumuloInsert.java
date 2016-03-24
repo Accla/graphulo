@@ -49,7 +49,7 @@ public class AccumuloInsert extends D4mInsertBase {
 			makeAndAddMutations();
 		} catch (MutationsRejectedException | TableNotFoundException e) {
 			log.error(e);
-            throw(e);
+            throw e;
 		}
 
   }

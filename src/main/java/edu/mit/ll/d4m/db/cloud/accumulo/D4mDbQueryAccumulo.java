@@ -280,15 +280,11 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		 *  Note: Negative infinity Range a*,
 		 */
 
-		if (paramContent.length == 1) {
-			if (paramContent[0].contains("*")) {
-				rangeQuery = true;
-			}
+		if (paramContent.length == 1 && paramContent[0].contains("*")) {
+			rangeQuery = true;
 		}
-		if (paramContent.length == 3) {
-			if (paramContent[1].contains(":")) {
-				rangeQuery = true;
-			}
+		if (paramContent.length == 3 && paramContent[1].contains(":")) {
+			rangeQuery = true;
 		}
 		return rangeQuery;
 	}
@@ -851,10 +847,8 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 				String col = colkey.getColumnQualifier().toString();
 				Matcher match = pat.matcher(col);
 				//	boolean isMatching = Pattern.matches(colKey, col);
-				if(match.matches()) {
-					if(buildReturnString(colkey, entry.getValue())) {
-						break;
-					}
+				if(match.matches() && buildReturnString(colkey, entry.getValue())) {
+					break;
 				}
 				//	SearchIt(range,colKey);
 

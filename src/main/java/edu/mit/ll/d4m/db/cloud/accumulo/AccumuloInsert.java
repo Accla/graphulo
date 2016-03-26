@@ -71,7 +71,7 @@ public class AccumuloInsert extends D4mInsertBase {
 			String thisRow = rowsArr[i];
 			String thisCol = colsArr[i];
 			String thisVal = valsArr[i];
-			Mutation m=null;
+			Mutation m;
 			Text column = new Text(thisCol);
 
 			Value value = new Value(thisVal.getBytes());

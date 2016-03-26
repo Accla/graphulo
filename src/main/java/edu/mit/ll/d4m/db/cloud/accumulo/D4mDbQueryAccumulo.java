@@ -590,7 +590,6 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		if(this.scannerIter == null) {
 			this.scannerIter = bscanner.iterator();
 		}
-		String rowKey=null;
 		Entry<Key, Value> entry = iterateOverEntries(this.scannerIter);
 
 		//Set the new row key to start next search
@@ -827,8 +826,6 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 			this.compareUtil = new CompareUtil(columnArray);
 		}
 		if(columnArray.length == 3 && columnArray[1].equals(":")) {
-			String colStart1 = columnArray[0].substring(0, 1);
-			String colEnd1 = columnArray[2].substring(0,1);
 			//colRegex = RegExpUtil.makeRegex(columnArray);//"^["+colStart1+"-"+colEnd1+"].*";
 			log.debug("COLUMN REGEX="+colRegex);
 			SearchIt(range,colRegex);
@@ -1068,8 +1065,6 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 
 		String hostName = args[0];
 		String tableName = args[1];
-		String rows = args[2];
-		String cols = args[3];
 		int limit = Integer.parseInt(args[4]);
 		D4mDbQueryAccumulo tool = new D4mDbQueryAccumulo("org.apache.accumulo", hostName, tableName, "root", "ALL4114ALL");
 		tool.setLimit(limit);

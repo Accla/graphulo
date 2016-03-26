@@ -2653,7 +2653,7 @@ public class Graphulo {
     final int reqNumLowHDiff = 3;
     int numLowHDiff = 0;
     boolean DEBUG = false;
-    String[][] WARR = null, HARR = null;
+    String[][] WARR, HARR = null;
     if (DEBUG) {
       WARR = new String[K*N][maxiter+1];
       HARR = new String[K*M][maxiter+1];

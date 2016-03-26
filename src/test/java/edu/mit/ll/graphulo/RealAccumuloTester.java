@@ -23,7 +23,7 @@ public class RealAccumuloTester extends ExternalResource implements IAccumuloTes
     }
 
     public Connector getConnector() {
-        Connector c = null;
+        Connector c;
 
         try {
             c = instance.getConnector(username, auth);

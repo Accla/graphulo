@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -39,8 +40,8 @@ public class SmallLargeRowFilter implements SortedKeyValueIterator<Key, Value>, 
   private SortedKeyValueIterator<Key, Value> source;
 
   // a cache of keys
-  private ArrayList<Key> keys = new ArrayList<>();
-  private ArrayList<Value> values = new ArrayList<>();
+  private List<Key> keys = new ArrayList<>();
+  private List<Value> values = new ArrayList<>();
 
   private int currentPosition;
 

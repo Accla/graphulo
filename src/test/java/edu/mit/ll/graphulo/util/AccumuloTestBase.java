@@ -16,7 +16,7 @@ public class AccumuloTestBase {
 
   /** This is setup once for the entire class. */
   @ClassRule
-  public static IAccumuloTester tester = TEST_CONFIG.AccumuloTester;
+  public static final IAccumuloTester tester = TEST_CONFIG.AccumuloTester;
 
   @Rule
   public TestName testName = new TestName();

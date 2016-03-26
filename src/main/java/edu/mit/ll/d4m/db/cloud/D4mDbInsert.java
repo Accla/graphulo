@@ -18,7 +18,7 @@ import edu.mit.ll.cloud.connection.ConnectionProperties;
 
 public class D4mDbInsert extends D4mParent {
 
-	private static Logger log = Logger.getLogger(D4mDbInsert.class);
+	private static final Logger log = Logger.getLogger(D4mDbInsert.class);
 	private String tableName = "";
 	private String rows = "";
 	private String cols = "";

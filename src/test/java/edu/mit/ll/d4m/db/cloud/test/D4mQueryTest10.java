@@ -23,7 +23,7 @@ import edu.mit.ll.d4m.db.cloud.util.D4mDataObj;
  */
 public class D4mQueryTest10 {
 
-	private static Logger log = Logger.getLogger(D4mQueryTest10.class);
+	private static final Logger log = Logger.getLogger(D4mQueryTest10.class);
 
 	String instanceName = "";
 	String host = "";

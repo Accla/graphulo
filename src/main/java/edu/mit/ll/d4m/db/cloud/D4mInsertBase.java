@@ -11,7 +11,7 @@ import org.apache.log4j.Logger;
  *
  */
 public abstract class D4mInsertBase {
-	private static Logger log = Logger.getLogger(D4mInsertBase.class);
+	private static final Logger log = Logger.getLogger(D4mInsertBase.class);
 
 	protected String tableName = "";
 	protected String rows = "";

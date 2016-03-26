@@ -18,7 +18,7 @@ import edu.mit.ll.d4m.db.cloud.util.D4mQueryUtil;
  *
  */
 public class AccumuloInsert extends D4mInsertBase {
-	private static Logger log = Logger.getLogger(AccumuloInsert.class);
+	private static final Logger log = Logger.getLogger(AccumuloInsert.class);
 
 	AccumuloConnection connection=null;
 	public AccumuloInsert() {

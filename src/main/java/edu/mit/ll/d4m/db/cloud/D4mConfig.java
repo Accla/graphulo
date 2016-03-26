@@ -14,7 +14,7 @@ import java.net.URL;
  *
  */
 public class D4mConfig {
-	private static Logger log = Logger.getLogger(D4mConfig.class);
+	private static final Logger log = Logger.getLogger(D4mConfig.class);
 
 	public static final String ACCUMULO="Accumulo";
 	public static boolean DEBUG;

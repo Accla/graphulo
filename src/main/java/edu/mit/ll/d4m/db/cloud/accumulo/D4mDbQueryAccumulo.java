@@ -41,7 +41,7 @@ import java.util.regex.Pattern;
  * @author William Smith
  */
 public class D4mDbQueryAccumulo extends D4mParentQuery {
-	private static Logger log = Logger.getLogger(D4mDbQueryAccumulo.class);
+	private static final Logger log = Logger.getLogger(D4mDbQueryAccumulo.class);
 	//	private String tableName = "";
 	private int numberOfThreads = 50;
 	public String rowReturnString = "";

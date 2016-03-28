@@ -28,7 +28,7 @@ public class D4MTableWriter implements AutoCloseable {
     this.closeIngest();
   }
 
-  enum State { New, Open, Closed }
+  private enum State { New, Open, Closed }
   private State state = State.New;
 
   public static final Text DEFAULT_DEGCOL = new Text("deg");

@@ -109,6 +109,17 @@ See TEST_CONFIG.java for changing connection parameters, such as testing on a re
 * Test results are saved in the `shippable/testresults` folder.
 * Run `mvn clean` to delete output from previously run tests.
 
+
+### Develop
+If you're interested in using an IDE for development, [IntelliJ][] is a good choice.
+However, IntelliJ's profiler listens by default on port 10001, which conflicts with Accumulo's
+[default master replication service port](https://accumulo.apache.org/1.7/accumulo_user_manual.html#_network).
+You can fix this by manually setting the port in the `bin/idea.sh` file in your IntelliJ installation
+according to the [instructions posted here](https://stackoverflow.com/questions/13345986/intellij-idea-using-10001-port).
+Otherwise if you don't fix it, you may not be able to run IntelliJ and Accumulo concurrently.
+You could also change Accumulo's ports from their default.
+
+
 #### Testing on Standalone Accumulo via a configuration file
 Another way to specify an Accumulo instance for running tests on, 
 if not through the shortcut keywords defined in TEST_CONFIG.java,

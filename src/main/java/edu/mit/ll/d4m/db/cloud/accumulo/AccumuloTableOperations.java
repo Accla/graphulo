@@ -375,10 +375,14 @@ public class AccumuloTableOperations {
 			//LongCombiner.setEncodingType(itSet, BigDecimalEncoder.class);
 			TypedValueCombiner.setLossyness(itSet, true); // silently ignore bad values
 
-			List<IteratorSetting.Column> combineColumns = new LinkedList<>();
-			for (String column : columnStrArr)
-				combineColumns.add(new IteratorSetting.Column(columnFamily, column));
-			Combiner.setColumns(itSet, combineColumns);
+			if (columnStrArr.length == 1 && columnStrArr[0].equals(":"))
+				Combiner.setCombineAllColumns(itSet, true);
+			else {
+				List<IteratorSetting.Column> combineColumns = new LinkedList<>();
+				for (String column : columnStrArr)
+					combineColumns.add(new IteratorSetting.Column(columnFamily, column));
+				Combiner.setColumns(itSet, combineColumns);
+			}
 			//this.d4mTableOp.addIterator(tableName, itSet); // add to majc, minc, scan
 			addIterator(tableName, itSet); // add to majc, minc, scan
 		}
@@ -418,7 +422,10 @@ public class AccumuloTableOperations {
 			if (itSet != null) { // not null means combiner exists in table
 				sb.append(ct.name()).append('\t');
 				// combiner exists in table; get the columns it combines
-				String allColumnString = itSet.getOptions().get("columns"); // use ColumnSet.decodeColumns if we want the original text
+				String allColumnString =
+						itSet.getOptions().get("all") != null && Boolean.parseBoolean(itSet.getOptions().get("all"))
+						? "::ALL::" :
+						itSet.getOptions().get("columns"); // use ColumnSet.decodeColumns if we want the original text
 				assert allColumnString != null && !allColumnString.isEmpty();
 				sb.append(allColumnString).append('\n');
 			}
@@ -451,6 +458,18 @@ public class AccumuloTableOperations {
 			IteratorSetting itSet = getIteratorSetting(tableName, ct.getIteratorName(), IteratorUtil.IteratorScope.scan); // any scope is ok
 			if (itSet == null)
 				continue; // combiner not present
+
+			if (columnStrArrToRemove.length == 1 && columnStrArrToRemove[0].equals(":")) {
+				removeIterator(tableName, ct.getIteratorName(), EnumSet.allOf(IteratorUtil.IteratorScope.class));
+				continue;
+			}
+
+			if (itSet.getOptions().get("all") != null && Boolean.parseBoolean(itSet.getOptions().get("all"))) {
+				log.warn("removing combiner set to all columns, even though only requested to remove "+columnStr);
+				removeIterator(tableName, ct.getIteratorName(), EnumSet.allOf(IteratorUtil.IteratorScope.class));
+				continue;
+			}
+
 			String allColumnString = itSet.getOptions().get("columns"); // use ColumnSet.decodeColumns if we want the original text
 			StringBuilder sb = new StringBuilder(); // holds the new columns to add back
 			boolean firstAppend = true;

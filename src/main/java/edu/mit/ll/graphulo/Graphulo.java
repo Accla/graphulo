@@ -1,11 +1,7 @@
 package edu.mit.ll.graphulo;
 
 import com.google.common.base.Preconditions;
-import edu.mit.ll.graphulo.apply.ApplyIterator;
-import edu.mit.ll.graphulo.apply.JaccardDegreeApply;
-import edu.mit.ll.graphulo.apply.KeyRetainOnlyApply;
-import edu.mit.ll.graphulo.apply.RandomTopicApply;
-import edu.mit.ll.graphulo.apply.TfidfDegreeApply;
+import edu.mit.ll.graphulo.apply.*;
 import edu.mit.ll.graphulo.ewise.EWiseOp;
 import edu.mit.ll.graphulo.reducer.EdgeBFSReducer;
 import edu.mit.ll.graphulo.reducer.GatherReducer;
@@ -95,6 +91,8 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
+
+import static edu.mit.ll.graphulo.skvi.TriangularFilter.TriangularType;
 
 /**
  * Holds a {@link org.apache.accumulo.core.client.Connector} to an Accumulo instance for calling client Graphulo operations.
@@ -1917,7 +1915,7 @@ public class Graphulo {
         .toIteratorSetting();
       // No Diagonal filter
       List<IteratorSetting> noDiagFilter = Collections.singletonList(
-          TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.NoDiagonal));
+          TriangularFilter.iteratorSetting(1, TriangularType.NoDiagonal));
 
       do {
         nnzBefore = nnzAfter;
@@ -2038,7 +2036,7 @@ public class Graphulo {
 
 
       // No Diagonal Filter
-      IteratorSetting noDiagFilter = TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.NoDiagonal);
+      IteratorSetting noDiagFilter = TriangularFilter.iteratorSetting(1, TriangularType.NoDiagonal);
       // E*A -> sum -> ==2 -> Abs0 -> OnlyRow -> sum -> kTrussFilter -> TT_RowSelector
       IteratorSetting itsBeforeR = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, null)
           .append(PLUS_ITERATOR_LONG)
@@ -2139,14 +2137,15 @@ public class Graphulo {
         filterRowCol,
         filterRowCol, filterRowCol,
         true, true,
-        Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.Lower)),
-        Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.Upper)),
-        Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularFilter.TriangularType.Upper)),
+        Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularType.Lower)),
+        Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularType.Upper)),
+        Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularType.Upper)),
         null, null, -1, Aauthorizations, Aauthorizations);
 
     log.debug("Jaccard #partial products " + npp);
     return npp;
   }
+
 
 
   /**
@@ -2159,7 +2158,23 @@ public class Graphulo {
    * @return The number of rows in the original table.
    */
   public long generateDegreeTable(String table, String Degtable, boolean countColumns) {
+    return generateDegreeTable(table, Degtable, countColumns, "");
+  }
+
+
+  /**
+   * Create a degree table from an existing table.
+   * @param table Name of original table.
+   * @param Degtable Name of degree table. Created if it does not exist.
+   *                 Use a combiner if you want to sum in the new degree entries into an existing table.
+   * @param countColumns True means degrees are the <b>number of entries in each row</b>.
+   *                     False means degrees are the <b>sum or weights of entries in each row</b>.
+   * @param colq The name of the degree column in Degtable. Default is "".
+   * @return The number of rows in the original table.
+   */
+  public long generateDegreeTable(String table, String Degtable, boolean countColumns, String colq) {
     checkGiven(true, "table", table);
+    if (colq == null) colq = "";
     Preconditions.checkArgument(Degtable != null && !Degtable.isEmpty(), "Output table must be given: Degtable=%s", Degtable);
     TableOperations tops = connector.tableOperations();
     BatchScanner bs;
@@ -2182,8 +2197,10 @@ public class Graphulo {
           dis.append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes()))); // Abs0
       dis
         .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))
-        .append(PLUS_ITERATOR_BIGDECIMAL)
-        .append(new IteratorSetting(1, RemoteWriteIterator.class, basicRemoteOpts("", Degtable, null, null)));
+        .append(PLUS_ITERATOR_BIGDECIMAL);
+      if (!colq.isEmpty())
+        dis.append(ConstantColQApply.iteratorSetting(1, colq));
+      dis.append(new IteratorSetting(1, RemoteWriteIterator.class, basicRemoteOpts("", Degtable, null, null)));
       dis.addToScanner(bs);
     }
 

@@ -29,6 +29,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -447,8 +448,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
       reducer.update(k, v);
 
       if (writer != null) {
-        m = new Mutation(k.getRowData().getBackingArray());
-        m.put(k.getColumnFamilyData().getBackingArray(), k.getColumnQualifierData().getBackingArray(),
+        m = new Mutation(k.getRowData().toArray());
+        m.put(k.getColumnFamilyData().toArray(), k.getColumnQualifierData().toArray(),
             k.getColumnVisibilityParsed(), k.getTimestamp(), v.get()); // no ts? System.currentTimeMillis()
 //        watch.start(Watch.PerfSpan.WriteAddMut);
         try {
@@ -462,8 +463,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 //        }
       }
       if (writerTranspose != null) {
-        m = new Mutation(k.getColumnQualifierData().getBackingArray());
-        m.put(k.getColumnFamilyData().getBackingArray(), k.getRowData().getBackingArray(),
+        m = new Mutation(k.getColumnQualifierData().toArray());
+        m.put(k.getColumnFamilyData().toArray(), k.getRowData().toArray(),
             k.getColumnVisibilityParsed(), k.getTimestamp(), v.get()); // no ts? System.currentTimeMillis()
 //        watch.start(Watch.PerfSpan.WriteAddMut);
         try {

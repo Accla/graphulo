@@ -88,12 +88,12 @@ public class TestUtil {
         for (Map.Entry<Key, Value> pair : entriesToIngest.entrySet()) {
           Key k = pair.getKey();
           Value v = pair.getValue();
-          m = new Mutation(k.getRowData().getBackingArray());
+          m = new Mutation(k.getRowData().toArray());
           if (k.isDeleted())
-            m.putDelete(k.getColumnFamilyData().getBackingArray(), k.getColumnQualifierData().getBackingArray(),
+            m.putDelete(k.getColumnFamilyData().toArray(), k.getColumnQualifierData().toArray(),
                 k.getColumnVisibilityParsed()); // no ts? System.currentTimeMillis()
           else
-            m.put(k.getColumnFamilyData().getBackingArray(), k.getColumnQualifierData().getBackingArray(),
+            m.put(k.getColumnFamilyData().toArray(), k.getColumnQualifierData().toArray(),
                 k.getColumnVisibilityParsed(), v.get()); // no ts? System.currentTimeMillis()
           writer.addMutation(m);
         }

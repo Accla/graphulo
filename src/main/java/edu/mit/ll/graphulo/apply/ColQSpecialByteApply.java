@@ -35,23 +35,23 @@ public class ColQSpecialByteApply implements ApplyOp {
   }
 
   static Key addSpecialBytes(final Key k) {
-    byte[] colQBytes = k.getColumnQualifierData().getBackingArray();
+    byte[] colQBytes = k.getColumnQualifierData().toArray();
     byte[] newColQBytes = new byte[colQBytes.length+2];
     System.arraycopy(colQBytes,0,newColQBytes,0,colQBytes.length);
     newColQBytes[newColQBytes.length-2] = newColQBytes[newColQBytes.length-1] = SPECIAL_BYTE;
-    return new Key(k.getRowData().getBackingArray(), k.getColumnFamilyData().getBackingArray(),
-        newColQBytes, k.getColumnVisibilityData().getBackingArray(), k.getTimestamp(), k.isDeleted());
+    return new Key(k.getRowData().toArray(), k.getColumnFamilyData().toArray(),
+        newColQBytes, k.getColumnVisibilityData().toArray(), k.getTimestamp(), k.isDeleted());
   }
 
   static Key removeSpecialBytes(final Key k) {
-    byte[] colQBytes = k.getColumnQualifierData().getBackingArray();
+    byte[] colQBytes = k.getColumnQualifierData().toArray();
     if (colQBytes.length < 2 || colQBytes[colQBytes.length-1] != SPECIAL_BYTE
         || colQBytes[colQBytes.length-2] != SPECIAL_BYTE)
       return null;
     byte[] newColQBytes = new byte[colQBytes.length-2];
     System.arraycopy(colQBytes,0,newColQBytes,0,newColQBytes.length);
-    return new Key(k.getRowData().getBackingArray(), k.getColumnFamilyData().getBackingArray(),
-        newColQBytes, k.getColumnVisibilityData().getBackingArray(), k.getTimestamp(), k.isDeleted());
+    return new Key(k.getRowData().toArray(), k.getColumnFamilyData().toArray(),
+        newColQBytes, k.getColumnVisibilityData().toArray(), k.getTimestamp(), k.isDeleted());
   }
 
   @Override

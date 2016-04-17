@@ -351,7 +351,7 @@ public class UtilTest {
   public void testKeyColQSubstring() {
     byte[] inBytes = "col".getBytes();
     Key k = new Key("row","colF","colQ");
-    byte[] cqBytes = k.getColumnQualifierData().getBackingArray();
+    byte[] cqBytes = k.getColumnQualifierData().toArray();
     Assert.assertEquals(0, WritableComparator.compareBytes(cqBytes, 0, inBytes.length, inBytes, 0, inBytes.length));
     String label = new String(cqBytes, inBytes.length, cqBytes.length-inBytes.length, UTF_8);
     Assert.assertEquals("Q",label);

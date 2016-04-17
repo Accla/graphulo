@@ -161,8 +161,8 @@ public class LineRowMultiply implements RowMultiplyOp {
   private byte[] doCat(ByteSequence mrow, ByteSequence col, CATMODE catmode) {
     switch (catmode) {
       case LEXICO:
-        int cmp = WritableComparator.compareBytes(mrow.getBackingArray(), mrow.offset(), mrow.length(),
-            col.getBackingArray(), col.offset(), col.length());
+        int cmp = WritableComparator.compareBytes(mrow.toArray(), mrow.offset(), mrow.length(),
+            col.toArray(), col.offset(), col.length());
         return cmp < 0 ? doCat2(mrow, col) : doCat2(col, mrow);
       case ROWCOL:
         return doCat2(mrow, col);
@@ -174,9 +174,9 @@ public class LineRowMultiply implements RowMultiplyOp {
 
   private byte[] doCat2(ByteSequence b1, ByteSequence b2) {
     byte[] ret = new byte[b1.length()+separator.length+b2.length()];
-    System.arraycopy(b1.getBackingArray(), b1.offset(), ret, 0, b1.length());
+    System.arraycopy(b1.toArray(), b1.offset(), ret, 0, b1.length());
     System.arraycopy(separator,0,ret,b1.length(),separator.length);
-    System.arraycopy(b2.getBackingArray(), b2.offset(), ret, b1.length() + separator.length, b2.length());
+    System.arraycopy(b2.toArray(), b2.offset(), ret, b1.length() + separator.length, b2.length());
     return ret;
   }
 
@@ -203,7 +203,7 @@ public class LineRowMultiply implements RowMultiplyOp {
         ByteSequence BcolF, ByteSequence BcolQ, ByteSequence BcolVis, long Btime,
         Value ATval, Value Bval) {
       if ((linemode == LINEMODE.UNDIR || linemode == LINEMODE.DIRAAT) &&
-          Arrays.equals(BcolQ.getBackingArray(), ATcolQ.getBackingArray()))
+          Arrays.equals(BcolQ.toArray(), ATcolQ.toArray()))
         return Collections.emptyIterator(); // no diagonal
       Key k;
       CATMODE newrow=null, newcol=null;
@@ -222,7 +222,7 @@ public class LineRowMultiply implements RowMultiplyOp {
           break;
       }
       k = new Key(doCat(Mrow, ATcolQ, newrow),
-          ATcolF.getBackingArray(),
+          ATcolF.toArray(),
           doCat(Mrow, BcolQ, newcol),
           useNewVisibility ? newVisibility : GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis());
       // reuse object instead of new one each time?

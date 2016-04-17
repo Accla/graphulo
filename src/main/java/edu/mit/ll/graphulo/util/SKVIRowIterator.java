@@ -24,7 +24,7 @@ public class SKVIRowIterator implements Iterator<Map.Entry<Key,Value>> {
   public SKVIRowIterator(SortedKeyValueIterator<Key, Value> skvi) {
     this.skvi = skvi;
     if (skvi.hasTop()) {
-      byte[] b = skvi.getTopKey().getRowData().getBackingArray();
+      byte[] b = skvi.getTopKey().getRowData().toArray();
       row = Arrays.copyOf(b, b.length);
       matchRow = true;
     } else
@@ -47,7 +47,7 @@ public class SKVIRowIterator implements Iterator<Map.Entry<Key,Value>> {
       throw new RuntimeException("IOException calling skvi.next()", e);
     }
     matchRow = (skvi.hasTop() &&
-        Arrays.equals(row, skvi.getTopKey().getRowData().getBackingArray()));
+        Arrays.equals(row, skvi.getTopKey().getRowData().toArray()));
     return ret;
   }
 
@@ -66,7 +66,7 @@ public class SKVIRowIterator implements Iterator<Map.Entry<Key,Value>> {
       throw new IllegalStateException("Do not reuse SKVIRowIterator until it finishes the current row: "+new String(row));
     if (!skvi.hasTop())
       return false; // cannot reuse; no more rows
-    byte[] b = skvi.getTopKey().getRowData().getBackingArray();
+    byte[] b = skvi.getTopKey().getRowData().toArray();
     row = Arrays.copyOf(b, b.length);
     return matchRow = true;
   }

@@ -59,7 +59,7 @@ public class ConstantColQApply implements ApplyOp {
   @Override
   public Iterator<? extends Map.Entry<Key, Value>> apply(Key k, Value v) {
     Key knew;
-    knew = new Key(k.getRowData().getBackingArray(), k.getColumnFamilyData().getBackingArray(), colq, k.getColumnVisibilityData().getBackingArray(), k.getTimestamp(), k.isDeleted(), true);
+    knew = new Key(k.getRowData().toArray(), k.getColumnFamilyData().toArray(), colq, k.getColumnVisibilityData().toArray(), k.getTimestamp(), k.isDeleted(), true);
     return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(knew, v));
   }
 

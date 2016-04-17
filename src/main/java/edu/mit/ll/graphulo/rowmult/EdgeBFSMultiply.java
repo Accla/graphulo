@@ -65,21 +65,21 @@ public class EdgeBFSMultiply implements MultiplyOp, Iterator<Map.Entry<Key,Value
       Value ATval, Value Bval) {
     // maybe todo: check whether ATcolQ is of the form "out|v0"
 //    if (ATcolQ.length() < outColumnPrefix.getLength() ||
-//        0 != WritableComparator.compareBytes(ATcolQ.getBackingArray(), 0, outColumnPrefix.getLength(), outColumnPrefix.getBytes(), 0, outColumnPrefix.getLength())) {
+//        0 != WritableComparator.compareBytes(ATcolQ.toArray(), 0, outColumnPrefix.getLength(), outColumnPrefix.getBytes(), 0, outColumnPrefix.getLength())) {
 //      emitKeyFirst = emitKeySecond = null;
 //      return;
 //    }
     if (useNewTimestamp) {
       long t = System.currentTimeMillis();
-      emitKeyFirst = new Key(Mrow.getBackingArray(), ATcolF.getBackingArray(), ATcolQ.getBackingArray(),
-          useNewVisibility ? newVisibility : ATcolVis.getBackingArray(), t); // experiment with copy=false?
-      emitKeySecond = new Key(Mrow.getBackingArray(), BcolF.getBackingArray(), BcolQ.getBackingArray(),
-          useNewVisibility ? newVisibility : BcolVis.getBackingArray(), t); // experiment with copy=false?
+      emitKeyFirst = new Key(Mrow.toArray(), ATcolF.toArray(), ATcolQ.toArray(),
+          useNewVisibility ? newVisibility : ATcolVis.toArray(), t); // experiment with copy=false?
+      emitKeySecond = new Key(Mrow.toArray(), BcolF.toArray(), BcolQ.toArray(),
+          useNewVisibility ? newVisibility : BcolVis.toArray(), t); // experiment with copy=false?
     } else {
-      emitKeyFirst = new Key(Mrow.getBackingArray(), ATcolF.getBackingArray(), ATcolQ.getBackingArray(),
-          useNewVisibility ? newVisibility : ATcolVis.getBackingArray(), ATtime); // experiment with copy=false?
-      emitKeySecond = new Key(Mrow.getBackingArray(), BcolF.getBackingArray(), BcolQ.getBackingArray(),
-          useNewVisibility ? newVisibility : BcolVis.getBackingArray(), Btime); // experiment with copy=false?
+      emitKeyFirst = new Key(Mrow.toArray(), ATcolF.toArray(), ATcolQ.toArray(),
+          useNewVisibility ? newVisibility : ATcolVis.toArray(), ATtime); // experiment with copy=false?
+      emitKeySecond = new Key(Mrow.toArray(), BcolF.toArray(), BcolQ.toArray(),
+          useNewVisibility ? newVisibility : BcolVis.toArray(), Btime); // experiment with copy=false?
     }
     emitValueFirst = new Value(ATval);
     emitValueSecond = new Value(Bval);

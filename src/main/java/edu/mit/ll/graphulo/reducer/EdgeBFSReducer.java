@@ -68,7 +68,7 @@ public class EdgeBFSReducer extends ReducerSerializable<HashSet<String>> {
 
   @Override
   public void update(Key k, Value v) {
-    String nodeAfter = findNodeAfter(k.getColumnQualifierData().getBackingArray());
+    String nodeAfter = findNodeAfter(k.getColumnQualifierData().toArray());
     if (nodeAfter != null)
       setNodesReached.add(nodeAfter);
 //    log.debug("received colQ "+k.getColumnQualifier().toString()+" : now "+setNodesReached.toString());

@@ -95,8 +95,8 @@ public abstract class SimpleTwoScalar extends KeyTwoScalar implements MultiplyOp
       Value ATval, Value Bval) {
 //    System.err.println("Mrow:"+Mrow+" ATcolQ:"+ATcolQ+" BcolQ:"+BcolQ+" ATval:"+ATval+" Bval:"+Bval);
     assert ATval != null || Bval != null;
-    Key k = new Key(ATcolQ.getBackingArray(), ATcolF.getBackingArray(),
-        BcolQ.getBackingArray(), useNewVisibility ? newVisibility : GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis());
+    Key k = new Key(ATcolQ.toArray(), ATcolF.toArray(),
+        BcolQ.toArray(), useNewVisibility ? newVisibility : GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis());
     Value v = reverse ? multiply(Bval, ATval) : multiply(ATval, Bval);
     return v == null ? Collections.<Entry<Key,Value>>emptyIterator() : Iterators.singletonIterator(new SimpleImmutableEntry<>(k, v));
   }
@@ -110,8 +110,8 @@ public abstract class SimpleTwoScalar extends KeyTwoScalar implements MultiplyOp
     // Important!  Aval xor Bval could be null, if emitNoMatchA or emitNoMatchB are true in TwoTableIterator.
     // Decision is to emit the non-matching entries untouched by the operation.  This is a *SIMPLETwoScalar* operator.
     assert Aval != null || Bval != null;
-    final Key k = new Key(Mrow.getBackingArray(), McolF.getBackingArray(),
-        McolQ.getBackingArray(), useNewVisibility ? newVisibility : McolVis.getBackingArray(), System.currentTimeMillis());
+    final Key k = new Key(Mrow.toArray(), McolF.toArray(),
+        McolQ.toArray(), useNewVisibility ? newVisibility : McolVis.toArray(), System.currentTimeMillis());
     if (Aval == null)
       return Iterators.singletonIterator(new SimpleImmutableEntry<>(k, Bval));
     if (Bval == null)

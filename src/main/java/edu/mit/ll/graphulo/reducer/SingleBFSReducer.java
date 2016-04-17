@@ -75,7 +75,7 @@ public class SingleBFSReducer extends ReducerSerializable<HashSet<String>> {
     String rStr;
     {
       ByteSequence rowData = k.getRowData();
-      rStr = new String(rowData.getBackingArray(), rowData.offset(), rowData.length());
+      rStr = new String(rowData.toArray(), rowData.offset(), rowData.length());
     }
     int pos = rStr.indexOf(edgeSep);
     if (pos == -1)

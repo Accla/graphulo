@@ -239,7 +239,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
     Key startKey = range.getStartKey();
     if (startKey == null)
       return null;
-    String startRow = new String(startKey.getRowData().getBackingArray());
+    String startRow = new String(startKey.getRowData().toArray());
     if (!range.isStartKeyInclusive())
       return startRow+'\0';
     else
@@ -250,7 +250,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
     Key endKey = range.getEndKey();
     if (endKey == null)
       return null;
-    String endRow = new String(endKey.getRowData().getBackingArray());
+    String endRow = new String(endKey.getRowData().toArray());
     if (!range.isEndKeyInclusive())
       return prevRow(endRow);
     else
@@ -403,17 +403,17 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
       return null;
     switch (pk) {
       case ROW:
-        return new Key(key.getRowData().getBackingArray(), EMPTY_BYTES, EMPTY_BYTES, EMPTY_BYTES, Long.MAX_VALUE, false, true);
+        return new Key(key.getRowData().toArray(), EMPTY_BYTES, EMPTY_BYTES, EMPTY_BYTES, Long.MAX_VALUE, false, true);
       case ROW_COLFAM:
-        return new Key(key.getRowData().getBackingArray(), key.getColumnFamilyData().getBackingArray(), EMPTY_BYTES, EMPTY_BYTES, Long.MAX_VALUE, false, true);
+        return new Key(key.getRowData().toArray(), key.getColumnFamilyData().toArray(), EMPTY_BYTES, EMPTY_BYTES, Long.MAX_VALUE, false, true);
       case ROW_COLFAM_COLQUAL:
-        return new Key(key.getRowData().getBackingArray(), key.getColumnFamilyData().getBackingArray(), key.getColumnQualifierData().getBackingArray(), EMPTY_BYTES, Long.MAX_VALUE, false, true);
+        return new Key(key.getRowData().toArray(), key.getColumnFamilyData().toArray(), key.getColumnQualifierData().toArray(), EMPTY_BYTES, Long.MAX_VALUE, false, true);
       case ROW_COLFAM_COLQUAL_COLVIS:
-        return new Key(key.getRowData().getBackingArray(), key.getColumnFamilyData().getBackingArray(), key.getColumnQualifierData().getBackingArray(), key.getColumnVisibilityData().getBackingArray(), Long.MAX_VALUE, false, true);
+        return new Key(key.getRowData().toArray(), key.getColumnFamilyData().toArray(), key.getColumnQualifierData().toArray(), key.getColumnVisibilityData().toArray(), Long.MAX_VALUE, false, true);
       case ROW_COLFAM_COLQUAL_COLVIS_TIME:
-        return new Key(key.getRowData().getBackingArray(), key.getColumnFamilyData().getBackingArray(), key.getColumnQualifierData().getBackingArray(), key.getColumnVisibilityData().getBackingArray(), key.getTimestamp(), false, true);
+        return new Key(key.getRowData().toArray(), key.getColumnFamilyData().toArray(), key.getColumnQualifierData().toArray(), key.getColumnVisibilityData().toArray(), key.getTimestamp(), false, true);
       case ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL:
-        return new Key(key.getRowData().getBackingArray(), key.getColumnFamilyData().getBackingArray(), key.getColumnQualifierData().getBackingArray(), key.getColumnVisibilityData().getBackingArray(), key.getTimestamp(), key.isDeleted(), true);
+        return new Key(key.getRowData().toArray(), key.getColumnFamilyData().toArray(), key.getColumnQualifierData().toArray(), key.getColumnVisibilityData().toArray(), key.getTimestamp(), key.isDeleted(), true);
       default:
         throw new AssertionError("unknown pk: "+pk);
     }
@@ -885,8 +885,8 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
         ByteSequence rowData = k.getRowData(),
             cfData = k.getColumnFamilyData(),
             cqData = k.getColumnQualifierData();
-        Mutation m = new Mutation(rowData.getBackingArray(), rowData.offset(), rowData.length());
-        m.put(cfData.getBackingArray(), cqData.getBackingArray(), k.getColumnVisibilityParsed(), entry.getValue().get());
+        Mutation m = new Mutation(rowData.toArray(), rowData.offset(), rowData.length());
+        m.put(cfData.toArray(), cqData.toArray(), k.getColumnVisibilityParsed(), entry.getValue().get());
         bw.addMutation(m);
       }
 

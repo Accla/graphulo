@@ -111,7 +111,7 @@ public class MinMaxFilter extends Filter {
   public boolean accept(Key k, Value v) {
     byte[] num;
     if (useColQ) {
-      String s = GraphuloUtil.stringAfter(prefixColQ, k.getColumnQualifierData().getBackingArray());
+      String s = GraphuloUtil.stringAfter(prefixColQ, k.getColumnQualifierData().toArray());
       if (s == null) {
 //        log.info("REJECT NULL: "+k+" -> "+v+" ("+s+")");
         return false; // reject entries that do not match the prefix pattern

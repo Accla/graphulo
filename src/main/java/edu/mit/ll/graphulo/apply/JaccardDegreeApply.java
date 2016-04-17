@@ -8,6 +8,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
@@ -24,7 +25,10 @@ import java.util.Map;
 /**
  * Applies <tt>J_ij = J_ij / (d_i + d_j - J_ij)</tt>.
  * <p>
- *   Only acts when the column qualifier ends with two 0 bytes. This gives idempotency at the expense of a "hack."
+ *   Only runs on scan and full major compactions,
+ *   because JaccardDegreeApply must see all entries for a given key in order to correctly apply.
+ *   Idempotent by a clever trick: JaccardDegreeApply will not touch values that have a decimal point '.'.
+ *   It will run on values that do not have a decimal point, and it will always produce a decimal point when applied.
  * <p>
  * Possible future optimization: only need to scan the part of the degree table
  * that is after the seek range's beginning row. For example, if seeked to [v3,v5),
@@ -49,6 +53,13 @@ public class JaccardDegreeApply implements ApplyOp {
 
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
+    // only run on scan or full major compaction
+    if (!env.getIteratorScope().equals(IteratorUtil.IteratorScope.scan)
+        && !(env.getIteratorScope().equals(IteratorUtil.IteratorScope.majc) && env.isFullMajorCompaction())) {
+      remoteDegTable = null;
+      degMap = null;
+      return;
+    }
     remoteDegTable = new RemoteSourceIterator();
     remoteDegTable.init(null, options, env);
     degMap = new HashMap<>();
@@ -67,9 +78,10 @@ public class JaccardDegreeApply implements ApplyOp {
 
   @Override
   public Iterator<? extends Map.Entry<Key, Value>> apply(final Key k, Value v) {
-//    Key newKey = ColQSpecialByteApply.removeSpecialBytes(k);
-//    if (newKey == null)
-//      return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(k, v));
+    // check to make sure we're running on scan or full major compaction
+    if (remoteDegTable == null)
+      return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(k, v));
+
     // Period indicates already processed Double value. No period indicates unprocessed Long value.
     String vstr = v.toString();
     if (vstr.contains("."))

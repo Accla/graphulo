@@ -35,7 +35,10 @@ public class MathTwoScalar extends SimpleTwoScalar {
   public enum ScalarType /*implements Encoder*/ {
     LONG(/*new SummingCombiner.StringEncoder()*/),
     DOUBLE(/*new DoubleEncoder()*/),
-    BIGDECIMAL(/*new BigDecimalCombiner.BigDecimalEncoder()*/)
+    BIGDECIMAL(/*new BigDecimalCombiner.BigDecimalEncoder()*/),
+    /** Parses as long if the input has a decimal point. Otherwise parses as double.
+     * Returns as long if both inputs parsed as long. Otherwise returns as double. */
+    LONG_OR_DOUBLE
 
 
     // Core Developer note: I tried to make the encoding and decoding generic,
@@ -121,7 +124,7 @@ public class MathTwoScalar extends SimpleTwoScalar {
       Combiner.setCombineAllColumns(itset, true);
     else
       Combiner.setColumns(itset, columns);
-    itset.addOptions(optionMap(op, type, null, false)); // no newVisibility needed for Combiner usage
+    itset.addOptions(optionMap(op, type, null, keepZero)); // no newVisibility needed for Combiner usage
     return itset;
   }
 
@@ -173,18 +176,30 @@ public class MathTwoScalar extends SimpleTwoScalar {
     }
 
     Number Anum, Bnum;
+    String Astr = new String(Aval.get()), Bstr = new String(Bval.get());
     switch(scalarType) {
       case LONG:
-        Anum = Long.valueOf(new String(Aval.get()));
-        Bnum = Long.valueOf(new String(Bval.get()));
+        Anum = Long.valueOf(Astr);
+        Bnum = Long.valueOf(Bstr);
         break;
       case DOUBLE:
-        Anum = Double.valueOf(new String(Aval.get()));
-        Bnum = Double.valueOf(new String(Bval.get()));
+        Anum = Double.valueOf(Astr);
+        Bnum = Double.valueOf(Bstr);
         break;
       case BIGDECIMAL:
-        Anum = new BigDecimal(new String(Aval.get()));
-        Bnum = new BigDecimal(new String(Bval.get()));
+        Anum = new BigDecimal(Astr);
+        Bnum = new BigDecimal(Bstr);
+        break;
+      case LONG_OR_DOUBLE:
+        boolean Along = Astr.indexOf('.') == -1, Blong = Bstr.indexOf('.') == -1;
+        boolean ABlong = Along && Blong;
+        scalarType = ABlong ? ScalarType.LONG : ScalarType.DOUBLE;
+        Anum = ABlong
+            ? Long.valueOf(Astr)
+            : Double.valueOf(Astr);
+        Bnum = ABlong
+            ? Long.valueOf(Bstr)
+            : Double.valueOf(Bstr);
         break;
       default: throw new AssertionError();
     }

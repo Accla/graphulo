@@ -2126,8 +2126,9 @@ public class Graphulo {
     // ^^^ I have relaxed this condition to allow pre-creating result table. Make sure it is a fresh table with no iterators on it.
 
     // "Plus" iterator to set on Rfinal
+    // This should run only on scans and full major compactions
     IteratorSetting RPlusIteratorSetting = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, null)
-      .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.LONG, false))
+      .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.LONG_OR_DOUBLE, false)) // LONG_OR_DOUBLE preserves impotence
       .append(JaccardDegreeApply.iteratorSetting(1, basicRemoteOpts(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX, ADeg, null, Aauthorizations)))
       .toIteratorSetting();
 

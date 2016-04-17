@@ -66,7 +66,8 @@ public class SamplingFilter extends Filter {
   public boolean validateOptions(Map<String, String> options) {
     if (!options.containsKey(PROBABILITY))
       throw new IllegalArgumentException(PROBABILITY+" is a required option");
-    double probability = Double.parseDouble(options.get(PROBABILITY));
+    //noinspection ResultOfMethodCallIgnored
+    Double.parseDouble(options.get(PROBABILITY));
     return super.validateOptions(options);
   }
 }

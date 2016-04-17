@@ -59,30 +59,40 @@ public class MinMaxFilter extends Filter {
     super.init(source, options, env);
     if (options.containsKey(MathTwoScalar.SCALAR_TYPE))
       scalarType = MathTwoScalar.ScalarType.valueOf(options.get(MathTwoScalar.SCALAR_TYPE));
+    if (scalarType == MathTwoScalar.ScalarType.LONG_OR_DOUBLE)
+      scalarType = MathTwoScalar.ScalarType.DOUBLE;
+    handleOptions(options);
+
+    log.debug("minValue="+minValue+" maxValue="+maxValue+" useColQ="+useColQ+" prefixColQ="+
+        (new String(prefixColQ)));
+  }
+
+  private Number parseGeneric(String val) {
+    switch (scalarType) {
+      case LONG: return Long.parseLong(val);
+      case DOUBLE: return Double.parseDouble(val);
+      case BIGDECIMAL: return new BigDecimal(val);
+      default: throw new IllegalArgumentException("Unrecognized type: "+scalarType);
+    }
+  }
+
+  private void handleOptions(Map<String,String> options) {
     if (options.containsKey(MINVALUE)) {
-      switch (scalarType) {
-        case LONG: minValue = Long.parseLong(options.get(MINVALUE)); break;
-        case DOUBLE: minValue = Double.parseDouble(options.get(MINVALUE)); break;
-        case BIGDECIMAL: minValue = new BigDecimal(options.get(MINVALUE)); break;
-      }
+      minValue = parseGeneric(options.get(MINVALUE));
     } else {
       switch (scalarType) {
-        case LONG:        minValue = 0l; break;
+        case LONG:        minValue = 0L; break;
         case DOUBLE:      minValue = 0.0d; break;
         case BIGDECIMAL:  minValue = BigDecimal.ZERO; break;
       }
     }
     if (options.containsKey(MAXVALUE)) {
-      switch (scalarType) {
-        case LONG:        maxValue = Long.parseLong(options.get(    MAXVALUE)); break;
-        case DOUBLE:      maxValue = Double.parseDouble(options.get(MAXVALUE)); break;
-        case BIGDECIMAL:  maxValue = new BigDecimal(options.get(    MAXVALUE)); break;
-      }
+      maxValue = parseGeneric(options.get(MAXVALUE));
     } else {
       switch (scalarType) {
         case LONG:        maxValue = Long.MAX_VALUE; break;
-        case DOUBLE:      maxValue = (double)Long.MAX_VALUE; break;
-        case BIGDECIMAL:  maxValue = BigDecimal.valueOf(Long.MAX_VALUE); break;
+        case DOUBLE:      maxValue = Double.MAX_VALUE; break;
+        case BIGDECIMAL:  maxValue = BigDecimal.valueOf(Double.MAX_VALUE); break;
       }
     }
     boolean bad = false;
@@ -102,9 +112,6 @@ public class MinMaxFilter extends Filter {
         prefixColQ = new byte[0];
     } else
       prefixColQ = new byte[0];
-
-    log.debug("minValue="+minValue+" maxValue="+maxValue+" useColQ="+useColQ+" prefixColQ="+
-        (new String(prefixColQ)));
   }
 
   @Override
@@ -172,55 +179,7 @@ public class MinMaxFilter extends Filter {
 
   @Override
   public boolean validateOptions(Map<String, String> options) {
-    Number minValue = 0l, maxValue = Long.MAX_VALUE;
-    MathTwoScalar.ScalarType scalarType = MathTwoScalar.ScalarType.LONG;
-    boolean useColQ = false;
-    byte[] prefixColQ;
-    if (options.containsKey(MathTwoScalar.SCALAR_TYPE))
-      scalarType = MathTwoScalar.ScalarType.valueOf(options.get(MathTwoScalar.SCALAR_TYPE));
-    if (options.containsKey(MINVALUE)) {
-      switch (scalarType) {
-        case LONG: minValue = Long.parseLong(options.get(MINVALUE)); break;
-        case DOUBLE: minValue = Double.parseDouble(options.get(MINVALUE)); break;
-        case BIGDECIMAL: minValue = new BigDecimal(options.get(MINVALUE)); break;
-      }
-    } else {
-      switch (scalarType) {
-        case LONG:        minValue = 0l; break;
-        case DOUBLE:      minValue = 0.0d; break;
-        case BIGDECIMAL:  minValue = BigDecimal.ZERO; break;
-      }
-    }
-    if (options.containsKey(MAXVALUE)) {
-      switch (scalarType) {
-        case LONG:        maxValue = Long.parseLong(options.get(    MAXVALUE)); break;
-        case DOUBLE:      maxValue = Double.parseDouble(options.get(MAXVALUE)); break;
-        case BIGDECIMAL:  maxValue = new BigDecimal(options.get(    MAXVALUE)); break;
-      }
-    } else {
-      switch (scalarType) {
-        case LONG:        maxValue = Long.MAX_VALUE; break;
-        case DOUBLE:      maxValue = (double)Long.MAX_VALUE; break;
-        case BIGDECIMAL:  maxValue = BigDecimal.valueOf(Long.MAX_VALUE); break;
-      }
-    }
-    boolean bad = false;
-    switch (scalarType) {
-      case LONG:        if (maxValue.longValue() < minValue.longValue()) bad = true; break;
-      case DOUBLE:      if (maxValue.doubleValue() < minValue.doubleValue()) bad = true; break;
-      case BIGDECIMAL:  if (((BigDecimal)maxValue).compareTo((BigDecimal)minValue) < 0) bad = true; break;
-    }
-    if (bad)
-      throw new IllegalArgumentException("maxValue < minValue: "+maxValue+" < "+minValue);
-
-    if (options.containsKey(USECOLQ) && Boolean.parseBoolean(options.get(USECOLQ))) {
-      useColQ = true;
-      if (options.containsKey(PREFIXCOLQ))
-        prefixColQ = options.get(PREFIXCOLQ).getBytes();
-      else
-        prefixColQ = new byte[0];
-    }
-
+    new MinMaxFilter().handleOptions(options);
     return super.validateOptions(options);
   }
 }

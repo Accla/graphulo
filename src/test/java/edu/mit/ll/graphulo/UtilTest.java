@@ -641,14 +641,14 @@ public class UtilTest {
 
   @Test
   public void testNumD4mStr() {
-    Assert.assertEquals(0, GraphuloUtil.NumD4mStr(null));
-    Assert.assertEquals(0, GraphuloUtil.NumD4mStr(""));
-    Assert.assertEquals(1, GraphuloUtil.NumD4mStr(","));
-    Assert.assertEquals(2, GraphuloUtil.NumD4mStr(",,"));
-    Assert.assertEquals(2, GraphuloUtil.NumD4mStr(",a,"));
-    Assert.assertEquals(2, GraphuloUtil.NumD4mStr("a,b,"));
-    Assert.assertEquals(3, GraphuloUtil.NumD4mStr("zcsazfcdsf,sgrsdgf,asxcawsd,"));
-    Assert.assertEquals(4, GraphuloUtil.NumD4mStr("235trwgrt5h5;ewr;34rf;;"));
+    Assert.assertEquals(0, GraphuloUtil.numD4mStr(null));
+    Assert.assertEquals(0, GraphuloUtil.numD4mStr(""));
+    Assert.assertEquals(1, GraphuloUtil.numD4mStr(","));
+    Assert.assertEquals(2, GraphuloUtil.numD4mStr(",,"));
+    Assert.assertEquals(2, GraphuloUtil.numD4mStr(",a,"));
+    Assert.assertEquals(2, GraphuloUtil.numD4mStr("a,b,"));
+    Assert.assertEquals(3, GraphuloUtil.numD4mStr("zcsazfcdsf,sgrsdgf,asxcawsd,"));
+    Assert.assertEquals(4, GraphuloUtil.numD4mStr("235trwgrt5h5;ewr;34rf;;"));
   }
 
   @Test

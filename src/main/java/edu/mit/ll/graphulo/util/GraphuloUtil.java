@@ -685,7 +685,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
    * @param s D4M String
    * @return Number of terms in the D4M String.
    */
-  public static int NumD4mStr(String s) {
+  public static int numD4mStr(String s) {
     if (s == null || s.isEmpty())
       return 0;
     if (s.contains(":"))

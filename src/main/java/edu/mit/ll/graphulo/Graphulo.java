@@ -2126,13 +2126,17 @@ public class Graphulo {
 //    Preconditions.checkArgument(!tops.exists(Rfinal), "Output Jaccard table must not exist: Rfinal=%s", Rfinal); // this could be relaxed, at the possibility of peril
     // ^^^ I have relaxed this condition to allow pre-creating result table. Make sure it is a fresh table with no iterators on it.
 
-    // "Plus" iterator to set on Rfinal
-    // This should run only on scans and full major compactions
+    // "Plus" iterator to set on Rfinal. In order to achieve idempotence,
+    // the combiner runs on all scopes and maintains type (long or double).
+    // In order to achieve correctness, JaccardDegreeApply only runs on scan and full major compaction scopes.
+    // If the Graphulo API were slightly more flexible, we would assign the combiner all scopes
+    // and assign JaccardDegreeApply only scan and majc scopes.
     IteratorSetting RPlusIteratorSetting = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, null)
       .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.LONG_OR_DOUBLE, false)) // LONG_OR_DOUBLE preserves impotence
       .append(JaccardDegreeApply.iteratorSetting(1, basicRemoteOpts(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX, ADeg, null, Aauthorizations)))
       .toIteratorSetting();
-    GraphuloUtil.addOnScopeOption(RPlusIteratorSetting, EnumSet.of(IteratorUtil.IteratorScope.scan, IteratorUtil.IteratorScope.majc));
+    // The following is incorrect. Need the Combiner to run on minc scope, or else the VersioningIterator will eat away matching entries.
+//    GraphuloUtil.addOnScopeOption(RPlusIteratorSetting, EnumSet.of(IteratorUtil.IteratorScope.scan, IteratorUtil.IteratorScope.majc));
 
     // use a deepCopy of the local iterator on A for the left part of the TwoTable
     long npp = TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Aorig, Rfinal, null, -1,

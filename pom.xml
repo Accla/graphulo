@@ -39,7 +39,7 @@
     <DBinit.path.libextZip>graphulo-${project.version}-libext</DBinit.path.libextZip>
     <test>TEST_CONFIG</test>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <accumulo.version>1.7.0</accumulo.version>
+    <accumulo.version>1.7.1</accumulo.version>
     <accumulo.version.majorminor>1.7</accumulo.version.majorminor>
     <!--<accumulo.VERSION.1.7>  </accumulo.VERSION.1.7>-->
     <!--<accumulo.VERSION.1.6>//</accumulo.VERSION.1.6>-->
@@ -363,6 +363,17 @@
   </build>
 
   <profiles>
+    <!-- This profile stops javadoc from complaining on mvn install. -->
+    <profile>
+      <id>JDK 8 Build</id>
+      <activation>
+        <jdk>[1.8,)</jdk>
+      </activation>
+      <properties>
+        <additionalparam>-Xdoclint:none</additionalparam>
+      </properties>
+    </profile>
+
     <profile>
       <id>linux-build-DBinit</id>
       <activation>

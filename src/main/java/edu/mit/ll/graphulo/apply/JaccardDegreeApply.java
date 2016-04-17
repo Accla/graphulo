@@ -31,7 +31,7 @@ import java.util.Map;
  *   It will run on values that do not have a decimal point, and it will always produce a decimal point when applied.
  * <p>
  * Possible future optimization: only need to scan the part of the degree table
- * that is after the seek range's beginning row. For example, if seeked to [v3,v5),
+ * that is after the seek range's beginning trow. For example, if seeked to [v3,v5),
  * we should scan the degree table on (v3,+inf) and load those degrees into a Map.
  * <p>
  * Preserves keys.
@@ -76,8 +76,15 @@ public class JaccardDegreeApply implements ApplyOp {
     }
   }
 
+  // for debugging:
+//  private static final Text t1 = new Text("1"), t10 = new Text("10");
+//  private Text trow = new Text(), tcol = new Text();
+
   @Override
   public Iterator<? extends Map.Entry<Key, Value>> apply(final Key k, Value v) {
+//    if (k.getRow(trow).equals(t1) && k.getColumnQualifier(tcol).equals(t10))
+//      log.warn("On k="+k.toStringNoTime()+" v="+new String(v.get()));
+
     // check to make sure we're running on scan or full major compaction
     if (remoteDegTable == null)
       return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(k, v));
@@ -86,14 +93,19 @@ public class JaccardDegreeApply implements ApplyOp {
     String vstr = v.toString();
     if (vstr.contains("."))
       return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(k, v));
+    long Jij_long = Long.parseLong(vstr);
+    if (Jij_long == 0)
+      return null; // no need to keep entries with value zero
+    double Jij = Jij_long;
 
     String row = k.getRow().toString(), col = k.getColumnQualifier().toString();
     Double rowDeg = degMap.get(row), colDeg = degMap.get(col);
+//    if (trow.equals(t1) && tcol.equals(t10))
+//      log.warn("On k="+k.toStringNoTime()+" v="+new String(v.get())+" do with rowDeg="+rowDeg+" and colDeg="+colDeg+" for: "+(Jij / (rowDeg+colDeg-Jij)));
     if (rowDeg == null)
       throw new IllegalStateException("Cannot find rowDeg in degree table:" +row);
     if (colDeg == null)
       throw new IllegalStateException("Cannot find colDeg in degree table:" +col);
-    double Jij = Long.parseLong(vstr);
     return Iterators.singletonIterator( new AbstractMap.SimpleImmutableEntry<>(k,
         new Value(Double.toString(Jij / (rowDeg+colDeg-Jij)).getBytes())
     ));

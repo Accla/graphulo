@@ -364,7 +364,6 @@ public class UtilTest {
 
   @Test
   public void testPrependStartPrefix() {
-    char sep = ',';
     String startPrefix = "out|,";
     String v0 = "v1,v3,v0,";
     Collection<Text> vktexts = GraphuloUtil.d4mRowToTexts(v0);
@@ -439,7 +438,6 @@ public class UtilTest {
       System.arraycopy(b,0,ret,pos,b.length);
       pos += b.length;
     }
-
     Assert.assertEquals("abcxyz",new String(ret, StandardCharsets.UTF_8));
   }
 
@@ -509,7 +507,7 @@ public class UtilTest {
     Collection<Range> set = GraphuloUtil.d4mRowToRanges(s, true);
     log.debug(set);
     String s2 = GraphuloUtil.rangesToD4MString(set,',');
-    byte[] b2 = s.getBytes();
+//    byte[] b2 = s.getBytes();
     log.debug(Key.toPrintableString(b, 0, b.length, b.length));
     // establish fixpoint
     Assert.assertEquals(s, s2);

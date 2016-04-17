@@ -19,6 +19,7 @@ import java.io.IOException;
 @RunWith(KnownBugSuite.class)
 @Suite.SuiteClasses({
     UtilTest.class,
+    AccumuloApiTest.class,
     InjectTest.class,
     RemoteIteratorTest.class,
     TableMultIteratorTest.class,

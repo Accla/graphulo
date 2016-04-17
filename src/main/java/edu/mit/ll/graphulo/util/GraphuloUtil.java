@@ -331,17 +331,50 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
     return ranges;
   }
 
+  public static final String ONSCOPE_OPTION = "_ONSCOPE_";
+
+  /**
+   * Helper method for adding an option to an iterator
+   * which OneTable and TwoTable Graphulo operations will interpret to limit the scopes an iterator applies to.
+   * @param scopes Scopes to limit the iterator to. Only meaningful if not null, not empty, and not all.
+   *               Choices are from {@link org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope}: scan, minc, majc.
+   * @return The same IteratorSetting as the one passed in.
+   */
+  public static IteratorSetting addOnScopeOption(IteratorSetting itset, EnumSet<IteratorUtil.IteratorScope> scopes) {
+    if (scopes == null || scopes.isEmpty() || scopes.size() == IteratorUtil.IteratorScope.values().length)
+      return itset;
+    String s = "";
+    for (IteratorUtil.IteratorScope scope : scopes) {
+      s += scope.name() + ',';
+    }
+    itset.addOption(ONSCOPE_OPTION, s);
+    return itset;
+  }
+
   /**
    * Add the given Iterator to a table on scan, minc, majc scopes.
    * If already present on a scope, does not re-add the iterator to that scope.
    * Call it "plus".
+   * <p>
+   * Respects {@link #ONSCOPE_OPTION} if present from {@link #addOnScopeOption}.
    */
   public static void applyIteratorSoft(IteratorSetting itset, TableOperations tops, String table) {
+    // check for special option
+    String scopeStrs = itset.getOptions().get(ONSCOPE_OPTION);
+    EnumSet<IteratorUtil.IteratorScope> scopesToConsider;
+    if (scopeStrs != null && !scopeStrs.isEmpty()) {
+      scopesToConsider = EnumSet.noneOf(IteratorUtil.IteratorScope.class);
+      for (String scope : splitD4mString(scopeStrs))
+        scopesToConsider.add(
+            IteratorUtil.IteratorScope.valueOf(scope.toLowerCase()));
+    } else
+      scopesToConsider = EnumSet.allOf(IteratorUtil.IteratorScope.class);
+
     // checking if iterator already exists. Not checking for conflicts.
     try {
       IteratorSetting existing;
       EnumSet<IteratorUtil.IteratorScope> enumSet = EnumSet.noneOf(IteratorUtil.IteratorScope.class);
-      for (IteratorUtil.IteratorScope scope : IteratorUtil.IteratorScope.values()) {
+      for (IteratorUtil.IteratorScope scope : scopesToConsider) {
         existing = tops.getIteratorSetting(table, itset.getName(), scope);
         if (existing == null)
           enumSet.add(scope);

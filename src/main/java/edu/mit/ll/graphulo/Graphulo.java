@@ -93,6 +93,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import static edu.mit.ll.graphulo.skvi.TriangularFilter.TriangularType;
+import static edu.mit.ll.graphulo.util.GraphuloUtil.ONSCOPE_OPTION;
 
 /**
  * Holds a {@link org.apache.accumulo.core.client.Connector} to an Accumulo instance for calling client Graphulo operations.
@@ -2131,6 +2132,7 @@ public class Graphulo {
       .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.LONG_OR_DOUBLE, false)) // LONG_OR_DOUBLE preserves impotence
       .append(JaccardDegreeApply.iteratorSetting(1, basicRemoteOpts(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX, ADeg, null, Aauthorizations)))
       .toIteratorSetting();
+    GraphuloUtil.addOnScopeOption(RPlusIteratorSetting, EnumSet.of(IteratorUtil.IteratorScope.scan, IteratorUtil.IteratorScope.majc));
 
     // use a deepCopy of the local iterator on A for the left part of the TwoTable
     long npp = TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Aorig, Rfinal, null, -1,

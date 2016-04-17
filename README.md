@@ -446,6 +446,14 @@ Using the same name for two iterators on the same table in the same scope
 may result in exceptions at best and logical errors at worst.
 Be especially careful with the name of a DynamicIterator.
 
+Sometimes iterators need to apply to a limited number of scopes.
+OneTable and TwoTable have a special rule for respecting this for combiners applied to the results table.
+When an iterator is given to One- or TwoTable with the special option "_ONSCOPE_",
+Graphulo parses option value as a D4M string with the keywords "scan", "minc", and/or "majc".
+If at least one of them is present, then Graphulo will only add the iterator to the present scopes.
+Otherwise Graphulo adds the iterator to all three scopes.
+Use `GraphuloUtil.addOnScopeOption` to do this automatically.
+
 ##### RemoteSourceIterator
 * `rowRanges` Row ranges to fetch from remote Accumulo table, Matlab syntax. (default ":," all) 
 * `colFilter` String representation of column qualifiers, e.g. "a,b,c,".

@@ -2122,21 +2122,14 @@ public class Graphulo {
                       String filterRowCol, Authorizations Aauthorizations, String RNewVisibility) {
     checkGiven(true, "Aorig, ADeg", Aorig, ADeg);
     Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
-    TableOperations tops = connector.tableOperations();
+//    TableOperations tops = connector.tableOperations();
 //    Preconditions.checkArgument(!tops.exists(Rfinal), "Output Jaccard table must not exist: Rfinal=%s", Rfinal); // this could be relaxed, at the possibility of peril
     // ^^^ I have relaxed this condition to allow pre-creating result table. Make sure it is a fresh table with no iterators on it.
 
     // "Plus" iterator to set on Rfinal. In order to achieve idempotence,
     // the combiner runs on all scopes and maintains type (long or double).
-    // In order to achieve correctness, JaccardDegreeApply only runs on scan and full major compaction scopes.
-    // If the Graphulo API were slightly more flexible, we would assign the combiner all scopes
-    // and assign JaccardDegreeApply only scan and majc scopes.
-    IteratorSetting RPlusIteratorSetting = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, null)
-      .append(MathTwoScalar.combinerSetting(1, null, ScalarOp.PLUS, ScalarType.LONG_OR_DOUBLE, false)) // LONG_OR_DOUBLE preserves impotence
-      .append(JaccardDegreeApply.iteratorSetting(1, basicRemoteOpts(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX, ADeg, null, Aauthorizations)))
-      .toIteratorSetting();
-    // The following is incorrect. Need the Combiner to run on minc scope, or else the VersioningIterator will eat away matching entries.
-//    GraphuloUtil.addOnScopeOption(RPlusIteratorSetting, EnumSet.of(IteratorUtil.IteratorScope.scan, IteratorUtil.IteratorScope.majc));
+    IteratorSetting RPlusIteratorSetting = MathTwoScalar.combinerSetting(
+        DEFAULT_COMBINER_PRIORITY, null, ScalarOp.PLUS, ScalarType.LONG_OR_DOUBLE, false);
 
     // use a deepCopy of the local iterator on A for the left part of the TwoTable
     long npp = TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Aorig, Rfinal, null, -1,
@@ -2149,8 +2142,14 @@ public class Graphulo {
         Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularType.Upper)),
         Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularType.Upper)),
         null, null, -1, Aauthorizations, Aauthorizations);
-
     log.debug("Jaccard #partial products " + npp);
+
+    // Because JaccardDegreeApply must see all entries, apply JaccardDegreeApply on scan and majc after the TableMult.
+    IteratorSetting jda = JaccardDegreeApply.iteratorSetting(
+        DEFAULT_COMBINER_PRIORITY+1, basicRemoteOpts(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX, ADeg, null, Aauthorizations));
+    jda = GraphuloUtil.addOnScopeOption(jda, EnumSet.of(IteratorUtil.IteratorScope.scan, IteratorUtil.IteratorScope.majc));
+    GraphuloUtil.applyIteratorSoft(jda, connector.tableOperations(), Rfinal);
+
     return npp;
   }
 

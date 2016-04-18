@@ -171,9 +171,11 @@ public class MathTwoScalar extends SimpleTwoScalar {
   @SuppressWarnings("ConstantConditions")
   @Override
   public Value multiply(Value Aval, Value Bval) {
-    if (scalarOp == ScalarOp.SET_LEFT) {
+    // local copy that may be re-assigned in the case of LONG_OR_DOUBLE
+    ScalarType scalarType = this.scalarType;
+
+    if (scalarOp == ScalarOp.SET_LEFT)
       return Aval;
-    }
 
     Number Anum, Bnum;
     String Astr = new String(Aval.get()), Bstr = new String(Bval.get());

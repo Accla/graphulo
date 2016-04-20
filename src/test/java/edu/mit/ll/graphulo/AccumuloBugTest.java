@@ -6,10 +6,14 @@ import edu.mit.ll.graphulo.util.TestUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -21,6 +25,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.SortedMap;
@@ -28,10 +33,17 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import static edu.mit.ll.graphulo.AccumuloApiTest.NO_VISIBILITY;
+import static edu.mit.ll.graphulo.util.GraphuloUtil.EMPTY_BYTES;
+
 /**
  * Holds tests that reproduce Accumulo bugs.
  */
 public class AccumuloBugTest extends AccumuloTestBase {
+  private static final byte[] BIG_CHUNK = new byte[1000];
+  static {
+    Arrays.fill(AccumuloBugTest.BIG_CHUNK, (byte)42);
+  }
   private static final Logger log = LogManager.getLogger(AccumuloBugTest.class);
 
   @BeforeClass
@@ -92,5 +104,74 @@ public class AccumuloBugTest extends AccumuloTestBase {
 
     connector.tableOperations().delete(tA);
   }
+
+
+  /**
+   * Break Accumulo by creating too low a split threshold, resulting in too many files.
+   */
+  @Test
+  public void testSplitDuringWriteHeavy() throws TableNotFoundException, AccumuloSecurityException, AccumuloException, InterruptedException {
+    Connector conn = tester.getConnector();
+    TableOperations tops = conn.tableOperations();
+    final String t = getUniqueNames(1)[0];
+    TestUtil.createTestTable(conn, t);
+
+    String threshold = "50K";
+    try {
+      tops.setProperty(t, "table.split.threshold", threshold);
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      Assert.fail("cannot set table.split.threshold property for " + t + " to "+threshold);
+    }
+
+    {
+      BatchWriterConfig bwc = new BatchWriterConfig();
+      bwc.setMaxWriteThreads(2);
+      bwc.setMaxMemory(50000);
+      BatchWriter bw = conn.createBatchWriter(t, new BatchWriterConfig());
+
+      for (int i = 0; i < 2000005; i++) {
+        StringBuilder sb = new StringBuilder(Integer.toString(i));
+        String vStr = sb.toString();
+        byte[] v = vStr.getBytes();
+        String rowStr = sb.reverse().toString();
+        byte[] row = rowStr.getBytes();
+
+        Mutation m = new Mutation(row);
+        long ts = System.currentTimeMillis();
+        m.put(EMPTY_BYTES, EMPTY_BYTES, NO_VISIBILITY, ts, BIG_CHUNK);
+        bw.addMutation(m);
+//        expect.put(new Key(row, EMPTY_BYTES, EMPTY_BYTES, EMPTY_BYTES, ts, false), new Value(v));
+
+        if (i % 100000 == 0) {
+//          tops.flush(t, null, null, false);
+//          Thread.sleep(500);
+        }
+//        if (i % 200000 == 0) {
+//          SortedSet<Text> splits = new TreeSet<>();
+//          splits.add(new Text(Integer.toString(i/50000).getBytes()));
+//          tops.addSplits(t, splits);
+//        }
+      }
+      bw.close();
+
+//      BatchScanner scanner = conn.createBatchScanner(t, Authorizations.EMPTY, 2);
+//      scanner.setRanges(Collections.singleton(new Range()));
+//      for (Map.Entry<Key, Value> entry : scanner) {
+//        actual.put(entry.getKey(), entry.getValue());
+//      }
+//      scanner.close();
+//      System.out.println("expect.size="+expect.size()+" actual.size="+actual.size());
+//      System.out.println("expect==actual is "+expect.equals(actual));
+//      System.out.println("splits are "+tops.listSplits(t));
+
+//      Set<Map.Entry<Key, Value>> es = expect.entrySet();
+//      es.removeAll(actual.entrySet());
+//      System.out.println("expect - actual is "+es);
+
+//      Assert.assertEquals(expect, actual);
+    }
+    conn.tableOperations().delete(t);
+  }
+
 
 }

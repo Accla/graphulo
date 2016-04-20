@@ -47,6 +47,9 @@
     <logger name="org.apache.zookeeper">
         <level value="WARN"/>
     </logger>
+    <!--<logger name="org.apache.accumulo">-->
+        <!--<level value="TRACE"/>-->
+    <!--</logger>-->
 
 
     <logger name="edu.mit.ll.d4m" >  

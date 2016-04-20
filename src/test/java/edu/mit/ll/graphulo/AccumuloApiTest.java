@@ -12,21 +12,28 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
+import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import static edu.mit.ll.graphulo.Graphulo.DEFAULT_COMBINER_PRIORITY;
+import static edu.mit.ll.graphulo.util.GraphuloUtil.EMPTY_BYTES;
 
 /**
  * Test features of the Accumulo API that Graphulo relies on.
@@ -114,6 +121,76 @@ public class AccumuloApiTest extends AccumuloTestBase {
     }
 
     conn.tableOperations().delete(tR);
+  }
+
+  static final ColumnVisibility NO_VISIBILITY = new ColumnVisibility();
+
+  /**
+   * Test behavior of Accumulo when splitting during writes.
+   */
+  @Test
+  public void testSplitDuringWrite() throws TableNotFoundException, AccumuloSecurityException, AccumuloException, InterruptedException {
+    Connector conn = tester.getConnector();
+    TableOperations tops = conn.tableOperations();
+    final String t = getUniqueNames(1)[0];
+    TestUtil.createTestTable(conn, t);
+
+    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+
+    String threshold = "20K";
+    try {
+      tops.setProperty(t, "table.split.threshold", threshold);
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      Assert.fail("cannot set table.split.threshold property for " + t + " to "+threshold);
+    }
+
+    {
+      BatchWriterConfig bwc = new BatchWriterConfig();
+      bwc.setMaxMemory(10000);
+      BatchWriter bw = conn.createBatchWriter(t, new BatchWriterConfig());
+
+      for (int i = 0; i < 500005; i++) {
+        StringBuilder sb = new StringBuilder(Integer.toString(i));
+        String vStr = sb.toString();
+        byte[] v = vStr.getBytes();
+        String rowStr = sb.reverse().toString();
+        byte[] row = rowStr.getBytes();
+
+        Mutation m = new Mutation(row);
+        long ts = System.currentTimeMillis();
+        m.put(EMPTY_BYTES, EMPTY_BYTES, NO_VISIBILITY, ts, v);
+        bw.addMutation(m);
+        expect.put(new Key(row, EMPTY_BYTES, EMPTY_BYTES, EMPTY_BYTES, ts, false), new Value(v));
+
+        if (i % 100000 == 0) {
+          tops.flush(t, null, null, true);
+//          Thread.sleep(500);
+        }
+        if (i % 200000 == 0) {
+          SortedSet<Text> splits = new TreeSet<>();
+          splits.add(new Text(Integer.toString(i/50000).getBytes()));
+          tops.addSplits(t, splits);
+        }
+      }
+      bw.close();
+
+      BatchScanner scanner = conn.createBatchScanner(t, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      System.out.println("expect.size="+expect.size()+" actual.size="+actual.size());
+      System.out.println("splits are "+tops.listSplits(t));
+
+//      Set<Map.Entry<Key, Value>> es = expect.entrySet();
+//      es.removeAll(actual.entrySet());
+//      System.out.println("expect - actual is "+es);
+
+      Assert.assertEquals(expect, actual);
+    }
+    conn.tableOperations().delete(t);
   }
 
 }

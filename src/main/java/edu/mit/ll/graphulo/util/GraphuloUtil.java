@@ -359,7 +359,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
    * Respects {@link #ONSCOPE_OPTION} if present from {@link #addOnScopeOption}.
    */
   public static void applyIteratorSoft(IteratorSetting itset, TableOperations tops, String table) {
-    // check for special option
+    // check for special option that limits iterator scope
     String scopeStrs = itset.getOptions().get(ONSCOPE_OPTION);
     EnumSet<IteratorUtil.IteratorScope> scopesToConsider;
     if (scopeStrs != null && !scopeStrs.isEmpty()) {

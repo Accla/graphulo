@@ -10,6 +10,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.EnumSet;
 import java.util.Map;
 
 /**
@@ -23,7 +24,23 @@ public class DynamicIterator extends WrappingIterator {
   @Override
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
     DynamicIteratorSetting dis = DynamicIteratorSetting.fromMap(options);
-    source = dis.loadIteratorStack(source, env);
+    EnumSet<DynamicIteratorSetting.MyIteratorScope> diScopes = dis.getDiScopes();
+    boolean doit;
+    switch (env.getIteratorScope()) {
+      case majc:
+        if (env.isFullMajorCompaction())
+          doit = diScopes.contains(DynamicIteratorSetting.MyIteratorScope.MAJC_FULL);
+        else
+          doit = diScopes.contains(DynamicIteratorSetting.MyIteratorScope.MAJC_PARTIAL);
+        break;
+      case minc: doit = diScopes.contains(DynamicIteratorSetting.MyIteratorScope.MINC); break;
+      case scan: doit = diScopes.contains(DynamicIteratorSetting.MyIteratorScope.SCAN); break;
+      default: throw new AssertionError();
+    }
+    if (doit)
+      source = dis.loadIteratorStack(source, env);
+    else
+      log.debug("Not applying this DynamicIterator "+dis.getDiName()+" scope "+env.getIteratorScope()+" is not permitted");
     setSource(source);
   }
 

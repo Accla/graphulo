@@ -433,7 +433,7 @@ for functions that take string arguments. Differentiating between them would cre
 
 ##### Important Points
 Be careful about Iterator names and priorities.  
-Each iterator must have a unique name and unique priority for each scope 
+Each iterator must have a unique name and unique priority for each diScopes
 (scan, minor compaction, and major compaction).
 Iterator priority determines the order in which iterators are run.
 Mkae sure iterators run in the correct order intended.
@@ -442,16 +442,16 @@ By default, combiners placed on result tables run at priority 6,
 whereas the main OneTable and TwoTable operations run at priority 7.
 These can be user-configured.
 
-Using the same name for two iterators on the same table in the same scope
+Using the same name for two iterators on the same table in the same diScopes
 may result in exceptions at best and logical errors at worst.
 Be especially careful with the name of a DynamicIterator.
 
-Sometimes iterators need to apply to a limited number of scopes.
+Sometimes iterators need to apply to a limited number of diScopes.
 OneTable and TwoTable have a special rule for respecting this for combiners applied to the results table.
 When an iterator is given to One- or TwoTable with the special option "_ONSCOPE_",
 Graphulo parses option value as a D4M string with the keywords "scan", "minc", and/or "majc".
-If at least one of them is present, then Graphulo will only add the iterator to the present scopes.
-Otherwise Graphulo adds the iterator to all three scopes.
+If at least one of them is present, then Graphulo will only add the iterator to the present diScopes.
+Otherwise Graphulo adds the iterator to all three diScopes.
 Use `GraphuloUtil.addOnScopeOption` to do this automatically.
 
 ##### RemoteSourceIterator

@@ -8,6 +8,7 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -15,6 +16,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -33,13 +35,56 @@ public class DynamicIteratorSetting {
   private Deque<IteratorSetting> iteratorSettingList = new LinkedList<>();
   private int diPriority;
   private String diName;
+  private EnumSet<MyIteratorScope> diScopes;
+
+  public enum MyIteratorScope {
+    SCAN, MINC, MAJC_FULL, MAJC_PARTIAL;
+
+    public static String scopesToD4mString(EnumSet<MyIteratorScope> scopes) {
+      StringBuilder sb = new StringBuilder();
+      for (MyIteratorScope scope : scopes) {
+        sb.append(scope.name()).append(',');
+      }
+      return sb.toString();
+    }
+
+    public static EnumSet<MyIteratorScope> d4mStringToScopes(String s) {
+      EnumSet<MyIteratorScope> scopes = EnumSet.noneOf(MyIteratorScope.class);
+      for (String scope : GraphuloUtil.splitD4mString(s))
+        scopes.add(MyIteratorScope.valueOf(scope.toUpperCase()));
+      return scopes;
+    }
+
+    public static EnumSet<IteratorUtil.IteratorScope> getCoveringIteratorScope(EnumSet<MyIteratorScope> myscopes) {
+      EnumSet<IteratorUtil.IteratorScope> scopes = EnumSet.noneOf(IteratorUtil.IteratorScope.class);
+      for (MyIteratorScope myscope : myscopes) {
+        switch(myscope) {
+          case MAJC_FULL:
+          case MAJC_PARTIAL:
+            scopes.add(IteratorUtil.IteratorScope.majc);
+            break;
+          case MINC: scopes.add(IteratorUtil.IteratorScope.minc); break;
+          case SCAN: scopes.add(IteratorUtil.IteratorScope.scan); break;
+          default: throw new AssertionError();
+        }
+      }
+      return scopes;
+    }
+  }
 
   public DynamicIteratorSetting(int diPriority, String diName) {
+    this(diPriority, diName, EnumSet.allOf(MyIteratorScope.class));
+  }
+
+  public DynamicIteratorSetting(int diPriority, String diName, EnumSet<MyIteratorScope> diScopes) {
     Preconditions.checkArgument(diPriority > 0, "iterator priority must be >0: %s", diPriority);
     this.diPriority = diPriority;
     if (diName == null || diName.isEmpty())
       diName = DynamicIterator.class.getSimpleName();
     this.diName = diName;
+    if (diScopes == null)
+      diScopes = EnumSet.allOf(MyIteratorScope.class);
+    this.diScopes = diScopes;
   }
 
   public int getDiPriority() {
@@ -56,6 +101,14 @@ public class DynamicIteratorSetting {
 
   public void setDiName(String diName) {
     this.diName = diName;
+  }
+
+  public EnumSet<MyIteratorScope> getDiScopes() {
+    return diScopes;
+  }
+
+  public void setDiScopes(EnumSet<MyIteratorScope> diScopes) {
+    this.diScopes = diScopes;
   }
 
   public DynamicIteratorSetting prepend(IteratorSetting setting) {
@@ -96,6 +149,7 @@ public class DynamicIteratorSetting {
     Map<String,String> map = new HashMap<>();
     map.put(pre+"0.diPriority", Integer.toString(diPriority)); // 0.diPriority -> 7
     map.put(pre+"0.diName", diName);                           // 0.diName -> DynamicIterator
+    map.put(pre+"0.diScopes", MyIteratorScope.scopesToD4mString(diScopes));
     int prio = 1;
     for (IteratorSetting setting : iteratorSettingList) {
       String prefix = pre+prio+"."+setting.getName()+".";
@@ -109,7 +163,10 @@ public class DynamicIteratorSetting {
   }
 
   public IteratorSetting toIteratorSetting() {
-    return new IteratorSetting(diPriority, diName, DynamicIterator.class, buildSettingMap());
+    IteratorSetting itset = new IteratorSetting(diPriority, diName, DynamicIterator.class, buildSettingMap());
+    // record special ON_SCOPE option that GraphuloUtil.applyIteratorSoft recognizes
+    GraphuloUtil.addOnScopeOption(itset, MyIteratorScope.getCoveringIteratorScope(diScopes));
+    return itset;
   }
 
   public void addToScanner(ScannerBase scanner) {
@@ -141,7 +198,8 @@ public class DynamicIteratorSetting {
     Preconditions.checkArgument(mapOrig.containsKey(pre+"0.diPriority") && mapOrig.containsKey(pre+"0.diName"), "bad map %s", mapOrig);
     int diPriotity = Integer.parseInt(mapCopy.remove(pre+"0.diPriority"));
     String diName = mapCopy.remove(pre+"0.diName");
-    DynamicIteratorSetting dis = new DynamicIteratorSetting(diPriotity, diName);
+    EnumSet<MyIteratorScope> diScopes = MyIteratorScope.d4mStringToScopes(mapCopy.remove(pre+"0.diScopes"));
+    DynamicIteratorSetting dis = new DynamicIteratorSetting(diPriotity, diName, diScopes);
     for (int prio = 1; true; prio++) {
       String prioPrefix = prio+".";
       String clazz = null, name = null, clazzStr = null, optPrefix = null;

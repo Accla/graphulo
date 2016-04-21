@@ -1909,11 +1909,17 @@ public class Graphulo {
       // Above method dangerous. Instead:
       
 
-      // Filter out entries with < k-2
-      IteratorSetting sumAndFilter = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, null)
-        .append(PLUS_ITERATOR_LONG)
-        .append(MinMaxFilter.iteratorSetting(10, ScalarType.LONG, k - 2, null))
-        .toIteratorSetting();
+      // Sum and Filter out entries with < k-2
+      IteratorSetting sum = PLUS_ITERATOR_LONG;
+      IteratorSetting filter = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY+1,
+          "gt-"+Integer.toString(k-2)+"-filter",
+          EnumSet.of(DynamicIteratorSetting.MyIteratorScope.SCAN, DynamicIteratorSetting.MyIteratorScope.MAJC_FULL))
+          .append(MinMaxFilter.iteratorSetting(10, ScalarType.LONG, k - 2, null))
+          .toIteratorSetting();
+//      IteratorSetting sumAndFilter = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, null)
+//        .append(PLUS_ITERATOR_LONG)
+//        .append(MinMaxFilter.iteratorSetting(10, ScalarType.LONG, k - 2, null))
+//        .toIteratorSetting();
       // No Diagonal filter
       List<IteratorSetting> noDiagFilter = Collections.singletonList(
           TriangularFilter.iteratorSetting(1, TriangularType.NoDiagonal));
@@ -1924,10 +1930,12 @@ public class Graphulo {
         // Use Atmp for both AT and B
         TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Atmp, A2tmp, null, -1, ConstantTwoScalar.class,
             ConstantTwoScalar.optionMap(new Value("1".getBytes(StandardCharsets.UTF_8)), RNewVisibility),
-            sumAndFilter, null, null, null, false, false,
+            sum, null, null, null, false, false,
             null, null, noDiagFilter,
             null, null, -1, Aauthorizations, Aauthorizations);
         // A2tmp has a SummingCombiner
+        // apply the filter after all entries written
+        GraphuloUtil.applyIteratorSoft(filter, tops, A2tmp);
 
         nnzAfter = SpEWiseX(A2tmp, Atmp, AtmpAlt, null, -1, ConstantTwoScalar.class,
             ConstantTwoScalar.optionMap(new Value("1".getBytes(StandardCharsets.UTF_8)), RNewVisibility),

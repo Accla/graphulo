@@ -11,16 +11,22 @@ public class PeekingIterator1<E> implements Iterator<E> {
   protected E top;
 
   public PeekingIterator1(Iterator<? extends E> source) {
-    this.source = source;
-    if (source == null || !source.hasNext())
+    this.source = source == null ? Collections.<E>emptyIterator() : source;
+    if (!this.source.hasNext())
       top = null;
     else
-      top = source.next();
+      top = this.source.next();
   }
 
   /** Create a PeekingIterator1 with given starting element. */
   public PeekingIterator1(Iterator<? extends E> source, E top) {
-    this.source = source;
+    this.source = source == null ? Collections.<E>emptyIterator() : source;
+    this.top = top;
+  }
+
+  /** Create a PeekingIterator1 with a single element. */
+  public PeekingIterator1(E top) {
+    this.source = Collections.<E>emptyIterator();
     this.top = top;
   }
 

@@ -480,7 +480,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
       if (numRejects >= REJECT_FAILURE_THRESHOLD) { // declare global failure after 10 rejects
         // last entry emitted declares failure
-        rowRangeIterator = new PeekingIterator1<>(Iterators.<Range>emptyIterator());
+        rowRangeIterator = PeekingIterator1.emptyIterator();
         reducer = new NOOP_REDUCER();
         return true;
       }

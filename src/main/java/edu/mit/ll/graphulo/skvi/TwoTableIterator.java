@@ -614,7 +614,7 @@ public class TwoTableIterator implements SaveStateIterator {
                 remoteAT.next();
                 continue TOPLOOP;
               case NONE:
-                bottomIter = new PeekingIterator2<>(Iterators.singletonIterator(GraphuloUtil.copyTopEntry(remoteAT)));
+                bottomIter = new PeekingIterator2<>(GraphuloUtil.copyTopEntry(remoteAT));
                 remoteAT.next();
                 return;
             }
@@ -642,7 +642,7 @@ public class TwoTableIterator implements SaveStateIterator {
                 remoteB.next();
                 continue TOPLOOP;
               case NONE:
-                bottomIter = new PeekingIterator2<>(Iterators.singletonIterator(GraphuloUtil.copyTopEntry(remoteB)));
+                bottomIter = new PeekingIterator2<>(GraphuloUtil.copyTopEntry(remoteB));
                 remoteB.next();
                 return;
             }

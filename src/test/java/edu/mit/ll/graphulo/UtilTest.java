@@ -8,6 +8,7 @@ import edu.mit.ll.graphulo.skvi.MinMaxFilter;
 import edu.mit.ll.graphulo.skvi.NoConsecutiveDuplicateRowsIterator;
 import edu.mit.ll.graphulo.skvi.TopColPerRowIterator;
 import edu.mit.ll.graphulo.skvi.TriangularFilter;
+import edu.mit.ll.graphulo.skvi.ktruss.SumConditionTimestampIterator;
 import edu.mit.ll.graphulo.util.DoubletonIterator;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.PeekingIterator2;
@@ -15,14 +16,18 @@ import edu.mit.ll.graphulo.util.RangeSet;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.lexicoder.AbstractEncoder;
 import org.apache.accumulo.core.client.mock.IteratorAdapter;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.log4j.LogManager;
@@ -124,6 +129,21 @@ public class UtilTest {
       pe.next();
     }
     Assert.assertNull(pe.peekFirst());
+
+    pe = new PeekingIterator2<>((Integer)null);
+    Assert.assertFalse(pe.hasNext());
+    pe = new PeekingIterator2<>(7);
+    Assert.assertEquals(7, pe.peekFirst().intValue());
+    Assert.assertNull(pe.peekSecond());
+    Assert.assertEquals(7, pe.next().intValue());
+    Assert.assertFalse(pe.hasNext());
+    pe = new PeekingIterator2<>(8, 9);
+    Assert.assertEquals(8, pe.peekFirst().intValue());
+    Assert.assertEquals(9, pe.peekSecond().intValue());
+    Assert.assertEquals(8, pe.next().intValue());
+    Assert.assertEquals(9, pe.peekFirst().intValue());
+    Assert.assertEquals(9, pe.next().intValue());
+    Assert.assertFalse(pe.hasNext());
   }
 
   @Test
@@ -834,6 +854,76 @@ public class UtilTest {
       }
       Assert.assertFalse(ia.hasNext());
     }
+  }
+
+  public static final IteratorEnvironment MOCK_ITER_ENV = new IteratorEnvironment() {
+    @Override
+    public SortedKeyValueIterator<Key, Value> reserveMapFileReader(String mapFileName) throws IOException {
+      return null;
+    }
+
+    @Override
+    public AccumuloConfiguration getConfig() {
+      return null;
+    }
+
+    @Override
+    public IteratorUtil.IteratorScope getIteratorScope() {
+      return IteratorUtil.IteratorScope.scan;
+    }
+
+    @Override
+    public boolean isFullMajorCompaction() {
+      return false;
+    }
+
+    @Override
+    public void registerSideChannel(SortedKeyValueIterator<Key, Value> iter) {
+
+    }
+
+    @Override
+    public Authorizations getAuthorizations() {
+      return null;
+    }
+  };
+
+  @Test
+  public void testSumConditionTimestampIterator() throws IOException {
+    Map<String,String> opts = SumConditionTimestampIterator.iteratorSetting(1, 10).getOptions();
+
+    SortedMap<Key,Value> input = new TreeMap<>();
+    input.put(new Key("r1", "", "c1", 2), new Value("1".getBytes()));
+    input.put(new Key("r1", "", "c1", 12), new Value("3".getBytes()));
+    input.put(new Key("r1", "", "c1", 13), new Value("1".getBytes()));
+    input.put(new Key("r1", "", "c1", 11), new Value("5".getBytes()));
+    input.put(new Key("r1", "", "c2", 20), new Value("6".getBytes()));
+    input.put(new Key("r1", "", "c3", 5), new Value("1".getBytes()));
+
+    SortedKeyValueIterator<Key,Value> skvi = new MapIterator(input);
+    skvi.init(null, null, null);
+    SortedKeyValueIterator<Key,Value> skviTop = new SumConditionTimestampIterator();
+    skviTop.init(skvi, opts, MOCK_ITER_ENV);
+    skvi = skviTop;
+    skvi.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
+
+    SortedMap<Key,Value> expect = new TreeMap<>();
+    expect.put(new Key("r1", "", "c1", 13), new Value("9".getBytes()));
+    expect.put(new Key("r1", "", "c1", 2), new Value("1".getBytes()));
+    expect.put(new Key("r1", "", "c3", 5), new Value("1".getBytes()));
+
+    IteratorAdapter ia = new IteratorAdapter(skvi);
+//    while (ia.hasNext()) {
+//      Map.Entry<Key, Value> next = ia.next();
+//      System.out.println(next.getKey().toString()+" -> "+next.getValue());
+//    }
+    for (Map.Entry<Key, Value> expectEntry : expect.entrySet()) {
+      Assert.assertTrue(ia.hasNext());
+      Map.Entry<Key, Value> actualEntry = ia.next();
+      Assert.assertEquals(expectEntry, actualEntry);
+//      System.out.println("MATCH "+expectEntry);
+    }
+    Assert.assertFalse(ia.hasNext());
   }
 
 }

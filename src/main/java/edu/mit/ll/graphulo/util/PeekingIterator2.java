@@ -25,6 +25,12 @@ public class PeekingIterator2<E> implements Iterator<E> {
     pFirst = new PeekingIterator1<>(top);
   }
 
+  /** Iterate over two values. */
+  public PeekingIterator2(E first, E second) {
+    pSecond = new PeekingIterator1<>(second);
+    pFirst = new PeekingIterator1<>(pSecond, first);
+  }
+
   @Override
   public boolean hasNext() {
     return pFirst.hasNext();

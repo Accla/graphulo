@@ -902,6 +902,18 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
     }
   }
 
+  /** Copy the splits placed on table t1 to table t2. */
+  public static void copySplits(TableOperations tops, String t1, String t2) throws AccumuloException {
+    try {
+      Collection<Text> splits = tops.listSplits(t1);
+      SortedSet<Text> ss = new TreeSet<>(splits);
+      tops.addSplits(t2, ss);
+    } catch (TableNotFoundException | AccumuloSecurityException e) {
+      log.error("cannot handle splits copying from "+t1+" to "+t2, e);
+      throw new RuntimeException(e);
+    }
+  }
+
   /** Delete tables. If they already exist, delete and re-create them if forceDelete==true,
    * otherwise throw an IllegalStateException. */
   public static void deleteTables(Connector connector, String... tns) {

@@ -1,9 +1,6 @@
 package edu.mit.ll.d4m.db.cloud;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.TreeMap;
 
 /**
  * d4m results set

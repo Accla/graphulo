@@ -16,48 +16,17 @@
  */
 package edu.mit.ll.graphulo.skvi;
 
-import java.io.IOException;
 import java.util.AbstractMap;
-import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import edu.mit.ll.graphulo.util.PeekingIterator1;
-import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.IteratorSetting.Column;
-import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.PartialKey;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.IteratorUtil;
-import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.iterators.OptionDescriber;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.WrappingIterator;
-import org.apache.accumulo.core.iterators.conf.ColumnSet;
-import org.apache.hadoop.io.Text;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Splitter;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.Lists;
 
 import javax.annotation.Nullable;
-
-import static edu.mit.ll.graphulo.util.PeekingIterator1.emptyIterator;
 
 /**
  * A Combiner that emits any number of entries as a combination of the entries it sees

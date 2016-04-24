@@ -1,6 +1,5 @@
 package edu.mit.ll.graphulo.skvi;
 
-import com.google.common.collect.Iterators;
 import edu.mit.ll.graphulo.DynamicIteratorSetting;
 import edu.mit.ll.graphulo.ewise.EWiseOp;
 import edu.mit.ll.graphulo.rowmult.CartesianRowMultiply;

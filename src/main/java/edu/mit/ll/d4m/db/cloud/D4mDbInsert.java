@@ -1,12 +1,6 @@
 package edu.mit.ll.d4m.db.cloud;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.Date;
-import java.util.HashMap;
-
 import edu.mit.ll.d4m.db.cloud.accumulo.AccumuloInsert;
-import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 import edu.mit.ll.cloud.connection.ConnectionProperties;

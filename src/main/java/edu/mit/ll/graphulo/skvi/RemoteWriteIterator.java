@@ -1,7 +1,6 @@
 package edu.mit.ll.graphulo.skvi;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterators;
 import edu.mit.ll.graphulo.reducer.Reducer;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.PeekingIterator1;
@@ -29,7 +28,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 

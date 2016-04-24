@@ -3,7 +3,6 @@
  */
 package edu.mit.ll.d4m.db.cloud.accumulo;
 
-import com.google.common.base.Preconditions;
 import static com.google.common.base.Preconditions.checkNotNull;
 import edu.mit.ll.cloud.connection.ConnectionProperties;
 import edu.mit.ll.d4m.db.cloud.D4mException;

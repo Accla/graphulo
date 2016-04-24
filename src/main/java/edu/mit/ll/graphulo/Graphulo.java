@@ -1,7 +1,12 @@
 package edu.mit.ll.graphulo;
 
 import com.google.common.base.Preconditions;
-import edu.mit.ll.graphulo.apply.*;
+import edu.mit.ll.graphulo.apply.ApplyIterator;
+import edu.mit.ll.graphulo.apply.ConstantColQApply;
+import edu.mit.ll.graphulo.apply.JaccardDegreeApply;
+import edu.mit.ll.graphulo.apply.KeyRetainOnlyApply;
+import edu.mit.ll.graphulo.apply.RandomTopicApply;
+import edu.mit.ll.graphulo.apply.TfidfDegreeApply;
 import edu.mit.ll.graphulo.ewise.EWiseOp;
 import edu.mit.ll.graphulo.reducer.EdgeBFSReducer;
 import edu.mit.ll.graphulo.reducer.GatherReducer;
@@ -49,7 +54,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
@@ -80,24 +84,9 @@ import org.apache.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.PriorityQueue;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.*;
 
 import static edu.mit.ll.graphulo.skvi.TriangularFilter.TriangularType;
-import static edu.mit.ll.graphulo.util.GraphuloUtil.ONSCOPE_OPTION;
 
 /**
  * Holds a {@link org.apache.accumulo.core.client.Connector} to an Accumulo instance for calling client Graphulo operations.
@@ -2128,7 +2117,7 @@ public class Graphulo {
 //      }
       NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaultIterators();
 
-      int i=1;
+//      int i=1;
       do {
         nnzBefore = nnzAfter;
 
@@ -2136,9 +2125,12 @@ public class Graphulo {
 //        tops.clone(Atmp, AtmpAlt, true, null, excludeSet);
         // New table with no VersioningIterator
         tops.create(AtmpAlt, ntc);
+        GraphuloUtil.copySplits(tops, Atmp, AtmpAlt);
 
         // Special Sum
-        long l = System.currentTimeMillis()+1;
+        Thread.sleep(50); // for stability - this iterator is sensitive to the wall clock
+        long l = System.currentTimeMillis();
+        Thread.sleep(50);
         IteratorSetting sum = SumConditionTimestampIterator.iteratorSetting(DEFAULT_COMBINER_PRIORITY, l);
         sum.setName(k+"kPII");
         log.debug("setting tt = "+l+"\t for iteration writing to "+AtmpAlt);
@@ -2163,7 +2155,6 @@ public class Graphulo {
 
         log.debug("nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter+"; "+Long.toString(dur)+" ms");
       } while (nnzBefore != nnzAfter);
-      // Atmp, ATtmp have the result table. Could be empty.
 
       if (RfinalExists)  // sum whole graph into existing graph
         AdjBFS(Atmp, null, 1, Rfinal, null, null, DEFAULT_COMBINER_PRIORITY+3, null, null, false, 0, Integer.MAX_VALUE, null, Aauthorizations, Aauthorizations, false, null);

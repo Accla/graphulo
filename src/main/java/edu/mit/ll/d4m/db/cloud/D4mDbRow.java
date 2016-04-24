@@ -1,8 +1,5 @@
 package edu.mit.ll.d4m.db.cloud;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-
 /**
  * d4m database row
  *

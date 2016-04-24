@@ -16,17 +16,12 @@
  */
 package edu.mit.ll.graphulo.skvi;
 
-import java.io.IOException;
-import java.util.AbstractMap;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Splitter;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.Lists;
+import edu.mit.ll.graphulo.util.PeekingIterator1;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.ScannerBase;
@@ -46,13 +41,16 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Splitter;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-import edu.mit.ll.graphulo.util.PeekingIterator1;
+import java.io.IOException;
+import java.util.AbstractMap;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A Combiner that emits any number of entries as a combination of the entries it sees
@@ -62,6 +60,7 @@ import edu.mit.ll.graphulo.util.PeekingIterator1;
  */
 public abstract class MultiKeyCombiner extends WrappingIterator implements OptionDescriber {
   static final Logger sawDeleteLog = LoggerFactory.getLogger(MultiKeyCombiner.class.getName() + ".SawDelete");
+  private static final org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(MultiKeyCombiner.class);
 
   protected static final String COLUMNS_OPTION = "columns";
   protected static final String ALL_OPTION = "all";
@@ -127,7 +126,6 @@ public abstract class MultiKeyCombiner extends WrappingIterator implements Optio
   }
 
   private PeekingIterator1<? extends Map.Entry<Key,Value>> top;
-  private boolean aliasedTop = false;
 
   @Override
   public Key getTopKey() {
@@ -153,7 +151,7 @@ public abstract class MultiKeyCombiner extends WrappingIterator implements Optio
   @Override
   public void next() throws IOException {
     top.next();
-    findTop(!aliasedTop);
+    findTop();
   }
 
   @VisibleForTesting
@@ -181,12 +179,8 @@ public abstract class MultiKeyCombiner extends WrappingIterator implements Optio
   /**
    *
    */
-  private void findTop(boolean doNext) throws IOException {
+  private void findTop() throws IOException {
     while (!top.hasNext()) {
-      if (doNext)
-        super.next();
-      doNext = true;
-      aliasedTop = false;
       if (!super.hasTop()) {
         top = PeekingIterator1.emptyIterator();
         return;
@@ -202,9 +196,7 @@ public abstract class MultiKeyCombiner extends WrappingIterator implements Optio
         Iterator<? extends Map.Entry<Key, Value>> viterNew = reduceKV(viter);
         top = new PeekingIterator1<>(viterNew); // reduceKV could return null/empty iterator
         // empty viter if reduceKV returned a different iterator. Otherwise we will use that iterator.
-        if (viter == viterNew)
-          aliasedTop = true;
-        else
+        if (viter != viterNew)
           while (viter.hasNext())
             viter.next();
       } else {
@@ -221,7 +213,7 @@ public abstract class MultiKeyCombiner extends WrappingIterator implements Optio
 
     super.seek(seekRange, columnFamilies, inclusive);
     top = PeekingIterator1.emptyIterator();
-    findTop(false);
+    findTop();
 
     if (range.getStartKey() != null) {
       while (hasTop() && getTopKey().equals(range.getStartKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS)
@@ -244,6 +236,7 @@ public abstract class MultiKeyCombiner extends WrappingIterator implements Optio
    * <b>Do Not return an iterator with the same source as this one
    * that is not referentially equal to this one</b>,
    * e.g. do not <code>return new PeekingIterator(iter);</code>.
+   * Also, <b>do not emit entries whose keys or values are null</b>.
    *
    * @param iter
    *          An iterator over Keys and Values
@@ -293,7 +286,7 @@ public abstract class MultiKeyCombiner extends WrappingIterator implements Optio
   }
 
   @Override
-  public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+  public MultiKeyCombiner deepCopy(IteratorEnvironment env) {
     // TODO test
     MultiKeyCombiner newInstance;
     try {

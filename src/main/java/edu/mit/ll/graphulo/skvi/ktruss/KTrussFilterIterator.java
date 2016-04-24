@@ -1,24 +1,19 @@
 package edu.mit.ll.graphulo.skvi.ktruss;
 
-import java.io.IOException;
-import java.util.AbstractMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
+import com.google.common.collect.Iterators;
+import edu.mit.ll.graphulo.skvi.MultiKeyCombiner;
+import edu.mit.ll.graphulo.util.PeekingIterator2;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.user.SummingCombiner;
 
-import com.sun.xml.internal.xsom.impl.scd.Iterators;
-
-import edu.mit.ll.graphulo.skvi.MultiKeyCombiner;
-import edu.mit.ll.graphulo.util.PeekingIterator2;
+import java.io.IOException;
+import java.util.AbstractMap;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * Receives a timestamp threshold <code>k</code>.
@@ -55,7 +50,11 @@ public class KTrussFilterIterator extends MultiKeyCombiner {
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
+    parseScope(env);
+    parseOptions(options);
+  }
 
+  private void parseScope(IteratorEnvironment env) {
     switch (env.getIteratorScope()) {
       case scan: kScope = KScope.SCAN; break;
       case minc: kScope = KScope.DISABLE; break;
@@ -67,8 +66,6 @@ public class KTrussFilterIterator extends MultiKeyCombiner {
         break;
       default: throw new AssertionError();
     }
-
-    parseOptions(options);
   }
 
   private void parseOptions(Map<String, String> options) {
@@ -102,6 +99,14 @@ public class KTrussFilterIterator extends MultiKeyCombiner {
       return new PeekingIterator2<>(eAfter, eBefore);
 
     assert kScope == KScope.SCAN;
-    return Iterators.singleton(new AbstractMap.SimpleImmutableEntry<>(eAfter.getKey(), VALUE_ONE));
+    return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(eAfter.getKey(), VALUE_ONE));
+  }
+
+  @Override
+  public KTrussFilterIterator deepCopy(IteratorEnvironment env) {
+    KTrussFilterIterator n = (KTrussFilterIterator)super.deepCopy(env);
+    n.k = k;
+    n.parseScope(env);
+    return n;
   }
 }

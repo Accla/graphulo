@@ -11,6 +11,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.yarn.webapp.hamlet.HamletSpec;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -18,6 +19,8 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -63,13 +66,15 @@ public class CartesianRowMultiply implements RowMultiplyOp {
     ONEROWB
   }
 
-  public static final String ALSODOAA="alsoDoAA", ALSODOBB="alsoDoBB";
+  public static final String ALSODOAA="alsoDoAA", ALSODOBB="alsoDoBB",
+      ALSOEMITA="alsoEmitA", ALSOEMITB="alsoEmitB";
 
   private MultiplyOp multiplyOp;
   private Map<String, String> multiplyOpOptions = new HashMap<>();
   private ROWMODE rowmode = ROWMODE.ONEROWB;
   private boolean isRowStartMultiplyOp = false;
-  private boolean alsoDoAA = false, alsoDoBB = false;
+  private boolean alsoDoAA = false, alsoDoBB = false,
+      alsoEmitA = false, alsoEmitB = false;
 
 
   private void parseOptions(Map<String, String> options) {
@@ -95,6 +100,12 @@ public class CartesianRowMultiply implements RowMultiplyOp {
           case ALSODOAA:
             alsoDoAA = Boolean.parseBoolean(optionValue);
             break;
+          case ALSOEMITA:
+            alsoEmitA = Boolean.parseBoolean(optionValue);
+            break;
+          case ALSOEMITB:
+            alsoEmitB = Boolean.parseBoolean(optionValue);
+            break;
           default:
             log.warn("Unrecognized option: " + optionEntry);
             break;
@@ -105,14 +116,14 @@ public class CartesianRowMultiply implements RowMultiplyOp {
       multiplyOp = new MathTwoScalar(); // default
       multiplyOpOptions.putAll(MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.BIGDECIMAL, "", false));
     }
-    if (alsoDoAA && alsoDoBB && rowmode != ROWMODE.TWOROW) {
-      log.warn("Because alsoDoAA and alsoDoBB are true, forcing rowmode to " + ROWMODE.TWOROW);
+    if ((alsoDoAA || alsoEmitA) && (alsoEmitB || alsoDoBB) && rowmode != ROWMODE.TWOROW) {
+      log.warn("Because alsoEmitA/alsoDoAA and alsoEmitB/alsoDoBB are true, forcing rowmode to " + ROWMODE.TWOROW);
       rowmode = ROWMODE.TWOROW;
-    } else if (alsoDoAA && (rowmode == ROWMODE.ONEROWB)) {
-      log.warn("Because alsoDoAA is true, forcing rowmode from "+ROWMODE.ONEROWB +" to " + ROWMODE.TWOROW);
+    } else if ((alsoDoAA || alsoEmitA) && (rowmode == ROWMODE.ONEROWB)) {
+      log.warn("Because alsoEmitA/alsoDoAA is true, forcing rowmode from "+ROWMODE.ONEROWB +" to " + ROWMODE.TWOROW);
       rowmode = ROWMODE.TWOROW;
-    } else if (alsoDoBB && (rowmode == ROWMODE.ONEROWA)) {
-      log.warn("Because alsoDoBB is true, forcing rowmode from "+ROWMODE.ONEROWA+" to " + ROWMODE.TWOROW);
+    } else if ((alsoDoBB || alsoEmitB) && (rowmode == ROWMODE.ONEROWA)) {
+      log.warn("Because alsoEmitB/alsoDoBB is true, forcing rowmode from "+ROWMODE.ONEROWA+" to " + ROWMODE.TWOROW);
       rowmode = ROWMODE.TWOROW;
     }
   }
@@ -123,36 +134,55 @@ public class CartesianRowMultiply implements RowMultiplyOp {
     multiplyOp.init(multiplyOpOptions,env);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public Iterator<Map.Entry<Key,Value>> multiplyRow(SortedKeyValueIterator<Key, Value> skviA, SortedKeyValueIterator<Key, Value> skviB) throws IOException {
     assert skviA != null || skviB != null;
     Watch<Watch.PerfSpan> watch = null;//Watch.getInstance();
 
-    if (skviB == null) {
-      if (alsoDoAA) {
+    if (skviB == null) { // have row A, no matching row B
+      if (alsoEmitA && !alsoDoAA) {
+        return new SKVIRowIterator(skviA);
+      } else if (!alsoEmitA && alsoDoAA) {
         SortedMap<Key, Value> ArowMap = readRow(skviA, watch, Watch.PerfSpan.ATnext);
         if (isRowStartMultiplyOp)
-          if (!((RowStartMultiplyOp)multiplyOp).startRow(ArowMap, null, false)) {
+          if (!((RowStartMultiplyOp)multiplyOp).startRow(ArowMap, null, false))
             return Collections.emptyIterator();
-          }
         return new CartesianIterator(ArowMap.entrySet().iterator(), ArowMap, multiplyOp, false);
-      } else {
-        return Iterators.singletonIterator(GraphuloUtil.copyTopEntry(skviA));
-      }
-    }
-    if (skviA == null) {
-      if (alsoDoBB) {
-        SortedMap<Key, Value> BrowMap = readRow(skviB, watch, Watch.PerfSpan.ATnext);
+      } else if (alsoEmitA && alsoDoAA) {
+        SortedMap<Key, Value> ArowMap = readRow(skviA, watch, Watch.PerfSpan.ATnext);
         if (isRowStartMultiplyOp)
-          if (!((RowStartMultiplyOp)multiplyOp).startRow(null, BrowMap, false)) {
+          if (!((RowStartMultiplyOp)multiplyOp).startRow(ArowMap, null, false))
             return Collections.emptyIterator();
-          }
-        return new CartesianIterator(BrowMap.entrySet().iterator(), BrowMap, multiplyOp, false);
+        return Iterators.concat(ArowMap.entrySet().iterator(),
+            new CartesianIterator(ArowMap.entrySet().iterator(), ArowMap, multiplyOp, false));
       } else {
-        return Iterators.singletonIterator(GraphuloUtil.copyTopEntry(skviB));
+        SKVIRowIterator.dumpRow(skviA);
+        return Collections.emptyIterator();
       }
     }
 
+    if (skviA == null) {
+      if (alsoEmitB && !alsoDoBB) {
+        return new SKVIRowIterator(skviB);
+      } else if (!alsoEmitB && alsoDoBB) {
+        SortedMap<Key, Value> BrowMap = readRow(skviB, watch, Watch.PerfSpan.Bnext);
+        if (isRowStartMultiplyOp)
+          if (!((RowStartMultiplyOp) multiplyOp).startRow(BrowMap, null, false))
+            return Collections.emptyIterator();
+        return new CartesianIterator(BrowMap.entrySet().iterator(), BrowMap, multiplyOp, false);
+      } else if (alsoEmitB && alsoDoBB) {
+        SortedMap<Key, Value> BrowMap = readRow(skviB, watch, Watch.PerfSpan.Bnext);
+        if (isRowStartMultiplyOp)
+          if (!((RowStartMultiplyOp) multiplyOp).startRow(BrowMap, null, false))
+            return Collections.emptyIterator();
+        return Iterators.concat(BrowMap.entrySet().iterator(),
+            new CartesianIterator(BrowMap.entrySet().iterator(), BrowMap, multiplyOp, false));
+      } else {
+        SKVIRowIterator.dumpRow(skviB);
+        return Collections.emptyIterator();
+      }
+    }
 
     assert skviA.hasTop() && skviB.hasTop() && skviA.getTopKey().equals(skviB.getTopKey(), PartialKey.ROW);
     
@@ -164,23 +194,21 @@ public class CartesianRowMultiply implements RowMultiplyOp {
           if (!((RowStartMultiplyOp)multiplyOp).startRow(ArowMap, BrowMap, true))
             return Collections.emptyIterator();
 
-        Iterator<Map.Entry<Key,Value>> itAB = new CartesianIterator(ArowMap.entrySet().iterator(), BrowMap, multiplyOp, false);
-        if (alsoDoAA && alsoDoBB) {
-          Iterator<Map.Entry<Key,Value>> itAA = new CartesianIterator(ArowMap.entrySet().iterator(), ArowMap, multiplyOp, false),
-            itBB = new CartesianIterator(BrowMap.entrySet().iterator(), BrowMap, multiplyOp, false);
-          return Iterators.concat(itAB, itAA, itBB);
-        } else if (alsoDoAA) {
-          Iterator<Map.Entry<Key,Value>> itAA = new CartesianIterator(ArowMap.entrySet().iterator(), ArowMap, multiplyOp, false);
-          return Iterators.concat(itAB, itAA);
-        } else if (alsoDoBB) {
-          Iterator<Map.Entry<Key,Value>> itBB = new CartesianIterator(BrowMap.entrySet().iterator(), BrowMap, multiplyOp, false);
-          return Iterators.concat(itAB, itBB);
-        } else
-          return itAB;
+        List<Iterator<Map.Entry<Key,Value>>> all = new LinkedList<>();
+        if (alsoEmitA)
+          all.add(ArowMap.entrySet().iterator());
+        if (alsoEmitB)
+          all.add(BrowMap.entrySet().iterator());
+        if (alsoDoAA)
+          all.add(new CartesianIterator(ArowMap.entrySet().iterator(), ArowMap, multiplyOp, false));
+        if (alsoDoBB)
+          all.add(new CartesianIterator(BrowMap.entrySet().iterator(), BrowMap, multiplyOp, false));
+        all.add(new CartesianIterator(ArowMap.entrySet().iterator(), BrowMap, multiplyOp, false));
+        return Iterators.concat(all.iterator());
       }
 
       case ONEROWA: {
-        assert !alsoDoBB;
+        assert !alsoDoBB && !alsoEmitB;
         SortedMap<Key, Value> ArowMap = readRow(skviA, watch, Watch.PerfSpan.ATnext);
         Iterator<Map.Entry<Key, Value>> itBonce = new SKVIRowIterator(skviB);
         if (isRowStartMultiplyOp)
@@ -192,12 +220,13 @@ public class CartesianRowMultiply implements RowMultiplyOp {
             return Collections.emptyIterator();
           }
 
-        Iterator<Map.Entry<Key,Value>> itAB = new CartesianIterator(itBonce, ArowMap, multiplyOp, true);
-        if (alsoDoAA) {
-          Iterator<Map.Entry<Key,Value>> itAA = new CartesianIterator(ArowMap.entrySet().iterator(), ArowMap, multiplyOp, false);
-          return Iterators.concat(itAB, itAA);
-        } else
-          return itAB;
+        List<Iterator<Map.Entry<Key,Value>>> all = new LinkedList<>();
+        if (alsoEmitA)
+          all.add(ArowMap.entrySet().iterator());
+        if (alsoDoAA)
+          all.add(new CartesianIterator(ArowMap.entrySet().iterator(), ArowMap, multiplyOp, false));
+        all.add(new CartesianIterator(itBonce, ArowMap, multiplyOp, true));
+        return Iterators.concat(all.iterator());
       }
 
       case ONEROWB: {
@@ -213,12 +242,13 @@ public class CartesianRowMultiply implements RowMultiplyOp {
             return Collections.emptyIterator();
           }
 
-        Iterator<Map.Entry<Key, Value>> itAB = new CartesianIterator(itAonce, BrowMap, multiplyOp, false);
-        if (alsoDoBB) {
-          Iterator<Map.Entry<Key,Value>> itBB = new CartesianIterator(BrowMap.entrySet().iterator(), BrowMap, multiplyOp, false);
-          return Iterators.concat(itAB, itBB);
-        } else
-          return itAB;
+        List<Iterator<Map.Entry<Key,Value>>> all = new LinkedList<>();
+        if (alsoEmitB)
+          all.add(BrowMap.entrySet().iterator());
+        if (alsoDoBB)
+          all.add(new CartesianIterator(BrowMap.entrySet().iterator(), BrowMap, multiplyOp, false));
+        all.add(new CartesianIterator(itAonce, BrowMap, multiplyOp, false));
+        return Iterators.concat(all.iterator());
       }
 
       default:

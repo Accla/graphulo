@@ -19,6 +19,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -34,9 +35,18 @@ import java.util.TreeSet;
 public class AlgorithmTest extends AccumuloTestBase {
   private static final Logger log = LogManager.getLogger(AlgorithmTest.class);
 
+  @Test
+  public void testkTrussAdj_Normal() throws TableNotFoundException, AccumuloSecurityException, AccumuloException, InterruptedException {
+    testkTrussAdj_Inner(false);
+  }
 
   @Test
-  public void testkTrussAdj() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+  public void testkTrussAdj_Fused() throws TableNotFoundException, AccumuloSecurityException, AccumuloException, InterruptedException {
+    testkTrussAdj_Inner(true);
+  }
+
+
+  private void testkTrussAdj_Inner(boolean fuse) throws TableNotFoundException, AccumuloSecurityException, AccumuloException, InterruptedException {
     Connector conn = tester.getConnector();
     final String tA, tR;
     {
@@ -64,8 +74,10 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      long nnzkTruss = graphulo.kTrussAdj(tA, tR, 3, null, true, Authorizations.EMPTY, "");
-      log.info("3Truss has " + nnzkTruss + " nnz");
+      long nnzkTruss = fuse
+          ? graphulo.kTrussAdj_Fused(tA, tR, 3, null, true, Authorizations.EMPTY, "")
+          : graphulo.kTrussAdj(tA, tR, 3, null, true, Authorizations.EMPTY, "");
+      log.info("3-Truss has " + nnzkTruss + " nnz");
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
       scanner.setRanges(Collections.singleton(new Range()));
@@ -73,10 +85,14 @@ public class AlgorithmTest extends AccumuloTestBase {
         actual.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
-      Assert.assertEquals(10, nnzkTruss);
+      if (fuse)
+        System.out.println("3-Truss nnz fused is "+nnzkTruss);
+      else
+        Assert.assertEquals(10, nnzkTruss);
       Assert.assertEquals(expect, actual);
     }
 
+    conn.tableOperations().delete(tR);
     // Now test 4-truss
     {
       Map<Key, Value> input = new HashMap<>();
@@ -84,11 +100,14 @@ public class AlgorithmTest extends AccumuloTestBase {
       input.put(new Key("v4", "", "v2"), new Value("1".getBytes()));
       expect.putAll(input);
       GraphuloUtil.writeEntries(conn, input, tA, false);
+//      Thread.sleep(200);
     }
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      long nnzkTruss = graphulo.kTrussAdj(tA, tR, 4, null, true, Authorizations.EMPTY, "");
-      log.info("4Truss has " + nnzkTruss + " nnz");
+      long nnzkTruss = fuse
+          ? graphulo.kTrussAdj_Fused(tA, tR, 4, null, true, Authorizations.EMPTY, "")
+          : graphulo.kTrussAdj(tA, tR, 4, null, true, Authorizations.EMPTY, "");
+      log.info("4-Truss has " + nnzkTruss + " nnz");
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
       scanner.setRanges(Collections.singleton(new Range()));
@@ -96,14 +115,17 @@ public class AlgorithmTest extends AccumuloTestBase {
         actual.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
-      Assert.assertEquals(12, nnzkTruss);
+      if (fuse)
+        System.out.println("4-Truss nnz fused is "+nnzkTruss);
+      else
+        Assert.assertEquals(12, nnzkTruss);
       Assert.assertEquals(expect, actual);
     }
-
 
     conn.tableOperations().delete(tA);
     conn.tableOperations().delete(tR);
   }
+
 
 
   @Test

@@ -29,6 +29,8 @@ import edu.mit.ll.graphulo.skvi.SmallLargeRowFilter;
 import edu.mit.ll.graphulo.skvi.TopColPerRowIterator;
 import edu.mit.ll.graphulo.skvi.TriangularFilter;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
+import edu.mit.ll.graphulo.skvi.ktruss.KTrussFilterIterator;
+import edu.mit.ll.graphulo.skvi.ktruss.SumConditionTimestampIterator;
 import edu.mit.ll.graphulo.util.DebugUtil;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.MemMatrixUtil;
@@ -44,8 +46,10 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
@@ -330,6 +334,54 @@ public class Graphulo {
         numEntriesCheckpoint, ATauthorizations, Bauthorizations);
   }
 
+  /**
+   * C += A * B.
+   * User-defined "plus" and "multiply". Requires transpose table AT instead of A.
+   * If C is not given, then the scan itself returns the results of A * B. (not thoroughly tested)
+   * @param ATtable              Name of Accumulo table holding matrix transpose(A).
+   * @param Btable               Name of Accumulo table holding matrix B.
+   * @param Ctable               Name of table to store result. Null means don't store the result.
+   * @param CTtable              Name of table to store transpose of result. Null means don't store the transpose.
+   * @param BScanIteratorPriority Priority to use for Table Multiplication scan-time iterator on table B
+   * @param multOp               An operation that "multiplies" two values.
+   * @param multOpOptions        Options for multiply ops that need configuring. Can be null if no options needed.
+   * @param plusOp               An SKVI to apply to the result table that "sums" values. Not applied if null.
+   * @param rowFilter            Row subset of ATtable and Btable, like "a,:,b,g,c,:,". Null means run on all rows.
+   * @param colFilterAT          Column qualifier subset of AT. Null means run on all columns.
+   * @param colFilterB           Column qualifier subset of B. Null means run on all columns.
+   * @param alsoDoAA             Whether to also compute A*A at the same time as A*B. Default false.
+   * @param alsoDoBB             Whether to also compute B*B at the same time as A*B. Default false.
+   * @param alsoEmitA            Whether to add A into A*B. Default false.
+   * @param alsoEmitB            Whether to add B into A*B. Default false.
+   * @param iteratorsBeforeA     Extra iterators used on ATtable before TableMult.
+   * @param iteratorsBeforeB     Extra iterators used on  Btable before TableMult.
+   * @param iteratorsAfterTwoTable  Extra iterators used after TableMult but before writing entries to Ctable and CTtable.
+   * @param reducer              Reducer used during operation. Null means no reducer. If not null, must already be init'ed.
+   * @param reducerOpts          Options for the reducer; not used if reducer is null.
+   * @param numEntriesCheckpoint # of entries before we emit a checkpoint entry from the scan. -1 means no monitoring.
+   * @param ATauthorizations Authorizations for scanning ATtable. Null means use default: Authorizations.EMPTY
+   * @param Bauthorizations Authorizations for scanning Btable. Null means use default: Authorizations.EMPTY
+   */
+  public long TableMult(String ATtable, String Btable, String Ctable, String CTtable,
+                        int BScanIteratorPriority,
+                        Class<? extends MultiplyOp> multOp, Map<String, String> multOpOptions,
+                        IteratorSetting plusOp,
+                        String rowFilter, String colFilterAT, String colFilterB,
+                        boolean alsoDoAA, boolean alsoDoBB,
+                        boolean alsoEmitA, boolean alsoEmitB,
+                        List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
+                        List<IteratorSetting> iteratorsAfterTwoTable,
+                        Reducer reducer, Map<String, String> reducerOpts,
+                        int numEntriesCheckpoint,
+                        Authorizations ATauthorizations, Authorizations Bauthorizations) {
+    return TwoTableROWCartesian(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority,
+        multOp, multOpOptions, plusOp, rowFilter, colFilterAT, colFilterB,
+        alsoDoAA, alsoDoBB, alsoDoAA, alsoDoBB, alsoEmitA, alsoEmitB,
+        iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
+        reducer, reducerOpts,
+        numEntriesCheckpoint, ATauthorizations, Bauthorizations);
+  }
+
   public long TwoTableROWCartesian(String ATtable, String Btable, String Ctable, String CTtable,
                                    int BScanIteratorPriority,
                                    //TwoTableIterator.DOTMODE dotmode, //CartesianRowMultiply.ROWMODE rowmode,
@@ -344,6 +396,30 @@ public class Graphulo {
                                    Reducer reducer, Map<String, String> reducerOpts,
                                    int numEntriesCheckpoint,
                                    Authorizations ATauthorizations, Authorizations Bauthorizations) {
+    return TwoTableROWCartesian(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority,
+        multOp, multOpOptions, plusOp,
+        rowFilter, colFilterAT, colFilterB,
+        emitNoMatchA, emitNoMatchB, alsoDoAA, alsoDoBB, false, false,
+        iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable,
+        reducer, reducerOpts,
+        numEntriesCheckpoint, ATauthorizations, Bauthorizations);
+  }
+
+  public long TwoTableROWCartesian(String ATtable, String Btable, String Ctable, String CTtable,
+                                   int BScanIteratorPriority,
+                                   //TwoTableIterator.DOTMODE dotmode, //CartesianRowMultiply.ROWMODE rowmode,
+                                   Class<? extends MultiplyOp> multOp, Map<String, String> multOpOptions,
+                                   IteratorSetting plusOp,
+                                   String rowFilter,
+                                   String colFilterAT, String colFilterB,
+                                   boolean emitNoMatchA, boolean emitNoMatchB,
+                                   boolean alsoDoAA, boolean alsoDoBB,
+                                   boolean alsoEmitA, boolean alsoEmitB,
+                                   List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
+                                   List<IteratorSetting> iteratorsAfterTwoTable,
+                                   Reducer reducer, Map<String, String> reducerOpts,
+                                   int numEntriesCheckpoint,
+                                   Authorizations ATauthorizations, Authorizations Bauthorizations) {
     if (multOp == null)
       multOp = MathTwoScalar.class;
     Map<String,String> opt = new HashMap<>();
@@ -353,9 +429,18 @@ public class Graphulo {
       for (Map.Entry<String, String> entry : multOpOptions.entrySet()) {
         opt.put("rowMultiplyOp.opt.multiplyOp.opt."+entry.getKey(), entry.getValue()); // treated same as multiplyOp
       }
-    opt.put("rowMultiplyOp.opt.rowmode", CartesianRowMultiply.ROWMODE.ONEROWA.name());
+    CartesianRowMultiply.ROWMODE rowmode;
+    if ((alsoDoAA || alsoEmitA) && (alsoEmitB || alsoDoBB))
+      rowmode = CartesianRowMultiply.ROWMODE.TWOROW;
+    else if (alsoDoBB || alsoEmitB)
+      rowmode = CartesianRowMultiply.ROWMODE.ONEROWB;
+    else
+      rowmode = CartesianRowMultiply.ROWMODE.ONEROWA;
+    opt.put("rowMultiplyOp.opt.rowmode", rowmode.name());
     opt.put("rowMultiplyOp.opt."+CartesianRowMultiply.ALSODOAA, Boolean.toString(alsoDoAA));
     opt.put("rowMultiplyOp.opt."+CartesianRowMultiply.ALSODOBB, Boolean.toString(alsoDoBB));
+    opt.put("rowMultiplyOp.opt."+CartesianRowMultiply.ALSOEMITA, Boolean.toString(alsoEmitA));
+    opt.put("rowMultiplyOp.opt."+CartesianRowMultiply.ALSOEMITB, Boolean.toString(alsoEmitB));
 
     return TwoTable(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority,
         TwoTableIterator.DOTMODE.ROW, opt, plusOp,
@@ -1900,7 +1985,7 @@ public class Graphulo {
                 filterRowCol,
                 filterRowCol, null, null, Aauthorizations);
 
-      // Inital nnz
+      // Inital nnz - this would only speed up inputs that are already a k-Truss
       // Careful: nnz figure will be inaccurate if there are multiple versions of an entry in Aorig.
       // The truly accurate count is to count them first!
 //      D4mDbTableOperations d4mtops = new D4mDbTableOperations(connector.getInstance().getInstanceName(),
@@ -1959,6 +2044,137 @@ public class Graphulo {
 
     } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
       log.error("Exception in kTrussAdj", e);
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * This version uses advanced loop fusion to speed up the calculation.
+   * <p>
+   * From input <b>unweighted, undirected</b> adjacency table Aorig, put the k-Truss
+   * of Aorig in Rfinal.
+   * @param Aorig Unweighted, undirected adjacency table.
+   * @param Rfinal Does not have to previously exist. Writes the kTruss into Rfinal if it already exists.
+   *               Use a combiner if you want to sum it in.
+   * @param k Trivial if k <= 2.
+   * @param filterRowCol Filter applied to rows and columns of Aorig
+   *                     (must apply to both rows and cols because A is undirected Adjacency table).
+   * @param forceDelete False means throws exception if the temporary tables used inside the algorithm already exist.
+   *                    True means delete them if they exist.
+   * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
+   * @param RNewVisibility Visibility label for new entries created. Null means no visibility label.
+   * @return A somewhat meaningless number. This fused version loses the ability to directly measure nnz.
+   *          Returns -1 if k < 2 since there is no point in counting the number of edges.
+   */
+  public long kTrussAdj_Fused(String Aorig, String Rfinal, int k,
+                        String filterRowCol, boolean forceDelete,
+                        Authorizations Aauthorizations, String RNewVisibility) throws InterruptedException {
+    checkGiven(true, "Aorig", Aorig);
+    Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
+    TableOperations tops = connector.tableOperations();
+    boolean RfinalExists = tops.exists(Rfinal);
+    if (RfinalExists)
+      log.warn("Fused version of kTruss may not work when the result table already exists due to iterator conflicts");
+
+    try {
+      if (k <= 2) {               // trivial case: every graph is a 2-truss
+        if (RfinalExists || filterRowCol != null)
+          OneTable(Aorig, Rfinal, null, null, -1, null, null, PLUS_ITERATOR_LONG,
+              filterRowCol,
+              filterRowCol, null, null, Aauthorizations);
+        else
+          tops.clone(Aorig, Rfinal, true, null, null);    // flushes Aorig before cloning
+        return -1;
+      }
+
+      // non-trivial case: k is 3 or more.
+      String Atmp, AtmpAlt;
+      long nnzBefore, nnzAfter;
+      String tmpBaseName = Aorig+"_kTrussAdj_";
+      Atmp = tmpBaseName+"tmpA";
+      AtmpAlt = tmpBaseName+"tmpAalt";
+      deleteTables(Atmp, AtmpAlt);
+
+      if (filterRowCol == null) {
+        tops.clone(Aorig, Atmp, true, null, null);
+//        long l = System.currentTimeMillis();
+//        nnzAfter = countEntries(Aorig);
+//        long dur = System.currentTimeMillis()-l;
+//        log.debug("Time to count entries is "+Long.toString(dur)+" ms.");
+      }
+      else
+        OneTable(Aorig, Atmp, null, null, -1, null, null, null,
+            filterRowCol,
+            filterRowCol, null, null, Aauthorizations);
+      // forcing minimum 2 loops due to nnz proxy
+      nnzAfter = Long.MAX_VALUE;
+
+      // Part II
+      IteratorSetting filter = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY+1,
+          k+"kPI",
+          EnumSet.of(DynamicIteratorSetting.MyIteratorScope.SCAN, DynamicIteratorSetting.MyIteratorScope.MAJC_FULL))
+          .append(KTrussFilterIterator.iteratorSetting(1, k))
+          .toIteratorSetting();
+
+      // No Diagonal filter
+      List<IteratorSetting> noDiagFilter = Collections.singletonList(
+          TriangularFilter.iteratorSetting(1, TriangularType.NoDiagonal));
+
+      // Do not include VersioningIterator on new table
+//      Set<String> excludeSet = new HashSet<>();
+//      for (IteratorUtil.IteratorScope iterScope : IteratorUtil.IteratorScope.values()) {
+//        excludeSet.add(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers");
+//        excludeSet.add(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers.opt.maxVersions");
+//      }
+      NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaultIterators();
+
+      int i=1;
+      do {
+        nnzBefore = nnzAfter;
+
+//        // Clone Atmp into AtmpAlt, ignoring VersioningIterator
+//        tops.clone(Atmp, AtmpAlt, true, null, excludeSet);
+        // New table with no VersioningIterator
+        tops.create(AtmpAlt, ntc);
+
+        // Special Sum
+        long l = System.currentTimeMillis()+1;
+        IteratorSetting sum = SumConditionTimestampIterator.iteratorSetting(DEFAULT_COMBINER_PRIORITY, l);
+        sum.setName(k+"kPII");
+        log.debug("setting tt = "+l+"\t for iteration writing to "+AtmpAlt);
+
+        // Use Atmp for both AT and B
+        nnzAfter = TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Atmp, AtmpAlt, null, DEFAULT_COMBINER_PRIORITY+2, ConstantTwoScalar.class,
+            ConstantTwoScalar.optionMap(new Value("1".getBytes(StandardCharsets.UTF_8)), RNewVisibility),
+            sum, null, null, null, false, false, true, false,
+            null, null, noDiagFilter,
+            null, null, -1, Aauthorizations, Aauthorizations);
+//        System.out.println("gogo"+ i++);
+//        Thread.sleep(7000);
+        // AtmpAlt has a Special Sum
+        // Apply Part II after all entries written
+        GraphuloUtil.applyIteratorSoft(filter, tops, AtmpAlt);
+        long dur = System.currentTimeMillis() - l;
+//        System.out.println("gogo"+ i++);
+//        Thread.sleep(7000);
+
+        tops.delete(Atmp);
+        { String t = Atmp; Atmp = AtmpAlt; AtmpAlt = t; }
+
+        log.debug("nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter+"; "+Long.toString(dur)+" ms");
+      } while (nnzBefore != nnzAfter);
+      // Atmp, ATtmp have the result table. Could be empty.
+
+      if (RfinalExists)  // sum whole graph into existing graph
+        AdjBFS(Atmp, null, 1, Rfinal, null, null, DEFAULT_COMBINER_PRIORITY+3, null, null, false, 0, Integer.MAX_VALUE, null, Aauthorizations, Aauthorizations, false, null);
+      else                                           // result is new;
+        tops.clone(Atmp, Rfinal, true, null, null);  // flushes Atmp before cloning
+
+      tops.delete(Atmp);
+      return nnzAfter;
+
+    } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
+      log.error("Exception in kTrussAdj_Fused", e);
       throw new RuntimeException(e);
     }
   }

@@ -905,10 +905,10 @@ public class UtilTest {
     Map<String,String> opts = SumConditionTimestampIterator.iteratorSetting(1, 10).getOptions();
 
     SortedMap<Key,Value> input = new TreeMap<>();
-    input.put(new Key("r1", "", "c1", 2), new Value("1".getBytes()));
-    input.put(new Key("r1", "", "c1", 12), new Value("3".getBytes()));
     input.put(new Key("r1", "", "c1", 13), new Value("1".getBytes()));
+    input.put(new Key("r1", "", "c1", 12), new Value("3".getBytes()));
     input.put(new Key("r1", "", "c1", 11), new Value("5".getBytes()));
+    input.put(new Key("r1", "", "c1", 2), new Value("1".getBytes()));
     input.put(new Key("r1", "", "c2", 20), new Value("6".getBytes()));
     input.put(new Key("r1", "", "c3", 5), new Value("1".getBytes()));
 

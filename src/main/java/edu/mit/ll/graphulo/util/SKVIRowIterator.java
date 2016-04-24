@@ -3,6 +3,7 @@ package edu.mit.ll.graphulo.util;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.hadoop.io.Text;
 
 import java.io.IOException;
 import java.util.AbstractMap;
@@ -83,5 +84,16 @@ public class SKVIRowIterator implements Iterator<Map.Entry<Key,Value>> {
       map.put(entry.getKey(), entry.getValue());
     }
     return map;
+  }
+
+  /**
+   * Dump the current row, so that the top key is at the next row or there are no more rows.
+   */
+  public static void dumpRow(SortedKeyValueIterator<Key,Value> skvi) throws IOException {
+    Text thisRow = skvi.getTopKey().getRow();
+    Text curRow = new Text(thisRow);
+    do {
+      skvi.next();
+    } while (skvi.hasTop() && skvi.getTopKey().getRow(curRow).equals(thisRow));
   }
 }

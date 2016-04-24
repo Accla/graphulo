@@ -127,6 +127,7 @@ public abstract class MultiKeyCombiner extends WrappingIterator implements Optio
   }
 
   private PeekingIterator1<? extends Map.Entry<Key,Value>> top;
+  private boolean aliasedTop = false;
 
   @Override
   public Key getTopKey() {
@@ -151,9 +152,8 @@ public abstract class MultiKeyCombiner extends WrappingIterator implements Optio
 
   @Override
   public void next() throws IOException {
-    if (top.hasNext())
-      top.next();
-    findTop(true);
+    top.next();
+    findTop(!aliasedTop);
   }
 
   @VisibleForTesting
@@ -186,6 +186,7 @@ public abstract class MultiKeyCombiner extends WrappingIterator implements Optio
       if (doNext)
         super.next();
       doNext = true;
+      aliasedTop = false;
       if (!super.hasTop()) {
         top = PeekingIterator1.emptyIterator();
         return;
@@ -198,9 +199,14 @@ public abstract class MultiKeyCombiner extends WrappingIterator implements Optio
           return;
         }
         Iterator<Map.Entry<Key,Value>> viter = new KeyValueIterator(topKey, getSource());
-        top = new PeekingIterator1<>(reduceKV(viter)); // reduceKV could return null/empty iterator
-        while (viter.hasNext())
-          viter.next();
+        Iterator<? extends Map.Entry<Key, Value>> viterNew = reduceKV(viter);
+        top = new PeekingIterator1<>(viterNew); // reduceKV could return null/empty iterator
+        // empty viter if reduceKV returned a different iterator. Otherwise we will use that iterator.
+        if (viter == viterNew)
+          aliasedTop = true;
+        else
+          while (viter.hasNext())
+            viter.next();
       } else {
         top = new PeekingIterator1<>(new AbstractMap.SimpleImmutableEntry<>(topKey, super.getTopValue()));
       }
@@ -233,6 +239,11 @@ public abstract class MultiKeyCombiner extends WrappingIterator implements Optio
 
   /**
    * Reduces a list of Keys and Values into some number of Keys and Values.
+   * It is okay to return the same iterator.
+   * Steps are taken to handle the case of aliasing.
+   * <b>Do Not return an iterator with the same source as this one
+   * that is not referentially equal to this one</b>,
+   * e.g. do not <code>return new PeekingIterator(iter);</code>.
    *
    * @param iter
    *          An iterator over Keys and Values

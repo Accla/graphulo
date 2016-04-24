@@ -5,9 +5,11 @@ import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import edu.mit.ll.graphulo.skvi.D4mRangeFilter;
 import edu.mit.ll.graphulo.skvi.MapIterator;
 import edu.mit.ll.graphulo.skvi.MinMaxFilter;
+import edu.mit.ll.graphulo.skvi.MultiKeyCombiner;
 import edu.mit.ll.graphulo.skvi.NoConsecutiveDuplicateRowsIterator;
 import edu.mit.ll.graphulo.skvi.TopColPerRowIterator;
 import edu.mit.ll.graphulo.skvi.TriangularFilter;
+import edu.mit.ll.graphulo.skvi.ktruss.KTrussFilterIterator;
 import edu.mit.ll.graphulo.skvi.ktruss.SumConditionTimestampIterator;
 import edu.mit.ll.graphulo.util.DoubletonIterator;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
@@ -23,6 +25,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.LongCombiner;
@@ -856,37 +859,46 @@ public class UtilTest {
     }
   }
 
-  public static final IteratorEnvironment MOCK_ITER_ENV = new IteratorEnvironment() {
-    @Override
-    public SortedKeyValueIterator<Key, Value> reserveMapFileReader(String mapFileName) throws IOException {
-      return null;
-    }
+  private static IteratorEnvironment mockIteratorEnvrironment(final DynamicIteratorSetting.MyIteratorScope scope) {
+    return new IteratorEnvironment() {
+      @Override
+      public SortedKeyValueIterator<Key, Value> reserveMapFileReader(String mapFileName) throws IOException {
+        return null;
+      }
 
-    @Override
-    public AccumuloConfiguration getConfig() {
-      return null;
-    }
+      @Override
+      public AccumuloConfiguration getConfig() {
+        return null;
+      }
 
-    @Override
-    public IteratorUtil.IteratorScope getIteratorScope() {
-      return IteratorUtil.IteratorScope.scan;
-    }
+      @Override
+      public IteratorUtil.IteratorScope getIteratorScope() {
+        switch (scope) {
+          case MAJC_FULL:
+          case MAJC_PARTIAL: return IteratorUtil.IteratorScope.majc;
+          case MINC: return IteratorUtil.IteratorScope.minc;
+          case SCAN: return IteratorUtil.IteratorScope.scan;
+          default: Assert.fail("unknown scope: "+scope);
+            throw new AssertionError();
+        }
+      }
 
-    @Override
-    public boolean isFullMajorCompaction() {
-      return false;
-    }
+      @Override
+      public boolean isFullMajorCompaction() {
+        return scope == DynamicIteratorSetting.MyIteratorScope.MAJC_FULL;
+      }
 
-    @Override
-    public void registerSideChannel(SortedKeyValueIterator<Key, Value> iter) {
+      @Override
+      public void registerSideChannel(SortedKeyValueIterator<Key, Value> iter) {
 
-    }
+      }
 
-    @Override
-    public Authorizations getAuthorizations() {
-      return null;
-    }
-  };
+      @Override
+      public Authorizations getAuthorizations() {
+        return null;
+      }
+    };
+  }
 
   @Test
   public void testSumConditionTimestampIterator() throws IOException {
@@ -903,7 +915,7 @@ public class UtilTest {
     SortedKeyValueIterator<Key,Value> skvi = new MapIterator(input);
     skvi.init(null, null, null);
     SortedKeyValueIterator<Key,Value> skviTop = new SumConditionTimestampIterator();
-    skviTop.init(skvi, opts, MOCK_ITER_ENV);
+    skviTop.init(skvi, opts, mockIteratorEnvrironment(DynamicIteratorSetting.MyIteratorScope.SCAN));
     skvi = skviTop;
     skvi.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
 
@@ -926,4 +938,139 @@ public class UtilTest {
     Assert.assertFalse(ia.hasNext());
   }
 
+  @Test
+  public void testKTrussFilterIterator_MAJC_FULL() throws IOException {
+    Map<String,String> opts = KTrussFilterIterator.iteratorSetting(1, 4).getOptions();
+
+    SortedMap<Key,Value> input = new TreeMap<>();
+    input.put(new Key("r1", "", "c1", 2), new Value("1".getBytes()));
+    input.put(new Key("r1", "", "c1", 12), new Value("2".getBytes()));
+    input.put(new Key("r1", "", "c2", 11), new Value("1".getBytes()));
+    input.put(new Key("r1", "", "c2", 20), new Value("1".getBytes()));
+    input.put(new Key("r1", "", "c3", 5), new Value("1".getBytes()));
+
+    SortedKeyValueIterator<Key,Value> skvi = new MapIterator(input);
+    skvi.init(null, null, null);
+    SortedKeyValueIterator<Key,Value> skviTop = new KTrussFilterIterator();
+    skviTop.init(skvi, opts, mockIteratorEnvrironment(DynamicIteratorSetting.MyIteratorScope.MAJC_FULL));
+    skvi = skviTop;
+    skvi.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
+
+    SortedMap<Key,Value> expect = new TreeMap<>();
+    expect.put(new Key("r1", "", "c1", 12), new Value("2".getBytes()));
+    expect.put(new Key("r1", "", "c1", 2), new Value("1".getBytes()));
+
+    IteratorAdapter ia = new IteratorAdapter(skvi);
+    for (Map.Entry<Key, Value> expectEntry : expect.entrySet()) {
+      Assert.assertTrue(ia.hasNext());
+      Map.Entry<Key, Value> actualEntry = ia.next();
+      Assert.assertEquals(expectEntry, actualEntry);
+    }
+    Assert.assertFalse(ia.hasNext());
+  }
+
+  @Test
+  public void testKTrussFilterIterator_SCAN() throws IOException {
+    Map<String,String> opts = KTrussFilterIterator.iteratorSetting(1, 4).getOptions();
+
+    SortedMap<Key,Value> input = new TreeMap<>();
+    input.put(new Key("r1", "", "c1", 2), new Value("1".getBytes()));
+    input.put(new Key("r1", "", "c1", 12), new Value("2".getBytes()));
+    input.put(new Key("r1", "", "c2", 11), new Value("1".getBytes()));
+    input.put(new Key("r1", "", "c2", 20), new Value("1".getBytes()));
+    input.put(new Key("r1", "", "c3", 5), new Value("1".getBytes()));
+
+    SortedKeyValueIterator<Key,Value> skvi = new MapIterator(input);
+    skvi.init(null, null, null);
+    SortedKeyValueIterator<Key,Value> skviTop = new KTrussFilterIterator();
+    skviTop.init(skvi, opts, mockIteratorEnvrironment(DynamicIteratorSetting.MyIteratorScope.SCAN));
+    skvi = skviTop;
+    skvi.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
+
+    SortedMap<Key,Value> expect = new TreeMap<>();
+    expect.put(new Key("r1", "", "c1", 12), new Value("1".getBytes()));
+
+    IteratorAdapter ia = new IteratorAdapter(skvi);
+    for (Map.Entry<Key, Value> expectEntry : expect.entrySet()) {
+      Assert.assertTrue(ia.hasNext());
+      Map.Entry<Key, Value> actualEntry = ia.next();
+      Assert.assertEquals(expectEntry, actualEntry);
+    }
+    Assert.assertFalse(ia.hasNext());
+  }
+
+  @Test
+  public void testKTrussFilterIterator_MINC() throws IOException {
+    Map<String,String> opts = KTrussFilterIterator.iteratorSetting(1, 4).getOptions();
+
+    SortedMap<Key,Value> input = new TreeMap<>();
+    input.put(new Key("r1", "", "c1", 12), new Value("2".getBytes()));
+    input.put(new Key("r1", "", "c1", 2), new Value("1".getBytes()));
+    input.put(new Key("r1", "", "c2", 20), new Value("1".getBytes()));
+    input.put(new Key("r1", "", "c2", 11), new Value("1".getBytes()));
+    input.put(new Key("r1", "", "c3", 5), new Value("1".getBytes()));
+
+    SortedKeyValueIterator<Key,Value> skvi = new MapIterator(input);
+    skvi.init(null, null, null);
+    SortedKeyValueIterator<Key,Value> skviTop = new KTrussFilterIterator();
+    skviTop.init(skvi, opts, mockIteratorEnvrironment(DynamicIteratorSetting.MyIteratorScope.MINC));
+    skvi = skviTop;
+    skvi.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
+
+    SortedMap<Key,Value> expect = new TreeMap<>();
+    expect.putAll(input);
+
+    IteratorAdapter ia = new IteratorAdapter(skvi);
+//    while (ia.hasNext()) {
+//      Map.Entry<Key, Value> next = ia.next();
+//      System.out.println(next.getKey().toString()+" -> "+next.getValue());
+//    }
+    for (Map.Entry<Key, Value> expectEntry : expect.entrySet()) {
+      Assert.assertTrue(ia.hasNext());
+      Map.Entry<Key, Value> actualEntry = ia.next();
+      Assert.assertEquals(expectEntry, actualEntry);
+    }
+    Assert.assertFalse(ia.hasNext());
+  }
+
+  @Test
+  public void testAliasedMultiKeyCombiner() throws IOException {
+    IteratorSetting itset = new IteratorSetting(1, MultiKeyCombiner.class);
+    Combiner.setCombineAllColumns(itset, true);
+    Map<String,String> opts = itset.getOptions();
+
+    SortedMap<Key,Value> input = new TreeMap<>();
+    input.put(new Key("r1", "", "c1", 12), new Value("2".getBytes()));
+    input.put(new Key("r1", "", "c1", 2), new Value("1".getBytes()));
+    input.put(new Key("r1", "", "c2", 20), new Value("1".getBytes()));
+    input.put(new Key("r1", "", "c2", 11), new Value("1".getBytes()));
+    input.put(new Key("r1", "", "c3", 5), new Value("1".getBytes()));
+
+    SortedKeyValueIterator<Key,Value> skvi = new MapIterator(input);
+    skvi.init(null, null, null);
+    SortedKeyValueIterator<Key,Value> skviTop = new MultiKeyCombiner() {
+      @Override
+      public Iterator<? extends Map.Entry<Key, Value>> reduceKV(Iterator<Map.Entry<Key, Value>> iter) {
+        return iter;
+      }
+    };
+    skviTop.init(skvi, opts, mockIteratorEnvrironment(DynamicIteratorSetting.MyIteratorScope.MINC));
+    skvi = skviTop;
+    skvi.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
+
+    SortedMap<Key,Value> expect = new TreeMap<>();
+    expect.putAll(input);
+
+    IteratorAdapter ia = new IteratorAdapter(skvi);
+    while (ia.hasNext()) {
+      Map.Entry<Key, Value> next = ia.next();
+      System.out.println(next.getKey().toString()+" -> "+next.getValue());
+    }
+//    for (Map.Entry<Key, Value> expectEntry : expect.entrySet()) {
+//      Assert.assertTrue(ia.hasNext());
+//      Map.Entry<Key, Value> actualEntry = ia.next();
+//      Assert.assertEquals(expectEntry, actualEntry);
+//    }
+//    Assert.assertFalse(ia.hasNext());
+  }
 }

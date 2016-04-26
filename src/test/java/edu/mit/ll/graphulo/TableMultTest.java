@@ -1,12 +1,15 @@
 package edu.mit.ll.graphulo;
 
+import edu.mit.ll.graphulo.simplemult.ConstantTwoScalar;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
+import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.TestUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -554,6 +557,381 @@ public class TableMultTest extends AccumuloTestBase {
     scanner.close();
 
     conn.tableOperations().delete(tAT);
+    conn.tableOperations().delete(tB);
+    conn.tableOperations().delete(tC);
+    conn.tableOperations().delete(tCT);
+  }
+
+
+  /**
+   * <pre>
+   *      C1 C2
+   * A1 [ 5  2 ]
+   * A2 [ 4    ]
+   * </pre>
+   */
+  @Test
+  public void testCloneMultiply() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
+    Connector conn = tester.getConnector();
+
+    final String tC, tAT, tB, tCT;
+    {
+      String[] names = getUniqueNames(3);
+      tAT = TwoTableIterator.CLONESOURCE_TABLENAME;
+      tB = names[0];
+      tC = names[1];
+      tCT = names[2];
+    }
+    {
+      Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
+      input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
+      input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
+      input = GraphuloUtil.transposeMap(input);
+      TestUtil.createTestTable(conn, tB, null, input);
+    }
+    SortedMap<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    expect.put(new Key("A1", "", "A1"), new Value("29".getBytes())); // 5*5 + 2*2
+    expect.put(new Key("A1", "", "A2"), new Value("20".getBytes())); // 5*4
+    expect.put(new Key("A2", "", "A1"), new Value("20".getBytes())); // 5*4
+    expect.put(new Key("A2", "", "A2"), new Value("16".getBytes())); // 4*4
+    SortedMap<Key, Value> expectT = GraphuloUtil.transposeMap(expect);
+
+    Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+    long numpp = graphulo.TableMult(tAT, tB, tC, tCT, -1,
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.BIGDECIMAL, "", false),
+        Graphulo.PLUS_ITERATOR_BIGDECIMAL,
+        null, null, null, false, false, 1);
+
+    Assert.assertEquals(5, numpp);
+
+    Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
+    {
+      SortedMap<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+//      DebugUtil.printMapFull(actual.entrySet().iterator(), 5);
+      Assert.assertEquals(expect, actual);
+    }
+
+    scanner = conn.createScanner(tCT, Authorizations.EMPTY);
+    {
+      SortedMap<Key, Value> actualT = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actualT.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expectT, actualT);
+    }
+
+    conn.tableOperations().delete(tB);
+    conn.tableOperations().delete(tC);
+    conn.tableOperations().delete(tCT);
+  }
+
+  /**
+   * <pre>
+   *      C1 C2
+   * A1 [ 5  2 ]
+   * A2 [ 4    ]
+   * </pre>
+   */
+  @Test
+  public void testCloneMultiplyAndEmitA() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
+    Connector conn = tester.getConnector();
+
+    final String tC, tAT, tB, tCT;
+    {
+      String[] names = getUniqueNames(3);
+      tAT = TwoTableIterator.CLONESOURCE_TABLENAME;
+      tB = names[0];
+      tC = names[1];
+      tCT = names[2];
+    }
+    {
+      Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
+      input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
+      input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
+      input = GraphuloUtil.transposeMap(input);
+      TestUtil.createTestTable(conn, tB, null, input);
+    }
+    SortedMap<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    expect.put(new Key("A1", "", "A1"), new Value("29".getBytes())); // 5*5 + 2*2
+    expect.put(new Key("A1", "", "A2"), new Value("20".getBytes())); // 5*4
+    expect.put(new Key("A2", "", "A1"), new Value("20".getBytes())); // 5*4
+    expect.put(new Key("A2", "", "A2"), new Value("16".getBytes())); // 4*4
+    expect.put(new Key("C1", "", "A1"), new Value("5".getBytes())); // A
+    expect.put(new Key("C2", "", "A1"), new Value("2".getBytes())); // A
+    expect.put(new Key("C1", "", "A2"), new Value("4".getBytes())); // A
+    SortedMap<Key, Value> expectT = GraphuloUtil.transposeMap(expect);
+
+    Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+    long numpp = graphulo.TableMult(tAT, tB, tC, tCT, -1,
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.BIGDECIMAL, "", false),
+        Graphulo.PLUS_ITERATOR_BIGDECIMAL,
+        null, null, null, false, false,
+        true, false, null, null, null, null, null, 1, null, null);
+
+    Assert.assertEquals(8, numpp);
+
+    Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
+    {
+      SortedMap<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+//      DebugUtil.printMapFull(actual.entrySet().iterator(), 5);
+      Assert.assertEquals(expect, actual);
+    }
+
+    scanner = conn.createScanner(tCT, Authorizations.EMPTY);
+    {
+      SortedMap<Key, Value> actualT = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actualT.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expectT, actualT);
+    }
+
+    conn.tableOperations().delete(tB);
+    conn.tableOperations().delete(tC);
+    conn.tableOperations().delete(tCT);
+  }
+
+  /**
+   * <pre>
+   *      C1 C2
+   * A1 [ 5  2 ]
+   * A2 [ 4    ]
+   * </pre>
+   */
+  @Test
+  public void testCloneMultiplyAndEmitAAndUseIterators() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
+    Connector conn = tester.getConnector();
+
+    final String tC, tAT, tB, tCT;
+    {
+      String[] names = getUniqueNames(3);
+      tAT = TwoTableIterator.CLONESOURCE_TABLENAME;
+      tB = names[0];
+      tC = names[1];
+      tCT = names[2];
+    }
+    {
+      Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
+      input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
+      input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
+      input = GraphuloUtil.transposeMap(input);
+      TestUtil.createTestTable(conn, tB, null, input);
+    }
+    SortedMap<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    expect.put(new Key("A1", "", "A1"), new Value("7".getBytes())); // 1*5 + 1*2
+    expect.put(new Key("A1", "", "A2"), new Value("4".getBytes())); // 1*4
+    expect.put(new Key("A2", "", "A1"), new Value("5".getBytes())); // 1*5
+    expect.put(new Key("A2", "", "A2"), new Value("4".getBytes())); // 1*4
+    expect.put(new Key("C1", "", "A1"), new Value("1".getBytes())); // A
+    expect.put(new Key("C2", "", "A1"), new Value("1".getBytes())); // A
+    expect.put(new Key("C1", "", "A2"), new Value("1".getBytes())); // A
+    SortedMap<Key, Value> expectT = GraphuloUtil.transposeMap(expect);
+
+    Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+    long numpp = graphulo.TableMult(tAT, tB, tC, tCT, -1,
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.BIGDECIMAL, "", false),
+        Graphulo.PLUS_ITERATOR_BIGDECIMAL,
+        null, null, null, false, false,
+        true, false, Collections.singletonList(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes(StandardCharsets.UTF_8)))),
+        null, null, null, null, 1, null, null);
+
+    Assert.assertEquals(8, numpp);
+
+    Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
+    {
+      SortedMap<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+//      DebugUtil.printMapFull(actual.entrySet().iterator(), 5);
+      Assert.assertEquals(expect, actual);
+    }
+
+    scanner = conn.createScanner(tCT, Authorizations.EMPTY);
+    {
+      SortedMap<Key, Value> actualT = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actualT.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expectT, actualT);
+    }
+
+    conn.tableOperations().delete(tB);
+    conn.tableOperations().delete(tC);
+    conn.tableOperations().delete(tCT);
+  }
+
+  /**
+   * <pre>
+   *      C1 C2
+   * A1 [ 5  2 ]
+   * A2 [ 4    ]
+   * </pre>
+   */
+  @Test
+  public void testCloneMultiplyAndEmitAAndUseIterators2() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
+    Connector conn = tester.getConnector();
+
+    final String tC, tAT, tB, tCT;
+    {
+      String[] names = getUniqueNames(3);
+      tAT = TwoTableIterator.CLONESOURCE_TABLENAME;
+      tB = names[0];
+      tC = names[1];
+      tCT = names[2];
+    }
+    {
+      Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
+      input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
+      input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
+      input = GraphuloUtil.transposeMap(input);
+      TestUtil.createTestTable(conn, tB, null, input);
+    }
+    SortedMap<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    expect.put(new Key("A1", "", "A1"), new Value("13".getBytes())); // 1*8 + 1*5
+    expect.put(new Key("A1", "", "A2"), new Value("7".getBytes())); // 1*7
+    expect.put(new Key("A2", "", "A1"), new Value("8".getBytes())); // 1*8
+    expect.put(new Key("A2", "", "A2"), new Value("7".getBytes())); // 1*7
+    expect.put(new Key("C1", "", "A1"), new Value("1".getBytes())); // A
+    expect.put(new Key("C2", "", "A1"), new Value("1".getBytes())); // A
+    expect.put(new Key("C1", "", "A2"), new Value("1".getBytes())); // A
+    SortedMap<Key, Value> expectT = GraphuloUtil.transposeMap(expect);
+
+    IteratorSetting add3 =
+        MathTwoScalar.applyOpLong(1, true, MathTwoScalar.ScalarOp.PLUS, 3, false);
+    GraphuloUtil.applyIteratorSoft(add3, conn.tableOperations(), tB);
+
+    Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+    long numpp = graphulo.TableMult(tAT, tB, tC, tCT, -1,
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.BIGDECIMAL, "", false),
+        Graphulo.PLUS_ITERATOR_BIGDECIMAL,
+        null, null, null, false, false,
+        true, false, Collections.singletonList(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes(StandardCharsets.UTF_8)))),
+        null, null, null, null, 1, null, null);
+
+    Assert.assertEquals(8, numpp);
+
+    Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
+    {
+      SortedMap<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+//      DebugUtil.printMapFull(actual.entrySet().iterator(), 5);
+      Assert.assertEquals(expect, actual);
+    }
+
+    scanner = conn.createScanner(tCT, Authorizations.EMPTY);
+    {
+      SortedMap<Key, Value> actualT = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actualT.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expectT, actualT);
+    }
+
+    conn.tableOperations().delete(tB);
+    conn.tableOperations().delete(tC);
+    conn.tableOperations().delete(tCT);
+  }
+
+  /**
+   * <pre>
+   *      C1 C2
+   * A1 [ 5  2 ]
+   * A2 [ 4    ]
+   * </pre>
+   */
+  @Test
+  public void testCloneMultiplyAndEmitAAndUseIterators3() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
+    Connector conn = tester.getConnector();
+
+    final String tC, tAT, tB, tCT;
+    {
+      String[] names = getUniqueNames(3);
+      tAT = TwoTableIterator.CLONESOURCE_TABLENAME;
+      tB = names[0];
+      tC = names[1];
+      tCT = names[2];
+    }
+    {
+      Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
+      input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
+      input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
+      input = GraphuloUtil.transposeMap(input);
+      TestUtil.createTestTable(conn, tB, null, input);
+    }
+    SortedMap<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    expect.put(new Key("A1", "", "A1"), new Value("13".getBytes())); // 1*8 + 1*5
+    expect.put(new Key("A1", "", "A2"), new Value("7".getBytes())); // 1*7
+    expect.put(new Key("A2", "", "A1"), new Value("8".getBytes())); // 1*8
+    expect.put(new Key("A2", "", "A2"), new Value("7".getBytes())); // 1*7
+    expect.put(new Key("C1", "", "A1"), new Value("1".getBytes())); // A
+    expect.put(new Key("C2", "", "A1"), new Value("1".getBytes())); // A
+    expect.put(new Key("C1", "", "A2"), new Value("1".getBytes())); // A
+    SortedMap<Key, Value> expectT = GraphuloUtil.transposeMap(expect);
+
+    IteratorSetting add3 =
+        new DynamicIteratorSetting(1, null)
+        .append(MathTwoScalar.applyOpLong(1, true, MathTwoScalar.ScalarOp.PLUS, 3, false))
+        .toIteratorSetting();
+    GraphuloUtil.applyIteratorSoft(add3, conn.tableOperations(), tB);
+
+    IteratorSetting only1 =
+        new DynamicIteratorSetting(1, null)
+            .append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes(StandardCharsets.UTF_8))))
+            .toIteratorSetting();
+
+    Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+    long numpp = graphulo.TableMult(tAT, tB, tC, tCT, -1,
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.BIGDECIMAL, "", false),
+        Graphulo.PLUS_ITERATOR_BIGDECIMAL,
+        null, null, null, false, false,
+        true, false, Collections.singletonList(only1),
+        null, null, null, null, 1, null, null);
+
+    Assert.assertEquals(8, numpp);
+
+    Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
+    {
+      SortedMap<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+//      DebugUtil.printMapFull(actual.entrySet().iterator(), 5);
+      Assert.assertEquals(expect, actual);
+    }
+
+    scanner = conn.createScanner(tCT, Authorizations.EMPTY);
+    {
+      SortedMap<Key, Value> actualT = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actualT.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expectT, actualT);
+    }
+
     conn.tableOperations().delete(tB);
     conn.tableOperations().delete(tC);
     conn.tableOperations().delete(tCT);

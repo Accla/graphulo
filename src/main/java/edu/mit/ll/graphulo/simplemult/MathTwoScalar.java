@@ -178,6 +178,7 @@ public class MathTwoScalar extends SimpleTwoScalar {
       return Aval;
 
     Number Anum, Bnum;
+//    System.out.println("multiply("+Aval+","+Bval+")");
     String Astr = new String(Aval.get()), Bstr = new String(Bval.get());
     switch(scalarType) {
       case LONG:

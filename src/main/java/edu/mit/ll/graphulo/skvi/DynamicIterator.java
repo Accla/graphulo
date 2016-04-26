@@ -40,7 +40,7 @@ public class DynamicIterator extends WrappingIterator {
     if (doit)
       source = dis.loadIteratorStack(source, env);
     else
-      log.debug("Not applying this DynamicIterator "+dis.getDiName()+" scope "+env.getIteratorScope()+" is not permitted");
+      log.debug("Not applying this DynamicIterator "+dis.getDiName()+"; scope "+env.getIteratorScope()+" is not permitted");
     setSource(source);
   }
 

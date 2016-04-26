@@ -34,8 +34,6 @@ import edu.mit.ll.graphulo.skvi.SmallLargeRowFilter;
 import edu.mit.ll.graphulo.skvi.TopColPerRowIterator;
 import edu.mit.ll.graphulo.skvi.TriangularFilter;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
-import edu.mit.ll.graphulo.skvi.ktruss.KTrussFilterIterator;
-import edu.mit.ll.graphulo.skvi.ktruss.SumConditionTimestampIterator;
 import edu.mit.ll.graphulo.util.DebugUtil;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.MemMatrixUtil;
@@ -95,6 +93,7 @@ import static edu.mit.ll.graphulo.skvi.TriangularFilter.TriangularType;
  */
 public class Graphulo {
   private static final Logger log = LogManager.getLogger(Graphulo.class);
+  private static final Value VALUE_ONE = new Value("1".getBytes(StandardCharsets.UTF_8));
 
   public static final int DEFAULT_COMBINER_PRIORITY = 6;
   public static final IteratorSetting PLUS_ITERATOR_BIGDECIMAL =
@@ -1984,16 +1983,16 @@ public class Graphulo {
       
 
       // Sum and Filter out entries with < k-2
-      IteratorSetting sum = PLUS_ITERATOR_LONG;
-      IteratorSetting filter = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY+1,
-          "gt-"+Integer.toString(k-2)+"-filter",
-          EnumSet.of(DynamicIteratorSetting.MyIteratorScope.SCAN, DynamicIteratorSetting.MyIteratorScope.MAJC_FULL))
-          .append(MinMaxFilter.iteratorSetting(10, ScalarType.LONG, k - 2, null))
-          .toIteratorSetting();
-//      IteratorSetting sumAndFilter = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, null)
-//        .append(PLUS_ITERATOR_LONG)
-//        .append(MinMaxFilter.iteratorSetting(10, ScalarType.LONG, k - 2, null))
-//        .toIteratorSetting();
+      // We need not apply the sum or filter if k==3 because every entry is at least 1
+      IteratorSetting sum=null, filter=null;
+      if (k > 3) {
+        sum = PLUS_ITERATOR_LONG;
+        filter = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY + 1,
+            "gt-" + Integer.toString(k - 2) + "-filter",
+            EnumSet.of(DynamicIteratorSetting.MyIteratorScope.SCAN, DynamicIteratorSetting.MyIteratorScope.MAJC_FULL))
+            .append(MinMaxFilter.iteratorSetting(10, ScalarType.LONG, k - 2, null))
+            .toIteratorSetting();
+      }
       // No Diagonal filter
       List<IteratorSetting> noDiagFilter = Collections.singletonList(
           TriangularFilter.iteratorSetting(1, TriangularType.NoDiagonal));
@@ -2003,16 +2002,17 @@ public class Graphulo {
 
         // Use Atmp for both AT and B
         TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Atmp, A2tmp, null, -1, ConstantTwoScalar.class,
-            ConstantTwoScalar.optionMap(new Value("1".getBytes(StandardCharsets.UTF_8)), RNewVisibility),
+            ConstantTwoScalar.optionMap(VALUE_ONE, RNewVisibility),
             sum, null, null, null, false, false,
             null, null, noDiagFilter,
             null, null, -1, Aauthorizations, Aauthorizations);
         // A2tmp has a SummingCombiner
-        // apply the filter after all entries written
-        GraphuloUtil.applyIteratorSoft(filter, tops, A2tmp);
+        // Apply the filter after all entries written
+        if (k > 3)
+          GraphuloUtil.applyIteratorSoft(filter, tops, A2tmp);
 
         nnzAfter = SpEWiseX(A2tmp, Atmp, AtmpAlt, null, -1, ConstantTwoScalar.class,
-            ConstantTwoScalar.optionMap(new Value("1".getBytes(StandardCharsets.UTF_8)), RNewVisibility),
+            ConstantTwoScalar.optionMap(VALUE_ONE, RNewVisibility),
             null, null, null, null, null, null, null, null, null, -1, Aauthorizations, Aauthorizations);
 
         tops.delete(Atmp);
@@ -2024,7 +2024,8 @@ public class Graphulo {
       // Atmp, ATtmp have the result table. Could be empty.
 
       if (RfinalExists)  // sum whole graph into existing graph
-        AdjBFS(Atmp, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Aauthorizations, Aauthorizations, false, null);
+        AdjBFS(Atmp, null, 1, Rfinal, null, null, DEFAULT_COMBINER_PRIORITY+2, null, null, false,
+            0, Integer.MAX_VALUE, null, Aauthorizations, Aauthorizations, false, null);
       else                                           // result is new;
         tops.clone(Atmp, Rfinal, true, null, null);  // flushes Atmp before cloning
 
@@ -2035,6 +2036,13 @@ public class Graphulo {
       log.error("Exception in kTrussAdj", e);
       throw new RuntimeException(e);
     }
+  }
+
+  public long kTrussAdj_Fused(String Aorig, String Rfinal, int k,
+                              String filterRowCol, boolean forceDelete,
+                              Authorizations Aauthorizations, String RNewVisibility) throws InterruptedException {
+    return kTrussAdj_Fused(Aorig, Rfinal, k, filterRowCol,forceDelete,
+        Aauthorizations, RNewVisibility, 1L << 32);
   }
 
   /**
@@ -2052,18 +2060,26 @@ public class Graphulo {
    *                    True means delete them if they exist.
    * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
    * @param RNewVisibility Visibility label for new entries created. Null means no visibility label.
+   * @param upperBoundOnDim A loose bound on the largest number of entries in any one row or column of Aorig.
+   *                        It is typically okay to overestimate, but make sure that 2*upperBoundOnDim <= Long.MAX_VALUE.
+   *                        Be careful underestimating. A default guess is 2^32.
    * @return A somewhat meaningless number. This fused version loses the ability to directly measure nnz.
    *          Returns -1 if k < 2 since there is no point in counting the number of edges.
    */
   public long kTrussAdj_Fused(String Aorig, String Rfinal, int k,
-                        String filterRowCol, boolean forceDelete,
-                        Authorizations Aauthorizations, String RNewVisibility) throws InterruptedException {
+                              String filterRowCol, boolean forceDelete,
+                              Authorizations Aauthorizations, String RNewVisibility,
+                              long upperBoundOnDim) throws InterruptedException {
     checkGiven(true, "Aorig", Aorig);
     Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
     TableOperations tops = connector.tableOperations();
     boolean RfinalExists = tops.exists(Rfinal);
     if (RfinalExists)
       log.warn("Fused version of kTruss may not work when the result table already exists due to iterator conflicts");
+    if (upperBoundOnDim <= 0)
+      upperBoundOnDim = 1L << 32;
+    if (upperBoundOnDim >= Long.MAX_VALUE/2)
+      log.warn("Upper bound may be too large: "+upperBoundOnDim);
 
     try {
       if (k <= 2) {               // trivial case: every graph is a 2-truss
@@ -2098,16 +2114,23 @@ public class Graphulo {
       // forcing minimum 2 loops due to nnz proxy
       nnzAfter = Long.MAX_VALUE;
 
-      // Part II
-      IteratorSetting filter = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY+1,
-          k+"kPI",
-          EnumSet.of(DynamicIteratorSetting.MyIteratorScope.SCAN, DynamicIteratorSetting.MyIteratorScope.MAJC_FULL))
-          .append(KTrussFilterIterator.iteratorSetting(1, k))
-          .toIteratorSetting();
-
       // No Diagonal filter
       List<IteratorSetting> noDiagFilter = Collections.singletonList(
           TriangularFilter.iteratorSetting(1, TriangularType.NoDiagonal));
+
+      // Iterator that sets values to a constant amount
+      List<IteratorSetting> iterBeforeA = Collections.singletonList(
+          ConstantTwoScalar.iteratorSetting(1, new Value(Long.toString(upperBoundOnDim).getBytes(StandardCharsets.UTF_8)))
+      );
+
+      // Iterator that filters away values less than an amount
+      IteratorSetting sum, filter;
+      sum = PLUS_ITERATOR_LONG;
+      filter = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY + 1, null,
+          EnumSet.of(DynamicIteratorSetting.MyIteratorScope.SCAN, DynamicIteratorSetting.MyIteratorScope.MAJC_FULL))
+          .append(MinMaxFilter.iteratorSetting(1, ScalarType.LONG, upperBoundOnDim + k - 2, null))
+          .append(ConstantTwoScalar.iteratorSetting(1, VALUE_ONE))
+          .toIteratorSetting();
 
       // Do not include VersioningIterator on new table
 //      Set<String> excludeSet = new HashSet<>();
@@ -2117,7 +2140,7 @@ public class Graphulo {
 //      }
       NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaultIterators();
 
-//      int i=1;
+      int i=1;
       do {
         nnzBefore = nnzAfter;
 
@@ -2128,32 +2151,31 @@ public class Graphulo {
         GraphuloUtil.copySplits(tops, Atmp, AtmpAlt);
 
         // Special Sum
-        Thread.sleep(50); // for stability - this iterator is sensitive to the wall clock
         long l = System.currentTimeMillis();
-        Thread.sleep(50);
-        IteratorSetting sum = SumConditionTimestampIterator.iteratorSetting(DEFAULT_COMBINER_PRIORITY, l);
-        sum.setName(k+"kPII");
-        log.debug("setting tt = "+l+"\t for iteration writing to "+AtmpAlt);
-
         // Use Atmp for both AT and B
-        nnzAfter = TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Atmp, AtmpAlt, null, DEFAULT_COMBINER_PRIORITY+2, ConstantTwoScalar.class,
-            ConstantTwoScalar.optionMap(new Value("1".getBytes(StandardCharsets.UTF_8)), RNewVisibility),
+        // there seems to be a problem with TwoTableIterator.CLONESOURCE_TABLENAME
+        nnzAfter = TableMult(Atmp, Atmp, AtmpAlt, null, DEFAULT_COMBINER_PRIORITY+2,
+            ConstantTwoScalar.class, ConstantTwoScalar.optionMap(VALUE_ONE, RNewVisibility),
             sum, null, null, null, false, false, true, false,
-            null, null, noDiagFilter,
+            iterBeforeA, null, noDiagFilter,
             null, null, -1, Aauthorizations, Aauthorizations);
-//        System.out.println("gogo"+ i++);
+//        System.out.println("gogo"+ i);
 //        Thread.sleep(7000);
+        DebugUtil.printTable("before filter "+i, connector, Atmp, 11);
+        DebugUtil.printTable("before filter "+i, connector, AtmpAlt, 11);
         // AtmpAlt has a Special Sum
         // Apply Part II after all entries written
         GraphuloUtil.applyIteratorSoft(filter, tops, AtmpAlt);
         long dur = System.currentTimeMillis() - l;
-//        System.out.println("gogo"+ i++);
+        DebugUtil.printTable("after filter "+i, connector, AtmpAlt, 11);
+        i++;
+//        System.out.println("gogo"+ i);
 //        Thread.sleep(7000);
 
         tops.delete(Atmp);
         { String t = Atmp; Atmp = AtmpAlt; AtmpAlt = t; }
 
-        log.debug("nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter+"; "+Long.toString(dur)+" ms");
+        log.debug("nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter+"; "+Long.toString(dur/1000)+" s");
       } while (nnzBefore != nnzAfter);
 
       if (RfinalExists)  // sum whole graph into existing graph

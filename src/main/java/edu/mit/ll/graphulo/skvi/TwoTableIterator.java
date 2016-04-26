@@ -395,8 +395,9 @@ public class TwoTableIterator implements SaveStateIterator {
     String tableName = opts.get(RemoteSourceIterator.TABLENAME);
     SortedKeyValueIterator<Key, Value> ret;
     if (tableName != null && tableName.equals(CLONESOURCE_TABLENAME)) {
-      if (source.getClass().equals(DynamicIterator.class))
-        System.out.println("BAD OPTS: "+opts);
+      if (source.getClass().equals(DynamicIterator.class)) {
+        log.warn("BAD OPTS: " + opts);
+      }
       ret = source.deepCopy(env);
       ret = setupRemoteSourceOptionsSKVI(ret, opts, env);
       log.debug("Setting up "+CLONESOURCE_TABLENAME+": "+ret);
@@ -458,6 +459,7 @@ public class TwoTableIterator implements SaveStateIterator {
 
     if (!diterMap.isEmpty()) {
       DynamicIteratorSetting dynamicIteratorSetting = DynamicIteratorSetting.fromMap(diterMap);
+//      System.out.println("about to load:\n"+dynamicIteratorSetting);
       ret = dynamicIteratorSetting.loadIteratorStack(ret, env);
     }
 
@@ -502,7 +504,7 @@ public class TwoTableIterator implements SaveStateIterator {
     seekRange = range;
     seekColumnFamilies = columnFamilies;
     seekInclusive = inclusive;
-    System.out.println("DM adj range: " + range);
+//    System.out.println("DM adj range: " + range);
 
     // Weird results if we start in the middle of a row. Not handling.
 //    Watch<Watch.PerfSpan> watch = Watch.getInstance();

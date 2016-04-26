@@ -112,7 +112,7 @@ public class ApplyIterator implements SortedKeyValueIterator<Key, Value> {
       throw new RuntimeException("",e);
     }
     try {
-      applyOp.init(applyOpOptions, env);
+      copy.applyOp.init(applyOpOptions, env);
     } catch (IOException e) {
       log.error("", e);
       throw new RuntimeException("",e);

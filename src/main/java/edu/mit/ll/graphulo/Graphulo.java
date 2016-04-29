@@ -2276,13 +2276,14 @@ public class Graphulo {
       // No Diagonal Filter
       IteratorSetting noDiagFilter = TriangularFilter.iteratorSetting(1, TriangularType.NoDiagonal);
       // E*A -> sum -> ==2 -> Abs0 -> OnlyRow -> sum -> kTrussFilter -> TT_RowSelector
-      IteratorSetting itsBeforeR = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, null)
-          .append(PLUS_ITERATOR_LONG)
+      IteratorSetting itsBeforeR;
+      itsBeforeR = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY+1, null,
+          EnumSet.of(DynamicIteratorSetting.MyIteratorScope.SCAN, DynamicIteratorSetting.MyIteratorScope.MAJC_FULL))
           .append(MinMaxFilter.iteratorSetting(1, ScalarType.LONG, 2, 2))
           .append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes())))
           .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))
           .append(PLUS_ITERATOR_LONG)
-          .append(MinMaxFilter.iteratorSetting(10, ScalarType.LONG, k - 2, null))
+          .append(MinMaxFilter.iteratorSetting(1, ScalarType.LONG, k - 2, null))
           .toIteratorSetting();
 
       do {
@@ -2293,14 +2294,16 @@ public class Graphulo {
             Collections.singletonList(noDiagFilter), null, null, -1, Eauthorizations, Eauthorizations);
         // Atmp has a SummingCombiner
 
-        TableMult(ETtmp, Atmp, Rtmp, null, ConstantTwoScalar.class, itsBeforeR, Eauthorizations, Eauthorizations);
-        // Rtmp has a big DynamicIterator
+        TableMult(ETtmp, Atmp, Rtmp, null, ConstantTwoScalar.class, PLUS_ITERATOR_LONG, Eauthorizations, Eauthorizations);
+        // Rtmp has a combiner on all scopes
+        GraphuloUtil.applyIteratorSoft(itsBeforeR, tops, Rtmp);
+        // Rtmp has a bunch of additional iterators on scan and full major compaction scope
         tops.delete(ETtmp);
         tops.delete(Atmp);
 
         // E*A -> sum -> ==2 -> Abs0 -> OnlyRow -> sum -> kTrussFilter -> TT_RowSelector <- E
         //                                                                \-> Writing to EtmpAlt, ETtmpAlt
-        nnzAfter = TwoTableROWSelector(Rtmp, Etmp, EtmpAlt, ETtmpAlt, -1, null, null, null, true,
+        nnzAfter = TwoTableROWSelector(Rtmp, Etmp, EtmpAlt, ETtmpAlt, DEFAULT_COMBINER_PRIORITY+2, null, null, null, true,
             null, null, null, null, null, -1, Eauthorizations, Eauthorizations);
         tops.delete(Etmp);
         tops.delete(Rtmp);

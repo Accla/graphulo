@@ -2124,8 +2124,7 @@ public class Graphulo {
       );
 
       // Iterator that filters away values less than an amount
-      IteratorSetting sum, filter;
-      sum = PLUS_ITERATOR_LONG;
+      IteratorSetting filter;
       filter = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY + 1, null,
           EnumSet.of(DynamicIteratorSetting.MyIteratorScope.SCAN, DynamicIteratorSetting.MyIteratorScope.MAJC_FULL))
           .append(MinMaxFilter.iteratorSetting(1, ScalarType.LONG, upperBoundOnDim + k - 2, null))
@@ -2156,7 +2155,7 @@ public class Graphulo {
         // there seems to be a problem with TwoTableIterator.CLONESOURCE_TABLENAME
         nnzAfter = TableMult(Atmp, Atmp, AtmpAlt, null, DEFAULT_COMBINER_PRIORITY+2,
             ConstantTwoScalar.class, ConstantTwoScalar.optionMap(VALUE_ONE, RNewVisibility),
-            sum, null, null, null, false, false, true, false,
+            PLUS_ITERATOR_LONG, null, null, null, false, false, true, false,
             iterBeforeA, null, noDiagFilter,
             null, null, -1, Aauthorizations, Aauthorizations);
 //        System.out.println("gogo"+ i);

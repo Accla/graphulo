@@ -162,7 +162,8 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 		boolean isDone=false;
 
 		if(super.limit == 0 || this.count < super.limit) {
-			log.debug("  +++ ROW="+rowKey+",COL="+column+",VAL="+value+" +++");
+			if (log.isDebugEnabled())
+				log.debug("  +++ ROW="+rowKey+",COL="+column+",VAL="+value+" +++");
 			this.sbRowReturn.append(rowKey).append(NEWLINE);
 			this.sbColumnReturn.append(column.replace(this.family, "")).append(NEWLINE);
 			this.sbValueReturn.append(value).append(NEWLINE);
@@ -317,8 +318,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 
 	public D4mDbResultSet doMatlabQuery(String rows, String cols, String family, String authorizations) throws D4mException {
 		//throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-		super.columnFamily = family;
-		this.family = super.columnFamily;
+		this.family = super.columnFamily = family;
 		super.setSecurity(authorizations);
 		clearBuffers();
 		reset();

@@ -2,6 +2,7 @@ package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import edu.mit.ll.graphulo.skvi.LruCacheIterator;
+import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -11,12 +12,14 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.xml.DOMConfigurator;
 
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
@@ -148,6 +151,23 @@ public class MatlabGraphulo extends Graphulo {
           Key.toPrintableString(b, 0, b.length, 300));
     }
     scanner.close();
+  }
+
+  public void ApplyIteratorAll(String table, IteratorSetting itset) {
+    GraphuloUtil.applyIteratorSoft(itset, connector.tableOperations(), table);
+  }
+
+  public void ApplyIteratorScan(String table, IteratorSetting itset) {
+    GraphuloUtil.addOnScopeOption(itset, EnumSet.of(IteratorUtil.IteratorScope.scan));
+    GraphuloUtil.applyIteratorSoft(itset, connector.tableOperations(), table);
+  }
+
+  public void RemoveIterator(String table, IteratorSetting itset) {
+    try {
+      connector.tableOperations().removeIterator(table, itset.getName(), EnumSet.allOf(IteratorUtil.IteratorScope.class));
+    } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
+      log.error("Problem removing iterator "+itset+" from table "+table, e);
+    }
   }
 
 }

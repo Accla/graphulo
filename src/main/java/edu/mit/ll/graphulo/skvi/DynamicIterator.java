@@ -28,8 +28,10 @@ public class DynamicIterator extends WrappingIterator {
     boolean doit;
     switch (env.getIteratorScope()) {
       case majc:
-        if (env.isFullMajorCompaction())
+        if (env.isFullMajorCompaction()) {
           doit = diScopes.contains(DynamicIteratorSetting.MyIteratorScope.MAJC_FULL);
+//          System.out.println("FULL MAJC "+doit);
+        }
         else
           doit = diScopes.contains(DynamicIteratorSetting.MyIteratorScope.MAJC_PARTIAL);
         break;

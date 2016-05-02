@@ -1964,14 +1964,14 @@ public class Graphulo {
       AtmpAlt = tmpBaseName+"tmpAalt";
       deleteTables(Atmp, A2tmp, AtmpAlt);
 
-      if (filterRowCol == null) {
+//      if (filterRowCol == null) {
         tops.clone(Aorig, Atmp, true, null, null);
         nnzAfter = countEntries(Aorig);
-      }
-      else
-        nnzAfter = OneTable(Aorig, Atmp, null, null, -1, null, null, null,
-                filterRowCol,
-                filterRowCol, null, null, Aauthorizations);
+//      }
+//      else
+//        nnzAfter = OneTable(Aorig, Atmp, null, null, -1, null, null, null,
+//                filterRowCol,
+//                filterRowCol, null, null, Aauthorizations);
 
       // Inital nnz - this would only speed up inputs that are already a k-Truss
       // Careful: nnz figure will be inaccurate if there are multiple versions of an entry in Aorig.
@@ -1989,7 +1989,7 @@ public class Graphulo {
         sum = PLUS_ITERATOR_LONG;
         filter = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY + 1,
             "gt-" + Integer.toString(k - 2) + "-filter",
-            EnumSet.of(DynamicIteratorSetting.MyIteratorScope.SCAN, DynamicIteratorSetting.MyIteratorScope.MAJC_FULL))
+            EnumSet.of(DynamicIteratorSetting.MyIteratorScope.SCAN))
             .append(MinMaxFilter.iteratorSetting(10, ScalarType.LONG, k - 2, null))
             .toIteratorSetting();
       }
@@ -2003,9 +2003,10 @@ public class Graphulo {
         // Use Atmp for both AT and B
         TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Atmp, A2tmp, null, -1, ConstantTwoScalar.class,
             ConstantTwoScalar.optionMap(VALUE_ONE, RNewVisibility),
-            sum, null, null, null, false, false,
+            sum, filterRowCol, filterRowCol, filterRowCol, false, false,
             null, null, noDiagFilter,
             null, null, -1, Aauthorizations, Aauthorizations);
+        filterRowCol = null; // filter only on first iteration
         // A2tmp has a SummingCombiner
         // Apply the filter after all entries written
         if (k > 3)
@@ -2100,17 +2101,17 @@ public class Graphulo {
       AtmpAlt = tmpBaseName+"tmpAalt";
       deleteTables(Atmp, AtmpAlt);
 
-      if (filterRowCol == null) {
+//      if (filterRowCol == null) {
         tops.clone(Aorig, Atmp, true, null, null);
 //        long l = System.currentTimeMillis();
 //        nnzAfter = countEntries(Aorig);
 //        long dur = System.currentTimeMillis()-l;
 //        log.debug("Time to count entries is "+Long.toString(dur)+" ms.");
-      }
-      else
-        OneTable(Aorig, Atmp, null, null, -1, null, null, null,
-            filterRowCol,
-            filterRowCol, null, null, Aauthorizations);
+//      }
+//      else
+//        OneTable(Aorig, Atmp, null, null, -1, null, null, null,
+//            filterRowCol,
+//            filterRowCol, null, null, Aauthorizations);
       // forcing minimum 2 loops due to nnz proxy
       nnzAfter = Long.MAX_VALUE;
 
@@ -2126,7 +2127,7 @@ public class Graphulo {
       // Iterator that filters away values less than an amount
       IteratorSetting filter;
       filter = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY + 1, null,
-          EnumSet.of(DynamicIteratorSetting.MyIteratorScope.SCAN, DynamicIteratorSetting.MyIteratorScope.MAJC_FULL))
+          EnumSet.of(DynamicIteratorSetting.MyIteratorScope.SCAN))
           .append(MinMaxFilter.iteratorSetting(1, ScalarType.LONG, upperBoundOnDim + k - 2, null))
           .append(ConstantTwoScalar.iteratorSetting(1, VALUE_ONE))
           .toIteratorSetting();
@@ -2139,7 +2140,7 @@ public class Graphulo {
 //      }
       NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaultIterators();
 
-//      int i=1;
+      int i=1;
       do {
         nnzBefore = nnzAfter;
 
@@ -2155,10 +2156,11 @@ public class Graphulo {
         // there seems to be a problem with TwoTableIterator.CLONESOURCE_TABLENAME
         nnzAfter = TableMult(Atmp, Atmp, AtmpAlt, null, DEFAULT_COMBINER_PRIORITY+2,
             ConstantTwoScalar.class, ConstantTwoScalar.optionMap(VALUE_ONE, RNewVisibility),
-            PLUS_ITERATOR_LONG, null, null, null, false, false, true, false,
+            PLUS_ITERATOR_LONG, filterRowCol, filterRowCol, filterRowCol, false, false, true, false,
             iterBeforeA, null, noDiagFilter,
             null, null, -1, Aauthorizations, Aauthorizations);
-//        System.out.println("gogo"+ i);
+        filterRowCol = null; // filter only on first iteration
+//        System.out.println("gogo"+ i+" to "+AtmpAlt);
 //        Thread.sleep(7000);
 //        DebugUtil.printTable("before filter "+i, connector, Atmp, 11);
 //        DebugUtil.printTable("before filter "+i, connector, AtmpAlt, 11);
@@ -2167,9 +2169,9 @@ public class Graphulo {
         GraphuloUtil.applyIteratorSoft(filter, tops, AtmpAlt);
         long dur = System.currentTimeMillis() - l;
 //        DebugUtil.printTable("after filter "+i, connector, AtmpAlt, 11);
-//        i++;
-//        System.out.println("gogo"+ i);
+//        System.out.println("gogo"+ i+" to "+AtmpAlt);
 //        Thread.sleep(7000);
+        i++;
 
         tops.delete(Atmp);
         { String t = Atmp; Atmp = AtmpAlt; AtmpAlt = t; }
@@ -2177,10 +2179,13 @@ public class Graphulo {
         log.debug("nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter+"; "+Long.toString(dur/1000)+" s");
       } while (nnzBefore != nnzAfter);
 
+//      System.out.println(Atmp+" -> "+Rfinal+" (RfinalExists is "+RfinalExists+")");
+//      Thread.sleep(7000);
       if (RfinalExists)  // sum whole graph into existing graph
-        AdjBFS(Atmp, null, 1, Rfinal, null, null, DEFAULT_COMBINER_PRIORITY+3, null, null, false, 0, Integer.MAX_VALUE, null, Aauthorizations, Aauthorizations, false, null);
+        AdjBFS(Atmp, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Aauthorizations, Aauthorizations, false, null);
       else                                           // result is new;
         tops.clone(Atmp, Rfinal, true, null, null);  // flushes Atmp before cloning
+
 
       tops.delete(Atmp);
       return nnzAfter;
@@ -2277,7 +2282,7 @@ public class Graphulo {
       // E*A -> sum -> ==2 -> Abs0 -> OnlyRow -> sum -> kTrussFilter -> TT_RowSelector
       IteratorSetting itsBeforeR;
       itsBeforeR = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY+1, null,
-          EnumSet.of(DynamicIteratorSetting.MyIteratorScope.SCAN, DynamicIteratorSetting.MyIteratorScope.MAJC_FULL))
+          EnumSet.of(DynamicIteratorSetting.MyIteratorScope.SCAN))
           .append(MinMaxFilter.iteratorSetting(1, ScalarType.LONG, 2, 2))
           .append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes())))
           .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))

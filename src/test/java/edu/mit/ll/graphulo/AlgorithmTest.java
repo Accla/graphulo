@@ -122,6 +122,43 @@ public class AlgorithmTest extends AccumuloTestBase {
       Assert.assertEquals(expect, actual);
     }
 
+    conn.tableOperations().delete(tR);
+    // Now test 4-truss with filter
+    {
+      Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+      String filterRowCol = "v1,:,v4,";
+      long nnzkTruss = fuse
+          ? graphulo.kTrussAdj_Fused(tA, tR, 4, filterRowCol, true, Authorizations.EMPTY, "")
+          : graphulo.kTrussAdj(tA, tR, 4, filterRowCol, true, Authorizations.EMPTY, "");
+      log.info("4-Truss has " + nnzkTruss + " nnz");
+
+      BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      if (fuse)
+        System.out.println("4-Truss nnz fused is "+nnzkTruss);
+      else
+        Assert.assertEquals(12, nnzkTruss);
+      Assert.assertEquals(expect, actual);
+
+      // ensure same answer after compacting
+      conn.tableOperations().compact(tR, null, null, true, true);
+      scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
+      scanner.setRanges(Collections.singleton(new Range()));
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      if (fuse)
+        System.out.println("4-Truss nnz fused is "+nnzkTruss);
+      else
+        Assert.assertEquals(12, nnzkTruss);
+      Assert.assertEquals(expect, actual);
+    }
+
     conn.tableOperations().delete(tA);
     conn.tableOperations().delete(tR);
   }

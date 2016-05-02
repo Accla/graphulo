@@ -2139,7 +2139,7 @@ public class Graphulo {
 //      }
       NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaultIterators();
 
-      int i=1;
+//      int i=1;
       do {
         nnzBefore = nnzAfter;
 
@@ -2160,14 +2160,14 @@ public class Graphulo {
             null, null, -1, Aauthorizations, Aauthorizations);
 //        System.out.println("gogo"+ i);
 //        Thread.sleep(7000);
-        DebugUtil.printTable("before filter "+i, connector, Atmp, 11);
-        DebugUtil.printTable("before filter "+i, connector, AtmpAlt, 11);
+//        DebugUtil.printTable("before filter "+i, connector, Atmp, 11);
+//        DebugUtil.printTable("before filter "+i, connector, AtmpAlt, 11);
         // AtmpAlt has a Special Sum
         // Apply Part II after all entries written
         GraphuloUtil.applyIteratorSoft(filter, tops, AtmpAlt);
         long dur = System.currentTimeMillis() - l;
-        DebugUtil.printTable("after filter "+i, connector, AtmpAlt, 11);
-        i++;
+//        DebugUtil.printTable("after filter "+i, connector, AtmpAlt, 11);
+//        i++;
 //        System.out.println("gogo"+ i);
 //        Thread.sleep(7000);
 

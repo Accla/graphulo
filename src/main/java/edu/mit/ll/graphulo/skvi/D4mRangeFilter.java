@@ -1,6 +1,11 @@
 package edu.mit.ll.graphulo.skvi;
 
+import com.google.common.collect.ImmutableRangeSet;
+import com.google.common.collect.RangeSet;
+import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.data.ArrayByteSequence;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -23,11 +28,26 @@ public class D4mRangeFilter extends Filter {
 
   public enum KeyPart { ROW, COLF, COLQ, VAL}
 
+  public static ByteSequence getKeyBytes(Key k, Value v, KeyPart kp) {
+    switch (kp) {
+      case ROW:
+        return k.getRowData();
+      case COLF:
+        return k.getColumnFamilyData();
+      case COLQ:
+        return k.getColumnQualifierData();
+      case VAL:
+        return new ArrayByteSequence(v.get());
+      default: throw new AssertionError();
+    }
+  }
+
   public static final String FILTER = "filter", KEYPART = "keyPart";
 
   public static IteratorSetting iteratorSetting(int priority, KeyPart keyPart, String filter) {
     IteratorSetting itset = new IteratorSetting(priority, D4mRangeFilter.class);
-    itset.addOption(KEYPART, keyPart.name());
+    if (keyPart != null)
+      itset.addOption(KEYPART, keyPart.name());
     itset.addOption(FILTER, filter);
     return itset;
   }
@@ -39,39 +59,19 @@ public class D4mRangeFilter extends Filter {
   }
 
   private KeyPart keyPart = KeyPart.ROW;
-  private SortedSet<Range> filter = new TreeSet<>(Collections.singleton(new Range()));
+  private RangeSet<ByteSequence> filter = ImmutableRangeSet.of(com.google.common.collect.Range.<ByteSequence>all());
 
   @Override
   public boolean accept(Key key, Value value) {
-    Key data;
-    switch (keyPart) {
-      case ROW:
-        data = new Key(key.getRow());
-        break;
-      case COLF:
-        data = new Key(key.getColumnFamily());
-        break;
-      case COLQ:
-        data = new Key(key.getColumnQualifier());
-        break;
-      case VAL:
-        data = new Key(value.toString());
-        break;
-      default: throw new AssertionError();
-    }
-//    Range r = new Range(data);
-    Iterator<Range> iter = filter.iterator();
-    boolean ok = false;
-    while (!ok && iter.hasNext())
-      ok = iter.next().contains(data);
-    return ok;
+    ByteSequence bs = getKeyBytes(key, value, keyPart);
+    return filter.contains(bs);
   }
 
   @Override
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     if (options.containsKey(FILTER))
-      filter = RemoteSourceIterator.parseRanges(options.get(FILTER));
+      filter = GraphuloUtil.d4mRowToGuavaRangeSet(options.get(FILTER), false);
     if (options.containsKey(KEYPART))
       keyPart = KeyPart.valueOf(options.get(KEYPART));
   }

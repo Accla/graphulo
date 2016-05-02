@@ -1,7 +1,10 @@
 package edu.mit.ll.graphulo.util;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.*;
+import com.google.common.collect.RangeSet;
 import edu.mit.ll.graphulo.DynamicIteratorSetting;
+import edu.mit.ll.graphulo.reducer.GatherReducer;
 import edu.mit.ll.graphulo.skvi.D4mRangeFilter;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
@@ -16,6 +19,7 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
@@ -34,6 +38,8 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -200,6 +206,79 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
       }
     }
     return rngset;
+  }
+
+  public static ByteSequence stringToByteSequence(String s) {
+//    try {
+//      ByteBuffer bb = Text.encode(s);
+//      return new ArrayByteSequence(bb.array(), bb.arrayOffset(), bb.limit());
+//    } catch (CharacterCodingException e) {
+//      log.error("problem encoding string "+s, e);
+//      throw new RuntimeException(e);
+//    }
+    return new ArrayByteSequence(s);
+  }
+
+  /**
+   * @see #d4mRowToRanges(String)
+   * @param singletonsArePrefix If true, then singleton entries in the D4M string are
+   *                            made into prefix ranges instead of single row ranges.
+   * @return {@link ImmutableRangeSet}
+   */
+  public static RangeSet<ByteSequence> d4mRowToGuavaRangeSet(String rowStr, boolean singletonsArePrefix) {
+    if (rowStr == null || rowStr.isEmpty())
+      return ImmutableRangeSet.of();
+    // could write my own version that does not do regex, but probably not worth optimizing
+    String[] rowStrSplit = splitD4mString(rowStr);
+    //if (rowStrSplit.length == 1)
+    List<String> rowStrList = Arrays.asList(rowStrSplit);
+    PeekingIterator3<String> pi = new PeekingIterator3<>(rowStrList.iterator());
+    ImmutableRangeSet.Builder<ByteSequence> rngset = ImmutableRangeSet.builder();
+
+    if (pi.peekFirst().equals(":")) { // (-Inf,
+      if (pi.peekSecond() == null) {
+        return ImmutableRangeSet.of(com.google.common.collect.Range.<ByteSequence>all()); // (-Inf,+Inf)
+      } else {
+        if (pi.peekSecond().equals(":") || (pi.peekThird() != null && pi.peekThird().equals(":")))
+          throw new IllegalArgumentException("Bad D4M rowStr: " + rowStr);
+        rngset.add(com.google.common.collect.Range.atMost(stringToByteSequence(pi.peekSecond()))); // (-Inf,2]
+        pi.next();
+        pi.next();
+      }
+    }
+
+    while (pi.hasNext()) {
+      if (pi.peekSecond() == null) { // last singleton row [1,1~)
+        if (singletonsArePrefix)
+          rngset.add(com.google.common.collect.Range.closedOpen(
+            stringToByteSequence(pi.peekFirst()), stringToByteSequence(Range.followingPrefix(new Text(pi.peekFirst())).toString())
+          ));
+        else
+          rngset.add(com.google.common.collect.Range.singleton(stringToByteSequence(pi.peekFirst())));
+        return rngset.build();
+      } else if (pi.peekSecond().equals(":")) {
+        if (pi.peekThird() == null) { // [1,+Inf)
+          rngset.add(com.google.common.collect.Range.atLeast(stringToByteSequence(pi.peekFirst())));
+          return rngset.build();
+        } else { // [1,3]
+          if (pi.peekThird().equals(":"))
+            throw new IllegalArgumentException("Bad D4M rowStr: " + rowStr);
+          rngset.add(com.google.common.collect.Range.closed(stringToByteSequence(pi.peekFirst()), stringToByteSequence(pi.peekThird())));
+          pi.next();
+          pi.next();
+          pi.next();
+        }
+      } else { // [1,1~)
+        if (singletonsArePrefix)
+          rngset.add(com.google.common.collect.Range.closedOpen(
+              stringToByteSequence(pi.peekFirst()), stringToByteSequence(Range.followingPrefix(new Text(pi.peekFirst())).toString())
+          ));
+        else
+          rngset.add(com.google.common.collect.Range.singleton(stringToByteSequence(pi.peekFirst())));
+        pi.next();
+      }
+    }
+    return rngset.build();
   }
 
   public static String rangesToD4MString(Collection<Range> ranges) {

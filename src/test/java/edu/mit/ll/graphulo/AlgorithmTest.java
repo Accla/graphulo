@@ -36,17 +36,17 @@ public class AlgorithmTest extends AccumuloTestBase {
   private static final Logger log = LogManager.getLogger(AlgorithmTest.class);
 
   @Test
-  public void testkTrussAdj_Normal() throws TableNotFoundException, AccumuloSecurityException, AccumuloException, InterruptedException {
+  public void testkTrussAdj_Normal() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
     testkTrussAdj_Inner(false);
   }
 
   @Test
-  public void testkTrussAdj_Fused() throws TableNotFoundException, AccumuloSecurityException, AccumuloException, InterruptedException {
+  public void testkTrussAdj_Fused() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
     testkTrussAdj_Inner(true);
   }
 
 
-  private void testkTrussAdj_Inner(boolean fuse) throws TableNotFoundException, AccumuloSecurityException, AccumuloException, InterruptedException {
+  private void testkTrussAdj_Inner(boolean fuse) throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
     Connector conn = tester.getConnector();
     final String tA, tR;
     {

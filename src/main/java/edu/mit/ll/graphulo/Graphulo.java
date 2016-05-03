@@ -2041,7 +2041,7 @@ public class Graphulo {
 
   public long kTrussAdj_Fused(String Aorig, String Rfinal, int k,
                               String filterRowCol, boolean forceDelete,
-                              Authorizations Aauthorizations, String RNewVisibility) throws InterruptedException {
+                              Authorizations Aauthorizations, String RNewVisibility) {
     return kTrussAdj_Fused(Aorig, Rfinal, k, filterRowCol,forceDelete,
         Aauthorizations, RNewVisibility, 1L << 32);
   }
@@ -2070,7 +2070,7 @@ public class Graphulo {
   public long kTrussAdj_Fused(String Aorig, String Rfinal, int k,
                               String filterRowCol, boolean forceDelete,
                               Authorizations Aauthorizations, String RNewVisibility,
-                              long upperBoundOnDim) throws InterruptedException {
+                              long upperBoundOnDim) {
     checkGiven(true, "Aorig", Aorig);
     Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
     TableOperations tops = connector.tableOperations();

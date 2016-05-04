@@ -19,6 +19,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
+import org.junit.AssumptionViolatedException;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -35,18 +36,25 @@ import java.util.TreeSet;
 public class AlgorithmTest extends AccumuloTestBase {
   private static final Logger log = LogManager.getLogger(AlgorithmTest.class);
 
+  private enum KTrussAdjAlg { Normal, Fused, Client }
+
   @Test
   public void testkTrussAdj_Normal() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
-    testkTrussAdj_Inner(false);
+    testkTrussAdj_Inner(KTrussAdjAlg.Normal);
   }
 
   @Test
   public void testkTrussAdj_Fused() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
-    testkTrussAdj_Inner(true);
+    testkTrussAdj_Inner(KTrussAdjAlg.Fused);
+  }
+
+  @Test
+  public void testkTrussAdj_Client() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    testkTrussAdj_Inner(KTrussAdjAlg.Client);
   }
 
 
-  private void testkTrussAdj_Inner(boolean fuse) throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+  private void testkTrussAdj_Inner(KTrussAdjAlg alg) throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
     Connector conn = tester.getConnector();
     final String tA, tR;
     {
@@ -74,9 +82,19 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      long nnzkTruss = fuse
-          ? graphulo.kTrussAdj_Fused(tA, tR, 3, null, true, Authorizations.EMPTY, "")
-          : graphulo.kTrussAdj(tA, tR, 3, null, true, Authorizations.EMPTY, "");
+      long nnzkTruss;
+      switch(alg) {
+        case Normal:
+          nnzkTruss = graphulo.kTrussAdj(tA, tR, 3, null, true, Authorizations.EMPTY, "");
+          break;
+        case Fused:
+          nnzkTruss = graphulo.kTrussAdj_Fused(tA, tR, 3, null, true, Authorizations.EMPTY, "");
+          break;
+        case Client:
+          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 3, null, Authorizations.EMPTY, "");
+          break;
+        default: throw new AssertionError();
+      }
       log.info("3-Truss has " + nnzkTruss + " nnz");
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -85,9 +103,7 @@ public class AlgorithmTest extends AccumuloTestBase {
         actual.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
-      if (fuse)
-        System.out.println("3-Truss nnz fused is "+nnzkTruss);
-      else
+      if (alg == KTrussAdjAlg.Normal)
         Assert.assertEquals(10, nnzkTruss);
       Assert.assertEquals(expect, actual);
     }
@@ -104,9 +120,19 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      long nnzkTruss = fuse
-          ? graphulo.kTrussAdj_Fused(tA, tR, 4, null, true, Authorizations.EMPTY, "")
-          : graphulo.kTrussAdj(tA, tR, 4, null, true, Authorizations.EMPTY, "");
+      long nnzkTruss;
+      switch(alg) {
+        case Normal:
+          nnzkTruss = graphulo.kTrussAdj(tA, tR, 4, null, true, Authorizations.EMPTY, "");
+          break;
+        case Fused:
+          nnzkTruss = graphulo.kTrussAdj_Fused(tA, tR, 4, null, true, Authorizations.EMPTY, "");
+          break;
+        case Client:
+          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 4, null, Authorizations.EMPTY, "");
+          break;
+        default: throw new AssertionError();
+      }
       log.info("4-Truss has " + nnzkTruss + " nnz");
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -115,9 +141,7 @@ public class AlgorithmTest extends AccumuloTestBase {
         actual.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
-      if (fuse)
-        System.out.println("4-Truss nnz fused is "+nnzkTruss);
-      else
+      if (alg == KTrussAdjAlg.Normal)
         Assert.assertEquals(12, nnzkTruss);
       Assert.assertEquals(expect, actual);
     }
@@ -127,9 +151,19 @@ public class AlgorithmTest extends AccumuloTestBase {
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
       String filterRowCol = "v1,:,v4,";
-      long nnzkTruss = fuse
-          ? graphulo.kTrussAdj_Fused(tA, tR, 4, filterRowCol, true, Authorizations.EMPTY, "")
-          : graphulo.kTrussAdj(tA, tR, 4, filterRowCol, true, Authorizations.EMPTY, "");
+      long nnzkTruss;
+      switch(alg) {
+        case Normal:
+          nnzkTruss = graphulo.kTrussAdj(tA, tR, 4, filterRowCol, true, Authorizations.EMPTY, "");
+          break;
+        case Fused:
+          nnzkTruss = graphulo.kTrussAdj_Fused(tA, tR, 4, filterRowCol, true, Authorizations.EMPTY, "");
+          break;
+        case Client:
+          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 4, filterRowCol, Authorizations.EMPTY, "");
+          break;
+        default: throw new AssertionError();
+      }
       log.info("4-Truss has " + nnzkTruss + " nnz");
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -138,9 +172,7 @@ public class AlgorithmTest extends AccumuloTestBase {
         actual.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
-      if (fuse)
-        System.out.println("4-Truss nnz fused is "+nnzkTruss);
-      else
+      if (alg == KTrussAdjAlg.Normal)
         Assert.assertEquals(12, nnzkTruss);
       Assert.assertEquals(expect, actual);
 
@@ -152,9 +184,7 @@ public class AlgorithmTest extends AccumuloTestBase {
         actual.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
-      if (fuse)
-        System.out.println("4-Truss nnz fused is "+nnzkTruss);
-      else
+      if (alg == KTrussAdjAlg.Normal)
         Assert.assertEquals(12, nnzkTruss);
       Assert.assertEquals(expect, actual);
     }

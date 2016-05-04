@@ -36,8 +36,12 @@ import edu.mit.ll.graphulo.skvi.TriangularFilter;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import edu.mit.ll.graphulo.util.DebugUtil;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
+import edu.mit.ll.graphulo.util.MTJUtil;
 import edu.mit.ll.graphulo.util.MemMatrixUtil;
 import edu.mit.ll.graphulo.util.SerializationUtil;
+import no.uib.cipr.matrix.Matrix;
+import no.uib.cipr.matrix.MatrixEntry;
+import no.uib.cipr.matrix.sparse.LinkedSparseMatrix;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -2194,6 +2198,97 @@ public class Graphulo {
       log.error("Exception in kTrussAdj_Fused", e);
       throw new RuntimeException(e);
     }
+  }
+
+  /**
+   * This version pulls the adjacency table into client memory.
+   * It uses the MTJ Java Matrix math library to do the kTruss algorithm.
+   * <p>
+   * From input <b>unweighted, undirected</b> adjacency table Aorig, put the k-Truss
+   * of Aorig in Rfinal.
+   * @param Aorig Unweighted, undirected adjacency table.
+   * @param Rfinal Does not have to previously exist. Writes the kTruss into Rfinal if it already exists.
+   *               Use a combiner if you want to sum it in.
+   * @param k Trivial if k <= 2.
+   * @param filterRowCol Filter applied to rows and columns of Aorig
+   *                     (must apply to both rows and cols because A is undirected Adjacency table).
+   * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
+   * @param RNewVisibility Visibility label for new entries created. Null means no visibility label.
+   * @return A somewhat meaningless number. This fused version loses the ability to directly measure nnz.
+   *          Returns -1 if k < 2 since there is no point in counting the number of edges.
+   */
+  public long kTrussAdj_Client(String Aorig, String Rfinal, int k,
+                              String filterRowCol,
+                              Authorizations Aauthorizations, String RNewVisibility) {
+    checkGiven(true, "Aorig", Aorig);
+    Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
+    TableOperations tops = connector.tableOperations();
+    boolean RfinalExists = tops.exists(Rfinal);
+
+    if (k <= 2) {               // trivial case: every graph is a 2-truss
+      if (RfinalExists || filterRowCol != null)
+        OneTable(Aorig, Rfinal, null, null, -1, null, null, PLUS_ITERATOR_LONG,
+            filterRowCol,
+            filterRowCol, null, null, Aauthorizations);
+      else
+        try {
+          tops.clone(Aorig, Rfinal, true, null, null);    // flushes Aorig before cloning
+        } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
+          log.error("", e);
+          throw new RuntimeException(e);
+        }
+      return -1;
+    }
+    // non-trivial case: k is 3 or more.
+
+    // Scan A into memory
+    Map<Key,Value> Aentries = new TreeMap<>(); //GraphuloUtil.scanAll(connector, Aorig);
+    OneTable(Aorig, null, null, Aentries, -1, null, null, null, filterRowCol, filterRowCol, null, null, Authorizations.EMPTY); // returns nnz A
+
+    // Replace row and col labels with integer indexes; create map from indexes to original labels
+    // The Maps are used to put the original labels on W and H
+    SortedMap<Integer,String> rowColMap = new TreeMap<>();
+    // this call removes zero values from A
+    Matrix A = MTJUtil.indexMapAndMatrix_SameRowCol(Aentries, rowColMap, 0);
+
+    DebugUtil.printMapFull(Aentries.entrySet().iterator(), 3);
+//    System.out.println("rowColMap: "+rowColMap);
+
+    long N = A.numRows();
+    long M = A.numColumns();
+    long upperBoundOnDim = Math.max(N,M)+1;
+    Matrix B = new LinkedSparseMatrix(A);
+    long nnzBefore, nnzAfter = Aentries.size();
+
+    do {
+      nnzBefore = nnzAfter;
+
+      B.set(upperBoundOnDim, A); // B = n*A
+//      System.out.println("B = n*A");
+//      DebugUtil.printMapFull(MTJUtil.matrixToMapWithLabels(B, rowColMap, rowColMap, 0.0, RNewVisibility, true).entrySet().iterator(), 3);
+      A.multAdd(A, B); // B = A*A + B
+//      System.out.println("B = A*A + B");
+//      DebugUtil.printMapFull(MTJUtil.matrixToMapWithLabels(B, rowColMap, rowColMap, 0.0, RNewVisibility, true).entrySet().iterator(), 3);
+
+      // zero entries A(i,j) where B(i,j) < n + k - 2
+//      System.out.println("upperBoundOnDim + k - 2:"+(upperBoundOnDim + k - 2));
+      for (MatrixEntry e : B) {
+//        System.out.print("B:"+e +"  A:"+A.get(e.row(),e.column()));
+        if (e.get() < upperBoundOnDim + k - 2 && A.get(e.row(), e.column()) > 0) {
+//          System.out.println(" set to 0!");
+          A.set(e.row(), e.column(), 0);
+          nnzAfter--;
+        } //else System.out.println();
+      }
+//      System.out.println("new A");
+//      DebugUtil.printMapFull(MTJUtil.matrixToMapWithLabels(A, rowColMap, rowColMap, 0.0, RNewVisibility, true).entrySet().iterator(), 3);
+      System.out.println("nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter);
+    } while (nnzBefore != nnzAfter);
+
+    Map<Key, Value> kTrussMap = MTJUtil.matrixToMapWithLabels(A, rowColMap, rowColMap, 0.0, RNewVisibility, true);
+//    DebugUtil.printMapFull(kTrussMap.entrySet().iterator(), 3);
+    GraphuloUtil.writeEntries(connector, kTrussMap, Rfinal, true);
+    return nnzAfter;
   }
 
 

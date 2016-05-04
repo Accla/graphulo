@@ -39,8 +39,11 @@ import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.MTJUtil;
 import edu.mit.ll.graphulo.util.MemMatrixUtil;
 import edu.mit.ll.graphulo.util.SerializationUtil;
+import no.uib.cipr.matrix.DenseMatrix;
 import no.uib.cipr.matrix.Matrix;
 import no.uib.cipr.matrix.MatrixEntry;
+import no.uib.cipr.matrix.sparse.CompRowMatrix;
+import no.uib.cipr.matrix.sparse.FlexCompRowMatrix;
 import no.uib.cipr.matrix.sparse.LinkedSparseMatrix;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -2241,9 +2244,11 @@ public class Graphulo {
     }
     // non-trivial case: k is 3 or more.
 
+    long t1 = System.currentTimeMillis();
     // Scan A into memory
     Map<Key,Value> Aentries = new TreeMap<>(); //GraphuloUtil.scanAll(connector, Aorig);
     OneTable(Aorig, null, null, Aentries, -1, null, null, null, filterRowCol, filterRowCol, null, null, Authorizations.EMPTY); // returns nnz A
+    System.out.println("Scan time: "+(System.currentTimeMillis()-t1));
 
     // Replace row and col labels with integer indexes; create map from indexes to original labels
     // The Maps are used to put the original labels on W and H
@@ -2251,27 +2256,48 @@ public class Graphulo {
     // this call removes zero values from A
     Matrix A = MTJUtil.indexMapAndMatrix_SameRowCol(Aentries, rowColMap, 0);
 
-    DebugUtil.printMapFull(Aentries.entrySet().iterator(), 3);
+//    DebugUtil.printMapFull(Aentries.entrySet().iterator(), 3);
 //    System.out.println("rowColMap: "+rowColMap);
 
     long N = A.numRows();
     long M = A.numColumns();
     long upperBoundOnDim = Math.max(N,M)+1;
+
     Matrix B = new LinkedSparseMatrix(A);
     long nnzBefore, nnzAfter = Aentries.size();
 
+
     do {
+      long t2 = System.currentTimeMillis();
       nnzBefore = nnzAfter;
 
+      long t5 = System.currentTimeMillis();
       B.set(upperBoundOnDim, A); // B = n*A
+      System.out.println("B = n*a time: "+(System.currentTimeMillis()-t5));
+
 //      System.out.println("B = n*A");
 //      DebugUtil.printMapFull(MTJUtil.matrixToMapWithLabels(B, rowColMap, rowColMap, 0.0, RNewVisibility, true).entrySet().iterator(), 3);
+
+      long t6 = System.currentTimeMillis();
       A.multAdd(A, B); // B = A*A + B
+      System.out.println("B = A*A + B time: "+(System.currentTimeMillis()-t6));
+
 //      System.out.println("B = A*A + B");
 //      DebugUtil.printMapFull(MTJUtil.matrixToMapWithLabels(B, rowColMap, rowColMap, 0.0, RNewVisibility, true).entrySet().iterator(), 3);
 
       // zero entries A(i,j) where B(i,j) < n + k - 2
 //      System.out.println("upperBoundOnDim + k - 2:"+(upperBoundOnDim + k - 2));
+      long t7 = System.currentTimeMillis();
+
+//      for (MatrixEntry e : A) {
+////        System.out.print("A:"+e +"  B:"+B.get(e.row(),e.column()));
+//        if (e.get() != 0 && B.get(e.row(), e.column()) < upperBoundOnDim + k - 2) {
+////          System.out.println(" set to 0!");
+//          e.set(0);
+//          nnzAfter--;
+//        } //else System.out.println();
+//      }
+
       for (MatrixEntry e : B) {
 //        System.out.print("B:"+e +"  A:"+A.get(e.row(),e.column()));
         if (e.get() < upperBoundOnDim + k - 2 && A.get(e.row(), e.column()) > 0) {
@@ -2280,14 +2306,19 @@ public class Graphulo {
           nnzAfter--;
         } //else System.out.println();
       }
+
+      System.out.println("set new A time: "+(System.currentTimeMillis()-t7));
 //      System.out.println("new A");
 //      DebugUtil.printMapFull(MTJUtil.matrixToMapWithLabels(A, rowColMap, rowColMap, 0.0, RNewVisibility, true).entrySet().iterator(), 3);
       System.out.println("nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter);
+      System.out.println("iter time: "+(System.currentTimeMillis()-t2));
     } while (nnzBefore != nnzAfter);
 
+    long t3 = System.currentTimeMillis();
     Map<Key, Value> kTrussMap = MTJUtil.matrixToMapWithLabels(A, rowColMap, rowColMap, 0.0, RNewVisibility, true);
 //    DebugUtil.printMapFull(kTrussMap.entrySet().iterator(), 3);
     GraphuloUtil.writeEntries(connector, kTrussMap, Rfinal, true);
+    System.out.println("Put time: "+(System.currentTimeMillis()-t3));
     return nnzAfter;
   }
 

@@ -2,6 +2,8 @@ package edu.mit.ll.graphulo.util;
 
 import no.uib.cipr.matrix.Matrix;
 import no.uib.cipr.matrix.MatrixEntry;
+import no.uib.cipr.matrix.UpperSymmDenseMatrix;
+import no.uib.cipr.matrix.sparse.CompRowMatrix;
 import no.uib.cipr.matrix.sparse.LinkedSparseMatrix;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -112,7 +114,10 @@ public class MTJUtil {
       rowColMapRev.put(s, i);
       i++;
     }
-    i--; // i is now the total size
+    i--; // i is now the dimension N
+
+//    int[][] nzCols = new int[i][];
+
 
     Matrix m = new LinkedSparseMatrix(i, i);
 

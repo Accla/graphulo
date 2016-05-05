@@ -1,5 +1,6 @@
 package edu.mit.ll.graphulo.util;
 
+import no.uib.cipr.matrix.DenseMatrix;
 import no.uib.cipr.matrix.Matrix;
 import no.uib.cipr.matrix.MatrixEntry;
 import no.uib.cipr.matrix.UpperSymmDenseMatrix;
@@ -86,7 +87,7 @@ public class MTJUtil {
   /** Replace row and col labels with integer indexes; create map from indexes to original labels */
   public static Matrix indexMapAndMatrix_SameRowCol(final Map<Key,Value> orig,
                                          final SortedMap<Integer,String> rowColMap,
-                                         final double zeroTolerance) {
+                                         final double zeroTolerance, boolean useSparse) {
     // use Map<Integer,Map<Integer,Double>> to build
     SortedMap<Integer,SortedMap<Integer,Double>> rowcolvalmap = new TreeMap<>();
     Map<String,Integer> rowColMapRev = new HashMap<>();
@@ -119,7 +120,7 @@ public class MTJUtil {
 //    int[][] nzCols = new int[i][];
 
 
-    Matrix m = new LinkedSparseMatrix(i, i);
+    Matrix m = useSparse ? new LinkedSparseMatrix(i, i) : new DenseMatrix(i,i);
 
     for (Map.Entry<Key, Value> entry : orig.entrySet()) {
       Key k = entry.getKey();

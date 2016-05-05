@@ -19,8 +19,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
-import org.junit.AssumptionViolatedException;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -36,7 +34,7 @@ import java.util.TreeSet;
 public class AlgorithmTest extends AccumuloTestBase {
   private static final Logger log = LogManager.getLogger(AlgorithmTest.class);
 
-  private enum KTrussAdjAlg { Normal, Fused, Client }
+  private enum KTrussAdjAlg { Normal, Fused, Client_Sparse, Client_Dense }
 
   @Test
   public void testkTrussAdj_Normal() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
@@ -49,8 +47,13 @@ public class AlgorithmTest extends AccumuloTestBase {
   }
 
   @Test
-  public void testkTrussAdj_Client() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
-    testkTrussAdj_Inner(KTrussAdjAlg.Client);
+  public void testkTrussAdj_Client_Dense() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    testkTrussAdj_Inner(KTrussAdjAlg.Client_Dense);
+  }
+
+  @Test
+  public void testkTrussAdj_Client_Sparse() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    testkTrussAdj_Inner(KTrussAdjAlg.Client_Sparse);
   }
 
 
@@ -90,8 +93,11 @@ public class AlgorithmTest extends AccumuloTestBase {
         case Fused:
           nnzkTruss = graphulo.kTrussAdj_Fused(tA, tR, 3, null, true, Authorizations.EMPTY, "");
           break;
-        case Client:
-          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 3, null, Authorizations.EMPTY, "");
+        case Client_Sparse:
+          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 3, null, Authorizations.EMPTY, "", true);
+          break;
+        case Client_Dense:
+          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 3, null, Authorizations.EMPTY, "", false);
           break;
         default: throw new AssertionError();
       }
@@ -128,8 +134,11 @@ public class AlgorithmTest extends AccumuloTestBase {
         case Fused:
           nnzkTruss = graphulo.kTrussAdj_Fused(tA, tR, 4, null, true, Authorizations.EMPTY, "");
           break;
-        case Client:
-          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 4, null, Authorizations.EMPTY, "");
+        case Client_Sparse:
+          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 4, null, Authorizations.EMPTY, "", true);
+          break;
+        case Client_Dense:
+          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 4, null, Authorizations.EMPTY, "", false);
           break;
         default: throw new AssertionError();
       }
@@ -159,8 +168,11 @@ public class AlgorithmTest extends AccumuloTestBase {
         case Fused:
           nnzkTruss = graphulo.kTrussAdj_Fused(tA, tR, 4, filterRowCol, true, Authorizations.EMPTY, "");
           break;
-        case Client:
-          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 4, filterRowCol, Authorizations.EMPTY, "");
+        case Client_Sparse:
+          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 4, filterRowCol, Authorizations.EMPTY, "", true);
+          break;
+        case Client_Dense:
+          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 4, filterRowCol, Authorizations.EMPTY, "", false);
           break;
         default: throw new AssertionError();
       }

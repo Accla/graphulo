@@ -42,8 +42,6 @@ import edu.mit.ll.graphulo.util.SerializationUtil;
 import no.uib.cipr.matrix.DenseMatrix;
 import no.uib.cipr.matrix.Matrix;
 import no.uib.cipr.matrix.MatrixEntry;
-import no.uib.cipr.matrix.sparse.CompRowMatrix;
-import no.uib.cipr.matrix.sparse.FlexCompRowMatrix;
 import no.uib.cipr.matrix.sparse.LinkedSparseMatrix;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -2209,6 +2207,10 @@ public class Graphulo {
    * <p>
    * From input <b>unweighted, undirected</b> adjacency table Aorig, put the k-Truss
    * of Aorig in Rfinal.
+   * <p>
+   * Note on BLAS when using dense matrix math: the MTJ native BLAS library appears unstable.
+   * Add the parameter <code>-Dcom.github.fommil.netlib.BLAS=com.github.fommil.netlib.F2jBLAS</code>
+   * to force MTJ to use Java dense matrix math.
    * @param Aorig Unweighted, undirected adjacency table.
    * @param Rfinal Does not have to previously exist. Writes the kTruss into Rfinal if it already exists.
    *               Use a combiner if you want to sum it in.
@@ -2217,12 +2219,18 @@ public class Graphulo {
    *                     (must apply to both rows and cols because A is undirected Adjacency table).
    * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
    * @param RNewVisibility Visibility label for new entries created. Null means no visibility label.
+   * @param useSparse Use a sparse matrix vs. dense matrix. Sparse matrices hold more data than the dense
+   *                  but are slower for matrix-matrix multiply.
    * @return A somewhat meaningless number. This fused version loses the ability to directly measure nnz.
    *          Returns -1 if k < 2 since there is no point in counting the number of edges.
    */
   public long kTrussAdj_Client(String Aorig, String Rfinal, int k,
-                              String filterRowCol,
-                              Authorizations Aauthorizations, String RNewVisibility) {
+                               String filterRowCol,
+                               Authorizations Aauthorizations, String RNewVisibility,
+                               boolean useSparse) {
+    if (!useSparse) { // force disable MTJ native BLAS because it is unstable
+      System.setProperty("com.github.fommil.netlib.BLAS", "com.github.fommil.netlib.F2jBLAS");
+    }
     checkGiven(true, "Aorig", Aorig);
     Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
     TableOperations tops = connector.tableOperations();
@@ -2254,7 +2262,7 @@ public class Graphulo {
     // The Maps are used to put the original labels on W and H
     SortedMap<Integer,String> rowColMap = new TreeMap<>();
     // this call removes zero values from A
-    Matrix A = MTJUtil.indexMapAndMatrix_SameRowCol(Aentries, rowColMap, 0);
+    Matrix A = MTJUtil.indexMapAndMatrix_SameRowCol(Aentries, rowColMap, 0, useSparse);
 
 //    DebugUtil.printMapFull(Aentries.entrySet().iterator(), 3);
 //    System.out.println("rowColMap: "+rowColMap);
@@ -2263,7 +2271,7 @@ public class Graphulo {
     long M = A.numColumns();
     long upperBoundOnDim = Math.max(N,M)+1;
 
-    Matrix B = new LinkedSparseMatrix(A);
+    Matrix B = useSparse ? new LinkedSparseMatrix(A) : new DenseMatrix(A);
     long nnzBefore, nnzAfter = Aentries.size();
 
 

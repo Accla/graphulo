@@ -94,10 +94,10 @@ public class AlgorithmTest extends AccumuloTestBase {
           nnzkTruss = graphulo.kTrussAdj_Fused(tA, tR, 3, null, true, Authorizations.EMPTY, "");
           break;
         case Client_Sparse:
-          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 3, null, Authorizations.EMPTY, "", true);
+          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 3, null, Authorizations.EMPTY, "", true, Integer.MAX_VALUE);
           break;
         case Client_Dense:
-          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 3, null, Authorizations.EMPTY, "", false);
+          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 3, null, Authorizations.EMPTY, "", false, Integer.MAX_VALUE);
           break;
         default: throw new AssertionError();
       }
@@ -135,10 +135,10 @@ public class AlgorithmTest extends AccumuloTestBase {
           nnzkTruss = graphulo.kTrussAdj_Fused(tA, tR, 4, null, true, Authorizations.EMPTY, "");
           break;
         case Client_Sparse:
-          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 4, null, Authorizations.EMPTY, "", true);
+          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 4, null, Authorizations.EMPTY, "", true, Integer.MAX_VALUE);
           break;
         case Client_Dense:
-          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 4, null, Authorizations.EMPTY, "", false);
+          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 4, null, Authorizations.EMPTY, "", false, Integer.MAX_VALUE);
           break;
         default: throw new AssertionError();
       }
@@ -169,10 +169,10 @@ public class AlgorithmTest extends AccumuloTestBase {
           nnzkTruss = graphulo.kTrussAdj_Fused(tA, tR, 4, filterRowCol, true, Authorizations.EMPTY, "");
           break;
         case Client_Sparse:
-          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 4, filterRowCol, Authorizations.EMPTY, "", true);
+          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 4, filterRowCol, Authorizations.EMPTY, "", true, Integer.MAX_VALUE);
           break;
         case Client_Dense:
-          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 4, filterRowCol, Authorizations.EMPTY, "", false);
+          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 4, filterRowCol, Authorizations.EMPTY, "", false, Integer.MAX_VALUE);
           break;
         default: throw new AssertionError();
       }

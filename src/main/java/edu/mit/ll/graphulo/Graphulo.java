@@ -1924,7 +1924,6 @@ public class Graphulo {
     return cnt;
   }
 
-
   /**
    * From input <b>unweighted, undirected</b> adjacency table Aorig, put the k-Truss
    * of Aorig in Rfinal.
@@ -1944,7 +1943,36 @@ public class Graphulo {
   public long kTrussAdj(String Aorig, String Rfinal, int k,
                         String filterRowCol, boolean forceDelete,
                         Authorizations Aauthorizations, String RNewVisibility) {
+    return kTrussAdj(Aorig, Rfinal, k, filterRowCol, forceDelete, Aauthorizations, RNewVisibility,
+        Integer.MAX_VALUE);
+  }
+
+
+  /**
+   * From input <b>unweighted, undirected</b> adjacency table Aorig, put the k-Truss
+   * of Aorig in Rfinal.
+   * @param Aorig Unweighted, undirected adjacency table.
+   * @param Rfinal Does not have to previously exist. Writes the kTruss into Rfinal if it already exists.
+   *               Use a combiner if you want to sum it in.
+   * @param k Trivial if k <= 2.
+   * @param filterRowCol Filter applied to rows and columns of Aorig
+   *                     (must apply to both rows and cols because A is undirected Adjacency table).
+   * @param forceDelete False means throws exception if the temporary tables used inside the algorithm already exist.
+   *                    True means delete them if they exist.
+   * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
+   * @param RNewVisibility Visibility label for new entries created. Null means no visibility label.
+   * @param maxiter A bound on the number of iterations. The algorithm will halt
+   *                either at convergence or after reaching the maximum number of iterations.
+   *                Note that if the algorithm stops before convergence, the result may not be correct.
+   * @return nnz of the kTruss subgraph, which is 2* the number of edges in the kTruss subgraph.
+   *          Returns -1 if k < 2 since there is no point in counting the number of edges.
+   */
+  public long kTrussAdj(String Aorig, String Rfinal, int k,
+                        String filterRowCol, boolean forceDelete,
+                        Authorizations Aauthorizations, String RNewVisibility,
+                        int maxiter) {
     checkGiven(true, "Aorig", Aorig);
+    Preconditions.checkArgument(maxiter > 0, "bad maxiter %s", maxiter);
     Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
     TableOperations tops = connector.tableOperations();
     boolean RfinalExists = tops.exists(Rfinal);
@@ -2002,6 +2030,7 @@ public class Graphulo {
       List<IteratorSetting> noDiagFilter = Collections.singletonList(
           TriangularFilter.iteratorSetting(1, TriangularType.NoDiagonal));
 
+      int iter = 0;
       do {
         nnzBefore = nnzAfter;
 
@@ -2025,8 +2054,9 @@ public class Graphulo {
         tops.delete(A2tmp);
         { String t = Atmp; Atmp = AtmpAlt; AtmpAlt = t; }
 
-        log.debug("nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter);
-      } while (nnzBefore != nnzAfter);
+        iter++;
+        log.debug("iter "+iter+" nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter);
+      } while (nnzBefore != nnzAfter && iter < maxiter);
       // Atmp, ATtmp have the result table. Could be empty.
 
       if (RfinalExists)  // sum whole graph into existing graph
@@ -2044,11 +2074,29 @@ public class Graphulo {
     }
   }
 
+  /**
+   * This version uses advanced loop fusion to speed up the calculation.
+   * <p>
+   * From input <b>unweighted, undirected</b> adjacency table Aorig, put the k-Truss
+   * of Aorig in Rfinal.
+   * @param Aorig Unweighted, undirected adjacency table.
+   * @param Rfinal Does not have to previously exist. Writes the kTruss into Rfinal if it already exists.
+   *               Use a combiner if you want to sum it in.
+   * @param k Trivial if k <= 2.
+   * @param filterRowCol Filter applied to rows and columns of Aorig
+   *                     (must apply to both rows and cols because A is undirected Adjacency table).
+   * @param forceDelete False means throws exception if the temporary tables used inside the algorithm already exist.
+   *                    True means delete them if they exist.
+   * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
+   * @param RNewVisibility Visibility label for new entries created. Null means no visibility label.
+   * @return A somewhat meaningless number. This fused version loses the ability to directly measure nnz.
+   *          Returns -1 if k < 2 since there is no point in counting the number of edges.
+   */
   public long kTrussAdj_Fused(String Aorig, String Rfinal, int k,
                               String filterRowCol, boolean forceDelete,
                               Authorizations Aauthorizations, String RNewVisibility) {
     return kTrussAdj_Fused(Aorig, Rfinal, k, filterRowCol,forceDelete,
-        Aauthorizations, RNewVisibility, 1L << 32);
+        Aauthorizations, RNewVisibility, 1L << 32, Integer.MAX_VALUE);
   }
 
   /**
@@ -2069,13 +2117,16 @@ public class Graphulo {
    * @param upperBoundOnDim A loose bound on the largest number of entries in any one row or column of Aorig.
    *                        It is typically okay to overestimate, but make sure that 2*upperBoundOnDim <= Long.MAX_VALUE.
    *                        Be careful underestimating. A default guess is 2^32.
+   * @param maxiter A bound on the number of iterations. The algorithm will halt
+   *                either at convergence or after reaching the maximum number of iterations.
+   *                Note that if the algorithm stops before convergence, the result may not be correct.
    * @return A somewhat meaningless number. This fused version loses the ability to directly measure nnz.
    *          Returns -1 if k < 2 since there is no point in counting the number of edges.
    */
   public long kTrussAdj_Fused(String Aorig, String Rfinal, int k,
                               String filterRowCol, boolean forceDelete,
                               Authorizations Aauthorizations, String RNewVisibility,
-                              long upperBoundOnDim) {
+                              long upperBoundOnDim, int maxiter) {
     checkGiven(true, "Aorig", Aorig);
     Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
     TableOperations tops = connector.tableOperations();
@@ -2086,6 +2137,7 @@ public class Graphulo {
       upperBoundOnDim = 1L << 32;
     if (upperBoundOnDim >= Long.MAX_VALUE/2)
       log.warn("Upper bound may be too large: "+upperBoundOnDim);
+    Preconditions.checkArgument(maxiter > 0, "bad maxiter %s", maxiter);
 
     try {
       if (k <= 2) {               // trivial case: every graph is a 2-truss
@@ -2145,7 +2197,7 @@ public class Graphulo {
 //      }
       NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaultIterators();
 
-      int i=1;
+      int iter=0;
       do {
         nnzBefore = nnzAfter;
 
@@ -2165,24 +2217,24 @@ public class Graphulo {
             iterBeforeA, null, noDiagFilter,
             null, null, -1, Aauthorizations, Aauthorizations);
         filterRowCol = null; // filter only on first iteration
-//        System.out.println("gogo"+ i+" to "+AtmpAlt);
+//        System.out.println("gogo"+ iter+" to "+AtmpAlt);
 //        Thread.sleep(7000);
-//        DebugUtil.printTable("before filter "+i, connector, Atmp, 11);
-//        DebugUtil.printTable("before filter "+i, connector, AtmpAlt, 11);
+//        DebugUtil.printTable("before filter "+iter, connector, Atmp, 11);
+//        DebugUtil.printTable("before filter "+iter, connector, AtmpAlt, 11);
         // AtmpAlt has a Special Sum
         // Apply Part II after all entries written
         GraphuloUtil.applyIteratorSoft(filter, tops, AtmpAlt);
         long dur = System.currentTimeMillis() - l;
-//        DebugUtil.printTable("after filter "+i, connector, AtmpAlt, 11);
-//        System.out.println("gogo"+ i+" to "+AtmpAlt);
+//        DebugUtil.printTable("after filter "+iter, connector, AtmpAlt, 11);
+//        System.out.println("gogo"+ iter+" to "+AtmpAlt);
 //        Thread.sleep(7000);
-        i++;
 
         tops.delete(Atmp);
         { String t = Atmp; Atmp = AtmpAlt; AtmpAlt = t; }
 
-        log.debug("nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter+"; "+Long.toString(dur/1000)+" s");
-      } while (nnzBefore != nnzAfter);
+        iter++;
+        log.debug("iter +"+iter+" nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter+"; "+Long.toString(dur/1000)+" s");
+      } while (nnzBefore != nnzAfter && iter < maxiter);
 
 //      System.out.println(Atmp+" -> "+Rfinal+" (RfinalExists is "+RfinalExists+")");
 //      Thread.sleep(7000);
@@ -2221,13 +2273,16 @@ public class Graphulo {
    * @param RNewVisibility Visibility label for new entries created. Null means no visibility label.
    * @param useSparse Use a sparse matrix vs. dense matrix. Sparse matrices hold more data than the dense
    *                  but are slower for matrix-matrix multiply.
+   * @param maxiter A bound on the number of iterations. The algorithm will halt
+   *                either at convergence or after reaching the maximum number of iterations.
+   *                Note that if the algorithm stops before convergence, the result may not be correct.
    * @return A somewhat meaningless number. This fused version loses the ability to directly measure nnz.
    *          Returns -1 if k < 2 since there is no point in counting the number of edges.
    */
   public long kTrussAdj_Client(String Aorig, String Rfinal, int k,
                                String filterRowCol,
                                Authorizations Aauthorizations, String RNewVisibility,
-                               boolean useSparse) {
+                               boolean useSparse, int maxiter) {
     if (!useSparse) { // force disable MTJ native BLAS because it is unstable
       System.setProperty("com.github.fommil.netlib.BLAS", "com.github.fommil.netlib.F2jBLAS");
     }
@@ -2235,6 +2290,7 @@ public class Graphulo {
     Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
     TableOperations tops = connector.tableOperations();
     boolean RfinalExists = tops.exists(Rfinal);
+    Preconditions.checkArgument(maxiter > 0, "bad maxiter %s", maxiter);
 
     if (k <= 2) {               // trivial case: every graph is a 2-truss
       if (RfinalExists || filterRowCol != null)
@@ -2274,7 +2330,7 @@ public class Graphulo {
     Matrix B = useSparse ? new LinkedSparseMatrix(A) : new DenseMatrix(A);
     long nnzBefore, nnzAfter = Aentries.size();
 
-
+    int iter = 0;
     do {
       long t2 = System.currentTimeMillis();
       nnzBefore = nnzAfter;
@@ -2315,12 +2371,13 @@ public class Graphulo {
         } //else System.out.println();
       }
 
+      iter++;
       System.out.println("set new A time: "+(System.currentTimeMillis()-t7));
 //      System.out.println("new A");
 //      DebugUtil.printMapFull(MTJUtil.matrixToMapWithLabels(A, rowColMap, rowColMap, 0.0, RNewVisibility, true).entrySet().iterator(), 3);
       System.out.println("nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter);
-      System.out.println("iter time: "+(System.currentTimeMillis()-t2));
-    } while (nnzBefore != nnzAfter);
+      System.out.println("iter "+iter+" time: "+(System.currentTimeMillis()-t2));
+    } while (nnzBefore != nnzAfter && iter < maxiter);
 
     long t3 = System.currentTimeMillis();
     Map<Key, Value> kTrussMap = MTJUtil.matrixToMapWithLabels(A, rowColMap, rowColMap, 0.0, RNewVisibility, true);

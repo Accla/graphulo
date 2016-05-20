@@ -90,6 +90,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static edu.mit.ll.graphulo.skvi.TriangularFilter.TriangularType;
+import static java.util.Collections.emptyList;
 
 /**
  * Holds a {@link org.apache.accumulo.core.client.Connector} to an Accumulo instance for calling client Graphulo operations.
@@ -546,9 +547,9 @@ public class Graphulo {
       throw new UnsupportedOperationException("Could lead to unpredictable results: ATtable=CTtable=" + ATtable);
     if (Btable.equals(CTtable))
       throw new UnsupportedOperationException("Could lead to unpredictable results: Btable=CTtable=" + Btable);
-    if (iteratorsAfterTwoTable == null) iteratorsAfterTwoTable = Collections.emptyList();
-    if (iteratorsBeforeA == null) iteratorsBeforeA = Collections.emptyList();
-    if (iteratorsBeforeB == null) iteratorsBeforeB = Collections.emptyList();
+    if (iteratorsAfterTwoTable == null) iteratorsAfterTwoTable = emptyList();
+    if (iteratorsBeforeA == null) iteratorsBeforeA = emptyList();
+    if (iteratorsBeforeB == null) iteratorsBeforeB = emptyList();
     if (BScanIteratorPriority <= 0)
       BScanIteratorPriority = 7; // default priority
     if (reducerOpts == null && reducer != null)
@@ -787,7 +788,7 @@ public class Graphulo {
       throw new UnsupportedOperationException("Could lead to unpredictable results: Atable=Rtable=" + Atable);
     if (Atable.equals(RTtable))
       throw new UnsupportedOperationException("Could lead to unpredictable results: Atable=RTtable=" + Atable);
-    if (midIterator == null) midIterator = Collections.emptyList();
+    if (midIterator == null) midIterator = emptyList();
     if (AScanIteratorPriority <= 0)
       AScanIteratorPriority = 27; // default priority
     if (reducerOpts == null)
@@ -2114,12 +2115,6 @@ public class Graphulo {
    *                    True means delete them if they exist.
    * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
    * @param RNewVisibility Visibility label for new entries created. Null means no visibility label.
-   * @param upperBoundOnDim A loose bound on the largest number of entries in any one row or column of Aorig.
-   *                        It is typically okay to overestimate, but make sure that 2*upperBoundOnDim <= Long.MAX_VALUE.
-   *                        Be careful underestimating. A default guess is 2^32.
-   * @param maxiter A bound on the number of iterations. The algorithm will halt
-   *                either at convergence or after reaching the maximum number of iterations.
-   *                Note that if the algorithm stops before convergence, the result may not be correct.
    * @return A somewhat meaningless number. This fused version loses the ability to directly measure nnz.
    *          Returns -1 if k < 2 since there is no point in counting the number of edges.
    */
@@ -2127,6 +2122,42 @@ public class Graphulo {
                               String filterRowCol, boolean forceDelete,
                               Authorizations Aauthorizations, String RNewVisibility,
                               long upperBoundOnDim, int maxiter) {
+    return kTrussAdj_Fused(Aorig, Rfinal, k, filterRowCol,forceDelete,
+        Aauthorizations, RNewVisibility, 1L << 32, Integer.MAX_VALUE, Collections.<Long>emptyList());
+  }
+
+
+  /**
+   * This version uses advanced loop fusion to speed up the calculation.
+   * <p>
+   * From input <b>unweighted, undirected</b> adjacency table Aorig, put the k-Truss
+   * of Aorig in Rfinal.
+   * @param Aorig Unweighted, undirected adjacency table.
+   * @param Rfinal Does not have to previously exist. Writes the kTruss into Rfinal if it already exists.
+   *               Use a combiner if you want to sum it in.
+   * @param k Trivial if k <= 2.
+   * @param filterRowCol Filter applied to rows and columns of Aorig
+   *                     (must apply to both rows and cols because A is undirected Adjacency table).
+   * @param forceDelete False means throws exception if the temporary tables used inside the algorithm already exist.
+   *                    True means delete them if they exist.
+   * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
+   * @param RNewVisibility Visibility label for new entries created. Null means no visibility label.
+   * @param upperBoundOnDim A loose bound on the largest number of entries in any one row or column of Aorig.
+   *                        It is typically okay to overestimate, but make sure that 2*upperBoundOnDim <= Long.MAX_VALUE.
+   *                        Be careful underestimating. A default guess is 2^32.
+   * @param maxiter A bound on the number of iterations. The algorithm will halt
+   *                either at convergence or after reaching the maximum number of iterations.
+   *                Note that if the algorithm stops before convergence, the result may not be correct.
+   * @param specialLongList Used for evaluating performance. If not null, stores the total number of partial products
+   *                        written over the course of the algorithm as a long inside the list.
+   * @return A somewhat meaningless number. This fused version loses the ability to directly measure nnz.
+   *          Returns -1 if k < 2 since there is no point in counting the number of edges.
+   */
+  public long kTrussAdj_Fused(String Aorig, String Rfinal, int k,
+                              String filterRowCol, boolean forceDelete,
+                              Authorizations Aauthorizations, String RNewVisibility,
+                              long upperBoundOnDim, int maxiter,
+                              List<Long> specialLongList) {
     checkGiven(true, "Aorig", Aorig);
     Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
     TableOperations tops = connector.tableOperations();
@@ -2152,7 +2183,7 @@ public class Graphulo {
 
       // non-trivial case: k is 3 or more.
       String Atmp, AtmpAlt;
-      long nnzBefore, nnzAfter;
+      long nnzBefore, nnzAfter, totalnpp = 0;
       String tmpBaseName = Aorig+"_kTrussAdj_";
       Atmp = tmpBaseName+"tmpA";
       AtmpAlt = tmpBaseName+"tmpAalt";
@@ -2216,6 +2247,7 @@ public class Graphulo {
             PLUS_ITERATOR_LONG, filterRowCol, filterRowCol, filterRowCol, false, false, true, false,
             iterBeforeA, null, noDiagFilter,
             null, null, -1, Aauthorizations, Aauthorizations);
+        totalnpp += nnzAfter;
         filterRowCol = null; // filter only on first iteration
 //        System.out.println("gogo"+ iter+" to "+AtmpAlt);
 //        Thread.sleep(7000);
@@ -2245,6 +2277,8 @@ public class Graphulo {
 
 
       tops.delete(Atmp);
+      if (specialLongList != null)
+        specialLongList.add(totalnpp);
       return nnzAfter;
 
     } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
@@ -2579,10 +2613,10 @@ public class Graphulo {
         null, null, -1, Aauthorizations, Aauthorizations);
     log.debug("Jaccard #partial products " + npp);
 
-    // Because JaccardDegreeApply must see all entries, apply JaccardDegreeApply on scan and majc after the TableMult.
+    // Because JaccardDegreeApply must see all entries, apply JaccardDegreeApply on scan scope after the TableMult.
     IteratorSetting jda = JaccardDegreeApply.iteratorSetting(
         DEFAULT_COMBINER_PRIORITY+1, basicRemoteOpts(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX, ADeg, null, Aauthorizations));
-    jda = GraphuloUtil.addOnScopeOption(jda, EnumSet.of(IteratorUtil.IteratorScope.scan, IteratorUtil.IteratorScope.majc));
+    jda = GraphuloUtil.addOnScopeOption(jda, EnumSet.of(IteratorUtil.IteratorScope.scan));
     GraphuloUtil.applyIteratorSoft(jda, connector.tableOperations(), Rfinal);
 
     return npp;

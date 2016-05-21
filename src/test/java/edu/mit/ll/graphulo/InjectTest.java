@@ -229,6 +229,13 @@ public class InjectTest extends AccumuloTestBase {
     // expected data back
     Map<Key, Value> expect = new HashMap<>(input);
     expect.putAll(HardListIterator.allEntriesToInject);
+    // we will not read back the entry that has a column visibility because this is a compaction write and we don't have the credentials
+    for (Iterator<Map.Entry<Key, Value>> iterator = expect.entrySet().iterator();
+         iterator.hasNext();
+        ) {
+      if (iterator.next().getKey().getColumnVisibilityData().length() > 0)
+        iterator.remove();
+    }
 
     // attach InjectIterator, flush and compact. Compaction blocks.
     IteratorSetting itset = new IteratorSetting(15, InjectIterator.class);
@@ -285,6 +292,13 @@ public class InjectTest extends AccumuloTestBase {
 
     // expected data back
     Map<Key, Value> expect = new HashMap<>(HardListIterator.allEntriesToInject);
+    // we will not read back the entry that has a column visibility because this is a compaction write and we don't have the credentials
+    for (Iterator<Map.Entry<Key, Value>> iterator = expect.entrySet().iterator();
+         iterator.hasNext();
+        ) {
+      if (iterator.next().getKey().getColumnVisibilityData().length() > 0)
+        iterator.remove();
+    }
 
     // attach InjectIterator, flush and compact. Compaction blocks.
     IteratorSetting itset = new IteratorSetting(15, InjectIterator.class);

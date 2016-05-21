@@ -51,6 +51,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 /**
  * SKVI that writes to an Accumulo table.
  * Does all work in seek() method. hasTop() is always false.
+ * <p>
+ * Do not seek this iterator with the column visibility set.
+ * It may confuse the iterator into thinking it has already processed some entries.
  */
 public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueIterator<Key, Value> {
   private static final Logger log = LogManager.getLogger(RemoteWriteIterator.class);
@@ -379,7 +382,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   protected void finalize() throws Throwable {
     super.finalize();
     log.info("finalize() RemoteWriteIterator " + tableName);
-    System.out.println("finalize() RemoteWriteIterator " + tableName);
+//    System.out.println("finalize() RemoteWriteIterator " + tableName);
     if (writerAll != null)
       writerAll.close();
     else {
@@ -402,11 +405,11 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     seekInclusive = inclusive;
     rowRangeIterator = rowRanges.iteratorWithRangeMask(seekRange);
     numRowRangesIterated = 0;
-    System.out.print(thisInst+" seek(): lastSafeKey=="+lastSafeKey+" rowRangeIterator:: ");
-    PeekingIterator1<Range> ti = rowRanges.iteratorWithRangeMask(seekRange);
-    while (ti.hasNext())
-      System.out.print(ti.next()+" -- ");
-    System.out.println();
+//    System.out.print(thisInst+" seek(): lastSafeKey=="+lastSafeKey+" rowRangeIterator:: ");
+//    PeekingIterator1<Range> ti = rowRanges.iteratorWithRangeMask(seekRange);
+//    while (ti.hasNext())
+//      System.out.print(ti.next()+" -- ");
+//    System.out.println();
 
     // Detect whether we are recovering from an iterator tear-down (due to SourceSwitchingIterator)
     byte[] rangeStartVis = range.isInfiniteStartKey() ? new byte[0] : range.getStartKey().getColumnVisibilityData().toArray();
@@ -415,7 +418,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
       try {
         numToSkip = Integer.parseInt(new String(rangeStartVis, UTF_8));
         if (numToSkip > 0)
-          System.out.println("Detected Iterator Recovery! Skipping " + numToSkip + " ranges.");
+          log.info("Detected Iterator Recovery! Skipping " + numToSkip + " ranges.");
       } catch (NumberFormatException ignored) {}
     }
     numRowRangesIterated = numToSkip;
@@ -441,7 +444,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
             lastSafeKey = new Key(sk.getRow(), sk.getColumnFamily(), sk.getColumnQualifier(),
                 new Text(StringUtils.leftPad(Integer.toString(numRowRangesIterated), rowRangesSizeWidth, '0').getBytes(UTF_8)));
           }
-          System.out.println(thisInst+" changing lastSafeKey to: "+lastSafeKey);
+//          System.out.println(thisInst+" changing lastSafeKey to: "+lastSafeKey);
           log.debug("RemoteWrite actual seek " + thisTargetRange);// + "(thread " + Thread.currentThread().getName() + ")");
           // We could use the 10x next() heuristic here...
 //          if (!initialSeek)
@@ -481,7 +484,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 //        }
       }
     }
-    System.out.println(thisInst+" finish writeWrapper with: "+entriesWritten);
+//    System.out.println(thisInst+" finish writeWrapper with: "+entriesWritten);
     return stoppedAtSafe;
   }
 
@@ -563,7 +566,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
   @Override
   public boolean hasTop() {
-    System.out.println(thisInst+" hasTop(): entriesWritten=="+entriesWritten+" rowRangeIterator.hasNext()=="+rowRangeIterator.hasNext());
+//    System.out.println(thisInst+" hasTop(): entriesWritten=="+entriesWritten+" rowRangeIterator.hasNext()=="+rowRangeIterator.hasNext());
     return numRejects != -1 &&
         (numRejects >= REJECT_FAILURE_THRESHOLD ||
         rowRangeIterator.hasNext() ||
@@ -600,7 +603,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
   @Override
   public Key getTopKey() {
-    System.out.println(thisInst+" getTopKey(): source.hasTop()=="+source.hasTop()+" lastSafeKey=="+lastSafeKey);
+//    System.out.println(thisInst+" getTopKey(): source.hasTop()=="+source.hasTop()+" lastSafeKey=="+lastSafeKey);
     if (source.hasTop())
       return lastSafeKey;
     else {

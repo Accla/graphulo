@@ -72,6 +72,7 @@ import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.math3.linear.DefaultRealMatrixChangingVisitor;
@@ -2345,7 +2346,7 @@ public class Graphulo {
 
       // non-trivial case: k is 3 or more.
       String Atmp, AtmpAlt;
-      long nnzBefore, nnzAfter, totalnpp = 0;
+      long nppBefore, nppAfter, totalnpp = 0;
       String tmpBaseName = Aorig+"_kTrussAdj_";
       Atmp = tmpBaseName+"tmpA";
       AtmpAlt = tmpBaseName+"tmpAalt";
@@ -2363,7 +2364,7 @@ public class Graphulo {
 //            filterRowCol,
 //            filterRowCol, null, null, Aauthorizations);
       // forcing minimum 2 loops due to nnz proxy
-      nnzAfter = Long.MAX_VALUE;
+      nppAfter = Long.MAX_VALUE;
 
       // No Diagonal filter
       List<IteratorSetting> noDiagFilter = Collections.singletonList(
@@ -2378,7 +2379,9 @@ public class Graphulo {
           .toIteratorSetting();
 
       int iter=0;
+      long nnzBefore, nnzAfter = Long.MAX_VALUE;
       do {
+        nppBefore = nppAfter;
         nnzBefore = nnzAfter;
 
         // Clone Atmp into AtmpAlt, ignoring VersioningIterator
@@ -2389,12 +2392,12 @@ public class Graphulo {
         long l = System.currentTimeMillis();
         // Use Atmp for both AT and B
         // there seems to be a problem with TwoTableIterator.CLONESOURCE_TABLENAME
-        nnzAfter = TableMult(Atmp, Atmp, AtmpAlt, null, DEFAULT_COMBINER_PRIORITY+2,
+        nppAfter = TableMult(Atmp, Atmp, AtmpAlt, null, DEFAULT_COMBINER_PRIORITY+2,
             ConstantTwoScalar.class, ConstantTwoScalar.optionMap(new Value("2".getBytes(UTF_8)), RNewVisibility),
             PLUS_ITERATOR_LONG, filterRowCol, filterRowCol, filterRowCol, false, false, false, false,
             null, null, noDiagFilter,
             null, null, -1, Aauthorizations, Aauthorizations);
-        totalnpp += nnzAfter;
+        totalnpp += nppAfter;
         filterRowCol = null; // filter only on first iteration
 //        System.out.println("gogo"+ iter+" to "+AtmpAlt);
 //        Thread.sleep(7000);
@@ -2411,24 +2414,26 @@ public class Graphulo {
         tops.delete(Atmp);
         { String t = Atmp; Atmp = AtmpAlt; AtmpAlt = t; }
 
+        long lnpp = System.currentTimeMillis();
+        nnzAfter = countEntries(Atmp);
+        log.debug("time to count "+nnzAfter+" entries is "+(System.currentTimeMillis()-lnpp));
+
         iter++;
-        log.debug("iter +"+iter+" nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter+"; "+Long.toString(dur/1000)+" s");
-      } while (nnzBefore != nnzAfter && iter < maxiter);
+        log.debug("iter +"+iter+" nppBefore "+nppBefore+" nppAfter "+nppAfter+"; "+Long.toString(dur/1000)+" s");
+      } while (nppBefore != nppAfter && iter < maxiter && nnzBefore != nnzAfter);
 
 //      System.out.println(Atmp+" -> "+Rfinal+" (RfinalExists is "+RfinalExists+")");
 //      Thread.sleep(7000);
-      long l = System.currentTimeMillis();
       if (RfinalExists)  // sum whole graph into existing graph
         AdjBFS(Atmp, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Aauthorizations, Aauthorizations, false, null);
       else                                           // result is new;
         tops.clone(Atmp, Rfinal, true, null, null);  // flushes Atmp before cloning
-      log.debug("clone time "+Long.toString((System.currentTimeMillis()-l)/1000)+" s");
 
 
       tops.delete(Atmp);
       if (specialLongList != null)
         specialLongList.add(totalnpp);
-      return nnzAfter;
+      return nppAfter;
 
     } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
       log.error("Exception in kTrussAdj_Smart", e);

@@ -34,6 +34,7 @@ import edu.mit.ll.graphulo.skvi.SmallLargeRowFilter;
 import edu.mit.ll.graphulo.skvi.TopColPerRowIterator;
 import edu.mit.ll.graphulo.skvi.TriangularFilter;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
+import edu.mit.ll.graphulo.skvi.ktruss.SmartKTrussFilterIterator;
 import edu.mit.ll.graphulo.util.DebugUtil;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.MTJUtil;
@@ -90,6 +91,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static edu.mit.ll.graphulo.skvi.TriangularFilter.TriangularType;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
 
 /**
@@ -99,7 +101,7 @@ import static java.util.Collections.emptyList;
  */
 public class Graphulo {
   private static final Logger log = LogManager.getLogger(Graphulo.class);
-  private static final Value VALUE_ONE = new Value("1".getBytes(StandardCharsets.UTF_8));
+  private static final Value VALUE_ONE = new Value("1".getBytes(UTF_8));
 
   public static final int DEFAULT_COMBINER_PRIORITY = 6;
   public static final IteratorSetting PLUS_ITERATOR_BIGDECIMAL =
@@ -2209,7 +2211,7 @@ public class Graphulo {
 
       // Iterator that sets values to a constant amount
       List<IteratorSetting> iterBeforeA = Collections.singletonList(
-          ConstantTwoScalar.iteratorSetting(1, new Value(Long.toString(upperBoundOnDim).getBytes(StandardCharsets.UTF_8)))
+          ConstantTwoScalar.iteratorSetting(1, new Value(Long.toString(upperBoundOnDim).getBytes(UTF_8)))
       );
 
       // Iterator that filters away values less than an amount
@@ -2270,10 +2272,12 @@ public class Graphulo {
 
 //      System.out.println(Atmp+" -> "+Rfinal+" (RfinalExists is "+RfinalExists+")");
 //      Thread.sleep(7000);
+      long l = System.currentTimeMillis();
       if (RfinalExists)  // sum whole graph into existing graph
         AdjBFS(Atmp, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Aauthorizations, Aauthorizations, false, null);
       else                                           // result is new;
         tops.clone(Atmp, Rfinal, true, null, null);  // flushes Atmp before cloning
+      log.debug("clone time "+Long.toString((System.currentTimeMillis()-l)/1000)+" s");
 
 
       tops.delete(Atmp);
@@ -2283,6 +2287,151 @@ public class Graphulo {
 
     } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
       log.error("Exception in kTrussAdj_Fused", e);
+      throw new RuntimeException(e);
+    }
+  }
+
+
+  /**
+   * This version writes significantly fewer entries
+   * by cloning table A and using parity.
+   * <p>
+   * From input <b>unweighted, undirected</b> adjacency table Aorig, put the k-Truss
+   * of Aorig in Rfinal.
+   * @param Aorig Unweighted, undirected adjacency table.
+   * @param Rfinal Does not have to previously exist. Writes the kTruss into Rfinal if it already exists.
+   *               Use a combiner if you want to sum it in.
+   * @param k Trivial if k <= 2.
+   * @param filterRowCol Filter applied to rows and columns of Aorig
+   *                     (must apply to both rows and cols because A is undirected Adjacency table).
+   * @param forceDelete False means throws exception if the temporary tables used inside the algorithm already exist.
+   *                    True means delete them if they exist.
+   * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
+   * @param RNewVisibility Visibility label for new entries created. Null means no visibility label.
+   * @param upperBoundOnDim A loose bound on the largest number of entries in any one row or column of Aorig.
+   *                        It is typically okay to overestimate, but make sure that 2*upperBoundOnDim <= Long.MAX_VALUE.
+   *                        Be careful underestimating. A default guess is 2^32.
+   * @param maxiter A bound on the number of iterations. The algorithm will halt
+   *                either at convergence or after reaching the maximum number of iterations.
+   *                Note that if the algorithm stops before convergence, the result may not be correct.
+   * @param specialLongList Used for evaluating performance. If not null, stores the total number of partial products
+   *                        written over the course of the algorithm as a long inside the list.
+   * @return A somewhat meaningless number. This fused version loses the ability to directly measure nnz.
+   *          Returns -1 if k < 2 since there is no point in counting the number of edges.
+   */
+  public long kTrussAdj_Smart(String Aorig, String Rfinal, int k,
+                              String filterRowCol, boolean forceDelete,
+                              Authorizations Aauthorizations, String RNewVisibility,
+                              int maxiter,
+                              List<Long> specialLongList) {
+    checkGiven(true, "Aorig", Aorig);
+    Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
+    TableOperations tops = connector.tableOperations();
+    boolean RfinalExists = tops.exists(Rfinal);
+    if (RfinalExists)
+      log.warn("Fused version of kTruss may not work when the result table already exists due to iterator conflicts");
+    Preconditions.checkArgument(maxiter > 0, "bad maxiter %s", maxiter);
+
+    try {
+      if (k <= 2) {               // trivial case: every graph is a 2-truss
+        if (RfinalExists || filterRowCol != null)
+          OneTable(Aorig, Rfinal, null, null, -1, null, null, PLUS_ITERATOR_LONG,
+              filterRowCol,
+              filterRowCol, null, null, Aauthorizations);
+        else
+          tops.clone(Aorig, Rfinal, true, null, null);    // flushes Aorig before cloning
+        return -1;
+      }
+
+      // non-trivial case: k is 3 or more.
+      String Atmp, AtmpAlt;
+      long nnzBefore, nnzAfter, totalnpp = 0;
+      String tmpBaseName = Aorig+"_kTrussAdj_";
+      Atmp = tmpBaseName+"tmpA";
+      AtmpAlt = tmpBaseName+"tmpAalt";
+      deleteTables(Atmp, AtmpAlt);
+
+//      if (filterRowCol == null) {
+      tops.clone(Aorig, Atmp, true, null, null);
+//        long l = System.currentTimeMillis();
+//        nnzAfter = countEntries(Aorig);
+//        long dur = System.currentTimeMillis()-l;
+//        log.debug("Time to count entries is "+Long.toString(dur)+" ms.");
+//      }
+//      else
+//        OneTable(Aorig, Atmp, null, null, -1, null, null, null,
+//            filterRowCol,
+//            filterRowCol, null, null, Aauthorizations);
+      // forcing minimum 2 loops due to nnz proxy
+      nnzAfter = Long.MAX_VALUE;
+
+      // No Diagonal filter
+      List<IteratorSetting> noDiagFilter = Collections.singletonList(
+          TriangularFilter.iteratorSetting(1, TriangularType.NoDiagonal));
+
+      // Iterator that filters away values less than an amount
+      IteratorSetting filter;
+      filter = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY + 1, null,
+          EnumSet.of(DynamicIteratorSetting.MyIteratorScope.SCAN))
+          .append(SmartKTrussFilterIterator.iteratorSetting(1, k))
+          .append(ConstantTwoScalar.iteratorSetting(1, VALUE_ONE))
+          .toIteratorSetting();
+
+      int iter=0;
+      do {
+        nnzBefore = nnzAfter;
+
+        // Clone Atmp into AtmpAlt, ignoring VersioningIterator
+        tops.clone(Atmp, AtmpAlt, true, null, null);
+//        GraphuloUtil.copySplits(tops, Atmp, AtmpAlt);
+
+        // Special Sum
+        long l = System.currentTimeMillis();
+        // Use Atmp for both AT and B
+        // there seems to be a problem with TwoTableIterator.CLONESOURCE_TABLENAME
+        nnzAfter = TableMult(Atmp, Atmp, AtmpAlt, null, DEFAULT_COMBINER_PRIORITY+2,
+            ConstantTwoScalar.class, ConstantTwoScalar.optionMap(new Value("2".getBytes(UTF_8)), RNewVisibility),
+            PLUS_ITERATOR_LONG, filterRowCol, filterRowCol, filterRowCol, false, false, false, false,
+            null, null, noDiagFilter,
+            null, null, -1, Aauthorizations, Aauthorizations);
+        totalnpp += nnzAfter;
+        filterRowCol = null; // filter only on first iteration
+//        System.out.println("gogo"+ iter+" to "+AtmpAlt);
+//        Thread.sleep(7000);
+//        DebugUtil.printTable("before filter "+iter, connector, Atmp, 11);
+//        DebugUtil.printTable("before filter "+iter, connector, AtmpAlt, 11);
+        // AtmpAlt has a Special Sum
+        // Apply Part II after all entries written
+        GraphuloUtil.applyIteratorSoft(filter, tops, AtmpAlt);
+        long dur = System.currentTimeMillis() - l;
+//        DebugUtil.printTable("after filter "+iter, connector, AtmpAlt, 11);
+//        System.out.println("gogo"+ iter+" to "+AtmpAlt);
+//        Thread.sleep(7000);
+
+        tops.delete(Atmp);
+        { String t = Atmp; Atmp = AtmpAlt; AtmpAlt = t; }
+
+        iter++;
+        log.debug("iter +"+iter+" nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter+"; "+Long.toString(dur/1000)+" s");
+      } while (nnzBefore != nnzAfter && iter < maxiter);
+
+//      System.out.println(Atmp+" -> "+Rfinal+" (RfinalExists is "+RfinalExists+")");
+//      Thread.sleep(7000);
+      long l = System.currentTimeMillis();
+      if (RfinalExists)  // sum whole graph into existing graph
+        AdjBFS(Atmp, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Aauthorizations, Aauthorizations, false, null);
+      else                                           // result is new;
+        tops.clone(Atmp, Rfinal, true, null, null);  // flushes Atmp before cloning
+      log.debug("clone time "+Long.toString((System.currentTimeMillis()-l)/1000)+" s");
+
+
+      tops.delete(Atmp);
+      if (specialLongList != null)
+        specialLongList.add(totalnpp);
+      return nnzAfter;
+
+    } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
+      log.error("Exception in kTrussAdj_Smart", e);
       throw new RuntimeException(e);
     }
   }

@@ -34,7 +34,7 @@ import java.util.TreeSet;
 public class AlgorithmTest extends AccumuloTestBase {
   private static final Logger log = LogManager.getLogger(AlgorithmTest.class);
 
-  private enum KTrussAdjAlg { Normal, Fused, Client_Sparse, Client_Dense }
+  private enum KTrussAdjAlg { Normal, Fused, Client_Sparse, Client_Dense, Smart }
 
   @Test
   public void testkTrussAdj_Normal() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
@@ -54,6 +54,11 @@ public class AlgorithmTest extends AccumuloTestBase {
   @Test
   public void testkTrussAdj_Client_Sparse() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
     testkTrussAdj_Inner(KTrussAdjAlg.Client_Sparse);
+  }
+
+  @Test
+  public void testkTrussAdj_Smart() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    testkTrussAdj_Inner(KTrussAdjAlg.Smart);
   }
 
 
@@ -99,6 +104,9 @@ public class AlgorithmTest extends AccumuloTestBase {
         case Client_Dense:
           nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 3, null, Authorizations.EMPTY, "", false, Integer.MAX_VALUE);
           break;
+        case Smart:
+          nnzkTruss = graphulo.kTrussAdj_Smart(tA, tR, 3, null, true, Authorizations.EMPTY, "", Integer.MAX_VALUE, null);
+          break;
         default: throw new AssertionError();
       }
       log.info("3-Truss has " + nnzkTruss + " nnz");
@@ -140,6 +148,9 @@ public class AlgorithmTest extends AccumuloTestBase {
         case Client_Dense:
           nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 4, null, Authorizations.EMPTY, "", false, Integer.MAX_VALUE);
           break;
+        case Smart:
+          nnzkTruss = graphulo.kTrussAdj_Smart(tA, tR, 4, null, true, Authorizations.EMPTY, "", Integer.MAX_VALUE, null);
+          break;
         default: throw new AssertionError();
       }
       log.info("4-Truss has " + nnzkTruss + " nnz");
@@ -173,6 +184,9 @@ public class AlgorithmTest extends AccumuloTestBase {
           break;
         case Client_Dense:
           nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 4, filterRowCol, Authorizations.EMPTY, "", false, Integer.MAX_VALUE);
+          break;
+        case Smart:
+          nnzkTruss = graphulo.kTrussAdj_Smart(tA, tR, 4, null, true, Authorizations.EMPTY, "", Integer.MAX_VALUE, null);
           break;
         default: throw new AssertionError();
       }

@@ -357,6 +357,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     }
 
     BatchWriterConfig bwc = new BatchWriterConfig();
+    bwc.setMaxWriteThreads(25);
     // TODO: consider max memory, max latency, timeout, ... on writer
 
     if (tableName != null && tableNameTranspose != null)

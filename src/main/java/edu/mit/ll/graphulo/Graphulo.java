@@ -2309,9 +2309,6 @@ public class Graphulo {
    *                    True means delete them if they exist.
    * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
    * @param RNewVisibility Visibility label for new entries created. Null means no visibility label.
-   * @param upperBoundOnDim A loose bound on the largest number of entries in any one row or column of Aorig.
-   *                        It is typically okay to overestimate, but make sure that 2*upperBoundOnDim <= Long.MAX_VALUE.
-   *                        Be careful underestimating. A default guess is 2^32.
    * @param maxiter A bound on the number of iterations. The algorithm will halt
    *                either at convergence or after reaching the maximum number of iterations.
    *                Note that if the algorithm stops before convergence, the result may not be correct.
@@ -2570,7 +2567,15 @@ public class Graphulo {
     long t3 = System.currentTimeMillis();
     Map<Key, Value> kTrussMap = MTJUtil.matrixToMapWithLabels(A, rowColMap, rowColMap, 0.0, RNewVisibility, true);
 //    DebugUtil.printMapFull(kTrussMap.entrySet().iterator(), 3);
-    GraphuloUtil.writeEntries(connector, kTrussMap, Rfinal, true);
+    if (!RfinalExists) {
+      try {
+        tops.create(Rfinal);
+        GraphuloUtil.copySplits(tops, Aorig, Rfinal);
+      } catch (AccumuloException | TableExistsException | AccumuloSecurityException  e) {
+        log.error("",e);
+      }
+    }
+    GraphuloUtil.writeEntries(connector, kTrussMap, Rfinal, false);
     System.out.println("Put time: "+(System.currentTimeMillis()-t3));
     return nnzAfter;
   }

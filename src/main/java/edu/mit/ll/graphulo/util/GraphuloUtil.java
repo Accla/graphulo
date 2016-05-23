@@ -950,6 +950,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
       }
 
     BatchWriterConfig bwc = new BatchWriterConfig();
+    bwc.setMaxWriteThreads(25);
     BatchWriter bw;
     try {
       bw = connector.createBatchWriter(table, bwc);

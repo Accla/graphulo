@@ -324,8 +324,19 @@ public class AlgorithmTest extends AccumuloTestBase {
     conn.tableOperations().delete(tRT);
   }
 
+  private enum JaccardAlg { Normal, Client }
+
   @Test
-  public void testJaccard() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+  public void testJaccard_Normal() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    testJaccard_Inner(JaccardAlg.Normal);
+  }
+
+  @Test
+  public void testJaccard_Client() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    testJaccard_Inner(JaccardAlg.Client);
+  }
+
+  public void testJaccard_Inner(JaccardAlg jalg) throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
     Connector conn = tester.getConnector();
     final String tA, tADeg, tR;
     {
@@ -370,7 +381,17 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    long npp = graphulo.Jaccard(tA, tADeg, tR, null, Authorizations.EMPTY, "");
+    long npp;
+    switch (jalg) {
+      case Normal:
+        npp = graphulo.Jaccard(tA, tADeg, tR, null, Authorizations.EMPTY, "");
+        break;
+      case Client:
+        npp = graphulo.Jaccard_Client(tA, tR, null, Authorizations.EMPTY, "");
+        break;
+      default:
+        throw new AssertionError("jalg: "+jalg);
+    }
     log.info("Jaccard table has "+npp+" #partial products sent to "+tR);
 
     // Just for fun, let's compact and ensure idempotence.
@@ -384,7 +405,14 @@ public class AlgorithmTest extends AccumuloTestBase {
     scanner.close();
     System.out.println("Jaccard test:");
     TestUtil.printExpectActual(expect, actual);
-    Assert.assertEquals(10, npp);
+    switch (jalg) {
+      case Normal:
+        Assert.assertEquals(10, npp);
+        break;
+      case Client:
+        Assert.assertEquals(8, npp);
+        break;
+    }
     // need to be careful about comparing doubles
     for (Map.Entry<Key, Double> actualEntry : actual.entrySet()) {
       double actualValue = actualEntry.getValue();

@@ -41,8 +41,11 @@ import edu.mit.ll.graphulo.util.MTJUtil;
 import edu.mit.ll.graphulo.util.MemMatrixUtil;
 import edu.mit.ll.graphulo.util.SerializationUtil;
 import no.uib.cipr.matrix.DenseMatrix;
+import no.uib.cipr.matrix.DenseVector;
+import no.uib.cipr.matrix.Matrices;
 import no.uib.cipr.matrix.Matrix;
 import no.uib.cipr.matrix.MatrixEntry;
+import no.uib.cipr.matrix.UpperSymmDenseMatrix;
 import no.uib.cipr.matrix.sparse.LinkedSparseMatrix;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -72,7 +75,6 @@ import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.math3.linear.DefaultRealMatrixChangingVisitor;
@@ -88,7 +90,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nonnull;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static edu.mit.ll.graphulo.skvi.TriangularFilter.TriangularType;
@@ -2503,7 +2504,7 @@ public class Graphulo {
     // The Maps are used to put the original labels on W and H
     SortedMap<Integer,String> rowColMap = new TreeMap<>();
     // this call removes zero values from A
-    Matrix A = MTJUtil.indexMapAndMatrix_SameRowCol(Aentries, rowColMap, 0, useSparse);
+    Matrix A = MTJUtil.indexMapAndMatrix_SameRowCol(Aentries, rowColMap, 0, useSparse, false);
 
 //    DebugUtil.printMapFull(Aentries.entrySet().iterator(), 3);
 //    System.out.println("rowColMap: "+rowColMap);
@@ -2565,7 +2566,7 @@ public class Graphulo {
     } while (nnzBefore != nnzAfter && iter < maxiter);
 
     long t3 = System.currentTimeMillis();
-    Map<Key, Value> kTrussMap = MTJUtil.matrixToMapWithLabels(A, rowColMap, rowColMap, 0.0, RNewVisibility, true);
+    Map<Key, Value> kTrussMap = MTJUtil.matrixToMapWithLabels(A, rowColMap, rowColMap, 0.0, RNewVisibility, true, false);
 //    DebugUtil.printMapFull(kTrussMap.entrySet().iterator(), 3);
     if (!RfinalExists) {
       try {
@@ -2781,6 +2782,98 @@ public class Graphulo {
     return npp;
   }
 
+  /**
+   * Client version
+   * <p>
+   * From input <b>unweighted, undirected</b> adjacency table Aorig,
+   * put the Jaccard coefficients in the upper triangle of Rfinal.
+   * @param Aorig Unweighted, undirected adjacency table.
+   * @param Rfinal Should not previously exist. Writes the Jaccard table into Rfinal,
+   *               using a couple combiner-like iterators.
+   * @param filterRowCol Filter applied to rows and columns of Aorig
+   *                     (must apply to both rows and cols because A is undirected Adjacency table).
+   * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
+   * @param RNewVisibility Visibility label for new entries created in Rtable. Null means no visibility label.
+   * @return -1
+   */
+  public long Jaccard_Client(String Aorig, String Rfinal,
+                      String filterRowCol, Authorizations Aauthorizations, String RNewVisibility) {
+    checkGiven(true, "Aorig", Aorig);
+    Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
+//    Preconditions.checkArgument(!tops.exists(Rfinal), "Output Jaccard table must not exist: Rfinal=%s", Rfinal); // this could be relaxed, at the possibility of peril
+    // ^^^ I have relaxed this condition to allow pre-creating result table. Make sure it is a fresh table with no iterators on it.
+    TableOperations tops = connector.tableOperations();
+    boolean RfinalExists = tops.exists(Rfinal);
+
+    long t1 = System.currentTimeMillis();
+    // Scan A into memory
+    Map<Key,Value> Aentries = new TreeMap<>(); //GraphuloUtil.scanAll(connector, Aorig);
+    OneTable(Aorig, null, null, Aentries, -1, null, null, null, filterRowCol, filterRowCol, null, null, Authorizations.EMPTY); // returns nnz A
+    System.out.println("Scan time: "+(System.currentTimeMillis()-t1));
+
+    // Replace row and col labels with integer indexes; create map from indexes to original labels
+    // The Maps are used to put the original labels on W and H
+    SortedMap<Integer,String> rowColMap = new TreeMap<>();
+    // this call removes zero values from A
+    Matrix A = MTJUtil.indexMapAndMatrix_SameRowCol(Aentries, rowColMap, 0, false, false);
+
+//    DebugUtil.printMapFull(Aentries.entrySet().iterator(), 3);
+
+    int N = A.numRows();
+    int M = A.numColumns();
+    if (N != M)
+      throw new IllegalArgumentException("Jaccard was not given a symmetric matrix; N=="+N+" M=="+M);
+    double[] onestmp = new double[N];
+    Arrays.fill(onestmp,1);
+//    for (int i = 0; i < N; i++) {
+//      onestmp[i][0] = 1;
+//    }
+    no.uib.cipr.matrix.Vector ONES = new DenseVector(onestmp), DEGS = new DenseVector(N);
+    DEGS = A.mult(ONES,DEGS);
+
+    Matrix J = new DenseMatrix(N,N); //new UpperSymmDenseMatrix(N);
+    long t2 = System.currentTimeMillis();
+    J = A.mult(A,J);
+    System.out.println("A*A time: "+(System.currentTimeMillis()-t2));
+
+    long t22 = System.currentTimeMillis();
+    for (MatrixEntry e : J) {
+      if (e.get() == 0)
+        continue;
+      int r = e.row();
+      int c = e.column();
+      if (r >= c) // no diagonal
+        e.set(0);
+      else {
+        double v = e.get();
+        e.set(v / (DEGS.get(r) + DEGS.get(c) - v));
+      }
+    }
+    System.out.println("J <- v/(dr+dc-v) time: "+(System.currentTimeMillis()-t22));
+
+//    System.out.println(J);
+
+    long t3 = System.currentTimeMillis();
+    Map<Key, Value> kTrussMap = MTJUtil.matrixToMapWithLabels(J, rowColMap, rowColMap, 0.0, RNewVisibility, false, true);
+//    DebugUtil.printMapFull(kTrussMap.entrySet().iterator(), 3);
+
+    if (!RfinalExists) {
+      try {
+        tops.create(Rfinal);
+        GraphuloUtil.copySplits(tops, Aorig, Rfinal);
+      } catch (AccumuloException | TableExistsException | AccumuloSecurityException  e) {
+        log.error("",e);
+      }
+    }
+    GraphuloUtil.writeEntries(connector, kTrussMap, Rfinal, false);
+    System.out.println("Put time: "+(System.currentTimeMillis()-t3));
+
+    long t4 = System.currentTimeMillis();
+    int nnz = Matrices.cardinality(J);
+    System.out.println("Nnz time: "+(System.currentTimeMillis()-t4));
+
+    return nnz/2;
+  }
 
 
   /**

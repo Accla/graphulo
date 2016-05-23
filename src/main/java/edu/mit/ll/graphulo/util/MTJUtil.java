@@ -4,7 +4,6 @@ import no.uib.cipr.matrix.DenseMatrix;
 import no.uib.cipr.matrix.Matrix;
 import no.uib.cipr.matrix.MatrixEntry;
 import no.uib.cipr.matrix.UpperSymmDenseMatrix;
-import no.uib.cipr.matrix.sparse.CompRowMatrix;
 import no.uib.cipr.matrix.sparse.LinkedSparseMatrix;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -85,9 +84,9 @@ public class MTJUtil {
   }
 
   /** Replace row and col labels with integer indexes; create map from indexes to original labels */
-  public static Matrix indexMapAndMatrix_SameRowCol(final Map<Key,Value> orig,
-                                         final SortedMap<Integer,String> rowColMap,
-                                         final double zeroTolerance, boolean useSparse) {
+  public static Matrix indexMapAndMatrix_SameRowCol(final Map<Key, Value> orig,
+                                                    final SortedMap<Integer, String> rowColMap,
+                                                    final double zeroTolerance, boolean useSparse, boolean upperOnly) {
     // use Map<Integer,Map<Integer,Double>> to build
     SortedMap<Integer,SortedMap<Integer,Double>> rowcolvalmap = new TreeMap<>();
     Map<String,Integer> rowColMapRev = new HashMap<>();
@@ -120,7 +119,7 @@ public class MTJUtil {
 //    int[][] nzCols = new int[i][];
 
 
-    Matrix m = useSparse ? new LinkedSparseMatrix(i, i) : new DenseMatrix(i,i);
+    Matrix m = useSparse ? new LinkedSparseMatrix(i, i) : new DenseMatrix(i,i); //(upperOnly ? new UpperSymmDenseMatrix(i) : new DenseMatrix(i,i));
 
     for (Map.Entry<Key, Value> entry : orig.entrySet()) {
       Key k = entry.getKey();
@@ -129,6 +128,8 @@ public class MTJUtil {
       Integer colInt = rowColMapRev.get(col);
       assert rowInt != null && colInt != null;
 
+      if (!useSparse && upperOnly && rowInt > colInt) // let diagonal through
+        continue;
       m.set(rowInt-1, colInt-1, Double.valueOf(new String(entry.getValue().get())));
     }
     return m;
@@ -141,7 +142,7 @@ public class MTJUtil {
                                                       final SortedMap<Integer, String> colLabelMap,
                                                       final double zeroTolerance,
                                                       String RNewVisibility,
-                                                      boolean coerceToLong) {
+                                                      boolean coerceToLong, boolean onlyUpper) {
     final Map<Key,Value> ret = new TreeMap<>();
     if (RNewVisibility == null) RNewVisibility = "";
     Text cv = new Text(RNewVisibility);
@@ -149,6 +150,8 @@ public class MTJUtil {
     for (MatrixEntry matrixEntry : orig) {
       int row = matrixEntry.row();
       int column = matrixEntry.column();
+      if (onlyUpper && row >= column)
+        continue;
       double value = matrixEntry.get();
       if (value >= -zeroTolerance && value <= zeroTolerance)
         continue;

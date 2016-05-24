@@ -2872,7 +2872,7 @@ public class Graphulo {
     int nnz = Matrices.cardinality(J);
     System.out.println("Nnz time: "+(System.currentTimeMillis()-t4));
 
-    return nnz/2;
+    return nnz;
   }
 
 

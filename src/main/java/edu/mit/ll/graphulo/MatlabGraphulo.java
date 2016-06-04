@@ -83,52 +83,52 @@ public class MatlabGraphulo extends Graphulo {
   }
 
 
-  public void CancelCompact(String table) {
-    try {
+  public void CancelCompact(String table) throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
+//    try {
       connector.tableOperations().cancelCompaction(table);
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      log.error("error trying to cancel compaction for " + table, e);
-    } catch (TableNotFoundException e) {
-      log.error("", e);
-    }
+//    } catch (AccumuloException | AccumuloSecurityException e) {
+//      log.error("error trying to cancel compaction for " + table, e);
+//    } catch (TableNotFoundException e) {
+//      log.error("", e);
+//    }
   }
 
   /** Full major compact a table and wait for it to finish. */
-  public void Compact(String table) {
+  public void Compact(String table) throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
     System.out.println("Compacting " + table + "...");
-    try {
+//    try {
       connector.tableOperations().compact(table, null, null, true, true);
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      log.error("error trying to compact " + table, e);
-    } catch (TableNotFoundException e) {
-      log.error("", e);
-    }
+//    } catch (AccumuloException | AccumuloSecurityException e) {
+//      log.error("error trying to compact " + table, e);
+//    } catch (TableNotFoundException e) {
+//      log.error("", e);
+//    }
   }
 
   /** Flush a table, writing entries in memory to disk. */
-  public void Flush(String table) {
+  public void Flush(String table) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     System.out.println("Flushing " + table + "...");
-    try {
+//    try {
       connector.tableOperations().flush(table, null, null, true);
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      log.error("error trying to compact " + table, e);
-    } catch (TableNotFoundException e) {
-      log.error("", e);
-    }
+//    } catch (AccumuloException | AccumuloSecurityException e) {
+//      log.error("error trying to compact " + table, e);
+//    } catch (TableNotFoundException e) {
+//      log.error("", e);
+//    }
   }
 
   public boolean Exists(String table) {
     return connector.tableOperations().exists(table);
   }
 
-  public void PrintTable(String table) {
+  public void PrintTable(String table) throws TableNotFoundException {
     Scanner scanner;
-    try {
+//    try {
       scanner = connector.createScanner(table, Authorizations.EMPTY);
-    } catch (TableNotFoundException e) {
-      log.error("error scaning table "+table, e);
-      throw new RuntimeException(e);
-    }
+//    } catch (TableNotFoundException e) {
+//      log.error("error scaning table "+table, e);
+//      throw new RuntimeException(e);
+//    }
 
     for (Map.Entry<Key, Value> entry : scanner) {
       System.out.println(entry.getKey().toStringNoTime()+"    "+entry.getValue());
@@ -136,14 +136,14 @@ public class MatlabGraphulo extends Graphulo {
     scanner.close();
   }
 
-  public void PrintTableDebug(String table) {
+  public void PrintTableDebug(String table) throws TableNotFoundException {
     Scanner scanner;
-    try {
+//    try {
       scanner = connector.createScanner(table, Authorizations.EMPTY);
-    } catch (TableNotFoundException e) {
-      log.error("error scaning table "+table, e);
-      throw new RuntimeException(e);
-    }
+//    } catch (TableNotFoundException e) {
+//      log.error("error scaning table "+table, e);
+//      throw new RuntimeException(e);
+//    }
 
     for (Map.Entry<Key, Value> entry : scanner) {
       byte[] b = entry.getValue().get();
@@ -162,12 +162,20 @@ public class MatlabGraphulo extends Graphulo {
     GraphuloUtil.applyIteratorSoft(itset, connector.tableOperations(), table);
   }
 
-  public void RemoveIterator(String table, IteratorSetting itset) {
-    try {
+  public void RemoveIterator(String table, IteratorSetting itset) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+//    try {
       connector.tableOperations().removeIterator(table, itset.getName(), EnumSet.allOf(IteratorUtil.IteratorScope.class));
-    } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
-      log.error("Problem removing iterator "+itset+" from table "+table, e);
-    }
+//    } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
+//      log.error("Problem removing iterator "+itset+" from table "+table, e);
+//    }
+  }
+
+  public void SetConfig(String table, String key, String value) throws AccumuloSecurityException, AccumuloException {
+//    try {
+      connector.tableOperations().setProperty(table, key, value);
+//    } catch (AccumuloException | AccumuloSecurityException e) {
+//      log.error("problem setting table :: key :: value ==> "+table+" :: "+key+" :: "+value, e);
+//    }
   }
 
 }

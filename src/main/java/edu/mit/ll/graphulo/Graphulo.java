@@ -2383,7 +2383,9 @@ public class Graphulo {
         nnzBefore = nnzAfter;
 
         // Clone Atmp into AtmpAlt, ignoring VersioningIterator
-        tops.clone(Atmp, AtmpAlt, true, null, null);
+        long lc = System.currentTimeMillis();
+        tops.clone(Atmp, AtmpAlt, false, null, null);
+        System.out.println("clone time "+((System.currentTimeMillis()-lc)/1000)+"s");
 //        GraphuloUtil.copySplits(tops, Atmp, AtmpAlt);
 
         // Special Sum

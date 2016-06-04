@@ -1075,9 +1075,9 @@ public class Graphulo {
       for (int thisk = 1; thisk <= k; thisk++) {
         if (Trace.isTracing())
           if (thisk == 1)
-            System.out.println("First step: v0 is " + v0);
+            log.debug("First step: v0 is " + v0);
           else
-            System.out.println("k=" + thisk + " before filter" +
+            log.debug("k=" + thisk + " before filter" +
                 (vk.size() > 5 ? " #=" + String.valueOf(vk.size()) : ": " + vk.toString()));
 
         iteratorSettingList.clear();
@@ -1090,8 +1090,8 @@ public class Graphulo {
           dur = System.currentTimeMillis() - t1;
           degTime += dur;
           if (Trace.isTracing()) {
-            System.out.println("Degree Lookup Time: " + dur + " ms");
-            System.out.println("k=" + thisk + " after  filter" +
+            log.debug("Degree Lookup Time: " + dur + " ms");
+            log.debug("k=" + thisk + " after  filter" +
                 (vk.size() > 5 ? " #=" + String.valueOf(vk.size()) : ": " + vk.toString()));
           }
 
@@ -1133,14 +1133,14 @@ public class Graphulo {
         if (allReachedNodes != null)
           allReachedNodes.addAll(vk);
         if (Trace.isTracing())
-          System.out.println("BatchScan/Iterator Time: " + dur + " ms");
+          log.debug("BatchScan/Iterator Time: " + dur + " ms");
         if (vk.isEmpty())
           break;
       }
 
       if (Trace.isTracing()) {
-        System.out.println("Total Degree Lookup Time: " + degTime + " ms");
-        System.out.println("Total BatchScan/Iterator Time: " + scanTime + " ms");
+        log.debug("Total Degree Lookup Time: " + degTime + " ms");
+        log.debug("Total BatchScan/Iterator Time: " + scanTime + " ms");
       }
     } finally {
       bs.close();
@@ -1380,9 +1380,9 @@ public class Graphulo {
       for (int thisk = 1; thisk <= k; thisk++) {
         if (Trace.isTracing())
           if (thisk == 1)
-            System.out.println("First step: v0 is " + v0);
+            log.debug("First step: v0 is " + v0);
           else
-            System.out.println("k=" + thisk + " before filter" +
+            log.debug("k=" + thisk + " before filter" +
                 (vk.size() > 5 ? " #=" + String.valueOf(vk.size()) : ": " + vk.toString()));
 
         if (needDegreeFiltering) { // use degree table
@@ -1392,8 +1392,8 @@ public class Graphulo {
           dur = System.currentTimeMillis() - t1;
           degTime += dur;
           if (Trace.isTracing()) {
-            System.out.println("Degree Lookup Time: " + dur + " ms");
-            System.out.println("k=" + thisk + " after  filter" +
+            log.debug("Degree Lookup Time: " + dur + " ms");
+            log.debug("k=" + thisk + " after  filter" +
                 (vk.size() > 5 ? " #=" + String.valueOf(vk.size()) : ": " + vk.toString()));
           }
 
@@ -1438,14 +1438,14 @@ public class Graphulo {
         if (allReachedNodes != null)
           allReachedNodes.addAll(vk);
         if (Trace.isTracing())
-          System.out.println("BatchScan/Iterator Time: " + dur + " ms");
+          log.debug("BatchScan/Iterator Time: " + dur + " ms");
         if (vk.isEmpty())
           break;
       }
 
       if (Trace.isTracing()) {
-        System.out.println("Total Degree Lookup Time: " + degTime + " ms");
-        System.out.println("Total BatchScan/Iterator Time: " + scanTime + " ms");
+        log.debug("Total Degree Lookup Time: " + degTime + " ms");
+        log.debug("Total BatchScan/Iterator Time: " + scanTime + " ms");
       }
     } finally {
       bs.close();
@@ -1673,9 +1673,9 @@ public class Graphulo {
       for (int thisk = 1; thisk <= k; thisk++) {
         if (Trace.isTracing())
           if (thisk == 1)
-            System.out.println("First step: v0 is " + v0);
+            log.debug("First step: v0 is " + v0);
           else
-            System.out.println("k=" + thisk + " before filter" +
+            log.debug("k=" + thisk + " before filter" +
                 (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
 
         String rowFilter;
@@ -1686,8 +1686,8 @@ public class Graphulo {
           dur = System.currentTimeMillis() - t1;
           degTime += dur;
           if (Trace.isTracing()) {
-            System.out.println("Degree Lookup Time: " + dur + " ms");
-            System.out.println("k=" + thisk + " after  filter" +
+            log.debug("Degree Lookup Time: " + dur + " ms");
+            log.debug("k=" + thisk + " after  filter" +
                 (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
           }
 
@@ -1736,7 +1736,7 @@ public class Graphulo {
         vktexts.clear();
         vktexts.addAll(reducer.getSerializableForClient());
         if (Trace.isTracing())
-          System.out.println("BatchScan/Iterator Time: " + dur + " ms");
+          log.debug("BatchScan/Iterator Time: " + dur + " ms");
         if (vktexts.isEmpty())
           break;
         if (allInNodes != null)
@@ -1744,8 +1744,8 @@ public class Graphulo {
       }
 
       if (Trace.isTracing()) {
-        System.out.println("Total Degree Lookup Time: " + degTime + " ms");
-        System.out.println("Total BatchScan/Iterator Time: " + scanTime + " ms");
+        log.debug("Total Degree Lookup Time: " + degTime + " ms");
+        log.debug("Total BatchScan/Iterator Time: " + scanTime + " ms");
       }
 
     } finally {
@@ -2253,7 +2253,7 @@ public class Graphulo {
             null, null, -1, Aauthorizations, Aauthorizations);
         totalnpp += nnzAfter;
         filterRowCol = null; // filter only on first iteration
-//        System.out.println("gogo"+ iter+" to "+AtmpAlt);
+//        log.debug("gogo"+ iter+" to "+AtmpAlt);
 //        Thread.sleep(7000);
 //        DebugUtil.printTable("before filter "+iter, connector, Atmp, 11);
 //        DebugUtil.printTable("before filter "+iter, connector, AtmpAlt, 11);
@@ -2262,7 +2262,7 @@ public class Graphulo {
         GraphuloUtil.applyIteratorSoft(filter, tops, AtmpAlt);
         long dur = System.currentTimeMillis() - l;
 //        DebugUtil.printTable("after filter "+iter, connector, AtmpAlt, 11);
-//        System.out.println("gogo"+ iter+" to "+AtmpAlt);
+//        log.debug("gogo"+ iter+" to "+AtmpAlt);
 //        Thread.sleep(7000);
 
         tops.delete(Atmp);
@@ -2272,7 +2272,7 @@ public class Graphulo {
         log.debug("iter +"+iter+" nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter+"; "+Long.toString(dur/1000)+" s");
       } while (nnzBefore != nnzAfter && iter < maxiter);
 
-//      System.out.println(Atmp+" -> "+Rfinal+" (RfinalExists is "+RfinalExists+")");
+//      log.debug(Atmp+" -> "+Rfinal+" (RfinalExists is "+RfinalExists+")");
 //      Thread.sleep(7000);
       long l = System.currentTimeMillis();
       if (RfinalExists)  // sum whole graph into existing graph
@@ -2383,9 +2383,7 @@ public class Graphulo {
         nnzBefore = nnzAfter;
 
         // Clone Atmp into AtmpAlt, ignoring VersioningIterator
-        long lc = System.currentTimeMillis();
         tops.clone(Atmp, AtmpAlt, false, null, null);
-        System.out.println("clone time "+((System.currentTimeMillis()-lc)/1000)+"s");
 //        GraphuloUtil.copySplits(tops, Atmp, AtmpAlt);
 
         // Special Sum
@@ -2500,7 +2498,7 @@ public class Graphulo {
     // Scan A into memory
     Map<Key,Value> Aentries = new TreeMap<>(); //GraphuloUtil.scanAll(connector, Aorig);
     OneTable(Aorig, null, null, Aentries, -1, null, null, null, filterRowCol, filterRowCol, null, null, Authorizations.EMPTY); // returns nnz A
-    System.out.println("Scan time: "+(System.currentTimeMillis()-t1));
+    log.debug("Scan time: "+(System.currentTimeMillis()-t1));
 
     // Replace row and col labels with integer indexes; create map from indexes to original labels
     // The Maps are used to put the original labels on W and H
@@ -2525,16 +2523,16 @@ public class Graphulo {
 
       long t5 = System.currentTimeMillis();
       B.set(upperBoundOnDim, A); // B = n*A
-      System.out.println("B = n*a time: "+(System.currentTimeMillis()-t5));
+      log.debug("B = n*a time: "+(System.currentTimeMillis()-t5));
 
 //      System.out.println("B = n*A");
 //      DebugUtil.printMapFull(MTJUtil.matrixToMapWithLabels(B, rowColMap, rowColMap, 0.0, RNewVisibility, true).entrySet().iterator(), 3);
 
       long t6 = System.currentTimeMillis();
       A.multAdd(A, B); // B = A*A + B
-      System.out.println("B = A*A + B time: "+(System.currentTimeMillis()-t6));
+      log.debug("B = A*A + B time: "+(System.currentTimeMillis()-t6));
 
-//      System.out.println("B = A*A + B");
+//      log.debug("B = A*A + B");
 //      DebugUtil.printMapFull(MTJUtil.matrixToMapWithLabels(B, rowColMap, rowColMap, 0.0, RNewVisibility, true).entrySet().iterator(), 3);
 
       // zero entries A(i,j) where B(i,j) < n + k - 2
@@ -2560,11 +2558,10 @@ public class Graphulo {
       }
 
       iter++;
-      System.out.println("set new A time: "+(System.currentTimeMillis()-t7));
-//      System.out.println("new A");
+      log.debug("set new A time: "+(System.currentTimeMillis()-t7));
 //      DebugUtil.printMapFull(MTJUtil.matrixToMapWithLabels(A, rowColMap, rowColMap, 0.0, RNewVisibility, true).entrySet().iterator(), 3);
-      System.out.println("nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter);
-      System.out.println("iter "+iter+" time: "+(System.currentTimeMillis()-t2));
+      log.debug("nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter);
+      log.debug("iter "+iter+" time: "+(System.currentTimeMillis()-t2));
     } while (nnzBefore != nnzAfter && iter < maxiter);
 
     long t3 = System.currentTimeMillis();
@@ -2579,7 +2576,7 @@ public class Graphulo {
       }
     }
     GraphuloUtil.writeEntries(connector, kTrussMap, Rfinal, false);
-    System.out.println("Put time: "+(System.currentTimeMillis()-t3));
+    log.debug("Put time: "+(System.currentTimeMillis()-t3));
     return nnzAfter;
   }
 
@@ -2811,7 +2808,7 @@ public class Graphulo {
     // Scan A into memory
     Map<Key,Value> Aentries = new TreeMap<>(); //GraphuloUtil.scanAll(connector, Aorig);
     OneTable(Aorig, null, null, Aentries, -1, null, null, null, filterRowCol, filterRowCol, null, null, Authorizations.EMPTY); // returns nnz A
-    System.out.println("Scan time: "+(System.currentTimeMillis()-t1));
+    log.debug("Scan time: "+(System.currentTimeMillis()-t1));
 
     // Replace row and col labels with integer indexes; create map from indexes to original labels
     // The Maps are used to put the original labels on W and H
@@ -2836,7 +2833,7 @@ public class Graphulo {
     Matrix J = new DenseMatrix(N,N); //new UpperSymmDenseMatrix(N);
     long t2 = System.currentTimeMillis();
     J = A.mult(A,J);
-    System.out.println("A*A time: "+(System.currentTimeMillis()-t2));
+    log.debug("A*A time: "+(System.currentTimeMillis()-t2));
 
     long t22 = System.currentTimeMillis();
     for (MatrixEntry e : J) {
@@ -2851,7 +2848,7 @@ public class Graphulo {
         e.set(v / (DEGS.get(r) + DEGS.get(c) - v));
       }
     }
-    System.out.println("J <- v/(dr+dc-v) time: "+(System.currentTimeMillis()-t22));
+    log.debug("J <- v/(dr+dc-v) time: "+(System.currentTimeMillis()-t22));
 
 //    System.out.println(J);
 
@@ -2868,11 +2865,11 @@ public class Graphulo {
       }
     }
     GraphuloUtil.writeEntries(connector, kTrussMap, Rfinal, false);
-    System.out.println("Put time: "+(System.currentTimeMillis()-t3));
+    log.debug("Put time: "+(System.currentTimeMillis()-t3));
 
     long t4 = System.currentTimeMillis();
     int nnz = Matrices.cardinality(J);
-    System.out.println("Nnz time: "+(System.currentTimeMillis()-t4));
+    log.debug("Nnz time: "+(System.currentTimeMillis()-t4));
 
     return nnz;
   }
@@ -3281,7 +3278,7 @@ public class Graphulo {
 
 //    if (Trace.isTracing())
     if (DBG)
-      System.out.println("-tmp2 ok-  tmp1=" + tmp1 + "  tmp2=" + tmp2 + "  out1=" + out1);
+      log.debug("-tmp2 ok-  tmp1=" + tmp1 + "  tmp2=" + tmp2 + "  out1=" + out1);
 
     // Step 4: tmp1^T * tmp2 => OnlyPositiveFilter => {out1, transpose to out2}
     // Filter out entries <= 0 after combining partial products.
@@ -3423,7 +3420,7 @@ public class Graphulo {
       }
       if (HARR != null)
         putInDebugArray(HARR, Hmatrix, numiter);
-//      System.out.println("Hmatrix: "+Hmatrix);
+//      log.debug("Hmatrix: "+Hmatrix);
 
       // WT = ONLYPOS( (H*HT)^-1 * (H*AT) )
       try (TraceScope span = Trace.startSpan("Wstep")) {

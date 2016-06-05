@@ -90,7 +90,7 @@ public class RowMultiplyTest extends AccumuloTestBase {
     opt.put("AT.instanceName", instance);
     opt.put("AT.tableName", tADeg);
     opt.put("AT.username", user);
-    opt.put("AT.password", new String(tester.getPassword().getPassword()));
+    opt.put("AT.password", new String(tester.getPassword().getPassword(), StandardCharsets.UTF_8));
     opt.put("rowMultiplyOp", SelectorRowMultiply.class.getName());
     opt.put("dotmode", TwoTableIterator.DOTMODE.ROW.name());
     IteratorSetting itset = new IteratorSetting(1, TwoTableIterator.class, opt);

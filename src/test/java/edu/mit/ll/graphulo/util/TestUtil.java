@@ -20,6 +20,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -205,9 +206,9 @@ public class TestUtil {
 
   public static void assertEqualDoubleMap(Map<Key, Value> expect, Map<Key, Value> actual) {
     for (Map.Entry<Key, Value> actualEntry : actual.entrySet()) {
-      double actualValue = Double.parseDouble(new String(actualEntry.getValue().get()));
+      double actualValue = Double.parseDouble(new String(actualEntry.getValue().get(), StandardCharsets.UTF_8));
       double expectValue = expect.containsKey(actualEntry.getKey())
-          ? Double.parseDouble(new String(expect.get(actualEntry.getKey()).get())) : 0.0;
+          ? Double.parseDouble(new String(expect.get(actualEntry.getKey()).get(), StandardCharsets.UTF_8)) : 0.0;
       Assert.assertEquals(expectValue, actualValue, 0.001);
     }
   }

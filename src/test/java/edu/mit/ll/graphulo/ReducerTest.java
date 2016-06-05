@@ -80,9 +80,9 @@ public class ReducerTest {
     r.update(new Key("","","      "), new Value("3".getBytes(StandardCharsets.UTF_8)));
     r.update(new Key("","",""      ), new Value("4".getBytes(StandardCharsets.UTF_8)));
     r.update(new Key("a", "", ""), new Value("1".getBytes(StandardCharsets.UTF_8)));
-    Assert.assertEquals("11", new String(r.getForClient()));
+    Assert.assertEquals("11", new String(r.getForClient(), StandardCharsets.UTF_8));
     r.combine("8".getBytes(StandardCharsets.UTF_8));
-    Assert.assertEquals("19", new String(r.getForClient()));
+    Assert.assertEquals("19", new String(r.getForClient(), StandardCharsets.UTF_8));
     r.reset();
     Assert.assertFalse(r.hasTopForClient());
   }

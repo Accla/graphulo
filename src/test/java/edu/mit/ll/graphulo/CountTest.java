@@ -177,7 +177,7 @@ public class CountTest extends AccumuloTestBase {
     opt.put(RemoteSourceIterator.INSTANCENAME, instance);
     opt.put(RemoteSourceIterator.TABLENAME, tB);
     opt.put(RemoteSourceIterator.USERNAME, user);
-    opt.put(RemoteSourceIterator.PASSWORD, new String(tester.getPassword().getPassword()));
+    opt.put(RemoteSourceIterator.PASSWORD, new String(tester.getPassword().getPassword(), StandardCharsets.UTF_8));
 
     DynamicIteratorSetting dis = new DynamicIteratorSetting(25, null);
     dis.append(new IteratorSetting(111115, RowCountingIterator.class));

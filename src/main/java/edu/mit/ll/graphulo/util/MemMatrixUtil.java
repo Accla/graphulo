@@ -56,7 +56,7 @@ public class MemMatrixUtil {
       Key k = entry.getKey();
       int r = Integer.parseInt(k.getRow(row).toString()) - 1,
           c = Integer.parseInt(k.getColumnQualifier(col).toString()) - 1;
-      double v = Double.parseDouble(new String(entry.getValue().get())); // StandardCharsets.UTF_8?
+      double v = Double.parseDouble(new String(entry.getValue().get(), StandardCharsets.UTF_8)); // StandardCharsets.UTF_8?
       matrix.setEntry(r, c, v);
     }
     return matrix;
@@ -106,7 +106,7 @@ public class MemMatrixUtil {
         colMapRev.put(col, colInt);
         colMap.put(colInt, col);
       }
-      colvalmap.put(colInt, Double.valueOf(new String(entry.getValue().get())));
+      colvalmap.put(colInt, Double.valueOf(new String(entry.getValue().get(), StandardCharsets.UTF_8)));
 
     }
 

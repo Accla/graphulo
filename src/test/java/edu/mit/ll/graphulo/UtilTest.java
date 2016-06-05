@@ -428,8 +428,8 @@ public class UtilTest {
     System.arraycopy(prefix,0,prefixMod,0,prefix.length-1);
     prefixMod[prefix.length-1] = (byte) (prefix[prefix.length-1]+1);
 
-    log.debug("prefixMod="+new String(prefixMod));
-    Range r = new Range(new String(prefix), true, new String(prefixMod), true);
+    log.debug("prefixMod="+new String(prefixMod, StandardCharsets.UTF_8));
+    Range r = new Range(new String(prefix, StandardCharsets.UTF_8), true, new String(prefixMod, StandardCharsets.UTF_8), true);
     Assert.assertTrue(r.contains(new Key("pre|a")));
   }
 

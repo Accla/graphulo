@@ -29,7 +29,7 @@ public class ConstantTwoScalar extends SimpleTwoScalar {
   /** For use as a MultiplyOp or EWiseOp. */
   public static Map<String,String> optionMap(Value constant, String newVisibility) {
     Map<String,String> map = new HashMap<>();
-    map.put(CONSTANT, new String(constant.get()));
+    map.put(CONSTANT, new String(constant.get(), StandardCharsets.UTF_8));
     if (newVisibility != null && !newVisibility.isEmpty()) {
       map.put(USE_NEW_VISIBILITY, "true");
       map.put(NEW_VISIBILITY, newVisibility);

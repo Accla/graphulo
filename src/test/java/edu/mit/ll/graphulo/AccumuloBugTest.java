@@ -85,7 +85,7 @@ public class AccumuloBugTest extends AccumuloTestBase {
 
     IteratorSetting itset = RemoteSourceIterator.iteratorSetting(
         25, connector.getInstance().getZooKeepers(), 5000, connector.getInstance().getInstanceName(),
-        tA, connector.whoami(), new String(tester.getPassword().getPassword()), Authorizations.EMPTY, null, null,
+        tA, connector.whoami(), new String(tester.getPassword().getPassword(), StandardCharsets.UTF_8), Authorizations.EMPTY, null, null,
         false, null);
 
     BatchScanner bs = connector.createBatchScanner(tA, Authorizations.EMPTY, numtablets); // scan every tablet

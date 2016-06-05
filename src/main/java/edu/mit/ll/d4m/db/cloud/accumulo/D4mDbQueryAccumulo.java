@@ -23,6 +23,7 @@ import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -196,7 +197,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 	private boolean buildReturnString(Key theKey, Value val) {
 		String rowKey = theKey.getRow().toString();
 		String column = theKey.getColumnQualifier().toString();
-		String value = new String(val.get());
+		String value = new String(val.get(), StandardCharsets.UTF_8);
 		return buildReturnString(theKey,rowKey, column, value);
 	}
 
@@ -393,7 +394,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 			entry = scannerIter.next();
 			rowKey = entry.getKey().getRow().toString();
 			String column = entry.getKey().getColumnQualifier().toString();//new String(entry.getKey().getColumnQualifier().toString());
-			String value = new String(entry.getValue().get());
+			String value = new String(entry.getValue().get(), StandardCharsets.UTF_8);
 			String finalColumn = column.replace(this.family, "");
 
 			if (rowMap.containsKey(rowKey) && rowMap.containsValue(finalColumn)) {
@@ -495,7 +496,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 			rowKey = entry.getKey().getRow().toString();
 
 			if (rowMap.contains(rowKey)) {
-				String value = new String(entry.getValue().get());
+				String value = new String(entry.getValue().get(), StandardCharsets.UTF_8);
 				if(this.buildReturnString(entry.getKey(),rowKey, entry.getKey().getColumnQualifier().toString(), value)) {
 					break;
 				}
@@ -922,7 +923,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 				//String value = new String(entry.getValue().get());
 				boolean isGood = compUtil.compareIt(column.replace(this.family, ""));
 				if(isGood) {
-					String value = new String(entry.getValue().get());
+					String value = new String(entry.getValue().get(), StandardCharsets.UTF_8);
 					if(this.buildReturnString(entry.getKey(),rowKey, column, value)) {
 						break;
 					}
@@ -949,7 +950,7 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 				rowKey = startKey.getRow().toString();
 				String column = startKey.getColumnQualifier().toString();
 				//System.out.println(count+"BEFORE_ENTRY="+rowKey+","+column);
-				String value = new String(entry.getValue().get());
+				String value = new String(entry.getValue().get(), StandardCharsets.UTF_8);
 				if(this.buildReturnString(startKey,rowKey, column, value)) {
 					break;
 				}

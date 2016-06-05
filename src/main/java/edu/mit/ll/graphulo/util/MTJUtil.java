@@ -41,7 +41,7 @@ public class MTJUtil {
     Text rowText = new Text(), colText = new Text();
     for (Iterator<Map.Entry<Key, Value>> iterator = orig.entrySet().iterator(); iterator.hasNext(); ) {
       Map.Entry<Key, Value> entry = iterator.next();
-      double val = Double.valueOf(new String(entry.getValue().get()));
+      double val = Double.valueOf(new String(entry.getValue().get(), StandardCharsets.UTF_8));
       if (val >= -zeroTolerance && val <= zeroTolerance) {
         iterator.remove();
         continue;
@@ -97,7 +97,7 @@ public class MTJUtil {
     SortedSet<String> rowColSet = new TreeSet<>();
     for (Iterator<Map.Entry<Key, Value>> iterator = orig.entrySet().iterator(); iterator.hasNext(); ) {
       Map.Entry<Key, Value> entry = iterator.next();
-      double val = Double.valueOf(new String(entry.getValue().get()));
+      double val = Double.valueOf(new String(entry.getValue().get(), StandardCharsets.UTF_8));
       if (val >= -zeroTolerance && val <= zeroTolerance) {
         iterator.remove();
         continue;
@@ -131,7 +131,7 @@ public class MTJUtil {
 
       if (!useSparse && upperOnly && rowInt > colInt) // let diagonal through
         continue;
-      m.set(rowInt-1, colInt-1, Double.valueOf(new String(entry.getValue().get())));
+      m.set(rowInt-1, colInt-1, Double.valueOf(new String(entry.getValue().get(), StandardCharsets.UTF_8)));
     }
     return m;
   }

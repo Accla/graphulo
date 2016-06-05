@@ -1945,7 +1945,7 @@ public class Graphulo {
     long cnt = 0l;
     try {
       for (Map.Entry<Key, Value> entry : bs) {
-        cnt += Long.parseLong(new String(entry.getValue().get()));
+        cnt += Long.parseLong(new String(entry.getValue().get(), StandardCharsets.UTF_8));
       }
     } finally {
       bs.close();
@@ -3025,7 +3025,7 @@ public class Graphulo {
     long cnt = 0l;
     try {
       for (Map.Entry<Key, Value> entry : bs) {
-        cnt += Long.parseLong(new String(entry.getValue().get()));
+        cnt += Long.parseLong(new String(entry.getValue().get(), StandardCharsets.UTF_8));
       }
     } finally {
       bs.close();
@@ -3194,7 +3194,7 @@ public class Graphulo {
     sumReducer.init(sumOpts, null);
     OneTable(Hfinal, null, null, null, 50, sumReducer, sumOpts, null, null, null,
         abs0list, null, null);
-    double hsum = Long.parseLong(new String(sumReducer.getForClient()));
+    double hsum = Long.parseLong(new String(sumReducer.getForClient(), StandardCharsets.UTF_8));
 
     // Step 2: sum(sum( Abs0(Abs0(H)-Abs0(Hprev)) ,1),2)
     Map<String, String> subtractOpts = MathTwoScalar.optionMap(ScalarOp.MINUS, ScalarType.LONG, "", false);
@@ -3202,7 +3202,7 @@ public class Graphulo {
     SpEWiseSum(Hfinal, Hprev, null, null, 50, MathTwoScalar.class, subtractOpts, null, null, null, null,
         abs0list, abs0list, abs0list,
         sumReducer, sumOpts, -1, null, null);
-    double hdiffsum = sumReducer.hasTopForClient() ? Long.parseLong(new String(sumReducer.getForClient())) : 0;
+    double hdiffsum = sumReducer.hasTopForClient() ? Long.parseLong(new String(sumReducer.getForClient(), StandardCharsets.UTF_8)) : 0;
 
     return hdiffsum / hsum;
   }
@@ -3242,7 +3242,7 @@ public class Graphulo {
 
     if (!sumReducer.hasTopForClient())
       return 0.0; // no error. This will never happen realistically.
-    return Math.sqrt(Double.parseDouble(new String(sumReducer.getForClient())));
+    return Math.sqrt(Double.parseDouble(new String(sumReducer.getForClient(), StandardCharsets.UTF_8)));
   }
 
   final int PRESUMCACHESIZE = 10000;

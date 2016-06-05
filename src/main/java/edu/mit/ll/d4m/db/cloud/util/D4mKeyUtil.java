@@ -3,6 +3,8 @@
  */
 package edu.mit.ll.d4m.db.cloud.util;
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * @author cyee
  *
@@ -32,7 +34,7 @@ public class D4mKeyUtil {
 			column = theKey.getColumnQualifier().toString();
 			colFam = theKey.getColumnFamily().toString();
 			org.apache.accumulo.core.data.Value Val = (org.apache.accumulo.core.data.Value)value;
-			val = new String(Val.get());
+			val = new String(Val.get(), StandardCharsets.UTF_8);
 
 		}
 		d4mKey.setRow(rowKey);

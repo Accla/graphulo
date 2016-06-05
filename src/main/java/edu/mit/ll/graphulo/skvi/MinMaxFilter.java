@@ -64,7 +64,7 @@ public class MinMaxFilter extends Filter {
     handleOptions(options);
 
     log.debug("minValue="+minValue+" maxValue="+maxValue+" useColQ="+useColQ+" prefixColQ="+
-        (new String(prefixColQ)));
+        (new String(prefixColQ, StandardCharsets.UTF_8)));
   }
 
   private Number parseGeneric(String val) {

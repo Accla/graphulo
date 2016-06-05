@@ -85,12 +85,12 @@ public class TableMultIteratorTest extends AccumuloTestBase {
     itprops.put("AT.tableName", tableNameA);
     itprops.put("AT.zookeeperHost", conn.getInstance().getZooKeepers());
     itprops.put("AT.username", tester.getUsername());
-    itprops.put("AT.password", new String(tester.getPassword().getPassword()));
+    itprops.put("AT.password", new String(tester.getPassword().getPassword(), StandardCharsets.UTF_8));
     itprops.put("B.instanceName", conn.getInstance().getInstanceName());
     itprops.put("B.tableName", tableNameBT);
     itprops.put("B.zookeeperHost", conn.getInstance().getZooKeepers());
     itprops.put("B.username", tester.getUsername());
-    itprops.put("B.password", new String(tester.getPassword().getPassword()));
+    itprops.put("B.password", new String(tester.getPassword().getPassword(), StandardCharsets.UTF_8));
     itprops.put("dotmode", TwoTableIterator.DOTMODE.ROW.name());
     IteratorSetting itset = new IteratorSetting(25, TwoTableIterator.class, itprops);
     scanner.addScanIterator(itset);
@@ -208,7 +208,7 @@ public class TableMultIteratorTest extends AccumuloTestBase {
       itprops.put("AT.tableName", tableNameAT);
       itprops.put("AT.zookeeperHost", conn.getInstance().getZooKeepers());
       itprops.put("AT.username", tester.getUsername());
-      itprops.put("AT.password", new String(tester.getPassword().getPassword()));
+      itprops.put("AT.password", new String(tester.getPassword().getPassword(), StandardCharsets.UTF_8));
 //            itprops.put("B.instanceName",conn.getInstance().getInstanceName());
 //            itprops.put("B.tableName",tableNameB);
 //            itprops.put("B.zookeeperHost",conn.getInstance().getZooKeepers());
@@ -247,7 +247,7 @@ public class TableMultIteratorTest extends AccumuloTestBase {
       itprops.put("AT.tableName", tableNameAT);
       itprops.put("AT.zookeeperHost", conn.getInstance().getZooKeepers());
       itprops.put("AT.username", tester.getUsername());
-      itprops.put("AT.password", new String(tester.getPassword().getPassword()));
+      itprops.put("AT.password", new String(tester.getPassword().getPassword(), StandardCharsets.UTF_8));
 //            itprops.put("B.instanceName",conn.getInstance().getInstanceName());
 //            itprops.put("B.tableName",tableNameB);
 //            itprops.put("B.zookeeperHost",conn.getInstance().getZooKeepers());
@@ -296,12 +296,12 @@ public class TableMultIteratorTest extends AccumuloTestBase {
       itprops.put("AT.tableName", tableNameAT);
       itprops.put("AT.zookeeperHost", conn.getInstance().getZooKeepers());
       itprops.put("AT.username", tester.getUsername());
-      itprops.put("AT.password", new String(tester.getPassword().getPassword()));
+      itprops.put("AT.password", new String(tester.getPassword().getPassword(), StandardCharsets.UTF_8));
       itprops.put("C.instanceName", conn.getInstance().getInstanceName());
       itprops.put("C.tableName", tableNameC);
       itprops.put("C.zookeeperHost", conn.getInstance().getZooKeepers());
       itprops.put("C.username", tester.getUsername());
-      itprops.put("C.password", new String(tester.getPassword().getPassword()));
+      itprops.put("C.password", new String(tester.getPassword().getPassword(), StandardCharsets.UTF_8));
       itprops.put("C.numEntriesCheckpoint", "1");
       itprops.put("dotmode",TwoTableIterator.DOTMODE.ROW.name());
       IteratorSetting itset = GraphuloUtil.tableMultIterator(itprops, 15, null);

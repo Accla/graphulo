@@ -180,7 +180,7 @@ public class MathTwoScalar extends SimpleTwoScalar {
 
     Number Anum, Bnum;
 //    System.out.println("multiply("+Aval+","+Bval+")");
-    String Astr = new String(Aval.get()), Bstr = new String(Bval.get());
+    String Astr = new String(Aval.get(), StandardCharsets.UTF_8), Bstr = new String(Bval.get(), StandardCharsets.UTF_8);
     switch(scalarType) {
       case LONG:
         Anum = Long.valueOf(Astr);

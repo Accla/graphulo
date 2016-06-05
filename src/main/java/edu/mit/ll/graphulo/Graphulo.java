@@ -45,7 +45,6 @@ import no.uib.cipr.matrix.DenseVector;
 import no.uib.cipr.matrix.Matrices;
 import no.uib.cipr.matrix.Matrix;
 import no.uib.cipr.matrix.MatrixEntry;
-import no.uib.cipr.matrix.UpperSymmDenseMatrix;
 import no.uib.cipr.matrix.sparse.LinkedSparseMatrix;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -538,6 +537,27 @@ public class Graphulo {
                        Reducer reducer, Map<String, String> reducerOpts, // applies at RWI if using RWI; otherwise applies at client. Reducer must be init'ed previously
                        int numEntriesCheckpoint,
                        Authorizations ATauthorizations, Authorizations Bauthorizations) {
+    return TwoTable(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority,
+        dotmode, optsTT, plusOp, rowFilter, colFilterAT, colFilterB, emitNoMatchA, emitNoMatchB,
+        iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable, reducer, reducerOpts, numEntriesCheckpoint,
+        ATauthorizations, Bauthorizations, -1);
+  }
+
+  public long TwoTable(String ATtable, String Btable, String Ctable, String CTtable,
+                       int BScanIteratorPriority,
+                       TwoTableIterator.DOTMODE dotmode, Map<String, String> optsTT,
+                       IteratorSetting plusOp, // priority matters
+                       String rowFilter,
+                       String colFilterAT, String colFilterB,
+                       boolean emitNoMatchA, boolean emitNoMatchB,
+                       // RemoteSourceIterator has its own priority for scan-time iterators.
+                       // Could override by "diterPriority" option
+                       List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
+                       List<IteratorSetting> iteratorsAfterTwoTable, // priority doesn't matter for these three
+                       Reducer reducer, Map<String, String> reducerOpts, // applies at RWI if using RWI; otherwise applies at client. Reducer must be init'ed previously
+                       int numEntriesCheckpoint,
+                       Authorizations ATauthorizations, Authorizations Bauthorizations,
+                       int batchWriterThreads) {
     if (ATtable == null || ATtable.isEmpty())
       throw new IllegalArgumentException("Please specify table AT. Given: " + ATtable);
     if (Btable == null || Btable.isEmpty())
@@ -630,6 +650,9 @@ public class Graphulo {
         optRWI.put("reducer.opt."+entry.getKey(), entry.getValue());
       }
     }
+
+    if (batchWriterThreads > 0)
+      optRWI.put(RemoteWriteIterator.OPT_BATCHWRITERTHREADS, Integer.toString(batchWriterThreads));
 
     // scan B with TableMultIterator
     BatchScanner bs;

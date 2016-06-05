@@ -28,7 +28,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
@@ -140,12 +139,15 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   private int numRowRangesIterated = 0;
   private Collection<ByteSequence> seekColumnFamilies;
   private boolean seekInclusive;
+  /** (default 25, limited by # of cores) number of threads to use for sending mutations */
+  private int batchWriterThreads = 25;
 
   private static final IteratorOptions iteratorOptions;
   public static final String
     TABLENAMETRANSPOSE = "tableNameTranspose",
     NUMENTRIESCHECKPOINT = "numEntriesCheckpoint",
-    REDUCER = "reducer";
+    REDUCER = "reducer",
+    OPT_BATCHWRITERTHREADS = "batchWriterThreads";
 
   static {
     Map<String, String> optDesc = new LinkedHashMap<>();
@@ -159,6 +161,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     optDesc.put(NUMENTRIESCHECKPOINT, "(optional) #entries until sending back a progress monitoring entry, if the source iterator supports it");
     optDesc.put(RemoteSourceIterator.ROWRANGES, "(optional) rows to seek to");
     optDesc.put(REDUCER, "(default does nothing) reducing function");
+    optDesc.put(OPT_BATCHWRITERTHREADS, "(default 25, limited by # of cores) number of threads to use for sending mutations");
     iteratorOptions = new IteratorOptions("RemoteWriteIterator",
         "Write to a remote Accumulo table.",
         optDesc,
@@ -195,13 +198,14 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
    * @param reducerOptions Options passed to Reducer's {@link #init}.
    * @param numEntriesCheckpoint Number of entries seen by RemoteWriteIterator before it emits a monitoring entry.
    *                             Only used if its source iterator supports monitoring through use of the {@link SaveStateIterator} interface.
+   * @param batchWriterThreads Number of threads to use for sending mutations; <= 0 means default
    * @return map with options filled in.
    */
   public static Map<String,String> optionMap(
       Map<String, String> map, String tableName, String tableNameTranspose, String zookeeperHost, int timeout, String instanceName, String username, String password,
       String rowRanges,
-      Class<? extends Reducer> reducer, Map<String,String> reducerOptions,
-      int numEntriesCheckpoint) {
+      Class<? extends Reducer> reducer, Map<String, String> reducerOptions,
+      int numEntriesCheckpoint, int batchWriterThreads) {
     map = RemoteSourceIterator.optionMap(map, tableName, zookeeperHost, timeout, instanceName, username, password,
         null, rowRanges, null, null, null);
     if (tableNameTranspose != null)
@@ -213,6 +217,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
         map.put(REDUCER + GraphuloUtil.OPT_SUFFIX + entry.getKey(), entry.getValue());
     if (numEntriesCheckpoint > 0)
       map.put(NUMENTRIESCHECKPOINT, Integer.toString(numEntriesCheckpoint));
+    if (batchWriterThreads > 0)
+      map.put(OPT_BATCHWRITERTHREADS, Integer.toString(batchWriterThreads));
     return map;
   }
 
@@ -275,6 +281,10 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 //          case "trace":
 //            Watch.enableTrace = Boolean.parseBoolean(optionValue);
 //            break;
+
+          case OPT_BATCHWRITERTHREADS:
+            batchWriterThreads = Integer.parseInt(optionValue);
+            break;
           default:
             log.warn("Unrecognized option: " + optionEntry);
             break;
@@ -357,8 +367,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     }
 
     BatchWriterConfig bwc = new BatchWriterConfig();
-    bwc.setMaxWriteThreads(25);  // commented to reduce variance / increase stability - uncomment for potentially better performance depending on your machines
-    // TODO: consider max memory, max latency, timeout, ... on writer
+    bwc.setMaxWriteThreads(batchWriterThreads);  // lower reduces variance / increase stability - higher has potentially better performance depending on your machines
+    // consider max memory, max latency, timeout, ... on writer
 
     if (tableName != null && tableNameTranspose != null)
       writerAll = connector.createMultiTableBatchWriter(bwc);

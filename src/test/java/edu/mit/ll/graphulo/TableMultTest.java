@@ -65,25 +65,25 @@ public class TableMultTest extends AccumuloTestBase {
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
-      input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
-      input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
+      input.put(new Key("A1", "", "C1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A1", "", "C2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A2", "", "C1"), new Value("4".getBytes(StandardCharsets.UTF_8)));
       input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tAT, null, input);
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("B1", "", "C2"), new Value("3".getBytes()));
-      input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
-      input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
-      input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
+      input.put(new Key("B1", "", "C2"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("B1", "", "C3"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("B2", "", "C1"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("B2", "", "C2"), new Value("3".getBytes(StandardCharsets.UTF_8)));
       input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tB, null, input);
     }
     SortedMap<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-    expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
-    expect.put(new Key("A1", "", "B2"), new Value("21".getBytes()));
-    expect.put(new Key("A2", "", "B2"), new Value("12".getBytes()));
+    expect.put(new Key("A1", "", "B1"), new Value("6".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("A1", "", "B2"), new Value("21".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("A2", "", "B2"), new Value("12".getBytes(StandardCharsets.UTF_8)));
     SortedMap<Key, Value> expectT = GraphuloUtil.transposeMap(expect);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
@@ -184,25 +184,25 @@ public class TableMultTest extends AccumuloTestBase {
       }
       {
         Map<Key, Value> input = new HashMap<>();
-        input.put(new Key("A1", "", "C1", authA), new Value("5".getBytes()));
-        input.put(new Key("A1", "", "C2", authA), new Value("2".getBytes()));
-        input.put(new Key("A2", "", "C1", authA), new Value("4".getBytes()));
+        input.put(new Key("A1", "", "C1", authA), new Value("5".getBytes(StandardCharsets.UTF_8)));
+        input.put(new Key("A1", "", "C2", authA), new Value("2".getBytes(StandardCharsets.UTF_8)));
+        input.put(new Key("A2", "", "C1", authA), new Value("4".getBytes(StandardCharsets.UTF_8)));
         input = GraphuloUtil.transposeMap(input);
         TestUtil.createTestTable(conn, tAT, null, input);
       }
       {
         Map<Key, Value> input = new HashMap<>();
-        input.put(new Key("B1", "", "C2", authB), new Value("3".getBytes()));
-        input.put(new Key("B1", "", "C3", authB), new Value("3".getBytes()));
-        input.put(new Key("B2", "", "C1", authB), new Value("3".getBytes()));
-        input.put(new Key("B2", "", "C2", authB), new Value("3".getBytes()));
+        input.put(new Key("B1", "", "C2", authB), new Value("3".getBytes(StandardCharsets.UTF_8)));
+        input.put(new Key("B1", "", "C3", authB), new Value("3".getBytes(StandardCharsets.UTF_8)));
+        input.put(new Key("B2", "", "C1", authB), new Value("3".getBytes(StandardCharsets.UTF_8)));
+        input.put(new Key("B2", "", "C2", authB), new Value("3".getBytes(StandardCharsets.UTF_8)));
         input = GraphuloUtil.transposeMap(input);
         TestUtil.createTestTable(conn, tB, null, input);
       }
       SortedMap<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-      expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
-      expect.put(new Key("A1", "", "B2"), new Value("21".getBytes()));
-      expect.put(new Key("A2", "", "B2"), new Value("12".getBytes()));
+      expect.put(new Key("A1", "", "B1"), new Value("6".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("A1", "", "B2"), new Value("21".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("A2", "", "B2"), new Value("12".getBytes(StandardCharsets.UTF_8)));
       SortedMap<Key, Value> expectT = GraphuloUtil.transposeMap(expect);
 
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
@@ -266,18 +266,18 @@ public class TableMultTest extends AccumuloTestBase {
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
-      input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
-      input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
+      input.put(new Key("A1", "", "C1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A1", "", "C2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A2", "", "C1"), new Value("4".getBytes(StandardCharsets.UTF_8)));
       input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tAT, null, input);
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("B1", "", "C2"), new Value("3".getBytes()));
-      input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
-      input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
-      input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
+      input.put(new Key("B1", "", "C2"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("B1", "", "C3"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("B2", "", "C1"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("B2", "", "C2"), new Value("3".getBytes(StandardCharsets.UTF_8)));
       input = GraphuloUtil.transposeMap(input);
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("C15"));
@@ -287,8 +287,8 @@ public class TableMultTest extends AccumuloTestBase {
     TestUtil.createTestTable(conn, tC);
 
     Map<Key, Value> expect = new HashMap<>();
-    expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
-    expect.put(new Key("A1", "", "B2"), new Value("6".getBytes()));
+    expect.put(new Key("A1", "", "B1"), new Value("6".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("A1", "", "B2"), new Value("6".getBytes(StandardCharsets.UTF_8)));
     expect = Collections.unmodifiableMap(expect);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
@@ -332,18 +332,18 @@ public class TableMultTest extends AccumuloTestBase {
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
-      input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
-      input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
+      input.put(new Key("A1", "", "C1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A1", "", "C2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A2", "", "C1"), new Value("4".getBytes(StandardCharsets.UTF_8)));
       input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tAT, null, input);
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("B1", "", "C2"), new Value("3".getBytes()));
-      input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
-      input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
-      input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
+      input.put(new Key("B1", "", "C2"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("B1", "", "C3"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("B2", "", "C1"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("B2", "", "C2"), new Value("3".getBytes(StandardCharsets.UTF_8)));
       input = GraphuloUtil.transposeMap(input);
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("C15"));
@@ -352,7 +352,7 @@ public class TableMultTest extends AccumuloTestBase {
     TestUtil.createTestTable(conn, tC);
 
     Map<Key, Value> expect = new HashMap<>();
-    expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
+    expect.put(new Key("A1", "", "B1"), new Value("6".getBytes(StandardCharsets.UTF_8)));
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     long numpp = graphulo.TableMult(tAT, tB, tC, null, -1,
@@ -415,18 +415,18 @@ public class TableMultTest extends AccumuloTestBase {
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
-      input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
-      input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
+      input.put(new Key("A1", "", "C1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A1", "", "C2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A2", "", "C1"), new Value("4".getBytes(StandardCharsets.UTF_8)));
       input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tAT, null, input);
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("B1", "", "C2"), new Value("3".getBytes()));
-      input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
-      input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
-      input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
+      input.put(new Key("B1", "", "C2"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("B1", "", "C3"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("B2", "", "C1"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("B2", "", "C2"), new Value("3".getBytes(StandardCharsets.UTF_8)));
       input = GraphuloUtil.transposeMap(input);
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("C15"));
@@ -435,8 +435,8 @@ public class TableMultTest extends AccumuloTestBase {
     TestUtil.createTestTable(conn, tC);
 
     Map<Key, Value> expect = new HashMap<>();
-    expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
-    expect.put(new Key("A1", "", "A1"), new Value("4".getBytes()));
+    expect.put(new Key("A1", "", "B1"), new Value("6".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("A1", "", "A1"), new Value("4".getBytes(StandardCharsets.UTF_8)));
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     long numpp = graphulo.TableMult(tAT, tB, tC, null, -1,
@@ -499,18 +499,18 @@ public class TableMultTest extends AccumuloTestBase {
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
-      input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
-      input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
+      input.put(new Key("A1", "", "C1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A1", "", "C2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A2", "", "C1"), new Value("4".getBytes(StandardCharsets.UTF_8)));
       input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tAT, null, input);
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("B1", "", "C2"), new Value("3".getBytes()));
-      input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
-      input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
-      input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
+      input.put(new Key("B1", "", "C2"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("B1", "", "C3"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("B2", "", "C1"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("B2", "", "C2"), new Value("3".getBytes(StandardCharsets.UTF_8)));
       input = GraphuloUtil.transposeMap(input);
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("C15"));
@@ -519,9 +519,9 @@ public class TableMultTest extends AccumuloTestBase {
     TestUtil.createTestTable(conn, tC);
 
     Map<Key, Value> expect = new HashMap<>();
-    expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
-    expect.put(new Key("A1", "", "A1"), new Value("4".getBytes()));
-    expect.put(new Key("C2", "", "A1"), new Value("2".getBytes()));
+    expect.put(new Key("A1", "", "B1"), new Value("6".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("A1", "", "A1"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("C2", "", "A1"), new Value("2".getBytes(StandardCharsets.UTF_8)));
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     long numpp = graphulo.TableMult(tAT, tB, tC, null, -1,
@@ -584,17 +584,17 @@ public class TableMultTest extends AccumuloTestBase {
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
-      input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
-      input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
+      input.put(new Key("A1", "", "C1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A1", "", "C2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A2", "", "C1"), new Value("4".getBytes(StandardCharsets.UTF_8)));
       input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tB, null, input);
     }
     SortedMap<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-    expect.put(new Key("A1", "", "A1"), new Value("29".getBytes())); // 5*5 + 2*2
-    expect.put(new Key("A1", "", "A2"), new Value("20".getBytes())); // 5*4
-    expect.put(new Key("A2", "", "A1"), new Value("20".getBytes())); // 5*4
-    expect.put(new Key("A2", "", "A2"), new Value("16".getBytes())); // 4*4
+    expect.put(new Key("A1", "", "A1"), new Value("29".getBytes(StandardCharsets.UTF_8))); // 5*5 + 2*2
+    expect.put(new Key("A1", "", "A2"), new Value("20".getBytes(StandardCharsets.UTF_8))); // 5*4
+    expect.put(new Key("A2", "", "A1"), new Value("20".getBytes(StandardCharsets.UTF_8))); // 5*4
+    expect.put(new Key("A2", "", "A2"), new Value("16".getBytes(StandardCharsets.UTF_8))); // 4*4
     SortedMap<Key, Value> expectT = GraphuloUtil.transposeMap(expect);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
@@ -652,20 +652,20 @@ public class TableMultTest extends AccumuloTestBase {
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
-      input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
-      input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
+      input.put(new Key("A1", "", "C1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A1", "", "C2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A2", "", "C1"), new Value("4".getBytes(StandardCharsets.UTF_8)));
       input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tB, null, input);
     }
     SortedMap<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-    expect.put(new Key("A1", "", "A1"), new Value("29".getBytes())); // 5*5 + 2*2
-    expect.put(new Key("A1", "", "A2"), new Value("20".getBytes())); // 5*4
-    expect.put(new Key("A2", "", "A1"), new Value("20".getBytes())); // 5*4
-    expect.put(new Key("A2", "", "A2"), new Value("16".getBytes())); // 4*4
-    expect.put(new Key("C1", "", "A1"), new Value("5".getBytes())); // A
-    expect.put(new Key("C2", "", "A1"), new Value("2".getBytes())); // A
-    expect.put(new Key("C1", "", "A2"), new Value("4".getBytes())); // A
+    expect.put(new Key("A1", "", "A1"), new Value("29".getBytes(StandardCharsets.UTF_8))); // 5*5 + 2*2
+    expect.put(new Key("A1", "", "A2"), new Value("20".getBytes(StandardCharsets.UTF_8))); // 5*4
+    expect.put(new Key("A2", "", "A1"), new Value("20".getBytes(StandardCharsets.UTF_8))); // 5*4
+    expect.put(new Key("A2", "", "A2"), new Value("16".getBytes(StandardCharsets.UTF_8))); // 4*4
+    expect.put(new Key("C1", "", "A1"), new Value("5".getBytes(StandardCharsets.UTF_8))); // A
+    expect.put(new Key("C2", "", "A1"), new Value("2".getBytes(StandardCharsets.UTF_8))); // A
+    expect.put(new Key("C1", "", "A2"), new Value("4".getBytes(StandardCharsets.UTF_8))); // A
     SortedMap<Key, Value> expectT = GraphuloUtil.transposeMap(expect);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
@@ -724,20 +724,20 @@ public class TableMultTest extends AccumuloTestBase {
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
-      input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
-      input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
+      input.put(new Key("A1", "", "C1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A1", "", "C2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A2", "", "C1"), new Value("4".getBytes(StandardCharsets.UTF_8)));
       input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tB, null, input);
     }
     SortedMap<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-    expect.put(new Key("A1", "", "A1"), new Value("7".getBytes())); // 1*5 + 1*2
-    expect.put(new Key("A1", "", "A2"), new Value("4".getBytes())); // 1*4
-    expect.put(new Key("A2", "", "A1"), new Value("5".getBytes())); // 1*5
-    expect.put(new Key("A2", "", "A2"), new Value("4".getBytes())); // 1*4
-    expect.put(new Key("C1", "", "A1"), new Value("1".getBytes())); // A
-    expect.put(new Key("C2", "", "A1"), new Value("1".getBytes())); // A
-    expect.put(new Key("C1", "", "A2"), new Value("1".getBytes())); // A
+    expect.put(new Key("A1", "", "A1"), new Value("7".getBytes(StandardCharsets.UTF_8))); // 1*5 + 1*2
+    expect.put(new Key("A1", "", "A2"), new Value("4".getBytes(StandardCharsets.UTF_8))); // 1*4
+    expect.put(new Key("A2", "", "A1"), new Value("5".getBytes(StandardCharsets.UTF_8))); // 1*5
+    expect.put(new Key("A2", "", "A2"), new Value("4".getBytes(StandardCharsets.UTF_8))); // 1*4
+    expect.put(new Key("C1", "", "A1"), new Value("1".getBytes(StandardCharsets.UTF_8))); // A
+    expect.put(new Key("C2", "", "A1"), new Value("1".getBytes(StandardCharsets.UTF_8))); // A
+    expect.put(new Key("C1", "", "A2"), new Value("1".getBytes(StandardCharsets.UTF_8))); // A
     SortedMap<Key, Value> expectT = GraphuloUtil.transposeMap(expect);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
@@ -797,20 +797,20 @@ public class TableMultTest extends AccumuloTestBase {
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
-      input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
-      input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
+      input.put(new Key("A1", "", "C1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A1", "", "C2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A2", "", "C1"), new Value("4".getBytes(StandardCharsets.UTF_8)));
       input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tB, null, input);
     }
     SortedMap<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-    expect.put(new Key("A1", "", "A1"), new Value("13".getBytes())); // 1*8 + 1*5
-    expect.put(new Key("A1", "", "A2"), new Value("7".getBytes())); // 1*7
-    expect.put(new Key("A2", "", "A1"), new Value("8".getBytes())); // 1*8
-    expect.put(new Key("A2", "", "A2"), new Value("7".getBytes())); // 1*7
-    expect.put(new Key("C1", "", "A1"), new Value("1".getBytes())); // A
-    expect.put(new Key("C2", "", "A1"), new Value("1".getBytes())); // A
-    expect.put(new Key("C1", "", "A2"), new Value("1".getBytes())); // A
+    expect.put(new Key("A1", "", "A1"), new Value("13".getBytes(StandardCharsets.UTF_8))); // 1*8 + 1*5
+    expect.put(new Key("A1", "", "A2"), new Value("7".getBytes(StandardCharsets.UTF_8))); // 1*7
+    expect.put(new Key("A2", "", "A1"), new Value("8".getBytes(StandardCharsets.UTF_8))); // 1*8
+    expect.put(new Key("A2", "", "A2"), new Value("7".getBytes(StandardCharsets.UTF_8))); // 1*7
+    expect.put(new Key("C1", "", "A1"), new Value("1".getBytes(StandardCharsets.UTF_8))); // A
+    expect.put(new Key("C2", "", "A1"), new Value("1".getBytes(StandardCharsets.UTF_8))); // A
+    expect.put(new Key("C1", "", "A2"), new Value("1".getBytes(StandardCharsets.UTF_8))); // A
     SortedMap<Key, Value> expectT = GraphuloUtil.transposeMap(expect);
 
     IteratorSetting add3 =
@@ -874,20 +874,20 @@ public class TableMultTest extends AccumuloTestBase {
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
-      input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
-      input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
+      input.put(new Key("A1", "", "C1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A1", "", "C2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A2", "", "C1"), new Value("4".getBytes(StandardCharsets.UTF_8)));
       input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tB, null, input);
     }
     SortedMap<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-    expect.put(new Key("A1", "", "A1"), new Value("13".getBytes())); // 1*8 + 1*5
-    expect.put(new Key("A1", "", "A2"), new Value("7".getBytes())); // 1*7
-    expect.put(new Key("A2", "", "A1"), new Value("8".getBytes())); // 1*8
-    expect.put(new Key("A2", "", "A2"), new Value("7".getBytes())); // 1*7
-    expect.put(new Key("C1", "", "A1"), new Value("1".getBytes())); // A
-    expect.put(new Key("C2", "", "A1"), new Value("1".getBytes())); // A
-    expect.put(new Key("C1", "", "A2"), new Value("1".getBytes())); // A
+    expect.put(new Key("A1", "", "A1"), new Value("13".getBytes(StandardCharsets.UTF_8))); // 1*8 + 1*5
+    expect.put(new Key("A1", "", "A2"), new Value("7".getBytes(StandardCharsets.UTF_8))); // 1*7
+    expect.put(new Key("A2", "", "A1"), new Value("8".getBytes(StandardCharsets.UTF_8))); // 1*8
+    expect.put(new Key("A2", "", "A2"), new Value("7".getBytes(StandardCharsets.UTF_8))); // 1*7
+    expect.put(new Key("C1", "", "A1"), new Value("1".getBytes(StandardCharsets.UTF_8))); // A
+    expect.put(new Key("C2", "", "A1"), new Value("1".getBytes(StandardCharsets.UTF_8))); // A
+    expect.put(new Key("C1", "", "A2"), new Value("1".getBytes(StandardCharsets.UTF_8))); // A
     SortedMap<Key, Value> expectT = GraphuloUtil.transposeMap(expect);
 
     IteratorSetting add3 =

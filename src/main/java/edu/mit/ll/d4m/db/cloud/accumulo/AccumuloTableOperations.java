@@ -4,10 +4,21 @@
 package edu.mit.ll.d4m.db.cloud.accumulo;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import edu.mit.ll.cloud.connection.ConnectionProperties;
-import edu.mit.ll.d4m.db.cloud.D4mException;
-import edu.mit.ll.d4m.db.cloud.accumulo.AccumuloCombiner.CombiningType;
-import edu.mit.ll.d4m.db.cloud.util.D4mQueryUtil;
+
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -34,18 +45,10 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import edu.mit.ll.cloud.connection.ConnectionProperties;
+import edu.mit.ll.d4m.db.cloud.D4mException;
+import edu.mit.ll.d4m.db.cloud.accumulo.AccumuloCombiner.CombiningType;
+import edu.mit.ll.d4m.db.cloud.util.D4mQueryUtil;
 
 //${accumulo.VERSION.1.6}import org.apache.accumulo.core.util.ThriftUtil; // 1.6
 //${accumulo.VERSION.1.6}import org.apache.accumulo.trace.thrift.TInfo; // 1.6
@@ -232,7 +235,7 @@ public class AccumuloTableOperations {
 	}
 //	public AuthInfo getAuthInfo() {
 //		String user = this.connProp.getUser();
-//		byte [] pw = this.connProp.getPass().getBytes();
+//		byte [] pw = this.connProp.getPass().getBytes(StandardCharsets.UTF_8);
 //		String instanceId = this.connection.getInstance().getInstanceID();
 //		//Accumulo-1.4 use ByteBuffer for the password in AuthInfo constructor
 //		ByteBuffer pwbuffer = ByteBuffer.wrap(pw);
@@ -540,7 +543,7 @@ public class AccumuloTableOperations {
 				for (TabletStats tabStat : tabStats) {
 					//System.out.println("TabletStat name:" + new String(tabStat.extent.table.array()));
 					//System.out.println("Expected   name:"+internalTableName);
-					assert tabStat.extent.table.equals(ByteBuffer.wrap(internalTableName.getBytes()));
+					assert tabStat.extent.table.equals(ByteBuffer.wrap(internalTableName.getBytes(StandardCharsets.UTF_8)));
 					if ((erb == null ? tabStat.extent.endRow == null : tabStat.extent.endRow != null && tabStat.extent.endRow.equals(erb))
 							&& (prb == null ? tabStat.extent.prevEndRow == null : tabStat.extent.prevEndRow != null && tabStat.extent.prevEndRow.equals(prb))) {
 						// found it!

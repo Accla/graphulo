@@ -8,6 +8,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +46,7 @@ public class DoubleStatsCombiner extends Combiner {
     }
 
     String ret = Double.toString(min) + "," + Double.toString(max) + "," + Double.toString(sum) + "," + Long.toString(count);
-    return new Value(ret.getBytes());
+    return new Value(ret.getBytes(StandardCharsets.UTF_8));
   }
 
   @Override

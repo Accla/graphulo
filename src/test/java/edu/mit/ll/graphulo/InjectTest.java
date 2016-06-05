@@ -22,6 +22,7 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 //import org.apache.accumulo.core.client.admin.CompactionConfig;
@@ -43,9 +44,9 @@ public class InjectTest extends AccumuloTestBase {
     // create table, add table split, write data
     final String tableName = getUniqueNames(1)[0];
     Map<Key, Value> input = new HashMap<>();
-    input.put(new Key("aTablet1", "", "cq"), new Value("7".getBytes()));
-    input.put(new Key("kTablet2", "", "cq"), new Value("7".getBytes()));
-    input.put(new Key("zTablet2", "", "cq"), new Value("7".getBytes()));
+    input.put(new Key("aTablet1", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("kTablet2", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("zTablet2", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
     SortedSet<Text> splitset = new TreeSet<>();
     splitset.add(new Text("f"));
     TestUtil.createTestTable(conn, tableName, splitset, input);
@@ -171,9 +172,9 @@ public class InjectTest extends AccumuloTestBase {
     // create table, add table split, write data
     final String tableName = getUniqueNames(1)[0];
     Map<Key, Value> input = new HashMap<>();
-    input.put(new Key("aTablet1", "", "cq"), new Value("7".getBytes()));
-    input.put(new Key("kTablet2", "", "cq"), new Value("7".getBytes()));
-    input.put(new Key("zTablet2", "", "cq"), new Value("7".getBytes()));
+    input.put(new Key("aTablet1", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("kTablet2", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("zTablet2", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
     SortedSet<Text> splitset = new TreeSet<>();
     splitset.add(new Text("f"));
     TestUtil.createTestTable(conn, tableName, splitset, input);
@@ -219,9 +220,9 @@ public class InjectTest extends AccumuloTestBase {
     // create table, add table split, write data
     final String tableName = getUniqueNames(1)[0];
     Map<Key, Value> input = new HashMap<>();
-    input.put(new Key("aTablet1", "", "cq"), new Value("7".getBytes()));
-    input.put(new Key("kTablet2", "", "cq"), new Value("7".getBytes()));
-    input.put(new Key("zTablet2", "", "cq"), new Value("7".getBytes()));
+    input.put(new Key("aTablet1", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("kTablet2", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("zTablet2", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
     SortedSet<Text> splitset = new TreeSet<>();
     splitset.add(new Text("f"));
     TestUtil.createTestTable(conn, tableName, splitset, input);

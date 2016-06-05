@@ -356,7 +356,7 @@ public class UtilTest {
   @Test
   public void testAbstractEncoderDecode() {
     AbstractEncoder<Long> encoder = new LongCombiner.StringEncoder();
-    byte[] bytes = "a334".getBytes();
+    byte[] bytes = "a334".getBytes(StandardCharsets.UTF_8);
     Assert.assertEquals(334, encoder.decode(bytes, 1, 3).longValue());
   }
 
@@ -366,13 +366,13 @@ public class UtilTest {
     String s1 = "abcd", s2 = "ab";
     Text t1 = new Text(s1), t2 = new Text(s2);
     Assert.assertEquals(0, WritableComparator.compareBytes(t1.getBytes(), 0, t2.getLength(), t2.getBytes(), 0, t2.getLength()));
-//    Assert.assertEquals(0, t1.compareTo(t2.getBytes(), 0, t2.getLength()));
+//    Assert.assertEquals(0, t1.compareTo(t2.getBytes(StandardCharsets.UTF_8), 0, t2.getLength()));
     ByteSequence bs1 = new ArrayByteSequence(t1.getBytes());
   }
 
   @Test
   public void testKeyColQSubstring() {
-    byte[] inBytes = "col".getBytes();
+    byte[] inBytes = "col".getBytes(StandardCharsets.UTF_8);
     Key k = new Key("row","colF","colQ");
     byte[] cqBytes = k.getColumnQualifierData().toArray();
     Assert.assertEquals(0, WritableComparator.compareBytes(cqBytes, 0, inBytes.length, inBytes, 0, inBytes.length));
@@ -380,9 +380,9 @@ public class UtilTest {
     Assert.assertEquals("Q",label);
 
     Assert.assertEquals("Q",GraphuloUtil.stringAfter(inBytes, cqBytes));
-    Assert.assertEquals("colQ",GraphuloUtil.stringAfter("".getBytes(), cqBytes));
+    Assert.assertEquals("colQ",GraphuloUtil.stringAfter("".getBytes(StandardCharsets.UTF_8), cqBytes));
     Assert.assertEquals("colQ",GraphuloUtil.stringAfter(new byte[0], cqBytes));
-    Assert.assertNull(GraphuloUtil.stringAfter("ca".getBytes(), cqBytes));
+    Assert.assertNull(GraphuloUtil.stringAfter("ca".getBytes(StandardCharsets.UTF_8), cqBytes));
    }
 
   @Test
@@ -423,7 +423,7 @@ public class UtilTest {
 
   @Test
   public void testRowMiddle() {
-    byte[] prefix = "pre|".getBytes();
+    byte[] prefix = "pre|".getBytes(StandardCharsets.UTF_8);
     byte[] prefixMod = new byte[prefix.length];
     System.arraycopy(prefix,0,prefixMod,0,prefix.length-1);
     prefixMod[prefix.length-1] = (byte) (prefix[prefix.length-1]+1);
@@ -448,9 +448,9 @@ public class UtilTest {
 //    printArray("2  ",encoder.encode(2l));
 //    printArray("10 ",encoder.encode(10l));
     byte[][] bs = new byte[3][];
-    bs[0] = "abc".getBytes();
-    bs[1] = "".getBytes();
-    bs[2] = "xyz".getBytes();
+    bs[0] = "abc".getBytes(StandardCharsets.UTF_8);
+    bs[1] = "".getBytes(StandardCharsets.UTF_8);
+    bs[2] = "xyz".getBytes(StandardCharsets.UTF_8);
 
     int totlen = 0;
     for (byte[] b : bs)
@@ -467,7 +467,7 @@ public class UtilTest {
   /** temporary */
   @Test
   public void test2() {
-    byte[] a = "a".getBytes();
+    byte[] a = "a".getBytes(StandardCharsets.UTF_8);
     byte[] b = new byte[a.length+1];
     System.arraycopy(a,0,b,0,a.length);
     b[a.length] = Byte.MAX_VALUE;
@@ -524,13 +524,13 @@ public class UtilTest {
       System.out.print(b);
     System.out.println("   OK char length "+Character.toChars(Byte.MAX_VALUE).length);
     String s = GraphuloUtil.singletonsAsPrefix(":,v3,v5,v9,");
-    byte[] b = s.getBytes();
+    byte[] b = s.getBytes(StandardCharsets.UTF_8);
     log.debug(Key.toPrintableString(b, 0, b.length, b.length));
 
     Collection<Range> set = GraphuloUtil.d4mRowToRanges(s, true);
     log.debug(set);
     String s2 = GraphuloUtil.rangesToD4MString(set,',');
-//    byte[] b2 = s.getBytes();
+//    byte[] b2 = s.getBytes(StandardCharsets.UTF_8);
     log.debug(Key.toPrintableString(b, 0, b.length, b.length));
     // establish fixpoint
     Assert.assertEquals(s, s2);
@@ -679,20 +679,20 @@ public class UtilTest {
     Map<String,String> opts = TopColPerRowIterator.combinerSetting(1,3).getOptions();
 
     SortedMap<Key,Value> input = new TreeMap<>();
-    input.put(new Key("r1", "", "c1"), new Value("4.5".getBytes()));
-    input.put(new Key("r1", "", "c2"), new Value("6.0".getBytes()));
-    input.put(new Key("r1", "", "c3"), new Value("5".getBytes()));
-    input.put(new Key("r1", "", "c4"), new Value("1.1".getBytes()));
-    input.put(new Key("r1", "", "c5"), new Value("8".getBytes()));
+    input.put(new Key("r1", "", "c1"), new Value("4.5".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c2"), new Value("6.0".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c3"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c4"), new Value("1.1".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c5"), new Value("8".getBytes(StandardCharsets.UTF_8)));
 
-    input.put(new Key("r2", "", "c1"), new Value("13".getBytes()));
-    input.put(new Key("r2", "", "c2"), new Value("12".getBytes()));
+    input.put(new Key("r2", "", "c1"), new Value("13".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r2", "", "c2"), new Value("12".getBytes(StandardCharsets.UTF_8)));
 
-    input.put(new Key("r3", "", "c1"), new Value("13".getBytes()));
-    input.put(new Key("r3", "", "c1"), new Value("19".getBytes()));
-    input.put(new Key("r3", "", "c1"), new Value("11".getBytes()));
-    input.put(new Key("r3", "", "c1"), new Value("10".getBytes()));
-    input.put(new Key("r3", "", "c1"), new Value("12".getBytes()));
+    input.put(new Key("r3", "", "c1"), new Value("13".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r3", "", "c1"), new Value("19".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r3", "", "c1"), new Value("11".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r3", "", "c1"), new Value("10".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r3", "", "c1"), new Value("12".getBytes(StandardCharsets.UTF_8)));
 
     SortedKeyValueIterator<Key,Value> skvi = new MapIterator(input);
     skvi.init(null, null, null);
@@ -702,14 +702,14 @@ public class UtilTest {
     skvi.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
 
     SortedMap<Key,Value> expect = new TreeMap<>();
-    expect.put(new Key("r1", "", "c2"), new Value("6.0".getBytes()));
-    expect.put(new Key("r1", "", "c3"), new Value("5".getBytes()));
-    expect.put(new Key("r1", "", "c5"), new Value("8".getBytes()));
-    expect.put(new Key("r2", "", "c1"), new Value("13".getBytes()));
-    expect.put(new Key("r2", "", "c2"), new Value("12".getBytes()));
-    expect.put(new Key("r3", "", "c1"), new Value("13".getBytes()));
-    expect.put(new Key("r3", "", "c1"), new Value("19".getBytes()));
-    expect.put(new Key("r3", "", "c1"), new Value("12".getBytes()));
+    expect.put(new Key("r1", "", "c2"), new Value("6.0".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("r1", "", "c3"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("r1", "", "c5"), new Value("8".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("r2", "", "c1"), new Value("13".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("r2", "", "c2"), new Value("12".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("r3", "", "c1"), new Value("13".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("r3", "", "c1"), new Value("19".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("r3", "", "c1"), new Value("12".getBytes(StandardCharsets.UTF_8)));
 
     IteratorAdapter ia = new IteratorAdapter(skvi);
     for (Map.Entry<Key, Value> expectEntry : expect.entrySet()) {
@@ -724,29 +724,29 @@ public class UtilTest {
   @Test
   public void testNoConsecutiveDuplicateRowsIterator() throws IOException {
     SortedMap<Key,Value> input = new TreeMap<>();
-    input.put(new Key("r1", "", "c1"), new Value("4.5".getBytes()));
-    input.put(new Key("r1", "", "c2"), new Value("6.0".getBytes()));
-    input.put(new Key("r1", "", "c3"), new Value("5".getBytes()));
-    input.put(new Key("r1", "", "c4"), new Value("1.1".getBytes()));
-    input.put(new Key("r1", "", "c5"), new Value("8".getBytes()));
+    input.put(new Key("r1", "", "c1"), new Value("4.5".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c2"), new Value("6.0".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c3"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c4"), new Value("1.1".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c5"), new Value("8".getBytes(StandardCharsets.UTF_8)));
 
-    input.put(new Key("r3", "", "c1"), new Value("13".getBytes()));
-    input.put(new Key("r3", "", "c2"), new Value("12".getBytes()));
+    input.put(new Key("r3", "", "c1"), new Value("13".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r3", "", "c2"), new Value("12".getBytes(StandardCharsets.UTF_8)));
 
-    input.put(new Key("r4", "", "c1"), new Value("13".getBytes()));
-    input.put(new Key("r4", "", "c1"), new Value("19".getBytes()));
-    input.put(new Key("r4", "", "c1"), new Value("11".getBytes()));
-    input.put(new Key("r4", "", "c1"), new Value("10".getBytes()));
-    input.put(new Key("r4", "", "c1"), new Value("12".getBytes()));
+    input.put(new Key("r4", "", "c1"), new Value("13".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r4", "", "c1"), new Value("19".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r4", "", "c1"), new Value("11".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r4", "", "c1"), new Value("10".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r4", "", "c1"), new Value("12".getBytes(StandardCharsets.UTF_8)));
 
     SortedMap<Key,Value> expect = new TreeMap<>();
     expect.putAll(input);
 
-    input.put(new Key("r2", "", "c1"), new Value("4.5".getBytes()));
-    input.put(new Key("r2", "", "c2"), new Value("6.0".getBytes()));
-    input.put(new Key("r2", "", "c3"), new Value("5".getBytes()));
-    input.put(new Key("r2", "", "c4"), new Value("1.1".getBytes()));
-    input.put(new Key("r2", "", "c5"), new Value("8".getBytes()));
+    input.put(new Key("r2", "", "c1"), new Value("4.5".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r2", "", "c2"), new Value("6.0".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r2", "", "c3"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r2", "", "c4"), new Value("1.1".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r2", "", "c5"), new Value("8".getBytes(StandardCharsets.UTF_8)));
 
     SortedKeyValueIterator<Key,Value> skvi = new MapIterator(input);
     skvi.init(null, null, null);
@@ -769,20 +769,20 @@ public class UtilTest {
   @Test
   public void testD4mRangeFilter() throws IOException {
     SortedMap<Key,Value> input = new TreeMap<>();
-    input.put(new Key("r1", "", "c1"), new Value("4.5".getBytes()));
-    input.put(new Key("r1", "", "c2"), new Value("6.0".getBytes()));
-    input.put(new Key("r1", "", "c3"), new Value("5".getBytes()));
-    input.put(new Key("r1", "", "c4"), new Value("1.1".getBytes()));
-    input.put(new Key("r1", "", "c5"), new Value("8".getBytes()));
+    input.put(new Key("r1", "", "c1"), new Value("4.5".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c2"), new Value("6.0".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c3"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c4"), new Value("1.1".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c5"), new Value("8".getBytes(StandardCharsets.UTF_8)));
 
-    input.put(new Key("r2", "", "c1"), new Value("13".getBytes()));
-    input.put(new Key("r2", "", "c2"), new Value("12".getBytes()));
+    input.put(new Key("r2", "", "c1"), new Value("13".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r2", "", "c2"), new Value("12".getBytes(StandardCharsets.UTF_8)));
 
-    input.put(new Key("r3", "", "c1"), new Value("13".getBytes()));
-    input.put(new Key("r3", "", "c1"), new Value("19".getBytes()));
-    input.put(new Key("r3", "", "c1"), new Value("11".getBytes()));
-    input.put(new Key("r3", "", "c1"), new Value("10".getBytes()));
-    input.put(new Key("r3", "", "c1"), new Value("12".getBytes()));
+    input.put(new Key("r3", "", "c1"), new Value("13".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r3", "", "c1"), new Value("19".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r3", "", "c1"), new Value("11".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r3", "", "c1"), new Value("10".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r3", "", "c1"), new Value("12".getBytes(StandardCharsets.UTF_8)));
 
     {
       SortedKeyValueIterator<Key, Value> skvi = new MapIterator(input);
@@ -794,13 +794,13 @@ public class UtilTest {
       skvi.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
 
       SortedMap<Key, Value> expect = new TreeMap<>();
-      expect.put(new Key("r2", "", "c1"), new Value("13".getBytes()));
-      expect.put(new Key("r2", "", "c2"), new Value("12".getBytes()));
-      expect.put(new Key("r3", "", "c1"), new Value("13".getBytes()));
-      expect.put(new Key("r3", "", "c1"), new Value("19".getBytes()));
-      expect.put(new Key("r3", "", "c1"), new Value("11".getBytes()));
-      expect.put(new Key("r3", "", "c1"), new Value("10".getBytes()));
-      expect.put(new Key("r3", "", "c1"), new Value("12".getBytes()));
+      expect.put(new Key("r2", "", "c1"), new Value("13".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("r2", "", "c2"), new Value("12".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("r3", "", "c1"), new Value("13".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("r3", "", "c1"), new Value("19".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("r3", "", "c1"), new Value("11".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("r3", "", "c1"), new Value("10".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("r3", "", "c1"), new Value("12".getBytes(StandardCharsets.UTF_8)));
 
       IteratorAdapter ia = new IteratorAdapter(skvi);
       for (Map.Entry<Key, Value> expectEntry : expect.entrySet()) {
@@ -821,11 +821,11 @@ public class UtilTest {
       skvi.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
 
       SortedMap<Key, Value> expect = new TreeMap<>();
-      expect.put(new Key("r1", "", "c1"), new Value("4.5".getBytes()));
-      expect.put(new Key("r1", "", "c2"), new Value("6.0".getBytes()));
-      expect.put(new Key("r1", "", "c3"), new Value("5".getBytes()));
-      expect.put(new Key("r1", "", "c4"), new Value("1.1".getBytes()));
-      expect.put(new Key("r1", "", "c5"), new Value("8".getBytes()));
+      expect.put(new Key("r1", "", "c1"), new Value("4.5".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("r1", "", "c2"), new Value("6.0".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("r1", "", "c3"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("r1", "", "c4"), new Value("1.1".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("r1", "", "c5"), new Value("8".getBytes(StandardCharsets.UTF_8)));
 
       IteratorAdapter ia = new IteratorAdapter(skvi);
       for (Map.Entry<Key, Value> expectEntry : expect.entrySet()) {
@@ -845,9 +845,9 @@ public class UtilTest {
       skvi.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
 
       SortedMap<Key, Value> expect = new TreeMap<>();
-      expect.put(new Key("r1", "", "c2"), new Value("6.0".getBytes()));
-      expect.put(new Key("r1", "", "c3"), new Value("5".getBytes()));
-      expect.put(new Key("r1", "", "c5"), new Value("8".getBytes()));
+      expect.put(new Key("r1", "", "c2"), new Value("6.0".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("r1", "", "c3"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("r1", "", "c5"), new Value("8".getBytes(StandardCharsets.UTF_8)));
 
       IteratorAdapter ia = new IteratorAdapter(skvi);
       for (Map.Entry<Key, Value> expectEntry : expect.entrySet()) {
@@ -905,12 +905,12 @@ public class UtilTest {
     Map<String,String> opts = SumConditionTimestampIterator.iteratorSetting(1, 10).getOptions();
 
     SortedMap<Key,Value> input = new TreeMap<>();
-    input.put(new Key("r1", "", "c1", 13), new Value("1".getBytes()));
-    input.put(new Key("r1", "", "c1", 12), new Value("3".getBytes()));
-    input.put(new Key("r1", "", "c1", 11), new Value("5".getBytes()));
-    input.put(new Key("r1", "", "c1", 2), new Value("1".getBytes()));
-    input.put(new Key("r1", "", "c2", 20), new Value("6".getBytes()));
-    input.put(new Key("r1", "", "c3", 5), new Value("1".getBytes()));
+    input.put(new Key("r1", "", "c1", 13), new Value("1".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c1", 12), new Value("3".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c1", 11), new Value("5".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c1", 2), new Value("1".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c2", 20), new Value("6".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c3", 5), new Value("1".getBytes(StandardCharsets.UTF_8)));
 
     SortedKeyValueIterator<Key,Value> skvi = new MapIterator(input);
     skvi.init(null, null, null);
@@ -920,9 +920,9 @@ public class UtilTest {
     skvi.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
 
     SortedMap<Key,Value> expect = new TreeMap<>();
-    expect.put(new Key("r1", "", "c1", 13), new Value("9".getBytes()));
-    expect.put(new Key("r1", "", "c1", 2), new Value("1".getBytes()));
-    expect.put(new Key("r1", "", "c3", 5), new Value("1".getBytes()));
+    expect.put(new Key("r1", "", "c1", 13), new Value("9".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("r1", "", "c1", 2), new Value("1".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("r1", "", "c3", 5), new Value("1".getBytes(StandardCharsets.UTF_8)));
 
     IteratorAdapter ia = new IteratorAdapter(skvi);
 //    while (ia.hasNext()) {
@@ -943,11 +943,11 @@ public class UtilTest {
     Map<String,String> opts = KTrussFilterIterator.iteratorSetting(1, 4).getOptions();
 
     SortedMap<Key,Value> input = new TreeMap<>();
-    input.put(new Key("r1", "", "c1", 2), new Value("1".getBytes()));
-    input.put(new Key("r1", "", "c1", 12), new Value("2".getBytes()));
-    input.put(new Key("r1", "", "c2", 11), new Value("1".getBytes()));
-    input.put(new Key("r1", "", "c2", 20), new Value("1".getBytes()));
-    input.put(new Key("r1", "", "c3", 5), new Value("1".getBytes()));
+    input.put(new Key("r1", "", "c1", 2), new Value("1".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c1", 12), new Value("2".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c2", 11), new Value("1".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c2", 20), new Value("1".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c3", 5), new Value("1".getBytes(StandardCharsets.UTF_8)));
 
     SortedKeyValueIterator<Key,Value> skvi = new MapIterator(input);
     skvi.init(null, null, null);
@@ -957,8 +957,8 @@ public class UtilTest {
     skvi.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
 
     SortedMap<Key,Value> expect = new TreeMap<>();
-    expect.put(new Key("r1", "", "c1", 12), new Value("2".getBytes()));
-    expect.put(new Key("r1", "", "c1", 2), new Value("1".getBytes()));
+    expect.put(new Key("r1", "", "c1", 12), new Value("2".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("r1", "", "c1", 2), new Value("1".getBytes(StandardCharsets.UTF_8)));
 
     IteratorAdapter ia = new IteratorAdapter(skvi);
     for (Map.Entry<Key, Value> expectEntry : expect.entrySet()) {
@@ -974,11 +974,11 @@ public class UtilTest {
     Map<String,String> opts = KTrussFilterIterator.iteratorSetting(1, 4).getOptions();
 
     SortedMap<Key,Value> input = new TreeMap<>();
-    input.put(new Key("r1", "", "c1", 2), new Value("1".getBytes()));
-    input.put(new Key("r1", "", "c1", 12), new Value("2".getBytes()));
-    input.put(new Key("r1", "", "c2", 11), new Value("1".getBytes()));
-    input.put(new Key("r1", "", "c2", 20), new Value("1".getBytes()));
-    input.put(new Key("r1", "", "c3", 5), new Value("1".getBytes()));
+    input.put(new Key("r1", "", "c1", 2), new Value("1".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c1", 12), new Value("2".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c2", 11), new Value("1".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c2", 20), new Value("1".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c3", 5), new Value("1".getBytes(StandardCharsets.UTF_8)));
 
     SortedKeyValueIterator<Key,Value> skvi = new MapIterator(input);
     skvi.init(null, null, null);
@@ -988,7 +988,7 @@ public class UtilTest {
     skvi.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
 
     SortedMap<Key,Value> expect = new TreeMap<>();
-    expect.put(new Key("r1", "", "c1", 12), new Value("1".getBytes()));
+    expect.put(new Key("r1", "", "c1", 12), new Value("1".getBytes(StandardCharsets.UTF_8)));
 
     IteratorAdapter ia = new IteratorAdapter(skvi);
     for (Map.Entry<Key, Value> expectEntry : expect.entrySet()) {
@@ -1004,11 +1004,11 @@ public class UtilTest {
     Map<String,String> opts = KTrussFilterIterator.iteratorSetting(1, 4).getOptions();
 
     SortedMap<Key,Value> input = new TreeMap<>();
-    input.put(new Key("r1", "", "c1", 12), new Value("2".getBytes()));
-    input.put(new Key("r1", "", "c1", 2), new Value("1".getBytes()));
-    input.put(new Key("r1", "", "c2", 20), new Value("1".getBytes()));
-    input.put(new Key("r1", "", "c2", 11), new Value("1".getBytes()));
-    input.put(new Key("r1", "", "c3", 5), new Value("1".getBytes()));
+    input.put(new Key("r1", "", "c1", 12), new Value("2".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c1", 2), new Value("1".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c2", 20), new Value("1".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c2", 11), new Value("1".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c3", 5), new Value("1".getBytes(StandardCharsets.UTF_8)));
 
     SortedKeyValueIterator<Key,Value> skvi = new MapIterator(input);
     skvi.init(null, null, null);
@@ -1040,11 +1040,11 @@ public class UtilTest {
     Map<String,String> opts = itset.getOptions();
 
     SortedMap<Key,Value> input = new TreeMap<>();
-    input.put(new Key("r1", "", "c1", 12), new Value("2".getBytes()));
-    input.put(new Key("r1", "", "c1", 2), new Value("1".getBytes()));
-    input.put(new Key("r1", "", "c2", 20), new Value("1".getBytes()));
-    input.put(new Key("r1", "", "c2", 11), new Value("1".getBytes()));
-    input.put(new Key("r1", "", "c3", 5), new Value("1".getBytes()));
+    input.put(new Key("r1", "", "c1", 12), new Value("2".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c1", 2), new Value("1".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c2", 20), new Value("1".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c2", 11), new Value("1".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("r1", "", "c3", 5), new Value("1".getBytes(StandardCharsets.UTF_8)));
 
     SortedKeyValueIterator<Key,Value> skvi = new MapIterator(input);
     skvi.init(null, null, null);

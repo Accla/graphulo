@@ -6,6 +6,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.hadoop.io.Text;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Map;
 
@@ -37,7 +38,7 @@ public class RowCountingIterator implements SortedKeyValueIterator<Key,Value> {
         long cnt = countRows();
         if (cnt != 0) {
             emitKey = range.isInfiniteStartKey() ? new Key() : (range.isStartKeyInclusive() ? range.getStartKey() : range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL));
-            emitValue = new Value(Long.toString(cnt).getBytes());
+            emitValue = new Value(Long.toString(cnt).getBytes(StandardCharsets.UTF_8));
         } else {
             emitValue = null;
             emitKey = null;

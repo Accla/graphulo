@@ -11,6 +11,7 @@ import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -25,10 +26,10 @@ public class MatrixTest  {
   public void testInverseIdentity() {
     double tol = 0.00001;
     Map<Key, Value> input = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-    input.put(new Key("1", "", "1"), new Value("1".getBytes()));
-//    input.put(new Key("1", "", "2"), new Value("1".getBytes()));
-//    input.put(new Key("2", "", "1"), new Value("1".getBytes()));
-    input.put(new Key("2", "", "2"), new Value("1".getBytes()));
+    input.put(new Key("1", "", "1"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+//    input.put(new Key("1", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+//    input.put(new Key("2", "", "1"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("2", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
 
     RealMatrix matrix = MemMatrixUtil.buildMatrix(input.entrySet().iterator(), 2);
     Assert.assertEquals(2, matrix.getRowDimension());
@@ -56,15 +57,15 @@ public class MatrixTest  {
   public void testInverse2x2() {
     double tol = 0.001;
     Map<Key, Value> input = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-    input.put(new Key("1", "", "1"), new Value("4".getBytes()));
-    input.put(new Key("1", "", "2"), new Value("3".getBytes()));
-    input.put(new Key("2", "", "1"), new Value("1".getBytes()));
-    input.put(new Key("2", "", "2"), new Value("1".getBytes()));
+    input.put(new Key("1", "", "1"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("1", "", "2"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("2", "", "1"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("2", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
     Map<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-    expect.put(new Key("1", "", "1"), new Value("1 ".getBytes()));
-    expect.put(new Key("1", "", "2"), new Value("-3".getBytes()));
-    expect.put(new Key("2", "", "1"), new Value("-1".getBytes()));
-    expect.put(new Key("2", "", "2"), new Value("4 ".getBytes()));
+    expect.put(new Key("1", "", "1"), new Value("1 ".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("1", "", "2"), new Value("-3".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("2", "", "1"), new Value("-1".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("2", "", "2"), new Value("4 ".getBytes(StandardCharsets.UTF_8)));
 
     RealMatrix matrix = MemMatrixUtil.buildMatrix(input.entrySet().iterator(), 2);
     Assert.assertEquals(2, matrix.getRowDimension());

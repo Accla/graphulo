@@ -12,6 +12,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Map;
 import java.util.SortedSet;
@@ -130,7 +131,7 @@ public class SingleTransposeIterator implements SortedKeyValueIterator<Key,Value
       if (negOneInDeg) {
         topKey3 = new Key(new Text(toNode), topKey1.getColumnFamily(), degCol,
             topKey1.getColumnVisibility(), tsOdd);
-        topValue3 = new Value("-1".getBytes());
+        topValue3 = new Value("-1".getBytes(StandardCharsets.UTF_8));
       }
     }
   }

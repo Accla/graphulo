@@ -89,6 +89,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nonnull;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static edu.mit.ll.graphulo.skvi.TriangularFilter.TriangularType;
@@ -1433,7 +1434,7 @@ public class Graphulo {
                 GraphuloUtil.stringsToD4mString(vk)));
         }
 //        log.debug("AT.colFilter: " + opt.get("AT.colFilter"));
-//        byte[] by = opt.get("AT.colFilter").getBytes();
+//        byte[] by = opt.get("AT.colFilter").getBytes(StandardCharsets.UTF_8);
 //        log.debug("Printing characters of string: "+ Key.toPrintableString(by, 0, by.length, 100));
 
         bs.setRanges(Collections.singleton(new Range()));
@@ -1556,7 +1557,7 @@ public class Graphulo {
     if (vktexts == null || vktexts.isEmpty()) {
       if (prefix.isEmpty())
         return ":"+sep;
-//      byte[] orig = prefix.getBytes();
+//      byte[] orig = prefix.getBytes(StandardCharsets.UTF_8);
 //      byte[] newb = new byte[orig.length*2+4];
 //      System.arraycopy(orig,0,newb,0,orig.length);
 //      newb[orig.length] = (byte)sep;
@@ -1784,7 +1785,7 @@ public class Graphulo {
     if (computeInDegrees) {
       allInNodes.removeAll(mostAllOutNodes);
 //      log.debug("allInNodes: "+allInNodes);
-      long c = singleCheckWriteDegrees(allInNodes, Rtable, Sauthorizations, degColumn.getBytes(), edgeSepStr, degSumType, newVisibility);
+      long c = singleCheckWriteDegrees(allInNodes, Rtable, Sauthorizations, degColumn.getBytes(StandardCharsets.UTF_8), edgeSepStr, degSumType, newVisibility);
       if (numEntriesWritten != null)
         numEntriesWritten.add(c);
     }
@@ -1856,7 +1857,7 @@ public class Graphulo {
         // row contains "v1|v2" -- want v1. pos is the byte position of the '|'. cnt is the degree.
         Mutation m = new Mutation(row.getBytes(), 0, pos);
         m.put(GraphuloUtil.EMPTY_BYTES, degColumn, newVisibility,
-            summer == null ? String.valueOf(cnt).getBytes() : summer.getForClient());
+            summer == null ? String.valueOf(cnt).getBytes(StandardCharsets.UTF_8) : summer.getForClient());
         bw.addMutation(m);
         totalWritten++;
       }
@@ -2691,7 +2692,7 @@ public class Graphulo {
       itsBeforeR = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY+1, null,
           EnumSet.of(DynamicIteratorSetting.MyIteratorScope.SCAN))
           .append(MinMaxFilter.iteratorSetting(1, ScalarType.LONG, 2, 2))
-          .append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes())))
+          .append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes(StandardCharsets.UTF_8))))
           .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))
           .append(PLUS_ITERATOR_LONG)
           .append(MinMaxFilter.iteratorSetting(1, ScalarType.LONG, k - 2, null))
@@ -2944,7 +2945,7 @@ public class Graphulo {
     {
       DynamicIteratorSetting dis = new DynamicIteratorSetting(22, "genDegs");
       if (countColumns)
-          dis.append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes()))); // Abs0
+          dis.append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes(StandardCharsets.UTF_8)))); // Abs0
       dis
         .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))
         .append(PLUS_ITERATOR_BIGDECIMAL);
@@ -3016,7 +3017,7 @@ public class Graphulo {
     new DynamicIteratorSetting(10, null)
         .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))  // strip to row field
         .append(new IteratorSetting(1, VersioningIterator.class))       // only count a row once
-        .append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes()))) // Abs0
+        .append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes(StandardCharsets.UTF_8)))) // Abs0
         .append(KeyRetainOnlyApply.iteratorSetting(1, null))            // strip all fields
         .append(PLUS_ITERATOR_BIGDECIMAL)                                  // Sum
         .addToScanner(bs);
@@ -3185,7 +3186,7 @@ public class Graphulo {
 
   private double nmfHDiff(String Hfinal, String Hprev) {
     List<IteratorSetting> abs0list = Collections.singletonList(
-        ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes())));
+        ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes(StandardCharsets.UTF_8))));
 
     // Step 1: sum(sum(Abs0(H),1),2)
     MathTwoScalar sumReducer = new MathTwoScalar();

@@ -25,6 +25,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -49,12 +50,12 @@ public class CountTest extends AccumuloTestBase {
 
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
-      input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
-      input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
-      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes()));
+      input.put(new Key("v0", "", "v1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "v2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "v0"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
@@ -85,12 +86,12 @@ public class CountTest extends AccumuloTestBase {
 
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
-      input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
-      input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
-      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes()));
+      input.put(new Key("v0", "", "v1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "v2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "v0"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
@@ -115,12 +116,12 @@ public class CountTest extends AccumuloTestBase {
 
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
-      input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
-      input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
-      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes()));
+      input.put(new Key("v0", "", "v1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "v2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "v0"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
@@ -153,12 +154,12 @@ public class CountTest extends AccumuloTestBase {
 
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
-      input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
-      input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
-      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes()));
+      input.put(new Key("v0", "", "v1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "v2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "v0"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);

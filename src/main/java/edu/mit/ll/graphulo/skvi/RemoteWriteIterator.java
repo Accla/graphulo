@@ -35,6 +35,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -662,7 +663,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     return copy;
   }
 
-  static final byte[] REJECT_MESSAGE = "Server_BatchWrite_Entries_Rejected!".getBytes();
+  static final byte[] REJECT_MESSAGE = "Server_BatchWrite_Entries_Rejected!".getBytes(StandardCharsets.UTF_8);
 
   /**
    * Use this method on entries retrieved from a scan with a RemoteWriteIterator attached.

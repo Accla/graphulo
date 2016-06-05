@@ -22,6 +22,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -56,26 +57,26 @@ public class RowMultiplyTest extends AccumuloTestBase {
 
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
-      input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
-      input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
-      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes()));
+      input.put(new Key("v0", "", "v1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "v2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "v0"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
       expect.putAll(input);
-      input.put(new Key("vBig", "", "v0"), new Value("9".getBytes()));
-      input.put(new Key("vBig", "", "v1"), new Value("9".getBytes()));
-      input.put(new Key("vBig", "", "v2"), new Value("9".getBytes()));
+      input.put(new Key("vBig", "", "v0"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "v1"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "v2"), new Value("9".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v0", "", "2"), new Value("1".getBytes()));
-      input.put(new Key("v1", "", "2"), new Value("1".getBytes()));
-      input.put(new Key("v2", "", "2"), new Value("1".getBytes()));
-//      input.put(new Key("vBig", "", "3"), new Value("1".getBytes()));
+      input.put(new Key("v0", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+//      input.put(new Key("vBig", "", "3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tADeg, splits, input);

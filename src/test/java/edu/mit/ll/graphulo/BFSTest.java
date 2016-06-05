@@ -25,6 +25,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -64,27 +65,27 @@ public class BFSTest extends AccumuloTestBase {
 
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
-      input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
-      input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
-      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes()));
+      input.put(new Key("v0", "", "v1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "v2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "v0"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
       expect.putAll(input);
       expectTranspose.putAll(GraphuloUtil.transposeMap(input));
-      input.put(new Key("vBig", "", "v0"), new Value("9".getBytes()));
-      input.put(new Key("vBig", "", "v1"), new Value("9".getBytes()));
-      input.put(new Key("vBig", "", "v2"), new Value("9".getBytes()));
+      input.put(new Key("vBig", "", "v0"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "v1"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "v2"), new Value("9".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v0", "", "2"), new Value("1".getBytes()));
-      input.put(new Key("v1", "", "2"), new Value("1".getBytes()));
-      input.put(new Key("v2", "", "2"), new Value("1".getBytes()));
-      input.put(new Key("vBig", "", "3"), new Value("1".getBytes()));
+      input.put(new Key("v0", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tADeg, splits, input);
@@ -144,27 +145,27 @@ public class BFSTest extends AccumuloTestBase {
 
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
-      input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
-      input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
-      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes()));
+      input.put(new Key("v0", "", "v1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "v2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "v0"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
       expect.putAll(input);
       expectTranspose.putAll(GraphuloUtil.transposeMap(input));
-      input.put(new Key("vBig", "", "v0"), new Value("9".getBytes()));
-      input.put(new Key("vBig", "", "v1"), new Value("9".getBytes()));
-      input.put(new Key("vBig", "", "v2"), new Value("9".getBytes()));
+      input.put(new Key("vBig", "", "v0"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "v1"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "v2"), new Value("9".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v0", "", "2"), new Value("1".getBytes()));
-      input.put(new Key("v1", "", "2"), new Value("1".getBytes()));
-      input.put(new Key("v2", "", "2"), new Value("1".getBytes()));
-      input.put(new Key("vBig", "", "3"), new Value("1".getBytes()));
+      input.put(new Key("v0", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tADeg, splits, input);
@@ -224,26 +225,26 @@ public class BFSTest extends AccumuloTestBase {
 
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
-      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes()));
+      input.put(new Key("v0", "", "v1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
       expect.putAll(input);
-      input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
-      input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
-      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("vBig", "", "v0"), new Value("9".getBytes()));
-      input.put(new Key("vBig", "", "v1"), new Value("9".getBytes()));
-      input.put(new Key("vBig", "", "v2"), new Value("9".getBytes()));
+      input.put(new Key("v1", "", "v2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "v0"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "v0"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "v1"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "v2"), new Value("9".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v0", "", "2"), new Value("1".getBytes()));
-      input.put(new Key("v1", "", "2"), new Value("1".getBytes()));
-      input.put(new Key("v2", "", "2"), new Value("1".getBytes()));
-      input.put(new Key("vBig", "", "3"), new Value("1".getBytes()));
+      input.put(new Key("v0", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tADeg, splits, input);
@@ -287,27 +288,27 @@ public class BFSTest extends AccumuloTestBase {
 
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
-      input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
-      input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
-      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes()));
+      input.put(new Key("v0", "", "v1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "v2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "v0"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
       expect.putAll(input);
       expectTranspose.putAll(GraphuloUtil.transposeMap(input));
-      input.put(new Key("vBig", "", "v0"), new Value("9".getBytes()));
-      input.put(new Key("vBig", "", "v1"), new Value("9".getBytes()));
-      input.put(new Key("vBig", "", "v2"), new Value("9".getBytes()));
+      input.put(new Key("vBig", "", "v0"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "v1"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "v2"), new Value("9".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v2", "", "deg"), new Value("2".getBytes()));
-      input.put(new Key("v0", "", "deg"), new Value("2".getBytes()));
-      input.put(new Key("v1", "", "deg"), new Value("2".getBytes()));
-      input.put(new Key("vBig", "", "deg"), new Value("3".getBytes()));
+      input.put(new Key("v2", "", "deg"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v0", "", "deg"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "deg"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "deg"), new Value("3".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tADeg, splits, input);
@@ -345,10 +346,10 @@ public class BFSTest extends AccumuloTestBase {
     conn.tableOperations().delete(tRT);
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v0", "", "d|2"), new Value("1".getBytes()));
-      input.put(new Key("v1", "", "d|2"), new Value("1".getBytes()));
-      input.put(new Key("v2", "", "d|2"), new Value("1".getBytes()));
-      input.put(new Key("vBig", "", "d|3"), new Value("1".getBytes()));
+      input.put(new Key("v0", "", "d|2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "d|2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "d|2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "d|3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tADeg, splits, input);
@@ -431,17 +432,17 @@ public class BFSTest extends AccumuloTestBase {
 
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
-      input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
-      input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
-      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes()));
+      input.put(new Key("v0", "", "v1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "v2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "v0"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
       expect.putAll(input);
       expectTranspose.putAll(GraphuloUtil.transposeMap(input));
-      input.put(new Key("vBig", "", "v0"), new Value("9".getBytes()));
-      input.put(new Key("vBig", "", "v1"), new Value("9".getBytes()));
-      input.put(new Key("vBig", "", "v2"), new Value("9".getBytes()));
+      input.put(new Key("vBig", "", "v0"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "v1"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "v2"), new Value("9".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
@@ -528,17 +529,17 @@ public class BFSTest extends AccumuloTestBase {
 
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
-      input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
-      input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
-      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes()));
+      input.put(new Key("v0", "", "v1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "v2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "v0"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
       expect.putAll(input);
       expectTranspose.putAll(GraphuloUtil.transposeMap(input));
-      input.put(new Key("vBig", "", "v0"), new Value("9".getBytes()));
-      input.put(new Key("vBig", "", "v1"), new Value("9".getBytes()));
-      input.put(new Key("vBig", "", "v2"), new Value("9".getBytes()));
+      input.put(new Key("vBig", "", "v0"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "v1"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "v2"), new Value("9".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
@@ -597,15 +598,15 @@ public class BFSTest extends AccumuloTestBase {
 
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
-      input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
-      input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
-      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes()));
-      input.put(new Key("vBig", "", "v0"), new Value("9".getBytes()));
-      input.put(new Key("vBig", "", "v1"), new Value("9".getBytes()));
-      input.put(new Key("vBig", "", "v2"), new Value("9".getBytes()));
+      input.put(new Key("v0", "", "v1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "v2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "v0"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v0", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "v0"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "v1"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "v2"), new Value("9".getBytes(StandardCharsets.UTF_8)));
       expect.putAll(input);
       expectTranspose.putAll(GraphuloUtil.transposeMap(input));
       SortedSet<Text> splits = new TreeSet<>();
@@ -670,36 +671,36 @@ public class BFSTest extends AccumuloTestBase {
 
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("e0", "", "out|v0"), new Value("5".getBytes()));
-      input.put(new Key("e0", "", "in|v1"), new Value("5".getBytes()));
-      input.put(new Key("e1", "", "out|v1"), new Value("2".getBytes()));
-      input.put(new Key("e1", "", "in|v2"), new Value("2".getBytes()));
-      input.put(new Key("e2", "", "out|v2"), new Value("4".getBytes()));
-      input.put(new Key("e2", "", "in|v0"), new Value("4".getBytes()));
-      input.put(new Key("e3", "", "out|v0"), new Value("7".getBytes()));
-      input.put(new Key("e3", "", "in|vBig"), new Value("7".getBytes()));
-      input.put(new Key("e4", "", "out|v1"), new Value("7".getBytes()));
-      input.put(new Key("e4", "", "in|vBig"), new Value("7".getBytes()));
-      input.put(new Key("e5", "", "out|v2"), new Value("7".getBytes()));
-      input.put(new Key("e5", "", "in|vBig"), new Value("7".getBytes()));
+      input.put(new Key("e0", "", "out|v0"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e0", "", "in|v1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e1", "", "out|v1"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e1", "", "in|v2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e2", "", "out|v2"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e2", "", "in|v0"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e3", "", "out|v0"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e3", "", "in|vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e4", "", "out|v1"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e4", "", "in|vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e5", "", "out|v2"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e5", "", "in|vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
       expect.putAll(input);
       expectTranspose.putAll(GraphuloUtil.transposeMap(input));
-      input.put(new Key("e6", "", "out|vBig"), new Value("9".getBytes()));
-      input.put(new Key("e6", "", "in|v0"), new Value("9".getBytes()));
-      input.put(new Key("e7", "", "out|vBig"), new Value("9".getBytes()));
-      input.put(new Key("e7", "", "in|v1"), new Value("9".getBytes()));
-      input.put(new Key("e8", "", "out|vBig"), new Value("9".getBytes()));
-      input.put(new Key("e8", "", "in|v2"), new Value("9".getBytes()));
+      input.put(new Key("e6", "", "out|vBig"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e6", "", "in|v0"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e7", "", "out|vBig"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e7", "", "in|v1"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e8", "", "out|vBig"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e8", "", "in|v2"), new Value("9".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("e33"));
       TestUtil.createTestTable(conn, tE, splits, input);
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v0", "", "2"), new Value("1".getBytes()));
-      input.put(new Key("v1", "", "2"), new Value("1".getBytes()));
-      input.put(new Key("v2", "", "2"), new Value("1".getBytes()));
-      input.put(new Key("vBig", "", "3"), new Value("1".getBytes()));
+      input.put(new Key("v0", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tETDeg, splits, input);
@@ -854,38 +855,38 @@ public class BFSTest extends AccumuloTestBase {
 
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("e0", "", "outA|v0"), new Value("5".getBytes()));   /////1
-      input.put(new Key("e0", "", "in|v1"), new Value("5".getBytes()));     /////1 v1
-      input.put(new Key("e1", "", "out|v1"), new Value("2".getBytes()));    /////2
-      input.put(new Key("e1", "", "HEYHEY|v2"), new Value("2".getBytes())); /////2 v2
-      input.put(new Key("e1", "", "HEYHEY|vBig"), new Value("2".getBytes())); /////2 vBig ! Repeated twice
-      input.put(new Key("e2", "", "outB|v2"), new Value("4".getBytes()));   /////3
-      input.put(new Key("e2", "", "in|v0"), new Value("4".getBytes()));     /////3 v0
-      input.put(new Key("e3", "", "out|v0"), new Value("7".getBytes()));    /////1
-      input.put(new Key("e3", "", "in|vBig"), new Value("7".getBytes()));   /////1 vBig
-      input.put(new Key("e4", "", "v1"), new Value("7".getBytes()));        /////2
-      input.put(new Key("e4", "", "in|vBig"), new Value("7".getBytes()));   /////2 vBig
-      input.put(new Key("e5", "", "outA|v2"), new Value("7".getBytes()));   /////3
-      input.put(new Key("e5", "", "in|vBig"), new Value("7".getBytes()));   /////3 vBig
+      input.put(new Key("e0", "", "outA|v0"), new Value("5".getBytes(StandardCharsets.UTF_8)));   /////1
+      input.put(new Key("e0", "", "in|v1"), new Value("5".getBytes(StandardCharsets.UTF_8)));     /////1 v1
+      input.put(new Key("e1", "", "out|v1"), new Value("2".getBytes(StandardCharsets.UTF_8)));    /////2
+      input.put(new Key("e1", "", "HEYHEY|v2"), new Value("2".getBytes(StandardCharsets.UTF_8))); /////2 v2
+      input.put(new Key("e1", "", "HEYHEY|vBig"), new Value("2".getBytes(StandardCharsets.UTF_8))); /////2 vBig ! Repeated twice
+      input.put(new Key("e2", "", "outB|v2"), new Value("4".getBytes(StandardCharsets.UTF_8)));   /////3
+      input.put(new Key("e2", "", "in|v0"), new Value("4".getBytes(StandardCharsets.UTF_8)));     /////3 v0
+      input.put(new Key("e3", "", "out|v0"), new Value("7".getBytes(StandardCharsets.UTF_8)));    /////1
+      input.put(new Key("e3", "", "in|vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));   /////1 vBig
+      input.put(new Key("e4", "", "v1"), new Value("7".getBytes(StandardCharsets.UTF_8)));        /////2
+      input.put(new Key("e4", "", "in|vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));   /////2 vBig
+      input.put(new Key("e5", "", "outA|v2"), new Value("7".getBytes(StandardCharsets.UTF_8)));   /////3
+      input.put(new Key("e5", "", "in|vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));   /////3 vBig
       expect.putAll(input);
-      expect.put(new Key("e1", "", "out|v1"), new Value("4".getBytes())); // double b/c repeated twice
+      expect.put(new Key("e1", "", "out|v1"), new Value("4".getBytes(StandardCharsets.UTF_8))); // double b/c repeated twice
       expectTranspose.putAll(GraphuloUtil.transposeMap(expect));
-      input.put(new Key("e6", "", "outA|vBig"), new Value("9".getBytes()));
-      input.put(new Key("e6", "", "HEYHEY|v0"), new Value("9".getBytes()));
-      input.put(new Key("e7", "", "out|vBig"), new Value("9".getBytes()));
-      input.put(new Key("e7", "", "in|v1"), new Value("9".getBytes()));
-      input.put(new Key("e8", "", "out|vBig"), new Value("9".getBytes()));
-      input.put(new Key("e8", "", "in|v2"), new Value("9".getBytes()));
+      input.put(new Key("e6", "", "outA|vBig"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e6", "", "HEYHEY|v0"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e7", "", "out|vBig"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e7", "", "in|v1"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e8", "", "out|vBig"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e8", "", "in|v2"), new Value("9".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("e33"));
       TestUtil.createTestTable(conn, tE, splits, input);
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v0", "", "2"), new Value("1".getBytes()));
-      input.put(new Key("v1", "", "2"), new Value("1".getBytes()));
-      input.put(new Key("v2", "", "2"), new Value("1".getBytes()));
-      input.put(new Key("vBig", "", "3"), new Value("1".getBytes()));
+      input.put(new Key("v0", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tETDeg, splits, input);
@@ -946,29 +947,29 @@ public class BFSTest extends AccumuloTestBase {
 
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("one", "", "outNode|string"), new Value("1".getBytes()));
-      input.put(new Key("one", "", "inNode|2"), new Value("1".getBytes()));
-      input.put(new Key("two", "", "outNode|string"), new Value("1".getBytes()));
-      input.put(new Key("two", "", "inNode|3"), new Value("1".getBytes()));
+      input.put(new Key("one", "", "outNode|string"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("one", "", "inNode|2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("two", "", "outNode|string"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("two", "", "inNode|3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
       expect.putAll(input);
       expectTranspose.putAll(GraphuloUtil.transposeMap(input));
-      input.put(new Key("three", "", "outNode|3"), new Value("1".getBytes()));
-      input.put(new Key("three", "", "inNode|4"), new Value("1".getBytes()));
+      input.put(new Key("three", "", "outNode|3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("three", "", "inNode|4"), new Value("1".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("e33"));
       TestUtil.createTestTable(conn, tE, splits, input);
     }
 //    {
 //      Map<Key, Value> input = new HashMap<>();
-//      input.put(new Key("v0", "", "2"), new Value("1".getBytes()));
-//      input.put(new Key("v1", "", "2"), new Value("1".getBytes()));
-//      input.put(new Key("v2", "", "2"), new Value("1".getBytes()));
-//      input.put(new Key("vBig", "", "3"), new Value("1".getBytes()));
+//      input.put(new Key("v0", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+//      input.put(new Key("v1", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+//      input.put(new Key("v2", "", "2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+//      input.put(new Key("vBig", "", "3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
 //      SortedSet<Text> splits = new TreeSet<>();
 //      splits.add(new Text("v15"));
 //      TestUtil.createTestTable(conn, tETDeg, splits, input);
 //    }
-//    byte[] by = "string".getBytes();
+//    byte[] by = "string".getBytes(StandardCharsets.UTF_8);
 //    log.debug("Printing characters of string: "+ Key.toPrintableString(by,0,by.length,100));
 
     String v0 = "string,";
@@ -1031,45 +1032,45 @@ public class BFSTest extends AccumuloTestBase {
         degin = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v0|v1", "", "edge"), new Value("5".getBytes()));
-      input.put(new Key("v1|v0", "", "edge"), new Value("5".getBytes()));
-      input.put(new Key("v1|v2", "", "edge"), new Value("2".getBytes()));
-      input.put(new Key("v2|v1", "", "edge"), new Value("2".getBytes()));
-      input.put(new Key("v0|vBig", "", "edge"), new Value("6".getBytes()));
-      input.put(new Key("v1|vBig", "", "edge"), new Value("7".getBytes()));
-      input.put(new Key("v2|vBig", "", "edge"), new Value("8".getBytes()));
-      input.put(new Key("v9|vBig", "", "edge"), new Value("9".getBytes()));
-      input.put(new Key("vBig|v0", "", "edge"), new Value("6".getBytes()));
-      input.put(new Key("vBig|v1", "", "edge"), new Value("7".getBytes()));
-      input.put(new Key("vBig|v2", "", "edge"), new Value("8".getBytes()));
-      input.put(new Key("vBig|v9", "", "edge"), new Value("9".getBytes()));
-      input.put(new Key("v0", "", "deg"), new Value("2".getBytes()));
-      input.put(new Key("v1", "", "deg"), new Value("3".getBytes()));
-      input.put(new Key("v2", "", "deg"), new Value("2".getBytes()));
-      input.put(new Key("v9", "", "deg"), new Value("1".getBytes()));
-      input.put(new Key("vBig", "", "deg"), new Value("4".getBytes()));
+      input.put(new Key("v0|v1", "", "edge"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1|v0", "", "edge"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1|v2", "", "edge"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2|v1", "", "edge"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v0|vBig", "", "edge"), new Value("6".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1|vBig", "", "edge"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2|vBig", "", "edge"), new Value("8".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v9|vBig", "", "edge"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig|v0", "", "edge"), new Value("6".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig|v1", "", "edge"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig|v2", "", "edge"), new Value("8".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig|v9", "", "edge"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v0", "", "deg"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "deg"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "deg"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v9", "", "deg"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "deg"), new Value("4".getBytes(StandardCharsets.UTF_8)));
 
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tS, splits, input);
 
-      expect.put(new Key("v0|v1", "", "edge"), new Value("15".getBytes())); //x3
-      expect.put(new Key("v1|v0", "", "edge"), new Value("15".getBytes()));
-      expect.put(new Key("v1|v2", "", "edge"), new Value("4".getBytes())); //x2
-      expect.put(new Key("v2|v1", "", "edge"), new Value("4".getBytes()));
-      expect.put(new Key("v0|vBig", "", "edge"), new Value("12".getBytes())); //x2
-      expect.put(new Key("v1|vBig", "", "edge"), new Value("7".getBytes()));
-      expect.put(new Key("v2|vBig", "", "edge"), new Value("8".getBytes()));
-//      expect.put(new Key("v9|vBig", "", "edge"), new Value("9".getBytes()));
-      expect.put(new Key("vBig|v0", "", "edge"), new Value("12".getBytes()));
-      expect.put(new Key("vBig|v1", "", "edge"), new Value("7".getBytes()));
-      expect.put(new Key("vBig|v2", "", "edge"), new Value("8".getBytes()));
-//      expect.put(new Key("vBig|v9", "", "edge"), new Value("9".getBytes()));
-      degex.put(new Key("v0", "", "deg"), new Value("2".getBytes()));
-      degex.put(new Key("v1", "", "deg"), new Value("3".getBytes()));
-      degex.put(new Key("v2", "", "deg"), new Value("2".getBytes()));
-//      degex.put(new Key("v9", "",   "deg"), new Value("1".getBytes()));
-      degin.put(new Key("vBig", "", "deg"), new Value("3".getBytes())); // 3, not 4!!
+      expect.put(new Key("v0|v1", "", "edge"), new Value("15".getBytes(StandardCharsets.UTF_8))); //x3
+      expect.put(new Key("v1|v0", "", "edge"), new Value("15".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("v1|v2", "", "edge"), new Value("4".getBytes(StandardCharsets.UTF_8))); //x2
+      expect.put(new Key("v2|v1", "", "edge"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("v0|vBig", "", "edge"), new Value("12".getBytes(StandardCharsets.UTF_8))); //x2
+      expect.put(new Key("v1|vBig", "", "edge"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("v2|vBig", "", "edge"), new Value("8".getBytes(StandardCharsets.UTF_8)));
+//      expect.put(new Key("v9|vBig", "", "edge"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("vBig|v0", "", "edge"), new Value("12".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("vBig|v1", "", "edge"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("vBig|v2", "", "edge"), new Value("8".getBytes(StandardCharsets.UTF_8)));
+//      expect.put(new Key("vBig|v9", "", "edge"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      degex.put(new Key("v0", "", "deg"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      degex.put(new Key("v1", "", "deg"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      degex.put(new Key("v2", "", "deg"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+//      degex.put(new Key("v9", "",   "deg"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      degin.put(new Key("vBig", "", "deg"), new Value("3".getBytes(StandardCharsets.UTF_8))); // 3, not 4!!
 
     }
 
@@ -1249,24 +1250,24 @@ public class BFSTest extends AccumuloTestBase {
 
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("e0", "", "out|v0"), new Value("5".getBytes()));
-      input.put(new Key("e0", "", "in|v1"), new Value("5".getBytes()));
-      input.put(new Key("e1", "", "out|v1"), new Value("2".getBytes()));
-      input.put(new Key("e1", "", "in|v2"), new Value("2".getBytes()));
-      input.put(new Key("e2", "", "out|v2"), new Value("4".getBytes()));
-      input.put(new Key("e2", "", "in|v0"), new Value("4".getBytes()));
-      input.put(new Key("e3", "", "out|v0"), new Value("7".getBytes()));
-      input.put(new Key("e3", "", "in|vBig"), new Value("7".getBytes()));
-      input.put(new Key("e4", "", "out|v1"), new Value("7".getBytes()));
-      input.put(new Key("e4", "", "in|vBig"), new Value("7".getBytes()));
-      input.put(new Key("e5", "", "out|v2"), new Value("7".getBytes()));
-      input.put(new Key("e5", "", "in|vBig"), new Value("7".getBytes()));
-      input.put(new Key("e6", "", "out|vBig"), new Value("9".getBytes()));
-      input.put(new Key("e6", "", "in|v0"), new Value("9".getBytes()));
-      input.put(new Key("e7", "", "out|vBig"), new Value("9".getBytes()));
-      input.put(new Key("e7", "", "in|v1"), new Value("9".getBytes()));
-      input.put(new Key("e8", "", "out|vBig"), new Value("9".getBytes()));
-      input.put(new Key("e8", "", "in|v2"), new Value("9".getBytes()));
+      input.put(new Key("e0", "", "out|v0"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e0", "", "in|v1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e1", "", "out|v1"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e1", "", "in|v2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e2", "", "out|v2"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e2", "", "in|v0"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e3", "", "out|v0"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e3", "", "in|vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e4", "", "out|v1"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e4", "", "in|vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e5", "", "out|v2"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e5", "", "in|vBig"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e6", "", "out|vBig"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e6", "", "in|v0"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e7", "", "out|vBig"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e7", "", "in|v1"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e8", "", "out|vBig"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e8", "", "in|v2"), new Value("9".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("e33"));
       TestUtil.createTestTable(conn, tE, splits, input);
@@ -1275,40 +1276,40 @@ public class BFSTest extends AccumuloTestBase {
 //      TestUtil.createTestTable(conn, tET, splits, TestUtil.transposeMap(input));
     }
     {
-//      expectOut.put(new Key("v0", "",   ""), new Value("2".getBytes()));
-//      expectOut.put(new Key("v1", "",   ""), new Value("2".getBytes()));
-//      expectOut.put(new Key("v2", "",   ""), new Value("2".getBytes()));
-//      expectOut.put(new Key("vBig", "", ""), new Value("3".getBytes()));
+//      expectOut.put(new Key("v0", "",   ""), new Value("2".getBytes(StandardCharsets.UTF_8)));
+//      expectOut.put(new Key("v1", "",   ""), new Value("2".getBytes(StandardCharsets.UTF_8)));
+//      expectOut.put(new Key("v2", "",   ""), new Value("2".getBytes(StandardCharsets.UTF_8)));
+//      expectOut.put(new Key("vBig", "", ""), new Value("3".getBytes(StandardCharsets.UTF_8)));
 //
-//      expectIn.put(new Key("v0", "",   ""), new Value("2".getBytes()));
-//      expectIn.put(new Key("v1", "",   ""), new Value("2".getBytes()));
-//      expectIn.put(new Key("v2", "",   ""), new Value("2".getBytes()));
-//      expectIn.put(new Key("vBig", "", ""), new Value("3".getBytes()));
+//      expectIn.put(new Key("v0", "",   ""), new Value("2".getBytes(StandardCharsets.UTF_8)));
+//      expectIn.put(new Key("v1", "",   ""), new Value("2".getBytes(StandardCharsets.UTF_8)));
+//      expectIn.put(new Key("v2", "",   ""), new Value("2".getBytes(StandardCharsets.UTF_8)));
+//      expectIn.put(new Key("vBig", "", ""), new Value("3".getBytes(StandardCharsets.UTF_8)));
 //
-//      expectOutIn.put(new Key("v0", "",   ""), new Value("4".getBytes()));
-//      expectOutIn.put(new Key("v1", "",   ""), new Value("4".getBytes()));
-//      expectOutIn.put(new Key("v2", "",   ""), new Value("4".getBytes()));
-//      expectOutIn.put(new Key("vBig", "", ""), new Value("6".getBytes()));
+//      expectOutIn.put(new Key("v0", "",   ""), new Value("4".getBytes(StandardCharsets.UTF_8)));
+//      expectOutIn.put(new Key("v1", "",   ""), new Value("4".getBytes(StandardCharsets.UTF_8)));
+//      expectOutIn.put(new Key("v2", "",   ""), new Value("4".getBytes(StandardCharsets.UTF_8)));
+//      expectOutIn.put(new Key("vBig", "", ""), new Value("6".getBytes(StandardCharsets.UTF_8)));
 
-      expectEdgeDeg.put(new Key("e0", "", ""), new Value("2".getBytes()));
-      expectEdgeDeg.put(new Key("e1", "", ""), new Value("2".getBytes()));
-      expectEdgeDeg.put(new Key("e2", "", ""), new Value("2".getBytes()));
-      expectEdgeDeg.put(new Key("e3", "", ""), new Value("2".getBytes()));
-      expectEdgeDeg.put(new Key("e4", "", ""), new Value("2".getBytes()));
-      expectEdgeDeg.put(new Key("e5", "", ""), new Value("2".getBytes()));
-      expectEdgeDeg.put(new Key("e6", "", ""), new Value("2".getBytes()));
-      expectEdgeDeg.put(new Key("e7", "", ""), new Value("2".getBytes()));
-      expectEdgeDeg.put(new Key("e8", "", ""), new Value("2".getBytes()));
+      expectEdgeDeg.put(new Key("e0", "", ""), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      expectEdgeDeg.put(new Key("e1", "", ""), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      expectEdgeDeg.put(new Key("e2", "", ""), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      expectEdgeDeg.put(new Key("e3", "", ""), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      expectEdgeDeg.put(new Key("e4", "", ""), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      expectEdgeDeg.put(new Key("e5", "", ""), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      expectEdgeDeg.put(new Key("e6", "", ""), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      expectEdgeDeg.put(new Key("e7", "", ""), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      expectEdgeDeg.put(new Key("e8", "", ""), new Value("2".getBytes(StandardCharsets.UTF_8)));
 
-      expectEdgeDegWeight.put(new Key("e0", "", ""), new Value("10".getBytes()));
-      expectEdgeDegWeight.put(new Key("e1", "", ""), new Value("4".getBytes()));
-      expectEdgeDegWeight.put(new Key("e2", "", ""), new Value("8".getBytes()));
-      expectEdgeDegWeight.put(new Key("e3", "", ""), new Value("14".getBytes()));
-      expectEdgeDegWeight.put(new Key("e4", "", ""), new Value("14".getBytes()));
-      expectEdgeDegWeight.put(new Key("e5", "", ""), new Value("14".getBytes()));
-      expectEdgeDegWeight.put(new Key("e6", "", ""), new Value("18".getBytes()));
-      expectEdgeDegWeight.put(new Key("e7", "", ""), new Value("18".getBytes()));
-      expectEdgeDegWeight.put(new Key("e8", "", ""), new Value("18".getBytes()));
+      expectEdgeDegWeight.put(new Key("e0", "", ""), new Value("10".getBytes(StandardCharsets.UTF_8)));
+      expectEdgeDegWeight.put(new Key("e1", "", ""), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      expectEdgeDegWeight.put(new Key("e2", "", ""), new Value("8".getBytes(StandardCharsets.UTF_8)));
+      expectEdgeDegWeight.put(new Key("e3", "", ""), new Value("14".getBytes(StandardCharsets.UTF_8)));
+      expectEdgeDegWeight.put(new Key("e4", "", ""), new Value("14".getBytes(StandardCharsets.UTF_8)));
+      expectEdgeDegWeight.put(new Key("e5", "", ""), new Value("14".getBytes(StandardCharsets.UTF_8)));
+      expectEdgeDegWeight.put(new Key("e6", "", ""), new Value("18".getBytes(StandardCharsets.UTF_8)));
+      expectEdgeDegWeight.put(new Key("e7", "", ""), new Value("18".getBytes(StandardCharsets.UTF_8)));
+      expectEdgeDegWeight.put(new Key("e8", "", ""), new Value("18".getBytes(StandardCharsets.UTF_8)));
     }
 
     {

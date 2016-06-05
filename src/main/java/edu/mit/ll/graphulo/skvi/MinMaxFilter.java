@@ -107,7 +107,7 @@ public class MinMaxFilter extends Filter {
     if (options.containsKey(USECOLQ) && Boolean.parseBoolean(options.get(USECOLQ))) {
       useColQ = true;
       if (options.containsKey(PREFIXCOLQ))
-        prefixColQ = options.get(PREFIXCOLQ).getBytes();
+        prefixColQ = options.get(PREFIXCOLQ).getBytes(StandardCharsets.UTF_8);
       else
         prefixColQ = new byte[0];
     } else
@@ -123,7 +123,7 @@ public class MinMaxFilter extends Filter {
 //        log.info("REJECT NULL: "+k+" -> "+v+" ("+s+")");
         return false; // reject entries that do not match the prefix pattern
       }
-      num = s.getBytes();
+      num = s.getBytes(StandardCharsets.UTF_8);
     } else
       num = v.get();
 

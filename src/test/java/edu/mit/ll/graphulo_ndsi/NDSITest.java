@@ -45,9 +45,9 @@ public class NDSITest extends AccumuloTestBase {
         actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
 //    {
 //      Map<Key, Value> input = new HashMap<>();
-//      input.put(new Key("v0", "", "v1"), new Value("5".getBytes()));
-//      input.put(new Key("v1", "", "v2"), new Value("2".getBytes()));
-//      input.put(new Key("v2", "", "v0"), new Value("4".getBytes()));
+//      input.put(new Key("v0", "", "v1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+//      input.put(new Key("v1", "", "v2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+//      input.put(new Key("v2", "", "v0"), new Value("4".getBytes(StandardCharsets.UTF_8)));
 //      SortedSet<Text> splits = new TreeSet<>();
 //      splits.add(new Text("v15"));
 //      TestUtil.createTestTable(conn, tA, splits, input);

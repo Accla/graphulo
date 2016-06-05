@@ -5,6 +5,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Map;
 
@@ -40,7 +41,7 @@ public class CountAllIterator implements SortedKeyValueIterator<Key,Value> {
     source.seek(range, columnFamilies, inclusive);
     long cnt = countAll();
     if (cnt != 0) {
-      emitValue = new Value(Long.toString(cnt).getBytes());
+      emitValue = new Value(Long.toString(cnt).getBytes(StandardCharsets.UTF_8));
       emitKey = range.getStartKey() == null ? SPECIAL_KEY : range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL);
     } else {
       emitValue = null;

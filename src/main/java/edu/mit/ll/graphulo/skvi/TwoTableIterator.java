@@ -446,7 +446,7 @@ public class TwoTableIterator implements SaveStateIterator {
             ret = filter;
             break;
           case RemoteSourceIterator.COLFILTER:
-//            byte[] by = optionValue.getBytes();
+//            byte[] by = optionValue.getBytes(StandardCharsets.UTF_8);
 //            log.debug("Printing characters of string: "+ Key.toPrintableString(by, 0, by.length, 100));
             ret = GraphuloUtil.applyGeneralColumnFilter(optionValue, ret, env);
             break;

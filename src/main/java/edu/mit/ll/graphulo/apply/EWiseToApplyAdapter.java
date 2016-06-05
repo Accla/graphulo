@@ -10,6 +10,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -42,7 +43,7 @@ public class EWiseToApplyAdapter implements ApplyOp {
 
     String valueFixed = options.get(FIXED_VALUE);
     Preconditions.checkArgument(valueFixed != null, "Required option %s. Given: %s", FIXED_VALUE, options);
-    fixedValue = new Value(valueFixed.getBytes());
+    fixedValue = new Value(valueFixed.getBytes(StandardCharsets.UTF_8));
 
     if (options.containsKey(FIX_SIDE))
       fixSide = FixSide.valueOf(options.get(FIX_SIDE));

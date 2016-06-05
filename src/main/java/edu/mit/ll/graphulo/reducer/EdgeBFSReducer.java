@@ -8,6 +8,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Map;
 
@@ -34,7 +35,7 @@ public class EdgeBFSReducer extends ReducerSerializable<HashSet<String>> {
           String[] prefixes = GraphuloUtil.splitD4mString(optionValue);
           inColumnPrefixes = new byte[prefixes.length][];
           for (int i = 0; i < prefixes.length; i++)
-            inColumnPrefixes[i] = prefixes[i].getBytes();
+            inColumnPrefixes[i] = prefixes[i].getBytes(StandardCharsets.UTF_8);
           break;
         default:
           log.warn("Unrecognized option: " + optionEntry);

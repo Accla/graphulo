@@ -7,6 +7,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,7 +37,7 @@ public class ConstantTwoScalar extends SimpleTwoScalar {
     return map;
   }
 
-  private Value constant = new Value("1".getBytes());
+  private Value constant = new Value("1".getBytes(StandardCharsets.UTF_8));
 
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
@@ -45,7 +46,7 @@ public class ConstantTwoScalar extends SimpleTwoScalar {
       String k = entry.getKey(), v = entry.getValue();
       switch (k) {
         case CONSTANT:
-          constant = new Value(v.getBytes());
+          constant = new Value(v.getBytes(StandardCharsets.UTF_8));
           break;
         default:
           extraOpts.put(k, v);
@@ -79,7 +80,7 @@ public class ConstantTwoScalar extends SimpleTwoScalar {
   @Override
   public boolean validateOptions(Map<String, String> options) {
     if (options.containsKey(CONSTANT))
-      new Value(options.get(CONSTANT).getBytes());
+      new Value(options.get(CONSTANT).getBytes(StandardCharsets.UTF_8));
     return super.validateOptions(options);
   }
 }

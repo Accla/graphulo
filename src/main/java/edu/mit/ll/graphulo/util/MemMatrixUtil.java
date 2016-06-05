@@ -11,6 +11,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -69,10 +70,10 @@ public class MemMatrixUtil {
       @Override
       public void visit(int row, int column, double v) {
 //        log.debug("("+row+","+column+") <- "+v);
-        trow.set(Integer.toString(row + 1).getBytes());
-        tcol.set(Integer.toString(column + 1).getBytes());
+        trow.set(Integer.toString(row + 1).getBytes(StandardCharsets.UTF_8));
+        tcol.set(Integer.toString(column + 1).getBytes(StandardCharsets.UTF_8));
         map.put(new Key(trow, EMPTY_TEXT, tcol, System.currentTimeMillis()),
-            new Value(Double.toString(v).getBytes()));
+            new Value(Double.toString(v).getBytes(StandardCharsets.UTF_8)));
       }
     });
 //    log.debug("map "+map);
@@ -144,7 +145,7 @@ public class MemMatrixUtil {
           cqText = new Text(labelMap.get(column));
         }
         Key k = new Key(rowText, EMPTY_TEXT, cqText);
-        Value v = new Value(Double.toString(value).getBytes());
+        Value v = new Value(Double.toString(value).getBytes(StandardCharsets.UTF_8));
         ret.put(k,v);
       }
     });

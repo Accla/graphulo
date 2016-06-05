@@ -1,6 +1,7 @@
 package edu.mit.ll.graphulo.apply;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Iterator;
@@ -42,7 +43,7 @@ public class ConstantColQApply implements ApplyOp {
       String v = entry.getValue();
       switch (entry.getKey()) {
         case COLQ:
-          colq = v.getBytes();
+          colq = v.getBytes(StandardCharsets.UTF_8);
           break;
         default:
           log.warn("Unrecognized option: " + entry);

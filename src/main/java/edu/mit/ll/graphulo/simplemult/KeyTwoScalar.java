@@ -17,6 +17,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Collections;
@@ -73,7 +74,7 @@ public abstract class KeyTwoScalar extends Combiner implements ApplyOp {
       String k = entry.getKey(), v = entry.getValue();
       switch (k) {
         case FIXED_VALUE:
-          fixedValue = new Value(v.getBytes());
+          fixedValue = new Value(v.getBytes(StandardCharsets.UTF_8));
           break;
         case REVERSE:
           reverse = Boolean.parseBoolean(v);

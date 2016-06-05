@@ -29,6 +29,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -67,17 +68,17 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     HashSet<String> setUniqueColQsExpect = new HashSet<>(), setUniqueColQsActual;
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
+      input.put(new Key("A1", "", "C1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
       setUniqueColQsExpect.add("C1");
-      input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
+      input.put(new Key("A1", "", "C2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
       setUniqueColQsExpect.add("C2");
-      input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
+      input.put(new Key("A2", "", "C1"), new Value("4".getBytes(StandardCharsets.UTF_8)));
       setUniqueColQsExpect.add("C1");
       expectR.putAll(input);
       expectRT.putAll(GraphuloUtil.transposeMap(input));
 
-      input.put(new Key("A00", "", "C1"), new Value("21".getBytes()));
-      input.put(new Key("ZZZ", "", "C1"), new Value("22".getBytes()));
+      input.put(new Key("A00", "", "C1"), new Value("21".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("ZZZ", "", "C1"), new Value("22".getBytes(StandardCharsets.UTF_8)));
 
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("A15"));
@@ -143,13 +144,13 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("ccc", "", "cq"), new Value("7".getBytes()));
-      input.put(new Key("ddd", "", "cq"), new Value("7".getBytes()));
-      input.put(new Key("pogo", "", "cq"), new Value("7".getBytes()));
-      input.put(new Key("ddd", "", "cq2"), new Value("8".getBytes()));
-      input.put(new Key("ggg", "", "cq2"), new Value("8".getBytes()));
-      input.put(new Key("pogo", "", "cq2"), new Value("8".getBytes()));
-      input.put(new Key("xyz", "", "cq2"), new Value("8".getBytes()));
+      input.put(new Key("ccc", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("ddd", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("pogo", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("ddd", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("ggg", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("pogo", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("xyz", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
       TestUtil.createTestTable(conn, tableName, null, input);
     }
     TestUtil.createTestTable(conn, tableName2);
@@ -157,29 +158,29 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     List<SortedMap<Key, Value>> expectList = new ArrayList<>();
     {
       SortedMap<Key, Value> smap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-      smap.put(new Key("ccc", "", "cq"), new Value("7".getBytes()));
+      smap.put(new Key("ccc", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
       expectList.add(smap);
     }
     {
       SortedMap<Key, Value> smap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-      smap.put(new Key("ddd", "", "cq"), new Value("7".getBytes()));
-      smap.put(new Key("ddd", "", "cq2"), new Value("8".getBytes()));
+      smap.put(new Key("ddd", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      smap.put(new Key("ddd", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
       expectList.add(smap);
     }
     {
       SortedMap<Key, Value> smap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-      smap.put(new Key("ggg", "", "cq2"), new Value("8".getBytes()));
+      smap.put(new Key("ggg", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
       expectList.add(smap);
     }
     {
       SortedMap<Key, Value> smap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-      smap.put(new Key("pogo", "", "cq"), new Value("7".getBytes()));
-      smap.put(new Key("pogo", "", "cq2"), new Value("8".getBytes()));
+      smap.put(new Key("pogo", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      smap.put(new Key("pogo", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
       expectList.add(smap);
     }
     {
       SortedMap<Key, Value> smap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-      smap.put(new Key("xyz", "", "cq2"), new Value("8".getBytes()));
+      smap.put(new Key("xyz", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
       expectList.add(smap);
     }
 
@@ -223,13 +224,13 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("ccc", "", "cq"), new Value("7".getBytes()));
-      input.put(new Key("ddd", "", "cq"), new Value("7".getBytes()));
-      input.put(new Key("pogo", "", "cq"), new Value("7".getBytes()));
-      input.put(new Key("ddd", "", "cq2"), new Value("8".getBytes()));
-      input.put(new Key("ggg", "", "cq2"), new Value("8".getBytes()));
-      input.put(new Key("pogo", "", "cq2"), new Value("8".getBytes()));
-      input.put(new Key("xyz", "", "cq2"), new Value("8".getBytes()));
+      input.put(new Key("ccc", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("ddd", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("pogo", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("ddd", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("ggg", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("pogo", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("xyz", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
       TestUtil.createTestTable(conn, tableName, null, input);
     }
     TestUtil.createTestTable(conn, tableName2);
@@ -237,19 +238,19 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     List<SortedMap<Key, Value>> expectList = new ArrayList<>();
     {
       SortedMap<Key, Value> smap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-      smap.put(new Key("ddd", "", "cq"), new Value("7".getBytes()));
-      smap.put(new Key("ddd", "", "cq2"), new Value("8".getBytes()));
+      smap.put(new Key("ddd", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      smap.put(new Key("ddd", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
       expectList.add(smap);
     }
     {
       SortedMap<Key, Value> smap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-      smap.put(new Key("ggg", "", "cq2"), new Value("8".getBytes()));
+      smap.put(new Key("ggg", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
       expectList.add(smap);
     }
     {
       SortedMap<Key, Value> smap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-      smap.put(new Key("pogo", "", "cq"), new Value("7".getBytes()));
-      smap.put(new Key("pogo", "", "cq2"), new Value("8".getBytes()));
+      smap.put(new Key("pogo", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      smap.put(new Key("pogo", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
       expectList.add(smap);
     }
 
@@ -312,20 +313,20 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("ccc", "", "cq"), new Value("7".getBytes()));
-      input.put(new Key("ddd", "", "cq"), new Value("7".getBytes()));
-      input.put(new Key("pogo", "", "cq"), new Value("7".getBytes()));
-      input.put(new Key("ddd", "", "cq2"), new Value("8".getBytes()));
-      input.put(new Key("ggg", "", "cq2"), new Value("8".getBytes()));
-      input.put(new Key("pogo", "", "cq2"), new Value("8".getBytes()));
-      input.put(new Key("xyz", "", "cq2"), new Value("8".getBytes()));
+      input.put(new Key("ccc", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("ddd", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("pogo", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("ddd", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("ggg", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("pogo", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("xyz", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
       TestUtil.createTestTable(conn, tableName, null, input);
     }
     TestUtil.createTestTable(conn, tableName2);
 
     SortedMap<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-    expect.put(new Key("ddd", "", "cq"), new Value("7".getBytes()));
-    expect.put(new Key("pogo", "", "cq"), new Value("7".getBytes()));
+    expect.put(new Key("ddd", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("pogo", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
 
     Scanner scanner = conn.createScanner(tableName2, Authorizations.EMPTY);
     Map<String, String> itprops = new HashMap<>();
@@ -413,28 +414,28 @@ public class RemoteIteratorTest extends AccumuloTestBase {
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("ccc", "", "cq"), new Value("7".getBytes()));
-      input.put(new Key("ddd", "", "cq"), new Value("7".getBytes()));
-      input.put(new Key("pogo", "", "cq"), new Value("7".getBytes()));
+      input.put(new Key("ccc", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("ddd", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("pogo", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
       TestUtil.createTestTable(conn, tableName, null, input);
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("ddd", "", "cq2"), new Value("8".getBytes()));
-      input.put(new Key("ggg", "", "cq2"), new Value("8".getBytes()));
-      input.put(new Key("pogo", "", "cq2"), new Value("8".getBytes()));
-      input.put(new Key("xyz", "", "cq2"), new Value("8".getBytes()));
+      input.put(new Key("ddd", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("ggg", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("pogo", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("xyz", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
       TestUtil.createTestTable(conn, tableName2, null, input);
     }
 
     SortedMap<Key, Value> expectMap = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-    expectMap.put(new Key("ccc", "", "cq"), new Value("7".getBytes()));
-    expectMap.put(new Key("ddd", "", "cq"), new Value("7".getBytes()));
-    expectMap.put(new Key("ddd", "", "cq2"), new Value("8".getBytes()));
-    expectMap.put(new Key("ggg", "", "cq2"), new Value("8".getBytes()));
-    expectMap.put(new Key("pogo", "", "cq"), new Value("7".getBytes()));
-    expectMap.put(new Key("pogo", "", "cq2"), new Value("8".getBytes()));
-    expectMap.put(new Key("xyz", "", "cq2"), new Value("8".getBytes()));
+    expectMap.put(new Key("ccc", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+    expectMap.put(new Key("ddd", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+    expectMap.put(new Key("ddd", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
+    expectMap.put(new Key("ggg", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
+    expectMap.put(new Key("pogo", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+    expectMap.put(new Key("pogo", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
+    expectMap.put(new Key("xyz", "", "cq2"), new Value("8".getBytes(StandardCharsets.UTF_8)));
 
     Scanner scanner = conn.createScanner(tableName2, Authorizations.EMPTY);
     Map<String, String> itprops = new HashMap<>();

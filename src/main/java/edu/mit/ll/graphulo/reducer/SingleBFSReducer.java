@@ -116,7 +116,7 @@ public class SingleBFSReducer extends ReducerSerializable<HashSet<String>> {
 //    Map<Key,Value> map = new LinkedHashMap<>(setNodesReachedCount.size());
 //    for (Map.Entry<String, Integer> entry : setNodesReachedCount.entrySet()) {
 //      Key k = new Key(entry.getKey(), "", degCol);
-//      Value v = new Value(entry.getValue().toString().getBytes());
+//      Value v = new Value(entry.getValue().toString().getBytes(StandardCharsets.UTF_8));
 //      map.put(k,v);
 //    }
 //    return map.entrySet().iterator();

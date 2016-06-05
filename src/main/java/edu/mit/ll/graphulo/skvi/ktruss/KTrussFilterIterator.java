@@ -11,6 +11,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -45,7 +46,7 @@ public class KTrussFilterIterator extends MultiKeyCombiner {
 
   private enum KScope { SCAN, MAJC_FULL, DISABLE }
   private KScope kScope;
-  private static final Value VALUE_ONE = new Value("1".getBytes());
+  private static final Value VALUE_ONE = new Value("1".getBytes(StandardCharsets.UTF_8));
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {

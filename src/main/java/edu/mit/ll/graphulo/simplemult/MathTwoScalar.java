@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -91,7 +92,7 @@ public class MathTwoScalar extends SimpleTwoScalar {
     itset.addOption(ApplyIterator.APPLYOP, MathTwoScalar.class.getName());
     for (Map.Entry<String, String> entry : optionMap(op, ScalarType.DOUBLE, null, keepZero).entrySet())
       itset.addOption(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX + entry.getKey(), entry.getValue());
-    itset = KeyTwoScalar.addOptionsToIteratorSetting(itset, constantOnRight, new Value(Double.toString(scalar).getBytes()));
+    itset = KeyTwoScalar.addOptionsToIteratorSetting(itset, constantOnRight, new Value(Double.toString(scalar).getBytes(StandardCharsets.UTF_8)));
     return itset;
   }
 
@@ -102,7 +103,7 @@ public class MathTwoScalar extends SimpleTwoScalar {
     itset.addOption(ApplyIterator.APPLYOP, MathTwoScalar.class.getName());
     for (Map.Entry<String, String> entry : optionMap(op, ScalarType.LONG, null, keepZero).entrySet())
       itset.addOption(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX + entry.getKey(), entry.getValue());
-    itset = KeyTwoScalar.addOptionsToIteratorSetting(itset, constantOnRight, new Value(Long.toString(scalar).getBytes()));
+    itset = KeyTwoScalar.addOptionsToIteratorSetting(itset, constantOnRight, new Value(Long.toString(scalar).getBytes(StandardCharsets.UTF_8)));
     return itset;
   }
 
@@ -113,7 +114,7 @@ public class MathTwoScalar extends SimpleTwoScalar {
     itset.addOption(ApplyIterator.APPLYOP, MathTwoScalar.class.getName());
     for (Map.Entry<String, String> entry : optionMap(op, ScalarType.BIGDECIMAL, null, keepZero).entrySet())
       itset.addOption(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX + entry.getKey(), entry.getValue());
-    itset = KeyTwoScalar.addOptionsToIteratorSetting(itset, constantOnRight, new Value(scalar.toString().getBytes())); // byte encoding UTF-8?
+    itset = KeyTwoScalar.addOptionsToIteratorSetting(itset, constantOnRight, new Value(scalar.toString().getBytes(StandardCharsets.UTF_8))); // byte encoding UTF-8?
     return itset;
   }
 
@@ -278,9 +279,9 @@ public class MathTwoScalar extends SimpleTwoScalar {
 
     Value vnew;
     switch(scalarType) {
-      case LONG: vnew = new Value(Long.toString(nnew.longValue()).getBytes()); break;
-      case DOUBLE: vnew = new Value(Double.toString(nnew.doubleValue()).getBytes()); break;
-      case BIGDECIMAL: vnew = new Value(nnew.toString().getBytes()); break;
+      case LONG: vnew = new Value(Long.toString(nnew.longValue()).getBytes(StandardCharsets.UTF_8)); break;
+      case DOUBLE: vnew = new Value(Double.toString(nnew.doubleValue()).getBytes(StandardCharsets.UTF_8)); break;
+      case BIGDECIMAL: vnew = new Value(nnew.toString().getBytes(StandardCharsets.UTF_8)); break;
       default: throw new AssertionError();
     }
     return vnew;

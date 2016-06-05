@@ -11,6 +11,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -163,7 +164,7 @@ public class MTJUtil {
 
       Key k = new Key(rowText, EMPTY_TEXT, cqText, cv);
       String s = coerceToLong ? Long.toString((long)value) : Double.toString(value);
-      Value v = new Value(s.getBytes());
+      Value v = new Value(s.getBytes(StandardCharsets.UTF_8));
       ret.put(k,v);
     }
 

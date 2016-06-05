@@ -13,6 +13,10 @@ import org.apache.log4j.Logger;
 import edu.mit.ll.d4m.db.cloud.D4mInsertBase;
 import edu.mit.ll.d4m.db.cloud.util.D4mQueryUtil;
 
+import java.nio.charset.StandardCharsets;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 /**
  * @author CHV8091
  *
@@ -74,7 +78,7 @@ public class AccumuloInsert extends D4mInsertBase {
 			Mutation m;
 			Text column = new Text(thisCol);
 
-			Value value = new Value(thisVal.getBytes());
+			Value value = new Value(thisVal.getBytes(UTF_8));
 			log.debug(i+" - INSERTING [r,c,v] =  ["+ thisRow+","+thisCol+","+thisVal+"]");
 			m = new Mutation(new Text(thisRow));
 			m.put(colFamily, column, colVisibility, value);

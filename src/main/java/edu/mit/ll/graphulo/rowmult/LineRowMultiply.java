@@ -56,7 +56,7 @@ public class LineRowMultiply implements RowMultiplyOp {
           case SEPARATOR:
 //            if (optionValue.length() != 1)
 //              throw new IllegalArgumentException("bad "+ "separator" +": "+optionValue);
-            separator = optionValue.getBytes();
+            separator = optionValue.getBytes(StandardCharsets.UTF_8);
             break;
           case INCLUDE_EXTRA_CYCLES:
             includeExtraCycles = Boolean.parseBoolean(optionValue);
@@ -142,7 +142,7 @@ public class LineRowMultiply implements RowMultiplyOp {
     if (Double.doubleToRawLongBits(nume) == 0)
       return false; // no edges emit
     winPerEdge = !isDirected ? win / nume / 2 : win / nume;
-    winPerEdgeValue = new Value(Double.toString(winPerEdge).getBytes());
+    winPerEdgeValue = new Value(Double.toString(winPerEdge).getBytes(StandardCharsets.UTF_8));
     return true;
   }
 
@@ -180,7 +180,7 @@ public class LineRowMultiply implements RowMultiplyOp {
     return ret;
   }
 
-  private byte[] separator = "|".getBytes();
+  private byte[] separator = "|".getBytes(StandardCharsets.UTF_8);
   double din, dout, win, nume, winPerEdge;
   Value winPerEdgeValue;
 

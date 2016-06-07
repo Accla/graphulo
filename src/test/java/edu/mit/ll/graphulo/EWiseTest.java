@@ -19,6 +19,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedMap;
@@ -51,22 +52,22 @@ public class EWiseTest extends AccumuloTestBase {
     }
     {
       Map<Key,Value> input = new HashMap<>();
-      input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
-      input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
-      input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
+      input.put(new Key("A1", "", "C1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A1", "", "C2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A2", "", "C1"), new Value("4".getBytes(StandardCharsets.UTF_8)));
       TestUtil.createTestTable(conn, tAT, null, input);
     }
     {
       Map<Key,Value> input = new HashMap<>();
-      input.put(new Key("A1", "", "C2"), new Value("3".getBytes()));
-      input.put(new Key("A1", "", "C3"), new Value("3".getBytes()));
-      input.put(new Key("A2", "", "C1"), new Value("3".getBytes()));
-      input.put(new Key("A2", "", "C2"), new Value("3".getBytes()));
+      input.put(new Key("A1", "", "C2"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A1", "", "C3"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A2", "", "C1"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A2", "", "C2"), new Value("3".getBytes(StandardCharsets.UTF_8)));
       TestUtil.createTestTable(conn, tB, null, input);
     }
     SortedMap<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-    expect.put(new Key("A1", "", "C2"), new Value("6".getBytes()));
-    expect.put(new Key("A2", "", "C1"), new Value("12".getBytes()));
+    expect.put(new Key("A1", "", "C2"), new Value("6".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("A2", "", "C1"), new Value("12".getBytes(StandardCharsets.UTF_8)));
     SortedMap<Key,Value> expectT = GraphuloUtil.transposeMap(expect);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
@@ -113,45 +114,45 @@ public class EWiseTest extends AccumuloTestBase {
     Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
     {
       Map<Key,Value> input = new HashMap<>();
-      input.put(new Key("v0", "", "v0"), new Value("1".getBytes()));
-      input.put(new Key("v0", "", "v1"), new Value("1".getBytes()));
-      input.put(new Key("v0", "", "v2"), new Value("1".getBytes()));
-      input.put(new Key("v1", "", "v0"), new Value("1".getBytes()));
-      input.put(new Key("v1", "", "v1"), new Value("1".getBytes()));
-      input.put(new Key("v1", "", "v2"), new Value("1".getBytes()));
-      input.put(new Key("v2", "", "v0"), new Value("1".getBytes()));
-      input.put(new Key("v2", "", "v1"), new Value("1".getBytes()));
-      input.put(new Key("v2", "", "v2"), new Value("1".getBytes()));
-      input.put(new Key("vBig", "", "v0"), new Value("1".getBytes()));
-      input.put(new Key("vBig", "", "v1"), new Value("1".getBytes()));
-      input.put(new Key("vBig", "", "v2"), new Value("1".getBytes()));
+      input.put(new Key("v0", "", "v0"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v0", "", "v1"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v0", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "v0"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "v1"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "v0"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "v1"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "v0"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "v1"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("vBig", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
 
       Map<Key,Value> input2 = new HashMap<>();
-      input2.put(new Key("v0", "", "v0"), new Value("1".getBytes()));
-      input2.put(new Key("v0", "", "v1"), new Value("1".getBytes()));
-      input2.put(new Key("v0", "", "v2"), new Value("1".getBytes()));
-      input2.put(new Key("v1", "", "v0"), new Value("1".getBytes()));
-      input2.put(new Key("v1", "", "v1"), new Value("1".getBytes()));
-      input2.put(new Key("v1", "", "v2"), new Value("1".getBytes()));
-      input2.put(new Key("v2", "", "v0"), new Value("1".getBytes()));
-      input2.put(new Key("v2", "", "v1"), new Value("1".getBytes()));
-      input2.put(new Key("v2", "", "v2"), new Value("1".getBytes()));
-      input2.put(new Key("v0", "", "vBig"), new Value("1".getBytes()));
-      input2.put(new Key("v1", "", "vBig"), new Value("1".getBytes()));
-      input2.put(new Key("v2", "", "vBig"), new Value("1".getBytes()));
+      input2.put(new Key("v0", "", "v0"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input2.put(new Key("v0", "", "v1"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input2.put(new Key("v0", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input2.put(new Key("v1", "", "v0"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input2.put(new Key("v1", "", "v1"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input2.put(new Key("v1", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input2.put(new Key("v2", "", "v0"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input2.put(new Key("v2", "", "v1"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input2.put(new Key("v2", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input2.put(new Key("v0", "", "vBig"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input2.put(new Key("v1", "", "vBig"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input2.put(new Key("v2", "", "vBig"), new Value("1".getBytes(StandardCharsets.UTF_8)));
 
       Map<Key,Value> e = new HashMap<>();
-      e.put(new Key("v0", "", "v1"), new Value("1".getBytes()));
-      e.put(new Key("v0", "", "v2"), new Value("1".getBytes()));
-      e.put(new Key("v0", "", "v0"), new Value("1".getBytes()));
+      e.put(new Key("v0", "", "v1"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      e.put(new Key("v0", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      e.put(new Key("v0", "", "v0"), new Value("1".getBytes(StandardCharsets.UTF_8)));
 
-      e.put(new Key("v1", "", "v2"), new Value("1".getBytes()));
-      e.put(new Key("v1", "", "v0"), new Value("1".getBytes()));
-      e.put(new Key("v1", "", "v1"), new Value("1".getBytes()));
+      e.put(new Key("v1", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      e.put(new Key("v1", "", "v0"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      e.put(new Key("v1", "", "v1"), new Value("1".getBytes(StandardCharsets.UTF_8)));
 
-      e.put(new Key("v2", "", "v0"), new Value("1".getBytes()));
-      e.put(new Key("v2", "", "v1"), new Value("1".getBytes()));
-      e.put(new Key("v2", "", "v2"), new Value("1".getBytes()));
+      e.put(new Key("v2", "", "v0"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      e.put(new Key("v2", "", "v1"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      e.put(new Key("v2", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
 
       expect.putAll(e);
       TestUtil.createTestTable(conn, tA, null, input);
@@ -196,25 +197,25 @@ public class EWiseTest extends AccumuloTestBase {
     }
     {
       Map<Key,Value> input = new HashMap<>();
-      input.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
-      input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
-      input.put(new Key("A2", "", "C1"), new Value("4".getBytes()));
+      input.put(new Key("A1", "", "C1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A1", "", "C2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A2", "", "C1"), new Value("4".getBytes(StandardCharsets.UTF_8)));
       TestUtil.createTestTable(conn, tA, null, input);
     }
     {
       Map<Key,Value> input = new HashMap<>();
-      input.put(new Key("A1", "", "C2"), new Value("3".getBytes()));
-      input.put(new Key("A1", "", "C3"), new Value("3".getBytes()));
-      input.put(new Key("A2", "", "C1"), new Value("3".getBytes()));
-      input.put(new Key("A2", "", "C2"), new Value("3".getBytes()));
+      input.put(new Key("A1", "", "C2"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A1", "", "C3"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A2", "", "C1"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A2", "", "C2"), new Value("3".getBytes(StandardCharsets.UTF_8)));
       TestUtil.createTestTable(conn, tB, null, input);
     }
     SortedMap<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-    expect.put(new Key("A1", "", "C1"), new Value("5".getBytes()));
-    expect.put(new Key("A1", "", "C2"), new Value("5".getBytes()));
-    expect.put(new Key("A1", "", "C3"), new Value("3".getBytes()));
-    expect.put(new Key("A2", "", "C1"), new Value("7".getBytes()));
-    expect.put(new Key("A2", "", "C2"), new Value("3".getBytes()));
+    expect.put(new Key("A1", "", "C1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("A1", "", "C2"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("A1", "", "C3"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("A2", "", "C1"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("A2", "", "C2"), new Value("3".getBytes(StandardCharsets.UTF_8)));
     SortedMap<Key,Value> expectT = GraphuloUtil.transposeMap(expect);
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());

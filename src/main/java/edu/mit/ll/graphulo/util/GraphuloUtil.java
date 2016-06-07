@@ -40,6 +40,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -318,7 +319,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
     Key startKey = range.getStartKey();
     if (startKey == null)
       return null;
-    String startRow = new String(startKey.getRowData().toArray());
+    String startRow = new String(startKey.getRowData().toArray(), StandardCharsets.UTF_8);
     if (!range.isStartKeyInclusive())
       return startRow+'\0';
     else
@@ -329,7 +330,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
     Key endKey = range.getEndKey();
     if (endKey == null)
       return null;
-    String endRow = new String(endKey.getRowData().toArray());
+    String endRow = new String(endKey.getRowData().toArray(), StandardCharsets.UTF_8);
     if (!range.isEndKeyInclusive())
       return prevRow(endRow);
     else
@@ -950,6 +951,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
       }
 
     BatchWriterConfig bwc = new BatchWriterConfig();
+    bwc.setMaxWriteThreads(25);
     BatchWriter bw;
     try {
       bw = connector.createBatchWriter(table, bwc);

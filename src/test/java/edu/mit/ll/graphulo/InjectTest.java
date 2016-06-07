@@ -22,6 +22,7 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 //import org.apache.accumulo.core.client.admin.CompactionConfig;
@@ -43,9 +44,9 @@ public class InjectTest extends AccumuloTestBase {
     // create table, add table split, write data
     final String tableName = getUniqueNames(1)[0];
     Map<Key, Value> input = new HashMap<>();
-    input.put(new Key("aTablet1", "", "cq"), new Value("7".getBytes()));
-    input.put(new Key("kTablet2", "", "cq"), new Value("7".getBytes()));
-    input.put(new Key("zTablet2", "", "cq"), new Value("7".getBytes()));
+    input.put(new Key("aTablet1", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("kTablet2", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("zTablet2", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
     SortedSet<Text> splitset = new TreeSet<>();
     splitset.add(new Text("f"));
     TestUtil.createTestTable(conn, tableName, splitset, input);
@@ -171,9 +172,9 @@ public class InjectTest extends AccumuloTestBase {
     // create table, add table split, write data
     final String tableName = getUniqueNames(1)[0];
     Map<Key, Value> input = new HashMap<>();
-    input.put(new Key("aTablet1", "", "cq"), new Value("7".getBytes()));
-    input.put(new Key("kTablet2", "", "cq"), new Value("7".getBytes()));
-    input.put(new Key("zTablet2", "", "cq"), new Value("7".getBytes()));
+    input.put(new Key("aTablet1", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("kTablet2", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("zTablet2", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
     SortedSet<Text> splitset = new TreeSet<>();
     splitset.add(new Text("f"));
     TestUtil.createTestTable(conn, tableName, splitset, input);
@@ -219,9 +220,9 @@ public class InjectTest extends AccumuloTestBase {
     // create table, add table split, write data
     final String tableName = getUniqueNames(1)[0];
     Map<Key, Value> input = new HashMap<>();
-    input.put(new Key("aTablet1", "", "cq"), new Value("7".getBytes()));
-    input.put(new Key("kTablet2", "", "cq"), new Value("7".getBytes()));
-    input.put(new Key("zTablet2", "", "cq"), new Value("7".getBytes()));
+    input.put(new Key("aTablet1", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("kTablet2", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+    input.put(new Key("zTablet2", "", "cq"), new Value("7".getBytes(StandardCharsets.UTF_8)));
     SortedSet<Text> splitset = new TreeSet<>();
     splitset.add(new Text("f"));
     TestUtil.createTestTable(conn, tableName, splitset, input);
@@ -229,6 +230,13 @@ public class InjectTest extends AccumuloTestBase {
     // expected data back
     Map<Key, Value> expect = new HashMap<>(input);
     expect.putAll(HardListIterator.allEntriesToInject);
+    // we will not read back the entry that has a column visibility because this is a compaction write and we don't have the credentials
+    for (Iterator<Map.Entry<Key, Value>> iterator = expect.entrySet().iterator();
+         iterator.hasNext();
+        ) {
+      if (iterator.next().getKey().getColumnVisibilityData().length() > 0)
+        iterator.remove();
+    }
 
     // attach InjectIterator, flush and compact. Compaction blocks.
     IteratorSetting itset = new IteratorSetting(15, InjectIterator.class);
@@ -285,6 +293,13 @@ public class InjectTest extends AccumuloTestBase {
 
     // expected data back
     Map<Key, Value> expect = new HashMap<>(HardListIterator.allEntriesToInject);
+    // we will not read back the entry that has a column visibility because this is a compaction write and we don't have the credentials
+    for (Iterator<Map.Entry<Key, Value>> iterator = expect.entrySet().iterator();
+         iterator.hasNext();
+        ) {
+      if (iterator.next().getKey().getColumnVisibilityData().length() > 0)
+        iterator.remove();
+    }
 
     // attach InjectIterator, flush and compact. Compaction blocks.
     IteratorSetting itset = new IteratorSetting(15, InjectIterator.class);

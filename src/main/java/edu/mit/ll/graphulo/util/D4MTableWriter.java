@@ -12,6 +12,8 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * Wrapper around the following tables:
  * table,
@@ -32,7 +34,7 @@ public class D4MTableWriter implements AutoCloseable {
   private State state = State.New;
 
   public static final Text DEFAULT_DEGCOL = new Text("deg");
-  public static final Value VALONE = new Value("1".getBytes());
+  public static final Value VALONE = new Value("1".getBytes(StandardCharsets.UTF_8));
   public static final Text EMPTYCF =new Text("");
 
   /** Holds configuration options to pass to constructor of D4MTableWriter. */
@@ -328,8 +330,8 @@ public class D4MTableWriter implements AutoCloseable {
   public void ingestRow(Text rowID, Text cq, Value v, Text edgeID) {
     ingestRow(rowID, cq, v);
     if (tconf.useEdgeTable || tconf.useEdgeTableT) {
-      Text out = new Text(concatBytes(tconf.colDeg.getBytes(), String.valueOf(FIELD_SEPERATOR).getBytes(), rowID.getBytes()));
-      Text in = new Text(concatBytes(tconf.colDegT.getBytes(), String.valueOf(FIELD_SEPERATOR).getBytes(), cq.getBytes()));
+      Text out = new Text(concatBytes(tconf.colDeg.getBytes(), String.valueOf(FIELD_SEPERATOR).getBytes(StandardCharsets.UTF_8), rowID.getBytes()));
+      Text in = new Text(concatBytes(tconf.colDegT.getBytes(), String.valueOf(FIELD_SEPERATOR).getBytes(StandardCharsets.UTF_8), cq.getBytes()));
       if (tconf.useEdgeTable) {
         ingestRow(BtableEdge, edgeID, tconf.cf, out, v);
         ingestRow(BtableEdge, edgeID, tconf.cf, in, v);

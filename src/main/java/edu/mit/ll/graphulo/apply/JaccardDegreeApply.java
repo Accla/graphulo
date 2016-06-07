@@ -15,6 +15,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Collections;
@@ -107,7 +108,7 @@ public class JaccardDegreeApply implements ApplyOp {
     if (colDeg == null)
       throw new IllegalStateException("Cannot find colDeg in degree table:" +col);
     return Iterators.singletonIterator( new AbstractMap.SimpleImmutableEntry<>(k,
-        new Value(Double.toString(Jij / (rowDeg+colDeg-Jij)).getBytes())
+        new Value(Double.toString(Jij / (rowDeg+colDeg-Jij)).getBytes(StandardCharsets.UTF_8))
     ));
   }
 

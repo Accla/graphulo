@@ -12,6 +12,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
@@ -71,7 +72,7 @@ public class RandomTopicApply implements ApplyOp {
 
       Value vnew = new Value(Double.toString(
           Math.abs(rand.nextGaussian()))        // absolute value of random normal
-          .getBytes());
+          .getBytes(StandardCharsets.UTF_8));
       map.put(knew, vnew);
     }
     return map.entrySet().iterator();

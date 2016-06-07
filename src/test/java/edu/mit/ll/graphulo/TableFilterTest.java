@@ -14,6 +14,7 @@ import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -33,16 +34,16 @@ public class TableFilterTest extends AccumuloTestBase {
     Map<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("r", "", "C1"), new Value("5".getBytes()));
-      input.put(new Key("r", "", "C2"), new Value("2".getBytes()));
-      input.put(new Key("r", "", "C3"), new Value("4".getBytes()));
-      input.put(new Key("r", "", "C4"), new Value("4".getBytes()));
-      input.put(new Key("g", "", "C1"), new Value("4".getBytes()));
-      input.put(new Key("h", "", "C1"), new Value("4".getBytes()));
-      expect.put(new Key("h", "", "C1"), new Value("4".getBytes()));
-      input.put(new Key("h", "", "C2"), new Value("4".getBytes()));
-      expect.put(new Key("h", "", "C2"), new Value("4".getBytes()));
-      input.put(new Key("a", "", "C1"), new Value("4".getBytes()));
+      input.put(new Key("r", "", "C1"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("r", "", "C2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("r", "", "C3"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("r", "", "C4"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("g", "", "C1"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("h", "", "C1"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("h", "", "C1"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("h", "", "C2"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("h", "", "C2"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("a", "", "C1"), new Value("4".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("b"));
       TestUtil.createTestTable(conn, tA, splits, input);

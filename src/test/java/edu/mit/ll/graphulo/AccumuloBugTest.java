@@ -25,6 +25,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
@@ -76,7 +77,7 @@ public class AccumuloBugTest extends AccumuloTestBase {
     SortedSet<Text> splits = new TreeSet<>();
     for (int i = 0; i < numtablets; i++) {
       String row = StringUtils.leftPad(Integer.toString(1+2*i), 2, '0');                  // 01, 03, 05, ...
-      input.put(new Key(row, "", ""), new Value(Integer.toString(1+2*i).getBytes()));
+      input.put(new Key(row, "", ""), new Value(Integer.toString(1+2*i).getBytes(StandardCharsets.UTF_8)));
       if (i > 0)
         splits.add(new Text(StringUtils.leftPad(Integer.toString(2 * (i - 1)), 2, '0'))); // --, 02, 04, ...
     }
@@ -84,7 +85,7 @@ public class AccumuloBugTest extends AccumuloTestBase {
 
     IteratorSetting itset = RemoteSourceIterator.iteratorSetting(
         25, connector.getInstance().getZooKeepers(), 5000, connector.getInstance().getInstanceName(),
-        tA, connector.whoami(), new String(tester.getPassword().getPassword()), Authorizations.EMPTY, null, null,
+        tA, connector.whoami(), new String(tester.getPassword().getPassword(), StandardCharsets.UTF_8), Authorizations.EMPTY, null, null,
         false, null);
 
     BatchScanner bs = connector.createBatchScanner(tA, Authorizations.EMPTY, numtablets); // scan every tablet
@@ -132,9 +133,9 @@ public class AccumuloBugTest extends AccumuloTestBase {
       for (int i = 0; i < 2000005; i++) {
         StringBuilder sb = new StringBuilder(Integer.toString(i));
         String vStr = sb.toString();
-        byte[] v = vStr.getBytes();
+        byte[] v = vStr.getBytes(StandardCharsets.UTF_8);
         String rowStr = sb.reverse().toString();
-        byte[] row = rowStr.getBytes();
+        byte[] row = rowStr.getBytes(StandardCharsets.UTF_8);
 
         Mutation m = new Mutation(row);
         long ts = System.currentTimeMillis();
@@ -148,7 +149,7 @@ public class AccumuloBugTest extends AccumuloTestBase {
         }
 //        if (i % 200000 == 0) {
 //          SortedSet<Text> splits = new TreeSet<>();
-//          splits.add(new Text(Integer.toString(i/50000).getBytes()));
+//          splits.add(new Text(Integer.toString(i/50000).getBytes(StandardCharsets.UTF_8)));
 //          tops.addSplits(t, splits);
 //        }
       }

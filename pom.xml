@@ -481,6 +481,12 @@
         <!--<scope>runtime</scope>-->
       <!--</dependency>-->
 
+      <dependency>
+        <groupId>com.googlecode.matrix-toolkits-java</groupId>
+        <artifactId>mtj</artifactId>
+        <version>1.0.4</version>
+      </dependency>
+
     </dependencies>
 
 </project>

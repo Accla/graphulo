@@ -25,6 +25,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -59,19 +60,19 @@ public class TableMultIteratorTest extends AccumuloTestBase {
     final String tableNameA = names[0];
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("C1", "", "A1"), new Value("2".getBytes()));
-      input.put(new Key("C2", "", "A1"), new Value("2".getBytes()));
-      input.put(new Key("C1", "", "A2"), new Value("2".getBytes()));
+      input.put(new Key("C1", "", "A1"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("C2", "", "A1"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("C1", "", "A2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
       TestUtil.createTestTable(conn, tableNameA, null, input);
     }
 
     final String tableNameBT = names[1];
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("C2", "", "B1"), new Value("3".getBytes()));
-      input.put(new Key("C3", "", "B1"), new Value("3".getBytes()));
-      input.put(new Key("C1", "", "B2"), new Value("3".getBytes()));
-      input.put(new Key("C2", "", "B2"), new Value("3".getBytes()));
+      input.put(new Key("C2", "", "B1"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("C3", "", "B1"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("C1", "", "B2"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("C2", "", "B2"), new Value("3".getBytes(StandardCharsets.UTF_8)));
       TestUtil.createTestTable(conn, tableNameBT, null, input);
     }
 
@@ -84,12 +85,12 @@ public class TableMultIteratorTest extends AccumuloTestBase {
     itprops.put("AT.tableName", tableNameA);
     itprops.put("AT.zookeeperHost", conn.getInstance().getZooKeepers());
     itprops.put("AT.username", tester.getUsername());
-    itprops.put("AT.password", new String(tester.getPassword().getPassword()));
+    itprops.put("AT.password", new String(tester.getPassword().getPassword(), StandardCharsets.UTF_8));
     itprops.put("B.instanceName", conn.getInstance().getInstanceName());
     itprops.put("B.tableName", tableNameBT);
     itprops.put("B.zookeeperHost", conn.getInstance().getZooKeepers());
     itprops.put("B.username", tester.getUsername());
-    itprops.put("B.password", new String(tester.getPassword().getPassword()));
+    itprops.put("B.password", new String(tester.getPassword().getPassword(), StandardCharsets.UTF_8));
     itprops.put("dotmode", TwoTableIterator.DOTMODE.ROW.name());
     IteratorSetting itset = new IteratorSetting(25, TwoTableIterator.class, itprops);
     scanner.addScanIterator(itset);
@@ -102,10 +103,10 @@ public class TableMultIteratorTest extends AccumuloTestBase {
 //        conn.tableOperations().compact(tableNameC, null, null, listset, true, true); // block
 
     Map<Key, Value> expect = new HashMap<>();
-    expect.put(new Key("A1", "", "B2"), new Value("6".getBytes()));
-    expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
-    expect.put(new Key("A1", "", "B2"), new Value("6".getBytes()));
-    expect.put(new Key("A2", "", "B2"), new Value("6".getBytes()));
+    expect.put(new Key("A1", "", "B2"), new Value("6".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("A1", "", "B1"), new Value("6".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("A1", "", "B2"), new Value("6".getBytes(StandardCharsets.UTF_8)));
+    expect.put(new Key("A2", "", "B2"), new Value("6".getBytes(StandardCharsets.UTF_8)));
     Map<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
 
     log.debug("Results of scan on table " + tableNameC + " with A=" + tableNameA + " and BT=" + tableNameBT + ':');
@@ -122,7 +123,7 @@ public class TableMultIteratorTest extends AccumuloTestBase {
 //    TestUtil.createTestTable(conn, tableNameC, null);
     scanner = conn.createScanner(tableNameC, Authorizations.EMPTY);
     expect = new HashMap<>();
-    expect.put(new Key("A1", "", "B1"), new Value("6".getBytes()));
+    expect.put(new Key("A1", "", "B1"), new Value("6".getBytes(StandardCharsets.UTF_8)));
     actual.clear();
 
     IteratorSetting itsetFilter = new IteratorSetting(1, ColumnSliceFilter.class);
@@ -164,9 +165,9 @@ public class TableMultIteratorTest extends AccumuloTestBase {
     final String tableNameAT = tablePrefix + "AT";
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("A1", "", "C1"), new Value("2".getBytes()));
-      input.put(new Key("A1", "", "C2"), new Value("2".getBytes()));
-      input.put(new Key("A2", "", "C1"), new Value("2".getBytes()));
+      input.put(new Key("A1", "", "C1"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A1", "", "C2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("A2", "", "C1"), new Value("2".getBytes(StandardCharsets.UTF_8)));
       input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tableNameAT, null, input);
     }
@@ -177,10 +178,10 @@ public class TableMultIteratorTest extends AccumuloTestBase {
     final String tableNameB = tablePrefix + "B";
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("B1", "", "C2"), new Value("3".getBytes()));
-      input.put(new Key("B1", "", "C3"), new Value("3".getBytes()));
-      input.put(new Key("B2", "", "C1"), new Value("3".getBytes()));
-      input.put(new Key("B2", "", "C2"), new Value("3".getBytes()));
+      input.put(new Key("B1", "", "C2"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("B1", "", "C3"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("B2", "", "C1"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("B2", "", "C2"), new Value("3".getBytes(StandardCharsets.UTF_8)));
       input = GraphuloUtil.transposeMap(input);
       TestUtil.createTestTable(conn, tableNameB, null, input);
     }
@@ -188,7 +189,7 @@ public class TableMultIteratorTest extends AccumuloTestBase {
     final String tableNameC = tablePrefix + "C";
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("A1", "", "B1"), new Value("1".getBytes()));
+      input.put(new Key("A1", "", "B1"), new Value("1".getBytes(StandardCharsets.UTF_8)));
       TestUtil.createTestTable(conn, tableNameC, splitSet, input);
       Map<String, String> optSum = new HashMap<>();
       optSum.put("all", "true");
@@ -207,7 +208,7 @@ public class TableMultIteratorTest extends AccumuloTestBase {
       itprops.put("AT.tableName", tableNameAT);
       itprops.put("AT.zookeeperHost", conn.getInstance().getZooKeepers());
       itprops.put("AT.username", tester.getUsername());
-      itprops.put("AT.password", new String(tester.getPassword().getPassword()));
+      itprops.put("AT.password", new String(tester.getPassword().getPassword(), StandardCharsets.UTF_8));
 //            itprops.put("B.instanceName",conn.getInstance().getInstanceName());
 //            itprops.put("B.tableName",tableNameB);
 //            itprops.put("B.zookeeperHost",conn.getInstance().getZooKeepers());
@@ -246,7 +247,7 @@ public class TableMultIteratorTest extends AccumuloTestBase {
       itprops.put("AT.tableName", tableNameAT);
       itprops.put("AT.zookeeperHost", conn.getInstance().getZooKeepers());
       itprops.put("AT.username", tester.getUsername());
-      itprops.put("AT.password", new String(tester.getPassword().getPassword()));
+      itprops.put("AT.password", new String(tester.getPassword().getPassword(), StandardCharsets.UTF_8));
 //            itprops.put("B.instanceName",conn.getInstance().getInstanceName());
 //            itprops.put("B.tableName",tableNameB);
 //            itprops.put("B.zookeeperHost",conn.getInstance().getZooKeepers());
@@ -295,12 +296,12 @@ public class TableMultIteratorTest extends AccumuloTestBase {
       itprops.put("AT.tableName", tableNameAT);
       itprops.put("AT.zookeeperHost", conn.getInstance().getZooKeepers());
       itprops.put("AT.username", tester.getUsername());
-      itprops.put("AT.password", new String(tester.getPassword().getPassword()));
+      itprops.put("AT.password", new String(tester.getPassword().getPassword(), StandardCharsets.UTF_8));
       itprops.put("C.instanceName", conn.getInstance().getInstanceName());
       itprops.put("C.tableName", tableNameC);
       itprops.put("C.zookeeperHost", conn.getInstance().getZooKeepers());
       itprops.put("C.username", tester.getUsername());
-      itprops.put("C.password", new String(tester.getPassword().getPassword()));
+      itprops.put("C.password", new String(tester.getPassword().getPassword(), StandardCharsets.UTF_8));
       itprops.put("C.numEntriesCheckpoint", "1");
       itprops.put("dotmode",TwoTableIterator.DOTMODE.ROW.name());
       IteratorSetting itset = GraphuloUtil.tableMultIterator(itprops, 15, null);
@@ -311,9 +312,9 @@ public class TableMultIteratorTest extends AccumuloTestBase {
       scannerB.close();
 
       Map<Key, Value> expect = new HashMap<>();
-      expect.put(new Key("A1", "", "B1"), new Value("7".getBytes()));
-      expect.put(new Key("A1", "", "B2"), new Value("12".getBytes()));
-      expect.put(new Key("A2", "", "B2"), new Value("6".getBytes()));
+      expect.put(new Key("A1", "", "B1"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("A1", "", "B2"), new Value("12".getBytes(StandardCharsets.UTF_8)));
+      expect.put(new Key("A2", "", "B2"), new Value("6".getBytes(StandardCharsets.UTF_8)));
 
       Scanner scannerC = conn.createScanner(tableNameC, Authorizations.EMPTY);
       //scannerC.addScanIterator(new IteratorSetting(16, DebugInfoIterator.class, Collections.<String,String>emptyMap()));

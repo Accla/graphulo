@@ -21,6 +21,10 @@ public class RangeSet {
     targetRanges = new TreeSet<>(Range.mergeOverlapping(new TreeSet<>(ranges)));
   }
 
+  public int size() {
+    return targetRanges.size();
+  }
+
   /** Iterate over target ranges in order, masked by seekRange.
    * Only iterates over target ranges that intersect the seekRange. */
   public PeekingIterator1<Range> iteratorWithRangeMask(Range seekRange) {

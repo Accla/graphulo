@@ -19,9 +19,9 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,18 +35,35 @@ import java.util.TreeSet;
 public class AlgorithmTest extends AccumuloTestBase {
   private static final Logger log = LogManager.getLogger(AlgorithmTest.class);
 
+  private enum KTrussAdjAlg { Normal, Fused, Client_Sparse, Client_Dense, Smart }
+
   @Test
-  public void testkTrussAdj_Normal() throws TableNotFoundException, AccumuloSecurityException, AccumuloException, InterruptedException {
-    testkTrussAdj_Inner(false);
+  public void testkTrussAdj_Normal() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    testkTrussAdj_Inner(KTrussAdjAlg.Normal);
   }
 
   @Test
-  public void testkTrussAdj_Fused() throws TableNotFoundException, AccumuloSecurityException, AccumuloException, InterruptedException {
-    testkTrussAdj_Inner(true);
+  public void testkTrussAdj_Fused() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    testkTrussAdj_Inner(KTrussAdjAlg.Fused);
+  }
+
+  @Test
+  public void testkTrussAdj_Client_Dense() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    testkTrussAdj_Inner(KTrussAdjAlg.Client_Dense);
+  }
+
+  @Test
+  public void testkTrussAdj_Client_Sparse() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    testkTrussAdj_Inner(KTrussAdjAlg.Client_Sparse);
+  }
+
+  @Test
+  public void testkTrussAdj_Smart() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    testkTrussAdj_Inner(KTrussAdjAlg.Smart);
   }
 
 
-  private void testkTrussAdj_Inner(boolean fuse) throws TableNotFoundException, AccumuloSecurityException, AccumuloException, InterruptedException {
+  private void testkTrussAdj_Inner(KTrussAdjAlg alg) throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
     Connector conn = tester.getConnector();
     final String tA, tR;
     {
@@ -59,24 +76,40 @@ public class AlgorithmTest extends AccumuloTestBase {
         actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v1", "", "v2"), new Value("1".getBytes()));
-      input.put(new Key("v1", "", "v3"), new Value("1".getBytes()));
-      input.put(new Key("v1", "", "v4"), new Value("1".getBytes()));
-      input.put(new Key("v2", "", "v3"), new Value("1".getBytes()));
-      input.put(new Key("v3", "", "v4"), new Value("1".getBytes()));
+      input.put(new Key("v1", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "v3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "v4"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "v3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v3", "", "v4"), new Value("1".getBytes(StandardCharsets.UTF_8)));
       input.putAll(GraphuloUtil.transposeMap(input));
       expect.putAll(input);
-      input.put(new Key("v2", "", "v5"), new Value("1".getBytes()));
-      input.put(new Key("v5", "", "v2"), new Value("1".getBytes()));
+      input.put(new Key("v2", "", "v5"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v5", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
     }
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      long nnzkTruss = fuse
-          ? graphulo.kTrussAdj_Fused(tA, tR, 3, null, true, Authorizations.EMPTY, "")
-          : graphulo.kTrussAdj(tA, tR, 3, null, true, Authorizations.EMPTY, "");
+      long nnzkTruss;
+      switch(alg) {
+        case Normal:
+          nnzkTruss = graphulo.kTrussAdj(tA, tR, 3, null, true, Authorizations.EMPTY, "");
+          break;
+        case Fused:
+          nnzkTruss = graphulo.kTrussAdj_Fused(tA, tR, 3, null, true, Authorizations.EMPTY, "");
+          break;
+        case Client_Sparse:
+          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 3, null, Authorizations.EMPTY, "", true, Integer.MAX_VALUE);
+          break;
+        case Client_Dense:
+          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 3, null, Authorizations.EMPTY, "", false, Integer.MAX_VALUE);
+          break;
+        case Smart:
+          nnzkTruss = graphulo.kTrussAdj_Smart(tA, tR, 3, null, true, Authorizations.EMPTY, "", Integer.MAX_VALUE, null);
+          break;
+        default: throw new AssertionError();
+      }
       log.info("3-Truss has " + nnzkTruss + " nnz");
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -85,9 +118,7 @@ public class AlgorithmTest extends AccumuloTestBase {
         actual.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
-      if (fuse)
-        System.out.println("3-Truss nnz fused is "+nnzkTruss);
-      else
+      if (alg == KTrussAdjAlg.Normal)
         Assert.assertEquals(10, nnzkTruss);
       Assert.assertEquals(expect, actual);
     }
@@ -96,17 +127,33 @@ public class AlgorithmTest extends AccumuloTestBase {
     // Now test 4-truss
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v2", "", "v4"), new Value("1".getBytes()));
-      input.put(new Key("v4", "", "v2"), new Value("1".getBytes()));
+      input.put(new Key("v2", "", "v4"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v4", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
       expect.putAll(input);
       GraphuloUtil.writeEntries(conn, input, tA, false);
 //      Thread.sleep(200);
     }
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      long nnzkTruss = fuse
-          ? graphulo.kTrussAdj_Fused(tA, tR, 4, null, true, Authorizations.EMPTY, "")
-          : graphulo.kTrussAdj(tA, tR, 4, null, true, Authorizations.EMPTY, "");
+      long nnzkTruss;
+      switch(alg) {
+        case Normal:
+          nnzkTruss = graphulo.kTrussAdj(tA, tR, 4, null, true, Authorizations.EMPTY, "");
+          break;
+        case Fused:
+          nnzkTruss = graphulo.kTrussAdj_Fused(tA, tR, 4, null, true, Authorizations.EMPTY, "");
+          break;
+        case Client_Sparse:
+          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 4, null, Authorizations.EMPTY, "", true, Integer.MAX_VALUE);
+          break;
+        case Client_Dense:
+          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 4, null, Authorizations.EMPTY, "", false, Integer.MAX_VALUE);
+          break;
+        case Smart:
+          nnzkTruss = graphulo.kTrussAdj_Smart(tA, tR, 4, null, true, Authorizations.EMPTY, "", Integer.MAX_VALUE, null);
+          break;
+        default: throw new AssertionError();
+      }
       log.info("4-Truss has " + nnzkTruss + " nnz");
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -115,9 +162,7 @@ public class AlgorithmTest extends AccumuloTestBase {
         actual.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
-      if (fuse)
-        System.out.println("4-Truss nnz fused is "+nnzkTruss);
-      else
+      if (alg == KTrussAdjAlg.Normal)
         Assert.assertEquals(12, nnzkTruss);
       Assert.assertEquals(expect, actual);
     }
@@ -127,9 +172,25 @@ public class AlgorithmTest extends AccumuloTestBase {
     {
       Graphulo graphulo = new Graphulo(conn, tester.getPassword());
       String filterRowCol = "v1,:,v4,";
-      long nnzkTruss = fuse
-          ? graphulo.kTrussAdj_Fused(tA, tR, 4, filterRowCol, true, Authorizations.EMPTY, "")
-          : graphulo.kTrussAdj(tA, tR, 4, filterRowCol, true, Authorizations.EMPTY, "");
+      long nnzkTruss;
+      switch(alg) {
+        case Normal:
+          nnzkTruss = graphulo.kTrussAdj(tA, tR, 4, filterRowCol, true, Authorizations.EMPTY, "");
+          break;
+        case Fused:
+          nnzkTruss = graphulo.kTrussAdj_Fused(tA, tR, 4, filterRowCol, true, Authorizations.EMPTY, "");
+          break;
+        case Client_Sparse:
+          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 4, filterRowCol, Authorizations.EMPTY, "", true, Integer.MAX_VALUE);
+          break;
+        case Client_Dense:
+          nnzkTruss = graphulo.kTrussAdj_Client(tA, tR, 4, filterRowCol, Authorizations.EMPTY, "", false, Integer.MAX_VALUE);
+          break;
+        case Smart:
+          nnzkTruss = graphulo.kTrussAdj_Smart(tA, tR, 4, null, true, Authorizations.EMPTY, "", Integer.MAX_VALUE, null);
+          break;
+        default: throw new AssertionError();
+      }
       log.info("4-Truss has " + nnzkTruss + " nnz");
 
       BatchScanner scanner = conn.createBatchScanner(tR, Authorizations.EMPTY, 2);
@@ -138,9 +199,7 @@ public class AlgorithmTest extends AccumuloTestBase {
         actual.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
-      if (fuse)
-        System.out.println("4-Truss nnz fused is "+nnzkTruss);
-      else
+      if (alg == KTrussAdjAlg.Normal)
         Assert.assertEquals(12, nnzkTruss);
       Assert.assertEquals(expect, actual);
 
@@ -152,9 +211,7 @@ public class AlgorithmTest extends AccumuloTestBase {
         actual.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
-      if (fuse)
-        System.out.println("4-Truss nnz fused is "+nnzkTruss);
-      else
+      if (alg == KTrussAdjAlg.Normal)
         Assert.assertEquals(12, nnzkTruss);
       Assert.assertEquals(expect, actual);
     }
@@ -183,20 +240,20 @@ public class AlgorithmTest extends AccumuloTestBase {
         actualTranspose = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("e1", "", "v1"), new Value("1".getBytes()));
-      input.put(new Key("e1", "", "v2"), new Value("1".getBytes()));
-      input.put(new Key("e2", "", "v2"), new Value("1".getBytes()));
-      input.put(new Key("e2", "", "v3"), new Value("1".getBytes()));
-      input.put(new Key("e3", "", "v1"), new Value("1".getBytes()));
-      input.put(new Key("e3", "", "v4"), new Value("1".getBytes()));
-      input.put(new Key("e4", "", "v3"), new Value("1".getBytes()));
-      input.put(new Key("e4", "", "v4"), new Value("1".getBytes()));
-      input.put(new Key("e5", "", "v1"), new Value("1".getBytes()));
-      input.put(new Key("e5", "", "v3"), new Value("1".getBytes()));
+      input.put(new Key("e1", "", "v1"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e1", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e2", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e2", "", "v3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e3", "", "v1"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e3", "", "v4"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e4", "", "v3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e4", "", "v4"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e5", "", "v1"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e5", "", "v3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
       expect.putAll(input);
       expectTranspose.putAll(GraphuloUtil.transposeMap(expect));
-      input.put(new Key("e6", "", "v2"), new Value("1".getBytes()));
-      input.put(new Key("e6", "", "v5"), new Value("1".getBytes()));
+      input.put(new Key("e6", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e6", "", "v5"), new Value("1".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("e22"));
       TestUtil.createTestTable(conn, tE, splits, input);
@@ -231,8 +288,8 @@ public class AlgorithmTest extends AccumuloTestBase {
     // Now test 4-truss
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("e7", "", "v4"), new Value("1".getBytes()));
-      input.put(new Key("e7", "", "v2"), new Value("1".getBytes()));
+      input.put(new Key("e7", "", "v4"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e7", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
       expect.putAll(input);
       GraphuloUtil.writeEntries(conn, input, tE, false);
       Map<Key, Value> inputTranspose = GraphuloUtil.transposeMap(input);
@@ -268,8 +325,19 @@ public class AlgorithmTest extends AccumuloTestBase {
     conn.tableOperations().delete(tRT);
   }
 
+  private enum JaccardAlg { Normal, Client }
+
   @Test
-  public void testJaccard() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+  public void testJaccard_Normal() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    testJaccard_Inner(JaccardAlg.Normal);
+  }
+
+  @Test
+  public void testJaccard_Client() throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    testJaccard_Inner(JaccardAlg.Client);
+  }
+
+  public void testJaccard_Inner(JaccardAlg jalg) throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
     Connector conn = tester.getConnector();
     final String tA, tADeg, tR;
     {
@@ -283,24 +351,24 @@ public class AlgorithmTest extends AccumuloTestBase {
         actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("v1", "", "v2"), new Value("1".getBytes()));
-      input.put(new Key("v1", "", "v3"), new Value("1".getBytes()));
-      input.put(new Key("v1", "", "v4"), new Value("1".getBytes()));
-      input.put(new Key("v2", "", "v3"), new Value("1".getBytes()));
-      input.put(new Key("v3", "", "v4"), new Value("1".getBytes()));
+      input.put(new Key("v1", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "v3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v1", "", "v4"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "v3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v3", "", "v4"), new Value("1".getBytes(StandardCharsets.UTF_8)));
       input.putAll(GraphuloUtil.transposeMap(input));
-      input.put(new Key("v2", "", "v5"), new Value("1".getBytes()));
-      input.put(new Key("v5", "", "v2"), new Value("1".getBytes()));
+      input.put(new Key("v2", "", "v5"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v5", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v15"));
       TestUtil.createTestTable(conn, tA, splits, input);
 
       input.clear();
-      input.put(new Key("v1", "", "deg"), new Value("3".getBytes()));
-      input.put(new Key("v2", "", "deg"), new Value("3".getBytes()));
-      input.put(new Key("v3", "", "deg"), new Value("3".getBytes()));
-      input.put(new Key("v4", "", "deg"), new Value("2".getBytes()));
-      input.put(new Key("v5", "", "deg"), new Value("1".getBytes()));
+      input.put(new Key("v1", "", "deg"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v2", "", "deg"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v3", "", "deg"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v4", "", "deg"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("v5", "", "deg"), new Value("1".getBytes(StandardCharsets.UTF_8)));
       TestUtil.createTestTable(conn, tADeg, splits, input);
 
       expect.put(new Key("v1", "", "v2"), 0.2);
@@ -314,7 +382,17 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
 
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-    long npp = graphulo.Jaccard(tA, tADeg, tR, null, Authorizations.EMPTY, "");
+    long npp;
+    switch (jalg) {
+      case Normal:
+        npp = graphulo.Jaccard(tA, tADeg, tR, null, Authorizations.EMPTY, "");
+        break;
+      case Client:
+        npp = graphulo.Jaccard_Client(tA, tR, null, Authorizations.EMPTY, "");
+        break;
+      default:
+        throw new AssertionError("jalg: "+jalg);
+    }
     log.info("Jaccard table has "+npp+" #partial products sent to "+tR);
 
     // Just for fun, let's compact and ensure idempotence.
@@ -328,7 +406,14 @@ public class AlgorithmTest extends AccumuloTestBase {
     scanner.close();
     System.out.println("Jaccard test:");
     TestUtil.printExpectActual(expect, actual);
-    Assert.assertEquals(10, npp);
+    switch (jalg) {
+      case Normal:
+        Assert.assertEquals(10, npp);
+        break;
+      case Client:
+        Assert.assertEquals(8, npp);
+        break;
+    }
     // need to be careful about comparing doubles
     for (Map.Entry<Key, Double> actualEntry : actual.entrySet()) {
       double actualValue = actualEntry.getValue();
@@ -360,18 +445,18 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("e1", "", "v1"), new Value("1".getBytes()));
-      input.put(new Key("e1", "", "v2"), new Value("1".getBytes()));
-      input.put(new Key("e2", "", "v2"), new Value("1".getBytes()));
-      input.put(new Key("e2", "", "v3"), new Value("1".getBytes()));
-      input.put(new Key("e3", "", "v1"), new Value("1".getBytes()));
-      input.put(new Key("e3", "", "v4"), new Value("1".getBytes()));
-      input.put(new Key("e4", "", "v3"), new Value("1".getBytes()));
-      input.put(new Key("e4", "", "v4"), new Value("1".getBytes()));
-      input.put(new Key("e5", "", "v1"), new Value("1".getBytes()));
-      input.put(new Key("e5", "", "v3"), new Value("1".getBytes()));
-      input.put(new Key("e6", "", "v2"), new Value("1".getBytes()));
-      input.put(new Key("e6", "", "v5"), new Value("1".getBytes()));
+      input.put(new Key("e1", "", "v1"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e1", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e2", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e2", "", "v3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e3", "", "v1"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e3", "", "v4"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e4", "", "v3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e4", "", "v4"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e5", "", "v1"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e5", "", "v3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e6", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e6", "", "v5"), new Value("1".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("e22"));
       TestUtil.createTestTable(conn, tE, splits, input);
@@ -459,18 +544,18 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("e1", "", "v1"), new Value("1".getBytes()));
-      input.put(new Key("e1", "", "v2"), new Value("1".getBytes()));
-      input.put(new Key("e2", "", "v2"), new Value("1".getBytes()));
-      input.put(new Key("e2", "", "v3"), new Value("1".getBytes()));
-      input.put(new Key("e3", "", "v1"), new Value("1".getBytes()));
-      input.put(new Key("e3", "", "v4"), new Value("1".getBytes()));
-      input.put(new Key("e4", "", "v3"), new Value("1".getBytes()));
-      input.put(new Key("e4", "", "v4"), new Value("1".getBytes()));
-      input.put(new Key("e5", "", "v1"), new Value("1".getBytes()));
-      input.put(new Key("e5", "", "v3"), new Value("1".getBytes()));
-      input.put(new Key("e6", "", "v2"), new Value("1".getBytes()));
-      input.put(new Key("e6", "", "v5"), new Value("1".getBytes()));
+      input.put(new Key("e1", "", "v1"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e1", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e2", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e2", "", "v3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e3", "", "v1"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e3", "", "v4"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e4", "", "v3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e4", "", "v4"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e5", "", "v1"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e5", "", "v3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e6", "", "v2"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e6", "", "v5"), new Value("1".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("e22"));
       TestUtil.createTestTable(conn, tE, splits, input);
@@ -562,28 +647,28 @@ public class AlgorithmTest extends AccumuloTestBase {
         actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
     Map<Key, Value> input = new HashMap<>(), indeg = new HashMap<>();
     {
-      input.put(new Key("e1", "", "v1"), new Value("7".getBytes()));
-      input.put(new Key("e1", "", "v2"), new Value("6".getBytes()));
-      input.put(new Key("e2", "", "v1"), new Value("2".getBytes()));
-      input.put(new Key("e2", "", "v3"), new Value("6".getBytes()));
-      input.put(new Key("e3", "", "v1"), new Value("3".getBytes()));
-      input.put(new Key("e3", "", "v5"), new Value("1".getBytes()));
-      input.put(new Key("e4", "", "v2"), new Value("2".getBytes()));
-      input.put(new Key("e5", "", "v4"), new Value("9".getBytes()));
-      input.put(new Key("e5", "", "v5"), new Value("1".getBytes()));
-      input.put(new Key("e6", "", "v1"), new Value("2".getBytes()));
-      input.put(new Key("e6", "", "v3"), new Value("1".getBytes()));
-      input.put(new Key("e6", "", "v4"), new Value("4".getBytes()));
+      input.put(new Key("e1", "", "v1"), new Value("7".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e1", "", "v2"), new Value("6".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e2", "", "v1"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e2", "", "v3"), new Value("6".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e3", "", "v1"), new Value("3".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e3", "", "v5"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e4", "", "v2"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e5", "", "v4"), new Value("9".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e5", "", "v5"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e6", "", "v1"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e6", "", "v3"), new Value("1".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("e6", "", "v4"), new Value("4".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("v22"));
       TestUtil.createTestTable(conn, tET, splits, GraphuloUtil.transposeMap(input));
 
-      indeg.put(new Key("e1", "", "Degree"), new Value("13".getBytes()));
-      indeg.put(new Key("e2", "", "Degree"), new Value("8".getBytes()));
-      indeg.put(new Key("e3", "", "Degree"), new Value("4".getBytes()));
-      indeg.put(new Key("e4", "", "Degree"), new Value("2".getBytes()));
-      indeg.put(new Key("e5", "", "Degree"), new Value("10".getBytes()));
-      indeg.put(new Key("e6", "", "Degree"), new Value("7".getBytes()));
+      indeg.put(new Key("e1", "", "Degree"), new Value("13".getBytes(StandardCharsets.UTF_8)));
+      indeg.put(new Key("e2", "", "Degree"), new Value("8".getBytes(StandardCharsets.UTF_8)));
+      indeg.put(new Key("e3", "", "Degree"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      indeg.put(new Key("e4", "", "Degree"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      indeg.put(new Key("e5", "", "Degree"), new Value("10".getBytes(StandardCharsets.UTF_8)));
+      indeg.put(new Key("e6", "", "Degree"), new Value("7".getBytes(StandardCharsets.UTF_8)));
       TestUtil.createTestTable(conn, tEDeg, null, indeg);
 
       expect.put(new Key("e1", "", "v1"), 0.4246);

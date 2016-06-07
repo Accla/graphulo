@@ -19,6 +19,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import static edu.mit.ll.graphulo_ndsi.NDSIGraphulo.PADSIZE_LATLON;
 
@@ -107,8 +108,8 @@ public class NDSIIngester {
     Text latText = new Text(latitude);
 
     Mutation m = new Mutation(longText);
-    m.put(COLF_NDSI, latText, new Value(ndsi.getBytes()));
-    m.put(COLF_LSM, latText, new Value(land_sea_mask.getBytes()));
+    m.put(COLF_NDSI, latText, new Value(ndsi.getBytes(StandardCharsets.UTF_8)));
+    m.put(COLF_LSM, latText, new Value(land_sea_mask.getBytes(StandardCharsets.UTF_8)));
     bw.addMutation(m);
 
     return 2;

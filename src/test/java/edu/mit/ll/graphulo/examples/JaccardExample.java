@@ -23,6 +23,7 @@ import org.apache.log4j.Logger;
 import org.junit.Test;
 
 import java.io.FileNotFoundException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
 
@@ -75,7 +76,7 @@ public class JaccardExample extends AccumuloTestBase {
     String v0 = "2,4,6,8,15,25,37,42,69,150,155,";
     // Iterator on new table forces Values to 1, creating an unweighted adj. table.
     IteratorSetting itset = ConstantTwoScalar.iteratorSetting(
-        Graphulo.PLUS_ITERATOR_BIGDECIMAL.getPriority(), new Value("1".getBytes()));
+        Graphulo.PLUS_ITERATOR_BIGDECIMAL.getPriority(), new Value("1".getBytes(StandardCharsets.UTF_8)));
 
     String nodesReached = graphulo.AdjBFS(Atable, v0, 1, AtableSub, AtableSub, null, -1,
         ADegtable, "out", false, 1, 75, itset);

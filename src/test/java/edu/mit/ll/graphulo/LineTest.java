@@ -23,6 +23,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -58,8 +59,8 @@ public class LineTest extends AccumuloTestBase {
 
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("a", "", "b"), new Value("2".getBytes()));
-      input.put(new Key("b", "", "c"), new Value("4".getBytes()));
+      input.put(new Key("a", "", "b"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("b", "", "c"), new Value("4".getBytes(StandardCharsets.UTF_8)));
       input.putAll(GraphuloUtil.transposeMap(input)); // undirected example
       SortedSet<Text> splits = new TreeSet<>();
 //      splits.add(new Text("b"));
@@ -70,7 +71,7 @@ public class LineTest extends AccumuloTestBase {
     }
 
     {
-      expect.put(new Key("a|b", "", "b|c"), new Value("3.0".getBytes()));
+      expect.put(new Key("a|b", "", "b|c"), new Value("3.0".getBytes(StandardCharsets.UTF_8)));
       expect.putAll(GraphuloUtil.transposeMap(expect));
       expectTranspose.putAll(GraphuloUtil.transposeMap(expect));
     }
@@ -138,8 +139,8 @@ public class LineTest extends AccumuloTestBase {
 
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("a", "", "b"), new Value("2".getBytes()));
-      input.put(new Key("b", "", "c"), new Value("4".getBytes()));
+      input.put(new Key("a", "", "b"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("b", "", "c"), new Value("4".getBytes(StandardCharsets.UTF_8)));
       SortedSet<Text> splits = new TreeSet<>();
 //      splits.add(new Text("b"));
       TestUtil.createTestTable(conn, tA, splits, input);
@@ -149,7 +150,7 @@ public class LineTest extends AccumuloTestBase {
     }
 
     {
-      expect.put(new Key("a|b", "", "b|c"), new Value("2.0".getBytes()));
+      expect.put(new Key("a|b", "", "b|c"), new Value("2.0".getBytes(StandardCharsets.UTF_8)));
       expectTranspose.putAll(GraphuloUtil.transposeMap(expect));
     }
 
@@ -240,11 +241,11 @@ public class LineTest extends AccumuloTestBase {
 
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("a", "", "c"), new Value("2".getBytes()));
-      input.put(new Key("b", "", "c"), new Value("4".getBytes()));
-      input.put(new Key("c", "", "d"), new Value("6".getBytes()));
-      input.put(new Key("c", "", "e"), new Value("8".getBytes()));
-      input.put(new Key("c", "", "f"), new Value("10".getBytes()));
+      input.put(new Key("a", "", "c"), new Value("2".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("b", "", "c"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("c", "", "d"), new Value("6".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("c", "", "e"), new Value("8".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("c", "", "f"), new Value("10".getBytes(StandardCharsets.UTF_8)));
 
       SortedSet<Text> splits = new TreeSet<>();
 //      splits.add(new Text("b"));
@@ -373,11 +374,11 @@ public class LineTest extends AccumuloTestBase {
 
     {
       Map<Key, Value> input = new HashMap<>();
-      input.put(new Key("a", "", "b"), new Value("4".getBytes()));
-      input.put(new Key("a", "", "e"), new Value("10".getBytes()));
-      input.put(new Key("b", "", "c"), new Value("5".getBytes()));
-      input.put(new Key("b", "", "d"), new Value("6".getBytes()));
-      input.put(new Key("c", "", "d"), new Value("3".getBytes()));
+      input.put(new Key("a", "", "b"), new Value("4".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("a", "", "e"), new Value("10".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("b", "", "c"), new Value("5".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("b", "", "d"), new Value("6".getBytes(StandardCharsets.UTF_8)));
+      input.put(new Key("c", "", "d"), new Value("3".getBytes(StandardCharsets.UTF_8)));
       input.putAll(GraphuloUtil.transposeMap(input)); // undirected example
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("b"));

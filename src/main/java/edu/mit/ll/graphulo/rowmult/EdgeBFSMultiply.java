@@ -65,7 +65,7 @@ public class EdgeBFSMultiply implements MultiplyOp, Iterator<Map.Entry<Key,Value
       Value ATval, Value Bval) {
     // maybe todo: check whether ATcolQ is of the form "out|v0"
 //    if (ATcolQ.length() < outColumnPrefix.getLength() ||
-//        0 != WritableComparator.compareBytes(ATcolQ.toArray(), 0, outColumnPrefix.getLength(), outColumnPrefix.getBytes(), 0, outColumnPrefix.getLength())) {
+//        0 != WritableComparator.compareBytes(ATcolQ.toArray(), 0, outColumnPrefix.getLength(), outColumnPrefix.getBytes(StandardCharsets.UTF_8), 0, outColumnPrefix.getLength())) {
 //      emitKeyFirst = emitKeySecond = null;
 //      return;
 //    }

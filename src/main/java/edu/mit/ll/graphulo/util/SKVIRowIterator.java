@@ -6,6 +6,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.hadoop.io.Text;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -64,7 +65,7 @@ public class SKVIRowIterator implements Iterator<Map.Entry<Key,Value>> {
    */
   public boolean reuseNextRow() {
     if (matchRow)
-      throw new IllegalStateException("Do not reuse SKVIRowIterator until it finishes the current row: "+new String(row));
+      throw new IllegalStateException("Do not reuse SKVIRowIterator until it finishes the current row: "+new String(row, StandardCharsets.UTF_8));
     if (!skvi.hasTop())
       return false; // cannot reuse; no more rows
     byte[] b = skvi.getTopKey().getRowData().toArray();

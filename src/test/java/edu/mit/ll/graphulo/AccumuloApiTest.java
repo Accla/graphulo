@@ -25,6 +25,7 @@ import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
 import java.util.SortedSet;
@@ -55,7 +56,7 @@ public class AccumuloApiTest extends AccumuloTestBase {
 
     Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
         actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
-    expect.put(new Key("v2", "", "v5"), new Value("1800".getBytes()));
+    expect.put(new Key("v2", "", "v5"), new Value("1800".getBytes(StandardCharsets.UTF_8)));
     IteratorSetting RPlusIteratorSetting = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, null)
         .append(MathTwoScalar.combinerSetting(1, null, MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.LONG_OR_DOUBLE, false))
         .toIteratorSetting();
@@ -66,7 +67,7 @@ public class AccumuloApiTest extends AccumuloTestBase {
     {
       BatchWriter bw = conn.createBatchWriter(tR, new BatchWriterConfig());
       Key k = new Key("v2", "", "v5");
-      Value v = new Value("1".getBytes());
+      Value v = new Value("1".getBytes(StandardCharsets.UTF_8));
       Mutation m;
 
       for (int i = 0; i < 1800; i++) {
@@ -96,7 +97,7 @@ public class AccumuloApiTest extends AccumuloTestBase {
     {
       BatchWriter bw = conn.createBatchWriter(tR, new BatchWriterConfig());
       Key k = new Key("v2", "", "v5");
-      Value v = new Value("1".getBytes());
+      Value v = new Value("1".getBytes(StandardCharsets.UTF_8));
       Mutation m;
 
       for (int i = 0; i < 1800; i++) {
@@ -152,9 +153,9 @@ public class AccumuloApiTest extends AccumuloTestBase {
       for (int i = 0; i < 500005; i++) {
         StringBuilder sb = new StringBuilder(Integer.toString(i));
         String vStr = sb.toString();
-        byte[] v = vStr.getBytes();
+        byte[] v = vStr.getBytes(StandardCharsets.UTF_8);
         String rowStr = sb.reverse().toString();
-        byte[] row = rowStr.getBytes();
+        byte[] row = rowStr.getBytes(StandardCharsets.UTF_8);
 
         Mutation m = new Mutation(row);
         long ts = System.currentTimeMillis();
@@ -168,7 +169,7 @@ public class AccumuloApiTest extends AccumuloTestBase {
         }
         if (i % 200000 == 0) {
           SortedSet<Text> splits = new TreeSet<>();
-          splits.add(new Text(Integer.toString(i/50000).getBytes()));
+          splits.add(new Text(Integer.toString(i/50000).getBytes(StandardCharsets.UTF_8)));
           tops.addSplits(t, splits);
         }
       }

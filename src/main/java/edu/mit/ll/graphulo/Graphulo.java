@@ -34,10 +34,18 @@ import edu.mit.ll.graphulo.skvi.SmallLargeRowFilter;
 import edu.mit.ll.graphulo.skvi.TopColPerRowIterator;
 import edu.mit.ll.graphulo.skvi.TriangularFilter;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
+import edu.mit.ll.graphulo.skvi.ktruss.SmartKTrussFilterIterator;
 import edu.mit.ll.graphulo.util.DebugUtil;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
+import edu.mit.ll.graphulo.util.MTJUtil;
 import edu.mit.ll.graphulo.util.MemMatrixUtil;
 import edu.mit.ll.graphulo.util.SerializationUtil;
+import no.uib.cipr.matrix.DenseMatrix;
+import no.uib.cipr.matrix.DenseVector;
+import no.uib.cipr.matrix.Matrices;
+import no.uib.cipr.matrix.Matrix;
+import no.uib.cipr.matrix.MatrixEntry;
+import no.uib.cipr.matrix.sparse.LinkedSparseMatrix;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -85,6 +93,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static edu.mit.ll.graphulo.skvi.TriangularFilter.TriangularType;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Collections.emptyList;
 
 /**
  * Holds a {@link org.apache.accumulo.core.client.Connector} to an Accumulo instance for calling client Graphulo operations.
@@ -93,7 +103,7 @@ import static edu.mit.ll.graphulo.skvi.TriangularFilter.TriangularType;
  */
 public class Graphulo {
   private static final Logger log = LogManager.getLogger(Graphulo.class);
-  private static final Value VALUE_ONE = new Value("1".getBytes(StandardCharsets.UTF_8));
+  private static final Value VALUE_ONE = new Value("1".getBytes(UTF_8));
 
   public static final int DEFAULT_COMBINER_PRIORITY = 6;
   public static final IteratorSetting PLUS_ITERATOR_BIGDECIMAL =
@@ -528,6 +538,27 @@ public class Graphulo {
                        Reducer reducer, Map<String, String> reducerOpts, // applies at RWI if using RWI; otherwise applies at client. Reducer must be init'ed previously
                        int numEntriesCheckpoint,
                        Authorizations ATauthorizations, Authorizations Bauthorizations) {
+    return TwoTable(ATtable, Btable, Ctable, CTtable, BScanIteratorPriority,
+        dotmode, optsTT, plusOp, rowFilter, colFilterAT, colFilterB, emitNoMatchA, emitNoMatchB,
+        iteratorsBeforeA, iteratorsBeforeB, iteratorsAfterTwoTable, reducer, reducerOpts, numEntriesCheckpoint,
+        ATauthorizations, Bauthorizations, -1);
+  }
+
+  public long TwoTable(String ATtable, String Btable, String Ctable, String CTtable,
+                       int BScanIteratorPriority,
+                       TwoTableIterator.DOTMODE dotmode, Map<String, String> optsTT,
+                       IteratorSetting plusOp, // priority matters
+                       String rowFilter,
+                       String colFilterAT, String colFilterB,
+                       boolean emitNoMatchA, boolean emitNoMatchB,
+                       // RemoteSourceIterator has its own priority for scan-time iterators.
+                       // Could override by "diterPriority" option
+                       List<IteratorSetting> iteratorsBeforeA, List<IteratorSetting> iteratorsBeforeB,
+                       List<IteratorSetting> iteratorsAfterTwoTable, // priority doesn't matter for these three
+                       Reducer reducer, Map<String, String> reducerOpts, // applies at RWI if using RWI; otherwise applies at client. Reducer must be init'ed previously
+                       int numEntriesCheckpoint,
+                       Authorizations ATauthorizations, Authorizations Bauthorizations,
+                       int batchWriterThreads) {
     if (ATtable == null || ATtable.isEmpty())
       throw new IllegalArgumentException("Please specify table AT. Given: " + ATtable);
     if (Btable == null || Btable.isEmpty())
@@ -541,9 +572,9 @@ public class Graphulo {
       throw new UnsupportedOperationException("Could lead to unpredictable results: ATtable=CTtable=" + ATtable);
     if (Btable.equals(CTtable))
       throw new UnsupportedOperationException("Could lead to unpredictable results: Btable=CTtable=" + Btable);
-    if (iteratorsAfterTwoTable == null) iteratorsAfterTwoTable = Collections.emptyList();
-    if (iteratorsBeforeA == null) iteratorsBeforeA = Collections.emptyList();
-    if (iteratorsBeforeB == null) iteratorsBeforeB = Collections.emptyList();
+    if (iteratorsAfterTwoTable == null) iteratorsAfterTwoTable = emptyList();
+    if (iteratorsBeforeA == null) iteratorsBeforeA = emptyList();
+    if (iteratorsBeforeB == null) iteratorsBeforeB = emptyList();
     if (BScanIteratorPriority <= 0)
       BScanIteratorPriority = 7; // default priority
     if (reducerOpts == null && reducer != null)
@@ -620,6 +651,9 @@ public class Graphulo {
         optRWI.put("reducer.opt."+entry.getKey(), entry.getValue());
       }
     }
+
+    if (batchWriterThreads > 0)
+      optRWI.put(RemoteWriteIterator.OPT_BATCHWRITERTHREADS, Integer.toString(batchWriterThreads));
 
     // scan B with TableMultIterator
     BatchScanner bs;
@@ -782,7 +816,7 @@ public class Graphulo {
       throw new UnsupportedOperationException("Could lead to unpredictable results: Atable=Rtable=" + Atable);
     if (Atable.equals(RTtable))
       throw new UnsupportedOperationException("Could lead to unpredictable results: Atable=RTtable=" + Atable);
-    if (midIterator == null) midIterator = Collections.emptyList();
+    if (midIterator == null) midIterator = emptyList();
     if (AScanIteratorPriority <= 0)
       AScanIteratorPriority = 27; // default priority
     if (reducerOpts == null)
@@ -1065,9 +1099,9 @@ public class Graphulo {
       for (int thisk = 1; thisk <= k; thisk++) {
         if (Trace.isTracing())
           if (thisk == 1)
-            System.out.println("First step: v0 is " + v0);
+            log.debug("First step: v0 is " + v0);
           else
-            System.out.println("k=" + thisk + " before filter" +
+            log.debug("k=" + thisk + " before filter" +
                 (vk.size() > 5 ? " #=" + String.valueOf(vk.size()) : ": " + vk.toString()));
 
         iteratorSettingList.clear();
@@ -1080,8 +1114,8 @@ public class Graphulo {
           dur = System.currentTimeMillis() - t1;
           degTime += dur;
           if (Trace.isTracing()) {
-            System.out.println("Degree Lookup Time: " + dur + " ms");
-            System.out.println("k=" + thisk + " after  filter" +
+            log.debug("Degree Lookup Time: " + dur + " ms");
+            log.debug("k=" + thisk + " after  filter" +
                 (vk.size() > 5 ? " #=" + String.valueOf(vk.size()) : ": " + vk.toString()));
           }
 
@@ -1123,14 +1157,14 @@ public class Graphulo {
         if (allReachedNodes != null)
           allReachedNodes.addAll(vk);
         if (Trace.isTracing())
-          System.out.println("BatchScan/Iterator Time: " + dur + " ms");
+          log.debug("BatchScan/Iterator Time: " + dur + " ms");
         if (vk.isEmpty())
           break;
       }
 
       if (Trace.isTracing()) {
-        System.out.println("Total Degree Lookup Time: " + degTime + " ms");
-        System.out.println("Total BatchScan/Iterator Time: " + scanTime + " ms");
+        log.debug("Total Degree Lookup Time: " + degTime + " ms");
+        log.debug("Total BatchScan/Iterator Time: " + scanTime + " ms");
       }
     } finally {
       bs.close();
@@ -1370,9 +1404,9 @@ public class Graphulo {
       for (int thisk = 1; thisk <= k; thisk++) {
         if (Trace.isTracing())
           if (thisk == 1)
-            System.out.println("First step: v0 is " + v0);
+            log.debug("First step: v0 is " + v0);
           else
-            System.out.println("k=" + thisk + " before filter" +
+            log.debug("k=" + thisk + " before filter" +
                 (vk.size() > 5 ? " #=" + String.valueOf(vk.size()) : ": " + vk.toString()));
 
         if (needDegreeFiltering) { // use degree table
@@ -1382,8 +1416,8 @@ public class Graphulo {
           dur = System.currentTimeMillis() - t1;
           degTime += dur;
           if (Trace.isTracing()) {
-            System.out.println("Degree Lookup Time: " + dur + " ms");
-            System.out.println("k=" + thisk + " after  filter" +
+            log.debug("Degree Lookup Time: " + dur + " ms");
+            log.debug("k=" + thisk + " after  filter" +
                 (vk.size() > 5 ? " #=" + String.valueOf(vk.size()) : ": " + vk.toString()));
           }
 
@@ -1400,7 +1434,7 @@ public class Graphulo {
                 GraphuloUtil.stringsToD4mString(vk)));
         }
 //        log.debug("AT.colFilter: " + opt.get("AT.colFilter"));
-//        byte[] by = opt.get("AT.colFilter").getBytes();
+//        byte[] by = opt.get("AT.colFilter").getBytes(StandardCharsets.UTF_8);
 //        log.debug("Printing characters of string: "+ Key.toPrintableString(by, 0, by.length, 100));
 
         bs.setRanges(Collections.singleton(new Range()));
@@ -1428,14 +1462,14 @@ public class Graphulo {
         if (allReachedNodes != null)
           allReachedNodes.addAll(vk);
         if (Trace.isTracing())
-          System.out.println("BatchScan/Iterator Time: " + dur + " ms");
+          log.debug("BatchScan/Iterator Time: " + dur + " ms");
         if (vk.isEmpty())
           break;
       }
 
       if (Trace.isTracing()) {
-        System.out.println("Total Degree Lookup Time: " + degTime + " ms");
-        System.out.println("Total BatchScan/Iterator Time: " + scanTime + " ms");
+        log.debug("Total Degree Lookup Time: " + degTime + " ms");
+        log.debug("Total BatchScan/Iterator Time: " + scanTime + " ms");
       }
     } finally {
       bs.close();
@@ -1523,7 +1557,7 @@ public class Graphulo {
     if (vktexts == null || vktexts.isEmpty()) {
       if (prefix.isEmpty())
         return ":"+sep;
-//      byte[] orig = prefix.getBytes();
+//      byte[] orig = prefix.getBytes(StandardCharsets.UTF_8);
 //      byte[] newb = new byte[orig.length*2+4];
 //      System.arraycopy(orig,0,newb,0,orig.length);
 //      newb[orig.length] = (byte)sep;
@@ -1663,9 +1697,9 @@ public class Graphulo {
       for (int thisk = 1; thisk <= k; thisk++) {
         if (Trace.isTracing())
           if (thisk == 1)
-            System.out.println("First step: v0 is " + v0);
+            log.debug("First step: v0 is " + v0);
           else
-            System.out.println("k=" + thisk + " before filter" +
+            log.debug("k=" + thisk + " before filter" +
                 (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
 
         String rowFilter;
@@ -1676,8 +1710,8 @@ public class Graphulo {
           dur = System.currentTimeMillis() - t1;
           degTime += dur;
           if (Trace.isTracing()) {
-            System.out.println("Degree Lookup Time: " + dur + " ms");
-            System.out.println("k=" + thisk + " after  filter" +
+            log.debug("Degree Lookup Time: " + dur + " ms");
+            log.debug("k=" + thisk + " after  filter" +
                 (vktexts.size() > 5 ? " #=" + String.valueOf(vktexts.size()) : ": " + vktexts.toString()));
           }
 
@@ -1726,7 +1760,7 @@ public class Graphulo {
         vktexts.clear();
         vktexts.addAll(reducer.getSerializableForClient());
         if (Trace.isTracing())
-          System.out.println("BatchScan/Iterator Time: " + dur + " ms");
+          log.debug("BatchScan/Iterator Time: " + dur + " ms");
         if (vktexts.isEmpty())
           break;
         if (allInNodes != null)
@@ -1734,8 +1768,8 @@ public class Graphulo {
       }
 
       if (Trace.isTracing()) {
-        System.out.println("Total Degree Lookup Time: " + degTime + " ms");
-        System.out.println("Total BatchScan/Iterator Time: " + scanTime + " ms");
+        log.debug("Total Degree Lookup Time: " + degTime + " ms");
+        log.debug("Total BatchScan/Iterator Time: " + scanTime + " ms");
       }
 
     } finally {
@@ -1751,7 +1785,7 @@ public class Graphulo {
     if (computeInDegrees) {
       allInNodes.removeAll(mostAllOutNodes);
 //      log.debug("allInNodes: "+allInNodes);
-      long c = singleCheckWriteDegrees(allInNodes, Rtable, Sauthorizations, degColumn.getBytes(), edgeSepStr, degSumType, newVisibility);
+      long c = singleCheckWriteDegrees(allInNodes, Rtable, Sauthorizations, degColumn.getBytes(StandardCharsets.UTF_8), edgeSepStr, degSumType, newVisibility);
       if (numEntriesWritten != null)
         numEntriesWritten.add(c);
     }
@@ -1823,7 +1857,7 @@ public class Graphulo {
         // row contains "v1|v2" -- want v1. pos is the byte position of the '|'. cnt is the degree.
         Mutation m = new Mutation(row.getBytes(), 0, pos);
         m.put(GraphuloUtil.EMPTY_BYTES, degColumn, newVisibility,
-            summer == null ? String.valueOf(cnt).getBytes() : summer.getForClient());
+            summer == null ? String.valueOf(cnt).getBytes(StandardCharsets.UTF_8) : summer.getForClient());
         bw.addMutation(m);
         totalWritten++;
       }
@@ -1911,14 +1945,13 @@ public class Graphulo {
     long cnt = 0l;
     try {
       for (Map.Entry<Key, Value> entry : bs) {
-        cnt += Long.parseLong(new String(entry.getValue().get()));
+        cnt += Long.parseLong(new String(entry.getValue().get(), StandardCharsets.UTF_8));
       }
     } finally {
       bs.close();
     }
     return cnt;
   }
-
 
   /**
    * From input <b>unweighted, undirected</b> adjacency table Aorig, put the k-Truss
@@ -1939,7 +1972,36 @@ public class Graphulo {
   public long kTrussAdj(String Aorig, String Rfinal, int k,
                         String filterRowCol, boolean forceDelete,
                         Authorizations Aauthorizations, String RNewVisibility) {
+    return kTrussAdj(Aorig, Rfinal, k, filterRowCol, forceDelete, Aauthorizations, RNewVisibility,
+        Integer.MAX_VALUE);
+  }
+
+
+  /**
+   * From input <b>unweighted, undirected</b> adjacency table Aorig, put the k-Truss
+   * of Aorig in Rfinal.
+   * @param Aorig Unweighted, undirected adjacency table.
+   * @param Rfinal Does not have to previously exist. Writes the kTruss into Rfinal if it already exists.
+   *               Use a combiner if you want to sum it in.
+   * @param k Trivial if k <= 2.
+   * @param filterRowCol Filter applied to rows and columns of Aorig
+   *                     (must apply to both rows and cols because A is undirected Adjacency table).
+   * @param forceDelete False means throws exception if the temporary tables used inside the algorithm already exist.
+   *                    True means delete them if they exist.
+   * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
+   * @param RNewVisibility Visibility label for new entries created. Null means no visibility label.
+   * @param maxiter A bound on the number of iterations. The algorithm will halt
+   *                either at convergence or after reaching the maximum number of iterations.
+   *                Note that if the algorithm stops before convergence, the result may not be correct.
+   * @return nnz of the kTruss subgraph, which is 2* the number of edges in the kTruss subgraph.
+   *          Returns -1 if k < 2 since there is no point in counting the number of edges.
+   */
+  public long kTrussAdj(String Aorig, String Rfinal, int k,
+                        String filterRowCol, boolean forceDelete,
+                        Authorizations Aauthorizations, String RNewVisibility,
+                        int maxiter) {
     checkGiven(true, "Aorig", Aorig);
+    Preconditions.checkArgument(maxiter > 0, "bad maxiter %s", maxiter);
     Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
     TableOperations tops = connector.tableOperations();
     boolean RfinalExists = tops.exists(Rfinal);
@@ -1997,6 +2059,7 @@ public class Graphulo {
       List<IteratorSetting> noDiagFilter = Collections.singletonList(
           TriangularFilter.iteratorSetting(1, TriangularType.NoDiagonal));
 
+      int iter = 0;
       do {
         nnzBefore = nnzAfter;
 
@@ -2020,8 +2083,9 @@ public class Graphulo {
         tops.delete(A2tmp);
         { String t = Atmp; Atmp = AtmpAlt; AtmpAlt = t; }
 
-        log.debug("nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter);
-      } while (nnzBefore != nnzAfter);
+        iter++;
+        log.debug("iter "+iter+" nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter);
+      } while (nnzBefore != nnzAfter && iter < maxiter);
       // Atmp, ATtmp have the result table. Could be empty.
 
       if (RfinalExists)  // sum whole graph into existing graph
@@ -2039,12 +2103,57 @@ public class Graphulo {
     }
   }
 
+  /**
+   * This version uses advanced loop fusion to speed up the calculation.
+   * <p>
+   * From input <b>unweighted, undirected</b> adjacency table Aorig, put the k-Truss
+   * of Aorig in Rfinal.
+   * @param Aorig Unweighted, undirected adjacency table.
+   * @param Rfinal Does not have to previously exist. Writes the kTruss into Rfinal if it already exists.
+   *               Use a combiner if you want to sum it in.
+   * @param k Trivial if k <= 2.
+   * @param filterRowCol Filter applied to rows and columns of Aorig
+   *                     (must apply to both rows and cols because A is undirected Adjacency table).
+   * @param forceDelete False means throws exception if the temporary tables used inside the algorithm already exist.
+   *                    True means delete them if they exist.
+   * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
+   * @param RNewVisibility Visibility label for new entries created. Null means no visibility label.
+   * @return A somewhat meaningless number. This fused version loses the ability to directly measure nnz.
+   *          Returns -1 if k < 2 since there is no point in counting the number of edges.
+   */
   public long kTrussAdj_Fused(String Aorig, String Rfinal, int k,
                               String filterRowCol, boolean forceDelete,
-                              Authorizations Aauthorizations, String RNewVisibility) throws InterruptedException {
+                              Authorizations Aauthorizations, String RNewVisibility) {
     return kTrussAdj_Fused(Aorig, Rfinal, k, filterRowCol,forceDelete,
-        Aauthorizations, RNewVisibility, 1L << 32);
+        Aauthorizations, RNewVisibility, 1L << 32, Integer.MAX_VALUE);
   }
+
+  /**
+   * This version uses advanced loop fusion to speed up the calculation.
+   * <p>
+   * From input <b>unweighted, undirected</b> adjacency table Aorig, put the k-Truss
+   * of Aorig in Rfinal.
+   * @param Aorig Unweighted, undirected adjacency table.
+   * @param Rfinal Does not have to previously exist. Writes the kTruss into Rfinal if it already exists.
+   *               Use a combiner if you want to sum it in.
+   * @param k Trivial if k <= 2.
+   * @param filterRowCol Filter applied to rows and columns of Aorig
+   *                     (must apply to both rows and cols because A is undirected Adjacency table).
+   * @param forceDelete False means throws exception if the temporary tables used inside the algorithm already exist.
+   *                    True means delete them if they exist.
+   * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
+   * @param RNewVisibility Visibility label for new entries created. Null means no visibility label.
+   * @return A somewhat meaningless number. This fused version loses the ability to directly measure nnz.
+   *          Returns -1 if k < 2 since there is no point in counting the number of edges.
+   */
+  public long kTrussAdj_Fused(String Aorig, String Rfinal, int k,
+                              String filterRowCol, boolean forceDelete,
+                              Authorizations Aauthorizations, String RNewVisibility,
+                              long upperBoundOnDim, int maxiter) {
+    return kTrussAdj_Fused(Aorig, Rfinal, k, filterRowCol,forceDelete,
+        Aauthorizations, RNewVisibility, 1L << 32, Integer.MAX_VALUE, null);
+  }
+
 
   /**
    * This version uses advanced loop fusion to speed up the calculation.
@@ -2064,13 +2173,19 @@ public class Graphulo {
    * @param upperBoundOnDim A loose bound on the largest number of entries in any one row or column of Aorig.
    *                        It is typically okay to overestimate, but make sure that 2*upperBoundOnDim <= Long.MAX_VALUE.
    *                        Be careful underestimating. A default guess is 2^32.
+   * @param maxiter A bound on the number of iterations. The algorithm will halt
+   *                either at convergence or after reaching the maximum number of iterations.
+   *                Note that if the algorithm stops before convergence, the result may not be correct.
+   * @param specialLongList Used for evaluating performance. If not null, stores the total number of partial products
+   *                        written over the course of the algorithm as a long inside the list.
    * @return A somewhat meaningless number. This fused version loses the ability to directly measure nnz.
    *          Returns -1 if k < 2 since there is no point in counting the number of edges.
    */
   public long kTrussAdj_Fused(String Aorig, String Rfinal, int k,
                               String filterRowCol, boolean forceDelete,
                               Authorizations Aauthorizations, String RNewVisibility,
-                              long upperBoundOnDim) throws InterruptedException {
+                              long upperBoundOnDim, int maxiter,
+                              List<Long> specialLongList) {
     checkGiven(true, "Aorig", Aorig);
     Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
     TableOperations tops = connector.tableOperations();
@@ -2081,6 +2196,7 @@ public class Graphulo {
       upperBoundOnDim = 1L << 32;
     if (upperBoundOnDim >= Long.MAX_VALUE/2)
       log.warn("Upper bound may be too large: "+upperBoundOnDim);
+    Preconditions.checkArgument(maxiter > 0, "bad maxiter %s", maxiter);
 
     try {
       if (k <= 2) {               // trivial case: every graph is a 2-truss
@@ -2095,7 +2211,7 @@ public class Graphulo {
 
       // non-trivial case: k is 3 or more.
       String Atmp, AtmpAlt;
-      long nnzBefore, nnzAfter;
+      long nnzBefore, nnzAfter, totalnpp = 0;
       String tmpBaseName = Aorig+"_kTrussAdj_";
       Atmp = tmpBaseName+"tmpA";
       AtmpAlt = tmpBaseName+"tmpAalt";
@@ -2121,7 +2237,7 @@ public class Graphulo {
 
       // Iterator that sets values to a constant amount
       List<IteratorSetting> iterBeforeA = Collections.singletonList(
-          ConstantTwoScalar.iteratorSetting(1, new Value(Long.toString(upperBoundOnDim).getBytes(StandardCharsets.UTF_8)))
+          ConstantTwoScalar.iteratorSetting(1, new Value(Long.toString(upperBoundOnDim).getBytes(UTF_8)))
       );
 
       // Iterator that filters away values less than an amount
@@ -2140,7 +2256,7 @@ public class Graphulo {
 //      }
       NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaultIterators();
 
-      int i=1;
+      int iter=0;
       do {
         nnzBefore = nnzAfter;
 
@@ -2159,25 +2275,174 @@ public class Graphulo {
             PLUS_ITERATOR_LONG, filterRowCol, filterRowCol, filterRowCol, false, false, true, false,
             iterBeforeA, null, noDiagFilter,
             null, null, -1, Aauthorizations, Aauthorizations);
+        totalnpp += nnzAfter;
         filterRowCol = null; // filter only on first iteration
-//        System.out.println("gogo"+ i+" to "+AtmpAlt);
+//        log.debug("gogo"+ iter+" to "+AtmpAlt);
 //        Thread.sleep(7000);
-//        DebugUtil.printTable("before filter "+i, connector, Atmp, 11);
-//        DebugUtil.printTable("before filter "+i, connector, AtmpAlt, 11);
+//        DebugUtil.printTable("before filter "+iter, connector, Atmp, 11);
+//        DebugUtil.printTable("before filter "+iter, connector, AtmpAlt, 11);
         // AtmpAlt has a Special Sum
         // Apply Part II after all entries written
         GraphuloUtil.applyIteratorSoft(filter, tops, AtmpAlt);
         long dur = System.currentTimeMillis() - l;
-//        DebugUtil.printTable("after filter "+i, connector, AtmpAlt, 11);
-//        System.out.println("gogo"+ i+" to "+AtmpAlt);
+//        DebugUtil.printTable("after filter "+iter, connector, AtmpAlt, 11);
+//        log.debug("gogo"+ iter+" to "+AtmpAlt);
 //        Thread.sleep(7000);
-        i++;
 
         tops.delete(Atmp);
         { String t = Atmp; Atmp = AtmpAlt; AtmpAlt = t; }
 
-        log.debug("nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter+"; "+Long.toString(dur/1000)+" s");
-      } while (nnzBefore != nnzAfter);
+        iter++;
+        log.debug("iter +"+iter+" nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter+"; "+Long.toString(dur/1000)+" s");
+      } while (nnzBefore != nnzAfter && iter < maxiter);
+
+//      log.debug(Atmp+" -> "+Rfinal+" (RfinalExists is "+RfinalExists+")");
+//      Thread.sleep(7000);
+      long l = System.currentTimeMillis();
+      if (RfinalExists)  // sum whole graph into existing graph
+        AdjBFS(Atmp, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Aauthorizations, Aauthorizations, false, null);
+      else                                           // result is new;
+        tops.clone(Atmp, Rfinal, true, null, null);  // flushes Atmp before cloning
+      log.debug("clone time "+Long.toString((System.currentTimeMillis()-l)/1000)+" s");
+
+
+      tops.delete(Atmp);
+      if (specialLongList != null)
+        specialLongList.add(totalnpp);
+      return nnzAfter;
+
+    } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
+      log.error("Exception in kTrussAdj_Fused", e);
+      throw new RuntimeException(e);
+    }
+  }
+
+
+  /**
+   * This version writes significantly fewer entries
+   * by cloning table A and using parity.
+   * <p>
+   * From input <b>unweighted, undirected</b> adjacency table Aorig, put the k-Truss
+   * of Aorig in Rfinal.
+   * @param Aorig Unweighted, undirected adjacency table.
+   * @param Rfinal Does not have to previously exist. Writes the kTruss into Rfinal if it already exists.
+   *               Use a combiner if you want to sum it in.
+   * @param k Trivial if k <= 2.
+   * @param filterRowCol Filter applied to rows and columns of Aorig
+   *                     (must apply to both rows and cols because A is undirected Adjacency table).
+   * @param forceDelete False means throws exception if the temporary tables used inside the algorithm already exist.
+   *                    True means delete them if they exist.
+   * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
+   * @param RNewVisibility Visibility label for new entries created. Null means no visibility label.
+   * @param maxiter A bound on the number of iterations. The algorithm will halt
+   *                either at convergence or after reaching the maximum number of iterations.
+   *                Note that if the algorithm stops before convergence, the result may not be correct.
+   * @param specialLongList Used for evaluating performance. If not null, stores the total number of partial products
+   *                        written over the course of the algorithm as a long inside the list.
+   * @return A somewhat meaningless number. This fused version loses the ability to directly measure nnz.
+   *          Returns -1 if k < 2 since there is no point in counting the number of edges.
+   */
+  public long kTrussAdj_Smart(String Aorig, String Rfinal, int k,
+                              String filterRowCol, boolean forceDelete,
+                              Authorizations Aauthorizations, String RNewVisibility,
+                              int maxiter,
+                              List<Long> specialLongList) {
+    checkGiven(true, "Aorig", Aorig);
+    Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
+    TableOperations tops = connector.tableOperations();
+    boolean RfinalExists = tops.exists(Rfinal);
+    if (RfinalExists)
+      log.warn("Fused version of kTruss may not work when the result table already exists due to iterator conflicts");
+    Preconditions.checkArgument(maxiter > 0, "bad maxiter %s", maxiter);
+
+    try {
+      if (k <= 2) {               // trivial case: every graph is a 2-truss
+        if (RfinalExists || filterRowCol != null)
+          OneTable(Aorig, Rfinal, null, null, -1, null, null, PLUS_ITERATOR_LONG,
+              filterRowCol,
+              filterRowCol, null, null, Aauthorizations);
+        else
+          tops.clone(Aorig, Rfinal, true, null, null);    // flushes Aorig before cloning
+        return -1;
+      }
+
+      // non-trivial case: k is 3 or more.
+      String Atmp, AtmpAlt;
+      long nppBefore, nppAfter, totalnpp = 0;
+      String tmpBaseName = Aorig+"_kTrussAdj_";
+      Atmp = tmpBaseName+"tmpA";
+      AtmpAlt = tmpBaseName+"tmpAalt";
+      deleteTables(Atmp, AtmpAlt);
+
+//      if (filterRowCol == null) {
+      tops.clone(Aorig, Atmp, true, null, null);
+//        long l = System.currentTimeMillis();
+//        nnzAfter = countEntries(Aorig);
+//        long dur = System.currentTimeMillis()-l;
+//        log.debug("Time to count entries is "+Long.toString(dur)+" ms.");
+//      }
+//      else
+//        OneTable(Aorig, Atmp, null, null, -1, null, null, null,
+//            filterRowCol,
+//            filterRowCol, null, null, Aauthorizations);
+      // forcing minimum 2 loops due to nnz proxy
+      nppAfter = Long.MAX_VALUE;
+
+      // No Diagonal filter
+      List<IteratorSetting> noDiagFilter = Collections.singletonList(
+          TriangularFilter.iteratorSetting(1, TriangularType.NoDiagonal));
+
+      // Iterator that filters away values less than an amount
+      IteratorSetting filter;
+      filter = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY + 1, null,
+          EnumSet.of(DynamicIteratorSetting.MyIteratorScope.SCAN))
+          .append(SmartKTrussFilterIterator.iteratorSetting(1, k))
+          .append(ConstantTwoScalar.iteratorSetting(1, VALUE_ONE))
+          .toIteratorSetting();
+
+      int iter=0;
+      long nnzBefore, nnzAfter = Long.MAX_VALUE;
+      do {
+        nppBefore = nppAfter;
+        nnzBefore = nnzAfter;
+
+        // Clone Atmp into AtmpAlt, ignoring VersioningIterator
+        tops.clone(Atmp, AtmpAlt, false, null, null);
+//        GraphuloUtil.copySplits(tops, Atmp, AtmpAlt);
+
+        // Special Sum
+        long l = System.currentTimeMillis();
+        // Use Atmp for both AT and B
+        // there seems to be a problem with TwoTableIterator.CLONESOURCE_TABLENAME
+        nppAfter = TableMult(Atmp, Atmp, AtmpAlt, null, DEFAULT_COMBINER_PRIORITY+2,
+            ConstantTwoScalar.class, ConstantTwoScalar.optionMap(new Value("2".getBytes(UTF_8)), RNewVisibility),
+            PLUS_ITERATOR_LONG, filterRowCol, filterRowCol, filterRowCol, false, false, false, false,
+            null, null, noDiagFilter,
+            null, null, -1, Aauthorizations, Aauthorizations);
+        totalnpp += nppAfter;
+        filterRowCol = null; // filter only on first iteration
+//        System.out.println("gogo"+ iter+" to "+AtmpAlt);
+//        Thread.sleep(7000);
+//        DebugUtil.printTable("before filter "+iter, connector, Atmp, 11);
+//        DebugUtil.printTable("before filter "+iter, connector, AtmpAlt, 11);
+        // AtmpAlt has a Special Sum
+        // Apply Part II after all entries written
+        GraphuloUtil.applyIteratorSoft(filter, tops, AtmpAlt);
+        long dur = System.currentTimeMillis() - l;
+//        DebugUtil.printTable("after filter "+iter, connector, AtmpAlt, 11);
+//        System.out.println("gogo"+ iter+" to "+AtmpAlt);
+//        Thread.sleep(7000);
+
+        tops.delete(Atmp);
+        { String t = Atmp; Atmp = AtmpAlt; AtmpAlt = t; }
+
+        long lnpp = System.currentTimeMillis();
+        nnzAfter = countEntries(Atmp);
+        log.debug("time to count "+nnzAfter+" entries is "+(System.currentTimeMillis()-lnpp));
+
+        iter++;
+        log.debug("iter +"+iter+" nppBefore "+nppBefore+" nppAfter "+nppAfter+"; "+Long.toString(dur/1000)+" s");
+      } while (nppBefore != nppAfter && iter < maxiter && nnzBefore != nnzAfter);
 
 //      System.out.println(Atmp+" -> "+Rfinal+" (RfinalExists is "+RfinalExists+")");
 //      Thread.sleep(7000);
@@ -2188,12 +2453,155 @@ public class Graphulo {
 
 
       tops.delete(Atmp);
-      return nnzAfter;
+      if (specialLongList != null)
+        specialLongList.add(totalnpp);
+      return nppAfter;
 
     } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
-      log.error("Exception in kTrussAdj_Fused", e);
+      log.error("Exception in kTrussAdj_Smart", e);
       throw new RuntimeException(e);
     }
+  }
+
+  /**
+   * This version pulls the adjacency table into client memory.
+   * It uses the MTJ Java Matrix math library to do the kTruss algorithm.
+   * <p>
+   * From input <b>unweighted, undirected</b> adjacency table Aorig, put the k-Truss
+   * of Aorig in Rfinal.
+   * <p>
+   * Note on BLAS when using dense matrix math: the MTJ native BLAS library appears unstable.
+   * Add the parameter <code>-Dcom.github.fommil.netlib.BLAS=com.github.fommil.netlib.F2jBLAS</code>
+   * to force MTJ to use Java dense matrix math.
+   * @param Aorig Unweighted, undirected adjacency table.
+   * @param Rfinal Does not have to previously exist. Writes the kTruss into Rfinal if it already exists.
+   *               Use a combiner if you want to sum it in.
+   * @param k Trivial if k <= 2.
+   * @param filterRowCol Filter applied to rows and columns of Aorig
+   *                     (must apply to both rows and cols because A is undirected Adjacency table).
+   * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
+   * @param RNewVisibility Visibility label for new entries created. Null means no visibility label.
+   * @param useSparse Use a sparse matrix vs. dense matrix. Sparse matrices hold more data than the dense
+   *                  but are slower for matrix-matrix multiply.
+   * @param maxiter A bound on the number of iterations. The algorithm will halt
+   *                either at convergence or after reaching the maximum number of iterations.
+   *                Note that if the algorithm stops before convergence, the result may not be correct.
+   * @return A somewhat meaningless number. This fused version loses the ability to directly measure nnz.
+   *          Returns -1 if k < 2 since there is no point in counting the number of edges.
+   */
+  public long kTrussAdj_Client(String Aorig, String Rfinal, int k,
+                               String filterRowCol,
+                               Authorizations Aauthorizations, String RNewVisibility,
+                               boolean useSparse, int maxiter) {
+    if (!useSparse) { // force disable MTJ native BLAS because it is unstable
+      System.setProperty("com.github.fommil.netlib.BLAS", "com.github.fommil.netlib.F2jBLAS");
+    }
+    checkGiven(true, "Aorig", Aorig);
+    Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
+    TableOperations tops = connector.tableOperations();
+    boolean RfinalExists = tops.exists(Rfinal);
+    Preconditions.checkArgument(maxiter > 0, "bad maxiter %s", maxiter);
+
+    if (k <= 2) {               // trivial case: every graph is a 2-truss
+      if (RfinalExists || filterRowCol != null)
+        OneTable(Aorig, Rfinal, null, null, -1, null, null, PLUS_ITERATOR_LONG,
+            filterRowCol,
+            filterRowCol, null, null, Aauthorizations);
+      else
+        try {
+          tops.clone(Aorig, Rfinal, true, null, null);    // flushes Aorig before cloning
+        } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
+          log.error("", e);
+          throw new RuntimeException(e);
+        }
+      return -1;
+    }
+    // non-trivial case: k is 3 or more.
+
+    long t1 = System.currentTimeMillis();
+    // Scan A into memory
+    Map<Key,Value> Aentries = new TreeMap<>(); //GraphuloUtil.scanAll(connector, Aorig);
+    OneTable(Aorig, null, null, Aentries, -1, null, null, null, filterRowCol, filterRowCol, null, null, Authorizations.EMPTY); // returns nnz A
+    log.debug("Scan time: "+(System.currentTimeMillis()-t1));
+
+    // Replace row and col labels with integer indexes; create map from indexes to original labels
+    // The Maps are used to put the original labels on W and H
+    SortedMap<Integer,String> rowColMap = new TreeMap<>();
+    // this call removes zero values from A
+    Matrix A = MTJUtil.indexMapAndMatrix_SameRowCol(Aentries, rowColMap, 0, useSparse, false);
+
+//    DebugUtil.printMapFull(Aentries.entrySet().iterator(), 3);
+//    System.out.println("rowColMap: "+rowColMap);
+
+    long N = A.numRows();
+    long M = A.numColumns();
+    long upperBoundOnDim = Math.max(N,M)+1;
+
+    Matrix B = useSparse ? new LinkedSparseMatrix(A) : new DenseMatrix(A);
+    long nnzBefore, nnzAfter = Aentries.size();
+
+    int iter = 0;
+    do {
+      long t2 = System.currentTimeMillis();
+      nnzBefore = nnzAfter;
+
+      long t5 = System.currentTimeMillis();
+      B.set(upperBoundOnDim, A); // B = n*A
+      log.debug("B = n*a time: "+(System.currentTimeMillis()-t5));
+
+//      System.out.println("B = n*A");
+//      DebugUtil.printMapFull(MTJUtil.matrixToMapWithLabels(B, rowColMap, rowColMap, 0.0, RNewVisibility, true).entrySet().iterator(), 3);
+
+      long t6 = System.currentTimeMillis();
+      A.multAdd(A, B); // B = A*A + B
+      log.debug("B = A*A + B time: "+(System.currentTimeMillis()-t6));
+
+//      log.debug("B = A*A + B");
+//      DebugUtil.printMapFull(MTJUtil.matrixToMapWithLabels(B, rowColMap, rowColMap, 0.0, RNewVisibility, true).entrySet().iterator(), 3);
+
+      // zero entries A(i,j) where B(i,j) < n + k - 2
+//      System.out.println("upperBoundOnDim + k - 2:"+(upperBoundOnDim + k - 2));
+      long t7 = System.currentTimeMillis();
+
+//      for (MatrixEntry e : A) {
+////        System.out.print("A:"+e +"  B:"+B.get(e.row(),e.column()));
+//        if (e.get() != 0 && B.get(e.row(), e.column()) < upperBoundOnDim + k - 2) {
+////          System.out.println(" set to 0!");
+//          e.set(0);
+//          nnzAfter--;
+//        } //else System.out.println();
+//      }
+
+      for (MatrixEntry e : B) {
+//        System.out.print("B:"+e +"  A:"+A.get(e.row(),e.column()));
+        if (e.get() < upperBoundOnDim + k - 2 && A.get(e.row(), e.column()) > 0) {
+//          System.out.println(" set to 0!");
+          A.set(e.row(), e.column(), 0);
+          nnzAfter--;
+        } //else System.out.println();
+      }
+
+      iter++;
+      log.debug("set new A time: "+(System.currentTimeMillis()-t7));
+//      DebugUtil.printMapFull(MTJUtil.matrixToMapWithLabels(A, rowColMap, rowColMap, 0.0, RNewVisibility, true).entrySet().iterator(), 3);
+      log.debug("nnzBefore "+nnzBefore+" nnzAfter "+nnzAfter);
+      log.debug("iter "+iter+" time: "+(System.currentTimeMillis()-t2));
+    } while (nnzBefore != nnzAfter && iter < maxiter);
+
+    long t3 = System.currentTimeMillis();
+    Map<Key, Value> kTrussMap = MTJUtil.matrixToMapWithLabels(A, rowColMap, rowColMap, 0.0, RNewVisibility, true, false);
+//    DebugUtil.printMapFull(kTrussMap.entrySet().iterator(), 3);
+    if (!RfinalExists) {
+      try {
+        tops.create(Rfinal);
+        GraphuloUtil.copySplits(tops, Aorig, Rfinal);
+      } catch (AccumuloException | TableExistsException | AccumuloSecurityException  e) {
+        log.error("",e);
+      }
+    }
+    GraphuloUtil.writeEntries(connector, kTrussMap, Rfinal, false);
+    log.debug("Put time: "+(System.currentTimeMillis()-t3));
+    return nnzAfter;
   }
 
 
@@ -2284,7 +2692,7 @@ public class Graphulo {
       itsBeforeR = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY+1, null,
           EnumSet.of(DynamicIteratorSetting.MyIteratorScope.SCAN))
           .append(MinMaxFilter.iteratorSetting(1, ScalarType.LONG, 2, 2))
-          .append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes())))
+          .append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes(StandardCharsets.UTF_8))))
           .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))
           .append(PLUS_ITERATOR_LONG)
           .append(MinMaxFilter.iteratorSetting(1, ScalarType.LONG, k - 2, null))
@@ -2388,15 +2796,107 @@ public class Graphulo {
         null, null, -1, Aauthorizations, Aauthorizations);
     log.debug("Jaccard #partial products " + npp);
 
-    // Because JaccardDegreeApply must see all entries, apply JaccardDegreeApply on scan and majc after the TableMult.
+    // Because JaccardDegreeApply must see all entries, apply JaccardDegreeApply on scan scope after the TableMult.
     IteratorSetting jda = JaccardDegreeApply.iteratorSetting(
         DEFAULT_COMBINER_PRIORITY+1, basicRemoteOpts(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX, ADeg, null, Aauthorizations));
-    jda = GraphuloUtil.addOnScopeOption(jda, EnumSet.of(IteratorUtil.IteratorScope.scan, IteratorUtil.IteratorScope.majc));
+    jda = GraphuloUtil.addOnScopeOption(jda, EnumSet.of(IteratorUtil.IteratorScope.scan));
     GraphuloUtil.applyIteratorSoft(jda, connector.tableOperations(), Rfinal);
 
     return npp;
   }
 
+  /**
+   * Client version
+   * <p>
+   * From input <b>unweighted, undirected</b> adjacency table Aorig,
+   * put the Jaccard coefficients in the upper triangle of Rfinal.
+   * @param Aorig Unweighted, undirected adjacency table.
+   * @param Rfinal Should not previously exist. Writes the Jaccard table into Rfinal,
+   *               using a couple combiner-like iterators.
+   * @param filterRowCol Filter applied to rows and columns of Aorig
+   *                     (must apply to both rows and cols because A is undirected Adjacency table).
+   * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
+   * @param RNewVisibility Visibility label for new entries created in Rtable. Null means no visibility label.
+   * @return -1
+   */
+  public long Jaccard_Client(String Aorig, String Rfinal,
+                      String filterRowCol, Authorizations Aauthorizations, String RNewVisibility) {
+    checkGiven(true, "Aorig", Aorig);
+    Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
+//    Preconditions.checkArgument(!tops.exists(Rfinal), "Output Jaccard table must not exist: Rfinal=%s", Rfinal); // this could be relaxed, at the possibility of peril
+    // ^^^ I have relaxed this condition to allow pre-creating result table. Make sure it is a fresh table with no iterators on it.
+    TableOperations tops = connector.tableOperations();
+    boolean RfinalExists = tops.exists(Rfinal);
+
+    long t1 = System.currentTimeMillis();
+    // Scan A into memory
+    Map<Key,Value> Aentries = new TreeMap<>(); //GraphuloUtil.scanAll(connector, Aorig);
+    OneTable(Aorig, null, null, Aentries, -1, null, null, null, filterRowCol, filterRowCol, null, null, Authorizations.EMPTY); // returns nnz A
+    log.debug("Scan time: "+(System.currentTimeMillis()-t1));
+
+    // Replace row and col labels with integer indexes; create map from indexes to original labels
+    // The Maps are used to put the original labels on W and H
+    SortedMap<Integer,String> rowColMap = new TreeMap<>();
+    // this call removes zero values from A
+    Matrix A = MTJUtil.indexMapAndMatrix_SameRowCol(Aentries, rowColMap, 0, false, false);
+
+//    DebugUtil.printMapFull(Aentries.entrySet().iterator(), 3);
+
+    int N = A.numRows();
+    int M = A.numColumns();
+    if (N != M)
+      throw new IllegalArgumentException("Jaccard was not given a symmetric matrix; N=="+N+" M=="+M);
+    double[] onestmp = new double[N];
+    Arrays.fill(onestmp,1);
+//    for (int i = 0; i < N; i++) {
+//      onestmp[i][0] = 1;
+//    }
+    no.uib.cipr.matrix.Vector ONES = new DenseVector(onestmp), DEGS = new DenseVector(N);
+    DEGS = A.mult(ONES,DEGS);
+
+    Matrix J = new DenseMatrix(N,N); //new UpperSymmDenseMatrix(N);
+    long t2 = System.currentTimeMillis();
+    J = A.mult(A,J);
+    log.debug("A*A time: "+(System.currentTimeMillis()-t2));
+
+    long t22 = System.currentTimeMillis();
+    for (MatrixEntry e : J) {
+      if (e.get() == 0)
+        continue;
+      int r = e.row();
+      int c = e.column();
+      if (r >= c) // no diagonal
+        e.set(0);
+      else {
+        double v = e.get();
+        e.set(v / (DEGS.get(r) + DEGS.get(c) - v));
+      }
+    }
+    log.debug("J <- v/(dr+dc-v) time: "+(System.currentTimeMillis()-t22));
+
+//    System.out.println(J);
+
+    long t3 = System.currentTimeMillis();
+    Map<Key, Value> kTrussMap = MTJUtil.matrixToMapWithLabels(J, rowColMap, rowColMap, 0.0, RNewVisibility, false, true);
+//    DebugUtil.printMapFull(kTrussMap.entrySet().iterator(), 3);
+
+    if (!RfinalExists) {
+      try {
+        tops.create(Rfinal);
+        GraphuloUtil.copySplits(tops, Aorig, Rfinal);
+      } catch (AccumuloException | TableExistsException | AccumuloSecurityException  e) {
+        log.error("",e);
+      }
+    }
+    GraphuloUtil.writeEntries(connector, kTrussMap, Rfinal, false);
+    log.debug("Put time: "+(System.currentTimeMillis()-t3));
+
+    long t4 = System.currentTimeMillis();
+    int nnz = Matrices.cardinality(J);
+    log.debug("Nnz time: "+(System.currentTimeMillis()-t4));
+
+    return nnz;
+  }
 
 
   /**
@@ -2445,7 +2945,7 @@ public class Graphulo {
     {
       DynamicIteratorSetting dis = new DynamicIteratorSetting(22, "genDegs");
       if (countColumns)
-          dis.append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes()))); // Abs0
+          dis.append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes(StandardCharsets.UTF_8)))); // Abs0
       dis
         .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))
         .append(PLUS_ITERATOR_BIGDECIMAL);
@@ -2517,7 +3017,7 @@ public class Graphulo {
     new DynamicIteratorSetting(10, null)
         .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))  // strip to row field
         .append(new IteratorSetting(1, VersioningIterator.class))       // only count a row once
-        .append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes()))) // Abs0
+        .append(ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes(StandardCharsets.UTF_8)))) // Abs0
         .append(KeyRetainOnlyApply.iteratorSetting(1, null))            // strip all fields
         .append(PLUS_ITERATOR_BIGDECIMAL)                                  // Sum
         .addToScanner(bs);
@@ -2525,7 +3025,7 @@ public class Graphulo {
     long cnt = 0l;
     try {
       for (Map.Entry<Key, Value> entry : bs) {
-        cnt += Long.parseLong(new String(entry.getValue().get()));
+        cnt += Long.parseLong(new String(entry.getValue().get(), StandardCharsets.UTF_8));
       }
     } finally {
       bs.close();
@@ -2686,7 +3186,7 @@ public class Graphulo {
 
   private double nmfHDiff(String Hfinal, String Hprev) {
     List<IteratorSetting> abs0list = Collections.singletonList(
-        ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes())));
+        ConstantTwoScalar.iteratorSetting(1, new Value("1".getBytes(StandardCharsets.UTF_8))));
 
     // Step 1: sum(sum(Abs0(H),1),2)
     MathTwoScalar sumReducer = new MathTwoScalar();
@@ -2694,7 +3194,7 @@ public class Graphulo {
     sumReducer.init(sumOpts, null);
     OneTable(Hfinal, null, null, null, 50, sumReducer, sumOpts, null, null, null,
         abs0list, null, null);
-    double hsum = Long.parseLong(new String(sumReducer.getForClient()));
+    double hsum = Long.parseLong(new String(sumReducer.getForClient(), StandardCharsets.UTF_8));
 
     // Step 2: sum(sum( Abs0(Abs0(H)-Abs0(Hprev)) ,1),2)
     Map<String, String> subtractOpts = MathTwoScalar.optionMap(ScalarOp.MINUS, ScalarType.LONG, "", false);
@@ -2702,7 +3202,7 @@ public class Graphulo {
     SpEWiseSum(Hfinal, Hprev, null, null, 50, MathTwoScalar.class, subtractOpts, null, null, null, null,
         abs0list, abs0list, abs0list,
         sumReducer, sumOpts, -1, null, null);
-    double hdiffsum = sumReducer.hasTopForClient() ? Long.parseLong(new String(sumReducer.getForClient())) : 0;
+    double hdiffsum = sumReducer.hasTopForClient() ? Long.parseLong(new String(sumReducer.getForClient(), StandardCharsets.UTF_8)) : 0;
 
     return hdiffsum / hsum;
   }
@@ -2742,7 +3242,7 @@ public class Graphulo {
 
     if (!sumReducer.hasTopForClient())
       return 0.0; // no error. This will never happen realistically.
-    return Math.sqrt(Double.parseDouble(new String(sumReducer.getForClient())));
+    return Math.sqrt(Double.parseDouble(new String(sumReducer.getForClient(), StandardCharsets.UTF_8)));
   }
 
   final int PRESUMCACHESIZE = 10000;
@@ -2802,7 +3302,7 @@ public class Graphulo {
 
 //    if (Trace.isTracing())
     if (DBG)
-      System.out.println("-tmp2 ok-  tmp1=" + tmp1 + "  tmp2=" + tmp2 + "  out1=" + out1);
+      log.debug("-tmp2 ok-  tmp1=" + tmp1 + "  tmp2=" + tmp2 + "  out1=" + out1);
 
     // Step 4: tmp1^T * tmp2 => OnlyPositiveFilter => {out1, transpose to out2}
     // Filter out entries <= 0 after combining partial products.
@@ -2944,7 +3444,7 @@ public class Graphulo {
       }
       if (HARR != null)
         putInDebugArray(HARR, Hmatrix, numiter);
-//      System.out.println("Hmatrix: "+Hmatrix);
+//      log.debug("Hmatrix: "+Hmatrix);
 
       // WT = ONLYPOS( (H*HT)^-1 * (H*AT) )
       try (TraceScope span = Trace.startSpan("Wstep")) {

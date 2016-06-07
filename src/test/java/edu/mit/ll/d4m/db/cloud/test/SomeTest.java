@@ -27,6 +27,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -154,7 +155,7 @@ public class SomeTest {
         Text[] rows = new Text[] {new Text("ccc"), new Text("ddd"), new Text("pogo")};
         Text cf = new Text("");
         Text cq = new Text("cq");
-        Value v = new Value("7".getBytes());
+        Value v = new Value("7".getBytes(StandardCharsets.UTF_8));
         for (Text row : rows) {
             Mutation m = new Mutation(row);
             m.put(cf, cq, v);

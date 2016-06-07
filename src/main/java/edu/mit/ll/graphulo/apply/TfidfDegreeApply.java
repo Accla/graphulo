@@ -16,6 +16,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -87,7 +88,7 @@ public class TfidfDegreeApply implements ApplyOp {
 //      log.debug(String.format("(numWords=%2d): %s %.3f * %.3f * %.3f = %.3f",
 //          numWords, entry.getKey().toStringNoTime(),
 //          oldval, (1/sumWordsInDoc), idf, newval));
-      entry.setValue(new Value(Double.toString(newval).getBytes()));
+      entry.setValue(new Value(Double.toString(newval).getBytes(StandardCharsets.UTF_8)));
     }
 
     return entrySet.iterator();

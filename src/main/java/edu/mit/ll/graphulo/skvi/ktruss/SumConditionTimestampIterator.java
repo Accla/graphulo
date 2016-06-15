@@ -29,7 +29,10 @@ import java.util.Map;
  *   <li>All entries are emitted after applying the above rules.</li>
  * </ul>
  * The number of entries emitted are 0, 1, or 2.
+ *
+ * @deprecated A better way to implement k-Truss was found that did not rely on timestamps. Nevertheless, this class is correct and tested and could be reused in the future.
  */
+@Deprecated
 public class SumConditionTimestampIterator extends MultiKeyCombiner {
 
   public static final String TIMESTAMP_THRESHOLD = "tt";

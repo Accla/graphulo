@@ -6,6 +6,7 @@
   <artifactId>graphulo</artifactId>
   <version>1.0.0-SNAPSHOT</version>
   <packaging>jar</packaging>
+  <name>Graphulo</name>
   <description>
     Graphulo: Accumulo library of matrix math primitives and graph algorithms.
   </description>
@@ -25,7 +26,7 @@
     <developer>
       <id>dhutchis</id>
       <name>Dylan Hutchison</name>
-      <email>dhutchis@uw.edu</email>
+      <email>dhutchis@cs.washington.edu</email>
       <url>http://db.cs.washington.edu/people.html</url>
       <organization>University of Washington</organization>
       <organizationUrl>https://www.cs.washington.edu/</organizationUrl>
@@ -39,7 +40,7 @@
     <DBinit.path.libextZip>graphulo-${project.version}-libext</DBinit.path.libextZip>
     <test>TEST_CONFIG</test>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <accumulo.version>1.7.1</accumulo.version>
+    <accumulo.version>1.7.2</accumulo.version>
     <accumulo.version.majorminor>1.7</accumulo.version.majorminor>
     <!--<accumulo.VERSION.1.7>  </accumulo.VERSION.1.7>-->
     <!--<accumulo.VERSION.1.6>//</accumulo.VERSION.1.6>-->

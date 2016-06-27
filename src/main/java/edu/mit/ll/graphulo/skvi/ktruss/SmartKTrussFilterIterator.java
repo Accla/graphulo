@@ -23,19 +23,8 @@ import edu.mit.ll.graphulo.util.PeekingIterator2;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 
 /**
- * Receives a timestamp threshold <code>k</code>.
- * This class is a MultiKeyCombiner that behaves as follows:
- * <ol>
- *   <li>If not exactly two entries are present, no entries are emitted.</li>
- *   <li>If the entry with the greater timestamp has a value < k-2, no entries are emitted.</li>
- *   <li>Otherwise emits both entries unchanged.</li>
- * </ol>
- * This iterator should only be used after all entries are written and only on scan and full major compactions.
- * During scans, this iterator does two additional tasks:
- * <ol>
- *   <li>Does not emit the entry with an earlier (less recent) timestamp.</li>
- *   <li>Change the value of the entry with the more recent timestamp to "1".</li>
- * </ol>
+ * A filter that accepts values that are (1) odd and (2) have (val - 1)/2 >= k-2, where k is a parameter.
+ * Used by the kTrussAdj algorithm.
  */
 public class SmartKTrussFilterIterator extends Filter {
 

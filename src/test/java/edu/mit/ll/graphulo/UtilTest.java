@@ -352,7 +352,7 @@ public class UtilTest {
   }
 
   /** Small bug in Accumulo. */
-  @Ignore("KnownBug: ACCUMULO-3900 Fixed in 1.7.1")
+  //@Ignore("KnownBug: ACCUMULO-3900 Fixed in 1.7.1")
   @Test
   public void testAbstractEncoderDecode() {
     AbstractEncoder<Long> encoder = new LongCombiner.StringEncoder();

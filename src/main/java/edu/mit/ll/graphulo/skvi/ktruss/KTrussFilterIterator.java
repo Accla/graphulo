@@ -30,7 +30,10 @@ import java.util.Map;
  *   <li>Does not emit the entry with an earlier (less recent) timestamp.</li>
  *   <li>Change the value of the entry with the more recent timestamp to "1".</li>
  * </ol>
+ *
+ * @deprecated A better way to implement k-Truss was found that did not rely on timestamps. Nevertheless, this class is correct and tested and could be reused in the future.
  */
+@Deprecated
 public class KTrussFilterIterator extends MultiKeyCombiner {
 
   public static final String K = "k";

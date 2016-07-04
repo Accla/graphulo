@@ -20,10 +20,12 @@ public class OceanPipeline extends AccumuloTestBase {
   @Test
   public void runPipeline() throws Exception {
     String tSampleIDSeqID = "ocsa_TsampleSeq",
-        tSampleID = "ocsa_Tsample";
+        tSampleID = "ocsa_Tsample",
+        tSampleDistance = "ocsa_TsampleDis";
 
 //    ingestFiles(tSampleIDSeqID);
-    sumToSample(tSampleIDSeqID, tSampleID);
+//    sumToSample(tSampleIDSeqID, tSampleID);
+    doBrayCurtis(tSampleID, tSampleDistance);
   }
 
   private void ingestFiles(String tSampleIDSeqID) throws Exception {
@@ -58,7 +60,18 @@ public class OceanPipeline extends AccumuloTestBase {
     log.info("numUniqueKMersPerSample = "+numUniqueKMersPerSample);
   }
 
-  
+  private void doBrayCurtis(String tSampleID, String tSampleDistance) {
+    Connector conn = tester.getConnector();
+
+    DynamicIteratorSetting dis = new DynamicIteratorSetting(1, null)
+        .append(CartesianDissimilarityIterator.iteratorSetting(1));
+
+    Graphulo g = new Graphulo(conn, tester.getPassword());
+    long numSamplePairings = g.OneTable(tSampleID, tSampleDistance, null, null, -1, null, null, null,
+        null, null, dis.getIteratorSettingList(), null, null);
+    log.info("numSamplePairings = "+numSamplePairings);
+  }
+
 
 
 }

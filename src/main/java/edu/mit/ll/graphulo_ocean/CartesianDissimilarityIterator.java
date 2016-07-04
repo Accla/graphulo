@@ -126,6 +126,10 @@ public class CartesianDissimilarityIterator implements SortedKeyValueIterator<Ke
     Map<Text,Integer> kmerMap2;
     Text row2;
     Ret ret2 = buildMapWholeRow(source2);
+    // skip self-dissimilarity
+    if (ret2 != null && ret2.row.equals(ret.row))
+      ret2 = buildMapWholeRow(source2);
+
     if (ret2 == null) {
       ret = buildMapWholeRow(source);
       if (ret == null) {

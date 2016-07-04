@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.SortedMap;
 
 /**
- * Emit only the top K Values per row, each decoded as a Double.
+ * Emit only the top KMER Values per row, each decoded as a Double.
  */
 public class NoConsecutiveDuplicateRowsIterator implements SortedKeyValueIterator<Key,Value> {
   private static final Logger log = LogManager.getLogger(NoConsecutiveDuplicateRowsIterator.class);

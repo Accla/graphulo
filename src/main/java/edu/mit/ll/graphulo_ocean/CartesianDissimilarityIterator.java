@@ -115,7 +115,6 @@ public class CartesianDissimilarityIterator implements SortedKeyValueIterator<Ke
 //    if (!source.hasTop() || !source2.hasTop())
     ret = buildMapWholeRow(source);
     prepNext();
-    System.out.println("seeked; nextKey is "+nextKey);
   }
 
   private Ret ret;
@@ -149,7 +148,6 @@ public class CartesianDissimilarityIterator implements SortedKeyValueIterator<Ke
     byte[] val = Double.toString(dis).getBytes(UTF_8);
     nextKey = new Key(ret.row, new Text(val), ret2.row);
     nextValue = new Value(val);
-    System.out.println("nextKey is "+nextKey);
   }
 
   @Override

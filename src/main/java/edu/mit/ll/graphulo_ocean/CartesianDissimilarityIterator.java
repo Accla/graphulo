@@ -3,7 +3,6 @@ package edu.mit.ll.graphulo_ocean;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -20,6 +19,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 /**
  * Take the Cartesian product of a stream of entries with itself.
  * Bundled to consider the vector of kmers for a given sequence all together.
+ * <p>
+ * Problem: will not scale to >1 tablet server
  */
 public class CartesianDissimilarityIterator implements SortedKeyValueIterator<Key,Value> {
 
@@ -55,7 +56,7 @@ public class CartesianDissimilarityIterator implements SortedKeyValueIterator<Ke
     Map<Text,Integer> kmerMap = new HashMap<>();
 
     long sum = 0;
-    while(skvi.hasTop() && skvi.getTopKey().equals(keyOrig, PartialKey.ROW)) {
+    while(skvi.hasTop() && skvi.getTopKey().compareRow(ret.row) == 0) {
       int v = Integer.parseInt(new String(skvi.getTopValue().get(), UTF_8));
       sum += v;
       kmerMap.put(skvi.getTopKey().getColumnQualifier(), v);
@@ -114,17 +115,14 @@ public class CartesianDissimilarityIterator implements SortedKeyValueIterator<Ke
 //    if (!source.hasTop() || !source2.hasTop())
     ret = buildMapWholeRow(source);
     prepNext();
+    System.out.println("seeked; nextKey is "+nextKey);
   }
 
   private Ret ret;
   private Key nextKey;
   private Value nextValue;
 
-  @SuppressWarnings("Duplicates")
   private void prepNext() throws IOException {
-    long sum2;
-    Map<Text,Integer> kmerMap2;
-    Text row2;
     Ret ret2 = buildMapWholeRow(source2);
     // skip self-dissimilarity
     if (ret2 != null && ret2.row.equals(ret.row))
@@ -137,7 +135,8 @@ public class CartesianDissimilarityIterator implements SortedKeyValueIterator<Ke
         return;
       }
 
-      source2.seek(seekRange, columnFamilies, inclusive);
+      // strict upper triangle - seek to the row after the row that source is at.
+      source2.seek(seekRange.clip(new Range(ret.row, false, null, false)), columnFamilies, inclusive);
 
       ret2 = buildMapWholeRow(source2);
       if (ret2 == null) {
@@ -145,15 +144,12 @@ public class CartesianDissimilarityIterator implements SortedKeyValueIterator<Ke
         return;
       }
     }
-    sum2 = ret2.sum;
-    row2 = ret2.row;
-    kmerMap2 = ret2.kmerMap;
 
-
-    double dis = brayCurtisDis(ret.kmerMap, ret.sum, kmerMap2, sum2);
+    double dis = brayCurtisDis(ret.kmerMap, ret.sum, ret2.kmerMap, ret2.sum);
     byte[] val = Double.toString(dis).getBytes(UTF_8);
-    nextKey = new Key(ret.row, new Text(val), row2);
+    nextKey = new Key(ret.row, new Text(val), ret2.row);
     nextValue = new Value(val);
+    System.out.println("nextKey is "+nextKey);
   }
 
   @Override

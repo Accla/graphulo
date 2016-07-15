@@ -52,10 +52,9 @@ public class OceanPipeline extends AccumuloTestBase {
     DynamicIteratorSetting dis = new DynamicIteratorSetting(1, null)
         .append(ValToColApply.iteratorSetting(1))
         .append(KMerColQApply.iteratorSetting(1, kmer));
-//        .append(Graphulo.PLUS_ITERATOR_LONG);
 
     Graphulo g = new Graphulo(conn, tester.getPassword());
-    long numUniqueKMersPerSample = g.OneTable(tSampleIDSeqID, tSampleID, null, null, -1, null, null, null,
+    long numUniqueKMersPerSample = g.OneTable(tSampleIDSeqID, tSampleID, null, null, -1, null, null, Graphulo.PLUS_ITERATOR_LONG,
         null, null, dis.getIteratorSettingList(), null, null);
     log.info("numUniqueKMersPerSample = "+numUniqueKMersPerSample);
   }

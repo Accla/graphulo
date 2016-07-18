@@ -3743,16 +3743,18 @@ public class Graphulo {
 
   /**
    * Take the Cartesian product of a Atable's rows with itself,
-   * applying the Bray-Curtis dissimilarity function to each pair of rows.
+   * applying the given dissimilarity function to each pair of rows.
    * Used on genomics data.
    * @param Atable input
    * @param Rtable result (created if it does not exist)
+   * @param distanceType Bray-Curtis or Jaccard. Bray-Curtis does not satisfy the triangle inquality; Jaccard does.
    * @return Number of pairs of rows (sampleIDs) processed
    */
-  public long cartesianProductBrayCurtis(String Atable, String Rtable) {
+  public long cartesianProductBrayCurtis(String Atable, String Rtable,
+                                         CartesianDissimilarityIterator.DistanceType distanceType) {
 
     DynamicIteratorSetting dis = new DynamicIteratorSetting(1, null)
-        .append(CartesianDissimilarityIterator.iteratorSetting(1,
+        .append(CartesianDissimilarityIterator.iteratorSetting(1, distanceType,
             basicRemoteOpts(CartesianDissimilarityIterator.OPT_TABLE_PREFIX, Atable,
                 null, null))); // no authorizations given
 

@@ -64,7 +64,8 @@ public class OceanPipeline extends AccumuloTestBase {
     GraphuloUtil.deleteTables(tester.getConnector(), tSampleDistance);
     Connector conn = tester.getConnector();
     Graphulo g = new Graphulo(conn, tester.getPassword());
-    long numSamplePairings = g.cartesianProductBrayCurtis(tSampleID, tSampleDistance);
+    long numSamplePairings = g.cartesianProductBrayCurtis(tSampleID, tSampleDistance,
+        CartesianDissimilarityIterator.DistanceType.BRAY_CURTIS);
     log.info("numSamplePairings = "+numSamplePairings);
   }
 

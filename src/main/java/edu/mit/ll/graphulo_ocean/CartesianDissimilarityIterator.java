@@ -34,17 +34,20 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class CartesianDissimilarityIterator implements SortedKeyValueIterator<Key,Value> {
 
   public static final String OPT_TABLE_PREFIX = "A.";
+  public static enum DistanceType { BRAY_CURTIS, JACCARD }
+  public static final String OPT_DISTANCE_TYPE = "DistanceType";
 
   /**
    *
    * @param remoteOpts Options to scan the input table. Begin the options with prefix {@link #OPT_TABLE_PREFIX}
    */
-  public static IteratorSetting iteratorSetting(int priority, Map<String,String> remoteOpts) {
+  public static IteratorSetting iteratorSetting(int priority, DistanceType distanceType, Map<String,String> remoteOpts) {
     IteratorSetting itset = new IteratorSetting(priority, CartesianDissimilarityIterator.class, remoteOpts);
-    itset.addOptions(remoteOpts);
+    itset.addOption(OPT_DISTANCE_TYPE, distanceType.name());
     return itset;
   }
 
+  private DistanceType distanceType;
   private RemoteSourceIterator rsi;
   private SortedKeyValueIterator<Key, Value> source;
   private SortedKeyValueIterator<Key, Value> source2;
@@ -53,6 +56,9 @@ public class CartesianDissimilarityIterator implements SortedKeyValueIterator<Ke
   @Override
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
     this.origOptions = options;
+    distanceType = options.containsKey(OPT_DISTANCE_TYPE)
+        ? DistanceType.valueOf(options.get(OPT_DISTANCE_TYPE))
+        : DistanceType.BRAY_CURTIS;
     this.source = source;
     this.source2 = source.deepCopy(env);
     this.rsi = new RemoteSourceIterator();
@@ -67,7 +73,7 @@ public class CartesianDissimilarityIterator implements SortedKeyValueIterator<Ke
     public Map<Text,Integer> kmerMap;
   }
 
-  /** Three output arguments */
+  /** Three output arguments. */
   private static Ret buildMapWholeRow(SortedKeyValueIterator<Key, Value> skvi) throws IOException {
     if (!skvi.hasTop())
       return null;
@@ -98,6 +104,7 @@ public class CartesianDissimilarityIterator implements SortedKeyValueIterator<Ke
     return sum;
   }
 
+  /* Todo: This can be optimized to do it on the fly from the second one. */
   private static double brayCurtisDis(Map<Text,Integer> m1, long sum1, Map<Text,Integer> m2, long sum2) {
     Map<Text,Integer> ms, mb;
     if (m1.size() > m2.size()) {
@@ -112,6 +119,30 @@ public class CartesianDissimilarityIterator implements SortedKeyValueIterator<Ke
         sumMin += Math.min(vb, e.getValue());
     }
     return 1 - 2 * sumMin / (sum1 + sum2);
+  }
+
+  /* Todo: This can be optimized to do it on the fly from the second one. */
+  /** THIS METHOD DESTROYS m2. */
+  private static double jaccardDis(Map<Text,Integer> m1, Map<Text,Integer> m2) {
+    Map<Text,Integer> ms, mb;
+    double sumMin = 0, sumMax = 0;
+    for (Map.Entry<Text, Integer> e1 : m1.entrySet()) {
+      int v1 = e1.getValue();
+      Integer v2 = m2.remove(e1.getKey());
+      if (v2 != null) {
+        // sum the entries in both m1 and m2; max(v1,v2)
+        sumMin += Math.min(v2, v1);
+        sumMax += Math.max(v2, v1);
+      } else {
+        // sum the entries in m1 but not in m2; max(v1,0) = v1
+        sumMax += v1;
+      }
+    }
+    // sum the entries in m2 but not in e1; max(v2,0) = v2
+    for (Map.Entry<Text, Integer> e2 : m2.entrySet()) {
+      sumMax += e2.getValue();
+    }
+    return 1 - sumMin / sumMax;
   }
 
   private Range seekRange;
@@ -187,7 +218,18 @@ public class CartesianDissimilarityIterator implements SortedKeyValueIterator<Ke
       }
     }
 
-    double dis = brayCurtisDis(ret.kmerMap, ret.sum, ret2.kmerMap, ret2.sum);
+    double dis;
+    switch(distanceType) {
+      case BRAY_CURTIS:
+        dis = brayCurtisDis(ret.kmerMap, ret.sum, ret2.kmerMap, ret2.sum);
+        break;
+      case JACCARD:
+        // DESTROYS ret2.kmerMap
+        dis = jaccardDis(ret.kmerMap, ret2.kmerMap);
+        break;
+      default:
+        throw new AssertionError();
+    }
     byte[] val = Double.toString(dis).getBytes(UTF_8);
     nextKey = new Key(ret.row, new Text(val), ret2.row);
     nextValue = new Value(val);

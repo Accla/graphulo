@@ -40,6 +40,7 @@ import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.MTJUtil;
 import edu.mit.ll.graphulo.util.MemMatrixUtil;
 import edu.mit.ll.graphulo.util.SerializationUtil;
+import edu.mit.ll.graphulo_ocean.CartesianDissimilarityIterator;
 import no.uib.cipr.matrix.DenseMatrix;
 import no.uib.cipr.matrix.DenseVector;
 import no.uib.cipr.matrix.Matrices;
@@ -3738,5 +3739,27 @@ public class Graphulo {
 
     return OneTable(TedgeT, RtableT, Rtable, null, -1, null, null, null, null, null, midlist, null, null);
   }
+
+
+  /**
+   * Take the Cartesian product of a Atable's rows with itself,
+   * applying the Bray-Curtis dissimilarity function to each pair of rows.
+   * Used on genomics data.
+   * @param Atable input
+   * @param Rtable result (created if it does not exist)
+   * @return Number of pairs of rows (sampleIDs) processed
+   */
+  public long cartesianProductBrayCurtis(String Atable, String Rtable) {
+
+    DynamicIteratorSetting dis = new DynamicIteratorSetting(1, null)
+        .append(CartesianDissimilarityIterator.iteratorSetting(1,
+            basicRemoteOpts(CartesianDissimilarityIterator.OPT_TABLE_PREFIX, Atable,
+                null, null))); // no authorizations given
+
+    return OneTable(Atable, Rtable, null, null, -1, null, null, null,
+        null, null, dis.getIteratorSettingList(), null, null);
+
+  }
+
 
 }

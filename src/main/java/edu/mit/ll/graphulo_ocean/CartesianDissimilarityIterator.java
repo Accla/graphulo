@@ -1,5 +1,7 @@
 package edu.mit.ll.graphulo_ocean;
 
+import edu.mit.ll.graphulo.skvi.RemoteSourceIterator;
+import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -20,22 +22,43 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * Take the Cartesian product of a stream of entries with itself.
  * Bundled to consider the vector of kmers for a given sequence all together.
  * <p>
- * Problem: will not scale to >1 tablet server
+ * The loop looks like this:
+ * <pre>
+ * for row1 in [tabletStartKey : tabletEndKey]:
+ *   for row2 in (row1 : tabletEndKey] from deepCopied skvi:
+ *     do BC(row1, row2)
+ *   for row2 in (tabletEndKey : -inf) from remote skvi:
+ *     do BC(row1, row2)
+ * </pre>
  */
 public class CartesianDissimilarityIterator implements SortedKeyValueIterator<Key,Value> {
 
-  public static IteratorSetting iteratorSetting(int priority) {
-    IteratorSetting itset = new IteratorSetting(priority, CartesianDissimilarityIterator.class);
+  public static final String OPT_TABLE_PREFIX = "A.";
+
+  /**
+   *
+   * @param remoteOpts Options to scan the input table. Begin the options with prefix {@link #OPT_TABLE_PREFIX}
+   */
+  public static IteratorSetting iteratorSetting(int priority, Map<String,String> remoteOpts) {
+    IteratorSetting itset = new IteratorSetting(priority, CartesianDissimilarityIterator.class, remoteOpts);
+    itset.addOptions(remoteOpts);
     return itset;
   }
 
+  private RemoteSourceIterator rsi;
   private SortedKeyValueIterator<Key, Value> source;
   private SortedKeyValueIterator<Key, Value> source2;
+  private Map<String,String> origOptions;
 
   @Override
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
+    this.origOptions = options;
     this.source = source;
     this.source2 = source.deepCopy(env);
+    this.rsi = new RemoteSourceIterator();
+    Map<String, String> remoteMap = GraphuloUtil.splitMapPrefix(options).get(
+        OPT_TABLE_PREFIX.substring(0,OPT_TABLE_PREFIX.length()-1));
+    this.rsi.init(null, remoteMap, env);
   }
 
   private static class Ret {
@@ -111,8 +134,11 @@ public class CartesianDissimilarityIterator implements SortedKeyValueIterator<Ke
     this.columnFamilies = columnFamilies;
     this.inclusive = inclusive;
     source.seek(range, columnFamilies, inclusive);
-    source2.seek(range, columnFamilies, inclusive);
-//    if (!source.hasTop() || !source2.hasTop())
+    // start range2 on the entry after the first one
+    Range rngAfterStart = new Range(range.getStartKey(), false, range.getEndKey(), range.isEndKeyInclusive());
+    source2.seek(rngAfterStart, columnFamilies, inclusive);
+    rsiFlag = false;
+
     ret = buildMapWholeRow(source);
     prepNext();
   }
@@ -120,14 +146,25 @@ public class CartesianDissimilarityIterator implements SortedKeyValueIterator<Ke
   private Ret ret;
   private Key nextKey;
   private Value nextValue;
+  /** Marks when to use rsi vs. source2. */
+  private boolean rsiFlag;
 
   private void prepNext() throws IOException {
-    Ret ret2 = buildMapWholeRow(source2);
+    Ret ret2 = buildMapWholeRow(rsiFlag ? rsi : source2);
     // skip self-dissimilarity
     if (ret2 != null && ret2.row.equals(ret.row))
-      ret2 = buildMapWholeRow(source2);
+      ret2 = buildMapWholeRow(rsiFlag ? rsi : source2);
+
+    if (ret2 == null && !rsiFlag && !seekRange.isInfiniteStopKey()) {
+      // rsi might provide more entries
+      rsi.seek(new Range(seekRange.getEndKey(), false, null, false), columnFamilies, inclusive);
+      ret2 = buildMapWholeRow(rsi);
+      rsiFlag = true;
+    }
+
 
     if (ret2 == null) {
+      // no more entries in rsi or in source2 - advance source and reset source2
       ret = buildMapWholeRow(source);
       if (ret == null) {
         nextKey = null; nextValue = null;
@@ -136,8 +173,14 @@ public class CartesianDissimilarityIterator implements SortedKeyValueIterator<Ke
 
       // strict upper triangle - seek to the row after the row that source is at.
       source2.seek(seekRange.clip(new Range(ret.row, false, null, false)), columnFamilies, inclusive);
-
+      rsiFlag = false;
       ret2 = buildMapWholeRow(source2);
+      if (ret2 == null && !seekRange.isInfiniteStopKey()) {
+        // rsi might provide more entries
+        rsi.seek(new Range(seekRange.getEndKey(), false, null, false), columnFamilies, inclusive);
+        ret2 = buildMapWholeRow(rsi);
+        rsiFlag = true;
+      }
       if (ret2 == null) {
         nextKey = null; nextValue = null;
         return;
@@ -163,8 +206,11 @@ public class CartesianDissimilarityIterator implements SortedKeyValueIterator<Ke
   @Override
   public CartesianDissimilarityIterator deepCopy(IteratorEnvironment env) {
     CartesianDissimilarityIterator cdi = new CartesianDissimilarityIterator();
-    cdi.source = source.deepCopy(env);
-    cdi.source2 = source.deepCopy(env);
+    try {
+      cdi.init(source.deepCopy(env), origOptions, env);
+    } catch (IOException e) {
+      throw new RuntimeException("",e);
+    }
     return cdi;
   }
 }

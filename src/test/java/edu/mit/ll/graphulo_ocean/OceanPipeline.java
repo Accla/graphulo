@@ -4,6 +4,7 @@ import edu.mit.ll.graphulo.DynamicIteratorSetting;
 import edu.mit.ll.graphulo.Graphulo;
 import edu.mit.ll.graphulo.examples.ExampleUtil;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
+import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -60,14 +61,10 @@ public class OceanPipeline extends AccumuloTestBase {
   }
 
   private void doBrayCurtis(String tSampleID, String tSampleDistance) {
+    GraphuloUtil.deleteTables(tester.getConnector(), tSampleDistance);
     Connector conn = tester.getConnector();
-
-    DynamicIteratorSetting dis = new DynamicIteratorSetting(1, null)
-        .append(CartesianDissimilarityIterator.iteratorSetting(1));
-
     Graphulo g = new Graphulo(conn, tester.getPassword());
-    long numSamplePairings = g.OneTable(tSampleID, tSampleDistance, null, null, -1, null, null, null,
-        null, null, dis.getIteratorSettingList(), null, null);
+    long numSamplePairings = g.cartesianProductBrayCurtis(tSampleID, tSampleDistance);
     log.info("numSamplePairings = "+numSamplePairings);
   }
 

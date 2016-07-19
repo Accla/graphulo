@@ -473,6 +473,12 @@
                       <!--<exclude>org/junit/experimental/**</exclude>-->
                       <!--</excludes>-->
                     </filter>
+                    <filter>
+                      <artifact>commons-logging:commons-logging</artifact>
+                      <includes>
+                        <include>org/apache/commons/logging/**</include>
+                      </includes>
+                    </filter>
                   </filters>
                 </configuration>
               </execution>

@@ -11,10 +11,10 @@ import org.apache.log4j.Logger;
 import org.junit.Test;
 
 /**
- * Ingest two sample snippets.
+ * Test the ocean genomics pipeline on a small file.
  */
-public class OceanPipeline extends AccumuloTestBase {
-  private static final Logger log = LogManager.getLogger(OceanPipeline.class);
+public class OceanTest extends AccumuloTestBase {
+  private static final Logger log = LogManager.getLogger(OceanTest.class);
 
   public static final int kmer = 11;
 
@@ -24,14 +24,14 @@ public class OceanPipeline extends AccumuloTestBase {
         tSampleID = "ocsa_Tsample",
         tSampleDistance = "ocsa_TsampleDis";
 
-//    ingestFiles(tSampleIDSeqID);
-//    sumToSample(tSampleIDSeqID, tSampleID);
+    ingestFiles(tSampleIDSeqID);
+    sumToSample(tSampleIDSeqID, tSampleID);
     doBrayCurtis(tSampleID, tSampleDistance);
   }
 
   private void ingestFiles(String tSampleIDSeqID) throws Exception {
     Connector conn = tester.getConnector();
-
+    GraphuloUtil.deleteTables(conn, tSampleIDSeqID);
 //    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
 //        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
 
@@ -49,7 +49,7 @@ public class OceanPipeline extends AccumuloTestBase {
 
   private void sumToSample(String tSampleIDSeqID, String tSampleID) {
     Connector conn = tester.getConnector();
-
+    GraphuloUtil.deleteTables(conn, tSampleID);
     DynamicIteratorSetting dis = new DynamicIteratorSetting(1, null)
         .append(ValToColApply.iteratorSetting(1))
         .append(KMerColQApply.iteratorSetting(1, kmer));
@@ -61,8 +61,8 @@ public class OceanPipeline extends AccumuloTestBase {
   }
 
   private void doBrayCurtis(String tSampleID, String tSampleDistance) {
-    GraphuloUtil.deleteTables(tester.getConnector(), tSampleDistance);
     Connector conn = tester.getConnector();
+    GraphuloUtil.deleteTables(conn, tSampleDistance);
     Graphulo g = new Graphulo(conn, tester.getPassword());
     long numSamplePairings = g.cartesianProductBrayCurtis(tSampleID, tSampleDistance,
         CartesianDissimilarityIterator.DistanceType.BRAY_CURTIS);

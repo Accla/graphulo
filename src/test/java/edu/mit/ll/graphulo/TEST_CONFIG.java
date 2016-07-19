@@ -1,6 +1,7 @@
 package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.util.KnownBugSuite;
+import edu.mit.ll.graphulo_ocean.OceanTest;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
@@ -32,7 +33,8 @@ import java.io.IOException;
     EWiseTest.class,
     SCCTest.class,
     LineTest.class,
-    AlgorithmTest.class
+    AlgorithmTest.class,
+    OceanTest.class
 })
 
 /**

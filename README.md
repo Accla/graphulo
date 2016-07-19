@@ -78,7 +78,7 @@ shippable.yml         Enables continuous integration testing.
 
 Prerequisite: Install [Maven](https://maven.apache.org/download.cgi).
 
-Run `mvn package -DskipTests=true` to compile and build graphulo.
+Run `mvn package -DskipTests` to compile and build graphulo.
 This creates three primary Graphulo artifacts inside the `target/` sub-directory:
 
 1. `graphulo-${version}.jar`         Graphulo binaries, enough for client usage.
@@ -94,6 +94,16 @@ The maven script will build everything on Unix-like systems (including Mac),
 as long as the *zip* utility is installed.
 On Windows systems, `DBinit.m` may not be built (used in D4M installation). 
 See the message in the build after running `mvn package`.
+
+#### Other Build Options
+
+Run `mvn package -DskipTests -DNoDoAll` to not build the alldeps jar, libext zip, and javadoc.
+This build will be much faster than normal builds.
+
+Run `mvn package -DskipTests -DBundleAll` to create a jar that includes the Accumulo dependencies 
+alongside all other dependencies. This should not be used in an Accumulo installation because
+the Accumulo classes will conflict with the jars in the Accumulo installation.
+It is useful for running standalong programs.
 
 ### Test
 Tests only run on Unix-like systems.

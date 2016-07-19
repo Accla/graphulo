@@ -307,7 +307,7 @@
             <goals>
               <goal>shade</goal>
             </goals>
-            <configuration>
+            <configuration combine.self="override">
               <shadedArtifactAttached>true</shadedArtifactAttached>
               <shadedClassifierName>alldeps</shadedClassifierName>
               <minimizeJar>true</minimizeJar>
@@ -410,7 +410,49 @@
               </execution>
             </executions>
           </plugin>
+        </plugins>
+      </build>
+    </profile>
 
+    <!--Bundle Everything, including Accumulo classes.-->
+    <profile>
+      <id>bundle-all</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-shade-plugin</artifactId>
+            <version>2.4.1</version>
+            <executions>
+              <execution>
+                <phase>package</phase>
+                <goals>
+                  <goal>shade</goal>
+                </goals>
+                <configuration>
+                  <shadedArtifactAttached>true</shadedArtifactAttached>
+                  <shadedClassifierName>all</shadedClassifierName>
+                  <minimizeJar>true</minimizeJar>
+                  <!--<artifactSet>-->
+                    <!--<excludes>-->
+                      <!--<exclude>org.apache.accumulo:*</exclude>-->
+                    <!--</excludes>-->
+                  <!--</artifactSet>-->
+                  <filters>
+                    <filter>
+                      <artifact>org.apache.htrace:*</artifact>
+                      <includes>
+                        <include>**</include>
+                      </includes>
+                      <!--<excludes>-->
+                      <!--<exclude>org/junit/experimental/**</exclude>-->
+                      <!--</excludes>-->
+                    </filter>
+                  </filters>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
         </plugins>
       </build>
     </profile>

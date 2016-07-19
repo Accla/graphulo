@@ -22,6 +22,9 @@ import java.io.IOException;
 
 /**
  * Execute this in a directory that can see all the sample files.
+ * Ex: java -cp "/home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-alldeps.jar" edu.mit.ll.graphulo_ocean.OceanIngestSampleSeqRaw -listOfSamplesFile="/home/gridsan/dhutchison/gits/istc_oceanography/metadata/test_one_sample_filename.csv"
+ * createtable oTsampleSeqRaw
+ * addsplits S009 S019
  */
 public class OceanIngestSampleSeqRaw {
   private static final Logger log = LogManager.getLogger(OceanIngestSampleSeqRaw.class);
@@ -92,7 +95,7 @@ public class OceanIngestSampleSeqRaw {
   private Connector setupConnector(String txe1) {
     String instanceName = txe1;
     String zookeeperHost = txe1+".cloud.llgrid.txe1.mit.edu:2181";
-    ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeeperHost);// .withZkTimeout(timeout)
+    ClientConfiguration cc = new ClientConfiguration().withInstance(instanceName).withZkHosts(zookeeperHost);// .withZkTimeout(timeout)
     Instance instance = new ZooKeeperInstance(cc);
     AuthenticationToken auth = getTXE1Authentication(txe1);
     try {

@@ -10,6 +10,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.lexicoder.UIntegerLexicoder;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
@@ -19,23 +20,82 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import static edu.mit.ll.graphulo.util.GraphuloUtil.EMPTY_BYTES;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
- * Loads a CSV file with two entries per row delimitted by ','.
- * First entry goes into the Accumulo column qualifier; second entry goes into the Accumulo value.
- * The Accumulo row is the file name
+ * The Accumulo column qualifier is the file name.
+ * The Accumulo row is the kmer.
  */
-public class CSVIngester {
-  private static final Logger log = LogManager.getLogger(CSVIngester.class);
+public final class CSVIngesterKmer {
+  private static final Logger log = LogManager.getLogger(CSVIngesterKmer.class);
 
-  private Connector connector;
+  private final int K;
+  private final GenomicEncoder G;
+  private final Connector connector;
 
-  public CSVIngester(Connector connector) {
+  public CSVIngesterKmer(Connector connector, int K) {
     this.connector = connector;
+    this.K = K;
+    G = new GenomicEncoder(K);
   }
+
+//  static final Text EMPTY_TEXT = new Text();
+
+  private static final class ArrayHolder {
+    public final byte[] b;
+
+    public ArrayHolder(byte[] b) {
+      this.b = b;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+      ArrayHolder that = (ArrayHolder) o;
+      return Arrays.equals(b, that.b);
+    }
+
+    @Override
+    public int hashCode() {
+      return Arrays.hashCode(b);
+    }
+  }
+
+
+  protected long ingestLine(Text row, BatchWriter bw, String line, SortedMap<ArrayHolder,Integer> map) {
+//    String[] parts = line.split(",");
+    int comma = line.indexOf(',');
+    if (comma == -1) {
+      log.error("Bad CSV line: "+line);
+      return 0;
+    }
+
+//    String seqid = parts[0];
+    String seq = line.substring(comma+1);
+    char[] seqb = seq.toCharArray();
+
+    // split seq into kmers
+    long num = 0;
+
+    for (int i = 0; i < seqb.length-K; i++) {
+      byte[] e = G.encode(seqb, i);
+      ArrayHolder ah = new ArrayHolder(e);
+      Integer curval = map.get(ah);
+      int newval = curval == null ? 1 : curval+1;
+      map.put(ah, newval);
+      num++;
+    }
+
+    return num;
+  }
+
 
   public long ingestFile(File file, String Atable, boolean deleteIfExists) throws IOException {
     return ingestFile(file, Atable, deleteIfExists, 1, 0);
@@ -67,10 +127,11 @@ public class CSVIngester {
     if (sampleid0.endsWith(".csv"))
       sampleid0 = sampleid0.substring(0, sampleid0.length()-4);
     Text sampleid = new Text(sampleid0);
+    byte[] sampleidb = sampleid0.getBytes(UTF_8);
 
     BatchWriter bw = null;
     String line = null;
-    long entriesProcessed = 0;
+    long entriesProcessed = 0, ingested = 0;
 
     try (BufferedReader fo = new BufferedReader(new FileReader(file))) {
       BatchWriterConfig config = new BatchWriterConfig();
@@ -86,17 +147,35 @@ public class CSVIngester {
       StatusLogger slog = new StatusLogger();
       String partialMsg = file.getName()+": entries processed: ";
 
+      SortedMap<ArrayHolder,Integer> map = new TreeMap<>();
+      UIntegerLexicoder uil = new UIntegerLexicoder();
+
       long linecnt = 0;
       while ((line = fo.readLine()) != null)
         if (!line.isEmpty() && linecnt++ % everyXLines == 0) {
-          entriesProcessed += ingestLine(sampleid, bw, line);
-          slog.logPeriodic(log, partialMsg+entriesProcessed);
+          entriesProcessed += ingestLine(sampleid, bw, line, map);
+          if (linecnt % 5 == 0)
+            slog.logPeriodic(log, partialMsg+entriesProcessed);
         }
+
+      log.info("Finished putting "+sampleid0+" into an in-memory map; now starting ingest");
+      partialMsg = sampleid0+": entries ingested: ";
+
+      ingested = 0;
+      for (Map.Entry<ArrayHolder, Integer> entry : map.entrySet()) {
+        Mutation m = new Mutation(entry.getKey().b);
+        m.put(EMPTY_BYTES, sampleidb, uil.encode(entry.getValue()));
+        bw.addMutation(m);
+        ingested++;
+        if (linecnt % 5 == 0)
+          slog.logPeriodic(log, partialMsg+ingested);
+      }
+
 
     } catch (TableNotFoundException e) {
       throw new RuntimeException(e);
     } catch (MutationsRejectedException e) {
-      log.warn("Mutation rejected on line "+line, e);
+      log.warn("", e);
     } finally {
       if (bw != null)
         try {
@@ -105,28 +184,9 @@ public class CSVIngester {
           log.warn("Mutation rejected at close() on line "+line, e);
         }
     }
-    return entriesProcessed;
+    return ingested;
   }
 
-//  static final Text EMPTY_TEXT = new Text();
 
-  protected long ingestLine(Text row, BatchWriter bw, String line) throws MutationsRejectedException {
-    String[] parts = line.split(",");
-    if (parts.length != 2) {
-      log.error("Bad CSV line: "+line);
-      return 0;
-    }
-
-    String seqid = parts[0];
-    String seq = parts[1];
-
-//    Text seqidtext = new Text(seqid);
-
-    Mutation m = new Mutation(row);
-    m.put(EMPTY_BYTES, seqid.getBytes(UTF_8), seq.getBytes(UTF_8));
-    bw.addMutation(m);
-
-    return 1;
-  }
 
 }

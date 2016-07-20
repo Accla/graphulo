@@ -10,6 +10,7 @@ public class GenomicEncoderTest {
   @Test
   public void encode() throws Exception {
     Assert.assertArrayEquals(new byte[]{0b00011110}, new GenomicEncoder(4).encode(new char[]{'A','C','T','G'}));
+    Assert.assertArrayEquals(new byte[]{0b00011110}, new GenomicEncoder(4).encode(new char[]{'A','A','C','T','G'}, 1));
     Assert.assertArrayEquals(new byte[]{0b00011100}, new GenomicEncoder(3).encode(new char[]{'A','C','T'}));
     Assert.assertArrayEquals(new byte[]{0b00011110,(byte)0b11000000}, new GenomicEncoder(5).encode(new char[]{'A','C','T','G','T'}));
   }

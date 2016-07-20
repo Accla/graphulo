@@ -51,11 +51,15 @@ public class GenomicEncoder implements Lexicoder<char[]> {
 
   @Override
   public byte[] encode(char[] bs) {
-    if (bs.length != K)
-      throw new IllegalArgumentException("input does not match length K="+K+": "+new String(bs));
+    return encode(bs, 0);
+  }
+
+  public byte[] encode(char[] bs, int off) {
+    if (off > bs.length-K)
+      throw new IllegalArgumentException("input does not match length K="+K+": "+new String(bs)+" and off = "+off);
     byte[] ret = new byte[NB];
     for (int i = 0; i < NB; i++) {
-      ret[i] = enc(bs, 4*i, i == NB-1 ? REM : 4);
+      ret[i] = enc(bs, off + 4*i, i == NB-1 ? REM : 4);
     }
     return ret;
   }

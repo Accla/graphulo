@@ -8,7 +8,7 @@ import org.apache.log4j.Logger;
 public class StatusLogger {
 
   private long duration = 1000*60*2; // 2 minutes
-  private long timeAtLastPrint = -1;
+  private long timeAtLastPrint = System.currentTimeMillis();
 
   public StatusLogger() {}
   public StatusLogger(long duration) {

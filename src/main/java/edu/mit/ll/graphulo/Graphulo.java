@@ -40,6 +40,7 @@ import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.MTJUtil;
 import edu.mit.ll.graphulo.util.MemMatrixUtil;
 import edu.mit.ll.graphulo.util.SerializationUtil;
+import edu.mit.ll.graphulo_ocean.CartesianDissimilarityIterator;
 import no.uib.cipr.matrix.DenseMatrix;
 import no.uib.cipr.matrix.DenseVector;
 import no.uib.cipr.matrix.Matrices;
@@ -3079,7 +3080,7 @@ public class Graphulo {
     cutoffThreshold += Double.MIN_NORMAL;
     checkGiven(true, "Aorig, ATorig", Aorig, ATorig);
     checkGiven(false, "Wfinal, WTfinal, Hfinal, HTfinal", Wfinal, WTfinal, Hfinal, HTfinal);
-    Preconditions.checkArgument(K > 0, "# of topics K must be > 0: "+K);
+    Preconditions.checkArgument(K > 0, "# of topics KMER must be > 0: "+K);
     deleteTables(Wfinal, WTfinal, Hfinal, HTfinal);
 
     String Ttmp1, Ttmp2, Hprev, HTprev;
@@ -3090,7 +3091,7 @@ public class Graphulo {
     HTprev = tmpBaseName+"HTprev";
     deleteTables(Ttmp1, Ttmp2, Hprev, HTprev);
 
-    // Initialize W to a dense random matrix of size N x K
+    // Initialize W to a dense random matrix of size N x KMER
     List<IteratorSetting> itCreateTopicList = new DynamicIteratorSetting(1,null)
         .append(KeyRetainOnlyApply.iteratorSetting(1, PartialKey.ROW))  // strip to row field
         .append(new IteratorSetting(1, VersioningIterator.class))       // only count a row once
@@ -3107,8 +3108,8 @@ public class Graphulo {
 
     // No need to actually measure N and M
 ////    long N = countRows(Aorig);
-//    assert NK % K == 0;
-//    long N = NK / K;
+//    assert NK % KMER == 0;
+//    long N = NK / KMER;
 //    long M = countRows(ATorig);
 
         // hdiff starts at frobenius norm of A, since H starts at the zero matrix.
@@ -3385,7 +3386,7 @@ public class Graphulo {
     Wfinal = emptyToNull(Wfinal);
     Hfinal = emptyToNull(Hfinal);
     Preconditions.checkArgument(Wfinal != null || Hfinal != null, "Either W or H must be given or the method is useless.");
-    Preconditions.checkArgument(K > 0, "# of topics K must be > 0: " + K);
+    Preconditions.checkArgument(K > 0, "# of topics KMER must be > 0: " + K);
     deleteTables(Wfinal, Hfinal); // WTfinal, HTfinal
 
     // Scan A into memory
@@ -3405,7 +3406,7 @@ public class Graphulo {
     if (maxColsPerTopic >= M)
       maxColsPerTopic = -1;
 
-    // Initialize W to a dense random matrix of size N x K
+    // Initialize W to a dense random matrix of size N x KMER
     RealMatrix Wmatrix = MemMatrixUtil.randNormPosFull(N, K);
     RealMatrix WTmatrix = Wmatrix.transpose();
     RealMatrix HmatrixPrev;
@@ -3433,7 +3434,7 @@ public class Graphulo {
       numiter++;
 
       // H = ONLYPOS( (WT*W)^-1 * (WT*A) )
-      //nmfStep(K, Wfinal, Aorig, Hfinal, HTfinal, Ttmp1, Ttmp2, trace);
+      //nmfStep(KMER, Wfinal, Aorig, Hfinal, HTfinal, Ttmp1, Ttmp2, trace);
       // assign to Hmatrix
       HmatrixPrev = Hmatrix;
       try (TraceScope span = Trace.startSpan("Hstep")) {
@@ -3483,7 +3484,7 @@ public class Graphulo {
       for (int i = 0; i < header.length; i++) {
         header[i] = String.format("%4d", i);
       }
-      System.out.printf("( K, M) %s%n", Arrays.toString(header));
+      System.out.printf("( KMER, M) %s%n", Arrays.toString(header));
       for (int i = 0; i < K * M; i++) {
         System.out.printf("(%2d,%2d) %s%n", i / M, i % M, Arrays.toString(HARR[i]));
       }
@@ -3667,7 +3668,7 @@ public class Graphulo {
   public void doHT_HHTinv(String Htable, String HTtable, int K, String Rtable, boolean forceDelete) {
     checkGiven(true, "Htable, HTtable", Htable, HTtable);
     checkGiven(false, "Rtable", Rtable);
-    Preconditions.checkArgument(K > 0, "# of topics K must be > 0: " + K);
+    Preconditions.checkArgument(K > 0, "# of topics KMER must be > 0: " + K);
     deleteTables(Rtable);
 
     String Ttmp1;
@@ -3738,5 +3739,29 @@ public class Graphulo {
 
     return OneTable(TedgeT, RtableT, Rtable, null, -1, null, null, null, null, null, midlist, null, null);
   }
+
+
+  /**
+   * Take the Cartesian product of a Atable's rows with itself,
+   * applying the given dissimilarity function to each pair of rows.
+   * Used on genomics data.
+   * @param Atable input
+   * @param Rtable result (created if it does not exist)
+   * @param distanceType Bray-Curtis or Jaccard. Bray-Curtis does not satisfy the triangle inquality; Jaccard does.
+   * @return Number of pairs of rows (sampleIDs) processed
+   */
+  public long cartesianProductBrayCurtis(String Atable, String Rtable,
+                                         CartesianDissimilarityIterator.DistanceType distanceType) {
+
+    DynamicIteratorSetting dis = new DynamicIteratorSetting(1, null)
+        .append(CartesianDissimilarityIterator.iteratorSetting(1, distanceType,
+            basicRemoteOpts(CartesianDissimilarityIterator.OPT_TABLE_PREFIX, Atable,
+                null, null))); // no authorizations given
+
+    return OneTable(Atable, Rtable, null, null, -1, null, null, null,
+        null, null, dis.getIteratorSettingList(), null, null);
+
+  }
+
 
 }

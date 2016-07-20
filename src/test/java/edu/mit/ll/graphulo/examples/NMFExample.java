@@ -89,7 +89,7 @@ public class NMFExample extends AccumuloTestBase {
 
     // Non-negative matrix factorization.
     // This call blocks until the NMF completes.
-//    double nmfError = graphulo.NMF(EtableSample, ETtableSample, Wtable, WTtable, Htable, HTtable, K, maxiter, true,
+//    double nmfError = graphulo.NMF(EtableSample, ETtableSample, Wtable, WTtable, Htable, HTtable, KMER, maxiter, true,
 //        cutoffThreshold);
     System.out.println("Final NMF absolute difference in error: " + nmfError);
 
@@ -123,7 +123,7 @@ public class NMFExample extends AccumuloTestBase {
       to use an in-memory version of NMF that performs the computation at the client.
       It will run faster than the standard Graphulo version, as long as the entire input table can be held in memory.
 
-  1)  Change the number of topics K and the maximum number of iterations.
+  1)  Change the number of topics KMER and the maximum number of iterations.
 
   */
   ////////////////////////////////////////////////////////////////////////////////////////////////

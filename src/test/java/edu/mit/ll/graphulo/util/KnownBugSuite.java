@@ -90,7 +90,7 @@ public class KnownBugSuite extends Suite {
       testFinishedCount = 0;
       t = System.currentTimeMillis();
       if (failure.getMessage().startsWith("KnownBug Test Failure: "))
-//        psOut.print('K');
+//        psOut.print('KMER');
         psOut.println("Test failed as expected, due to a known bug: "+failure.toString());
       else {
 //        psOut.print('A') ; psOut.println();

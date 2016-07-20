@@ -21,7 +21,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 /**
- * Emit only the top K Values per row, each decoded as a Double.
+ * Emit only the top KMER Values per row, each decoded as a Double.
  */
 public class TopColPerRowIterator implements SortedKeyValueIterator<Key,Value> {
   private static final Logger log = LogManager.getLogger(TopColPerRowIterator.class);
@@ -141,7 +141,7 @@ public class TopColPerRowIterator implements SortedKeyValueIterator<Key,Value> {
       Key k = entry.getKey();
       Value v = entry.getValue();
       double d = Double.parseDouble(v.toString());
-      if (d > pq.peek().n) {  // if greater than the smallest of the top K
+      if (d > pq.peek().n) {  // if greater than the smallest of the top KMER
 //        System.out.printf("REPLACE %.1f with %.1f\n", pq.peek().n, d);
         pq.add(pq.remove().setToCopy(d, k, v));
       }

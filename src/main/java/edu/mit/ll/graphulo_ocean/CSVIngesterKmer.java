@@ -10,7 +10,8 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.lexicoder.UIntegerLexicoder;
+import org.apache.accumulo.core.client.lexicoder.Lexicoder;
+import org.apache.accumulo.core.client.lexicoder.LongLexicoder;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
@@ -148,7 +149,7 @@ public final class CSVIngesterKmer {
       String partialMsg = file.getName()+": entries processed: ";
 
       SortedMap<ArrayHolder,Integer> map = new TreeMap<>();
-      UIntegerLexicoder uil = new UIntegerLexicoder();
+      Lexicoder<Long> uil = new LongLexicoder();
 
       long linecnt = 0;
       while ((line = fo.readLine()) != null)
@@ -164,7 +165,7 @@ public final class CSVIngesterKmer {
       ingested = 0;
       for (Map.Entry<ArrayHolder, Integer> entry : map.entrySet()) {
         Mutation m = new Mutation(entry.getKey().b);
-        m.put(EMPTY_BYTES, sampleidb, uil.encode(entry.getValue()));
+        m.put(EMPTY_BYTES, sampleidb, uil.encode(entry.getValue().longValue()));
         bw.addMutation(m);
         ingested++;
         if (linecnt % 5 == 0)

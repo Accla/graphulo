@@ -3,6 +3,8 @@ package edu.mit.ll.graphulo.simplemult;
 import edu.mit.ll.graphulo.apply.ApplyIterator;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.lexicoder.Lexicoder;
+import org.apache.accumulo.core.client.lexicoder.LongLexicoder;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -39,7 +41,8 @@ public class MathTwoScalar extends SimpleTwoScalar {
     BIGDECIMAL(/*new BigDecimalCombiner.BigDecimalEncoder()*/),
     /** Parses as long if the input has a decimal point. Otherwise parses as double.
      * Returns as long if both inputs parsed as long. Otherwise returns as double. */
-    LONG_OR_DOUBLE
+    LONG_OR_DOUBLE,
+    LEX_LONG
 
 
     // Core Developer note: I tried to make the encoding and decoding generic,
@@ -118,6 +121,17 @@ public class MathTwoScalar extends SimpleTwoScalar {
     return itset;
   }
 
+  /** For use as an ApplyOp.
+   * Create an IteratorSetting that performs a ScalarOp on every Value it sees, parsing Values as Longs. */
+  public static IteratorSetting applyOpLexLong(int priority, boolean constantOnRight, ScalarOp op, long scalar, boolean keepZero) {
+    IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
+    itset.addOption(ApplyIterator.APPLYOP, MathTwoScalar.class.getName());
+    for (Map.Entry<String, String> entry : optionMap(op, ScalarType.LEX_LONG, null, keepZero).entrySet())
+      itset.addOption(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX + entry.getKey(), entry.getValue());
+    itset = KeyTwoScalar.addOptionsToIteratorSetting(itset, constantOnRight, new Value(new LongLexicoder().encode(scalar)));
+    return itset;
+  }
+
   /** For use as a Combiner. Pass columns as null or empty to combine on all columns. */
   public static IteratorSetting combinerSetting(int priority, List<IteratorSetting.Column> columns, ScalarOp op, ScalarType type, boolean keepZero) {
     IteratorSetting itset = new IteratorSetting(priority, MathTwoScalar.class);
@@ -179,8 +193,17 @@ public class MathTwoScalar extends SimpleTwoScalar {
       return Aval;
 
     Number Anum, Bnum;
+    Lexicoder<Long> lex = null;
+    if (scalarType == ScalarType.LEX_LONG)
+      lex = new LongLexicoder();
+
 //    System.out.println("multiply("+Aval+","+Bval+")");
-    String Astr = new String(Aval.get(), StandardCharsets.UTF_8), Bstr = new String(Bval.get(), StandardCharsets.UTF_8);
+    String Astr=null, Bstr=null;
+    if (scalarType != ScalarType.LEX_LONG) {
+      Astr = new String(Aval.get(), StandardCharsets.UTF_8);
+      Bstr = new String(Bval.get(), StandardCharsets.UTF_8);
+    }
+
     switch(scalarType) {
       case LONG:
         Anum = Long.valueOf(Astr);
@@ -205,13 +228,17 @@ public class MathTwoScalar extends SimpleTwoScalar {
             ? Long.valueOf(Bstr)
             : Double.valueOf(Bstr);
         break;
+      case LEX_LONG:
+        Anum = lex.decode(Aval.get());
+        Bnum = lex.decode(Bval.get());
+        break;
       default: throw new AssertionError();
     }
     Number nnew;
     switch(scalarOp) {
       case PLUS:
         switch(scalarType) {
-          case LONG: nnew = Anum.longValue() + Bnum.longValue(); break;
+          case LONG: case LEX_LONG: nnew = Anum.longValue() + Bnum.longValue(); break;
           case DOUBLE: nnew = Anum.doubleValue() + Bnum.doubleValue(); break;
           case BIGDECIMAL: nnew = ((BigDecimal)Anum).add((BigDecimal)Bnum); break;
           default: throw new AssertionError();
@@ -219,7 +246,7 @@ public class MathTwoScalar extends SimpleTwoScalar {
         break;
       case TIMES:
         switch(scalarType) {
-          case LONG: nnew = Anum.longValue() * Bnum.longValue(); break;
+          case LONG: case LEX_LONG: nnew = Anum.longValue() * Bnum.longValue(); break;
           case DOUBLE: nnew = Anum.doubleValue() * Bnum.doubleValue(); break;
           case BIGDECIMAL: nnew = ((BigDecimal)Anum).multiply((BigDecimal)Bnum); break;
           default: throw new AssertionError();
@@ -227,7 +254,7 @@ public class MathTwoScalar extends SimpleTwoScalar {
         break;
       case MINUS:
         switch(scalarType) {
-          case LONG: nnew = Anum.longValue() - Bnum.longValue(); break;
+          case LONG: case LEX_LONG: nnew = Anum.longValue() - Bnum.longValue(); break;
           case DOUBLE: nnew = Anum.doubleValue() - Bnum.doubleValue(); break;
           case BIGDECIMAL: nnew = ((BigDecimal)Anum).subtract((BigDecimal) Bnum); break;
           default: throw new AssertionError();
@@ -235,7 +262,7 @@ public class MathTwoScalar extends SimpleTwoScalar {
         break;
       case DIVIDE:
         switch(scalarType) {
-          case LONG: nnew = Anum.longValue() / Bnum.longValue(); break;
+          case LONG: case LEX_LONG: nnew = Anum.longValue() / Bnum.longValue(); break;
           case DOUBLE: nnew = Anum.doubleValue() / Bnum.doubleValue(); break;
           case BIGDECIMAL: nnew = ((BigDecimal)Anum).divide((BigDecimal) Bnum, BigDecimal.ROUND_HALF_UP); break;
           default: throw new AssertionError();
@@ -243,7 +270,7 @@ public class MathTwoScalar extends SimpleTwoScalar {
         break;
       case POWER:
         switch(scalarType) {
-          case LONG: nnew = (long)Math.pow(Anum.longValue(), Bnum.longValue()); break;
+          case LONG: case LEX_LONG: nnew = (long)Math.pow(Anum.longValue(), Bnum.longValue()); break;
           case DOUBLE: nnew = Math.pow(Anum.doubleValue(), Bnum.doubleValue()); break;
           case BIGDECIMAL: nnew = ((BigDecimal)Anum).pow(Bnum.intValue()); break;
           default: throw new AssertionError();
@@ -251,7 +278,7 @@ public class MathTwoScalar extends SimpleTwoScalar {
         break;
       case MIN:
         switch(scalarType) {
-          case LONG: nnew = Math.min(Anum.longValue(), Bnum.longValue()); break;
+          case LONG: case LEX_LONG: nnew = Math.min(Anum.longValue(), Bnum.longValue()); break;
           case DOUBLE: nnew = Math.min(Anum.doubleValue(), Bnum.doubleValue()); break;
           case BIGDECIMAL: nnew = ((BigDecimal)Anum).min((BigDecimal) Bnum); break;
           default: throw new AssertionError();
@@ -259,7 +286,7 @@ public class MathTwoScalar extends SimpleTwoScalar {
         break;
       case MAX:
         switch(scalarType) {
-          case LONG: nnew = Math.max(Anum.longValue(), Bnum.longValue()); break;
+          case LONG: case LEX_LONG: nnew = Math.max(Anum.longValue(), Bnum.longValue()); break;
           case DOUBLE: nnew = Math.max(Anum.doubleValue(), Bnum.doubleValue()); break;
           case BIGDECIMAL: nnew = ((BigDecimal)Anum).max((BigDecimal) Bnum); break;
           default: throw new AssertionError();
@@ -271,20 +298,21 @@ public class MathTwoScalar extends SimpleTwoScalar {
     // check for zero
     if (!keepZero) {
       switch (scalarType) {
-        case LONG: if (nnew.longValue() == 0) return null; break;
+        case LONG: case LEX_LONG: if (nnew.longValue() == 0) return null; break;
         case DOUBLE: if (Double.doubleToRawLongBits(nnew.doubleValue()) == 0) return null; break;
         case BIGDECIMAL: if (nnew.equals(BigDecimal.ZERO)) return null; break;
       }
     }
 
-    Value vnew;
+    byte[] vnew;
     switch(scalarType) {
-      case LONG: vnew = new Value(Long.toString(nnew.longValue()).getBytes(StandardCharsets.UTF_8)); break;
-      case DOUBLE: vnew = new Value(Double.toString(nnew.doubleValue()).getBytes(StandardCharsets.UTF_8)); break;
-      case BIGDECIMAL: vnew = new Value(nnew.toString().getBytes(StandardCharsets.UTF_8)); break;
+      case LONG: vnew = Long.toString(nnew.longValue()).getBytes(StandardCharsets.UTF_8); break;
+      case DOUBLE: vnew = Double.toString(nnew.doubleValue()).getBytes(StandardCharsets.UTF_8); break;
+      case BIGDECIMAL: vnew = nnew.toString().getBytes(StandardCharsets.UTF_8); break;
+      case LEX_LONG: vnew = lex.encode(nnew.longValue()); break;
       default: throw new AssertionError();
     }
-    return vnew;
+    return new Value(vnew);
   }
 
   @Override

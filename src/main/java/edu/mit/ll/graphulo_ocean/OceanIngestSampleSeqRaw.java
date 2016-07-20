@@ -24,7 +24,7 @@ import java.io.IOException;
  * Execute this in a directory that can see all the sample files.
  * Ex: java -cp "/home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar" edu.mit.ll.graphulo_ocean.OceanIngestSampleSeqRaw -listOfSamplesFile "/home/gridsan/dhutchison/gits/istc_oceanography/metadata/test_one_sample_filename.csv"
  * cd /home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed
- * Ex: java -cp "/home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar" edu.mit.ll.graphulo_ocean.OceanIngestSampleSeqRaw -listOfSamplesFile "/home/gridsan/dhutchison/gits/istc_oceanography/metadata/valid_samples_GA02_filenames_perm.csv" -everyXLines 2 -startOffset 0 -K 11 | tee "$HOME/node-043-ingest.log"
+ * Ex: java -cp "/home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar" edu.mit.ll.graphulo_ocean.OceanIngestSampleSeqRaw -listOfSamplesFile "/home/gridsan/dhutchison/gits/istc_oceanography/metadata/valid_samples_GA02_filenames_perm.csv" -everyXLines 2 -startOffset 0 -K 11 -oTsampleDegree oTsampleDegree | tee "$HOME/node-043-ingest.log"
  * createtable oTsampleSeqRaw
  * addsplits S009 S019
  */
@@ -85,6 +85,9 @@ public class OceanIngestSampleSeqRaw {
 
     @Parameter(names = {"-K"}, required = true)
     public int K;
+
+    @Parameter(names = {"-oTsampleDegree"})
+    public String oTsampleDegree;
   }
 
   public void execute(final String[] args) {
@@ -94,7 +97,7 @@ public class OceanIngestSampleSeqRaw {
     Connector conn = setupConnector(opts.txe1);
 
     ingestFileList(conn, opts.listOfSamplesFile, opts.oTsampleSeqRaw,
-        opts.everyXLines, opts.startOffset, opts.K);
+        opts.everyXLines, opts.startOffset, opts.K, opts.oTsampleDegree);
   }
 
   private Connector setupConnector(String txe1) {
@@ -127,7 +130,7 @@ public class OceanIngestSampleSeqRaw {
 
   private void ingestFileList(Connector conn,
                               String listOfSamplesFile, String oTsampleSeqRaw,
-                              int everyXLines, int startOffset, int K) {
+                              int everyXLines, int startOffset, int K, String oTsampleDegree) {
     try (BufferedReader fo = new BufferedReader(new FileReader(listOfSamplesFile))) {
       for (int i = 0; i < startOffset; i++)
         fo.readLine();
@@ -144,7 +147,7 @@ public class OceanIngestSampleSeqRaw {
             continue;
           }
 
-          long ep = new CSVIngesterKmer(conn, K).ingestFile(file, oTsampleSeqRaw, false);
+          long ep = new CSVIngesterKmer(conn, K).ingestFile(file, oTsampleSeqRaw, false, oTsampleDegree);
           entriesProcessed += ep;
           log.info("Finished file: "+line+"; entries ingested: "+ep+"; cummulative: "+entriesProcessed);
         }

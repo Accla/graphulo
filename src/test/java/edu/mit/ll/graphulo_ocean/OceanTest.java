@@ -75,13 +75,14 @@ public class OceanTest extends AccumuloTestBase {
   public void ingestKmers() throws IOException {
     Connector conn = tester.getConnector();
     String tKmer = "ocsa_Tkmer";
+    String tKmerDeg = "ocsa_TkmerDeg";
     GraphuloUtil.deleteTables(conn, tKmer);
 //    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
 //        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
 
     CSVIngesterKmer ingester = new CSVIngesterKmer(conn, kmer);
-    long numSeqs = ingester.ingestFile(ExampleUtil.getDataFile("S0001_n1000.csv"), tKmer, true);
-    numSeqs += ingester.ingestFile(ExampleUtil.getDataFile("S0002_n1000.csv"), tKmer, false);
+    long numSeqs = ingester.ingestFile(ExampleUtil.getDataFile("S0001_n1000.csv"), tKmer, true, tKmerDeg);
+    numSeqs += ingester.ingestFile(ExampleUtil.getDataFile("S0002_n1000.csv"), tKmer, false, tKmerDeg);
     log.info("number of sequences ingested: "+numSeqs);
   }
 

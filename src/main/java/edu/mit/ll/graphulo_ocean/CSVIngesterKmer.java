@@ -13,7 +13,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.lexicoder.Lexicoder;
 import org.apache.accumulo.core.client.lexicoder.LongLexicoder;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -76,7 +75,7 @@ public final class CSVIngesterKmer {
   }
 
 
-  protected long ingestLine(Text row, BatchWriter bw, String line, SortedMap<ArrayHolder,Integer> map) {
+  protected long ingestLine(String line, SortedMap<ArrayHolder,Integer> map) {
 //    String[] parts = line.split(",");
     int comma = line.indexOf(',');
     if (comma == -1) {
@@ -129,12 +128,12 @@ public final class CSVIngesterKmer {
   }
 
 
-  public long ingestFile(File file, String Atable, boolean deleteIfExists) throws IOException {
-    return ingestFile(file, Atable, deleteIfExists, 1, 0);
+  public long ingestFile(File file, String Atable, boolean deleteIfExists, String oTsampleDegree) throws IOException {
+    return ingestFile(file, Atable, deleteIfExists, 1, 0, oTsampleDegree);
   }
 
   public long ingestFile(File file, String Atable, boolean deleteIfExists,
-                         int everyXLines, int startOffset) throws IOException {
+                         int everyXLines, int startOffset, String oTsampleDegree) throws IOException {
     Preconditions.checkArgument(everyXLines >= 1 && startOffset >= 0, "bad params ", everyXLines, startOffset);
     if (deleteIfExists && connector.tableOperations().exists(Atable))
       try {
@@ -158,15 +157,14 @@ public final class CSVIngesterKmer {
     String sampleid0 = file.getName();
     if (sampleid0.endsWith(".csv"))
       sampleid0 = sampleid0.substring(0, sampleid0.length()-4);
-    Text sampleid = new Text(sampleid0);
     byte[] sampleidb = sampleid0.getBytes(UTF_8);
 
     BatchWriter bw = null;
     String line = null;
-    long entriesProcessed = 0, ingested = 0;
+    long entriesProcessed = 0, ingested = 0, totalsum = 0;
 
+    BatchWriterConfig config = new BatchWriterConfig();
     try (BufferedReader fo = new BufferedReader(new FileReader(file))) {
-      BatchWriterConfig config = new BatchWriterConfig();
       bw = connector.createBatchWriter(Atable, config);
 
       // Skip header line
@@ -185,7 +183,7 @@ public final class CSVIngesterKmer {
       long linecnt = 0;
       while ((line = fo.readLine()) != null)
         if (!line.isEmpty() && linecnt++ % everyXLines == 0) {
-          entriesProcessed += ingestLine(sampleid, bw, line, map);
+          entriesProcessed += ingestLine(line, map);
           if (linecnt % 5 == 0)
             slog.logPeriodic(log, partialMsg+entriesProcessed);
         }
@@ -196,7 +194,9 @@ public final class CSVIngesterKmer {
       ingested = 0;
       for (Map.Entry<ArrayHolder, Integer> entry : map.entrySet()) {
         Mutation m = new Mutation(entry.getKey().b);
-        m.put(EMPTY_BYTES, sampleidb, uil.encode(entry.getValue().longValue()));
+        long lv = entry.getValue().longValue();
+        totalsum += lv;
+        m.put(EMPTY_BYTES, sampleidb, uil.encode(lv));
         bw.addMutation(m);
         ingested++;
         if (linecnt % 5 == 0)
@@ -216,6 +216,42 @@ public final class CSVIngesterKmer {
           log.warn("Mutation rejected at close() on line "+line, e);
         }
     }
+
+    try {
+      if (deleteIfExists && connector.tableOperations().exists(oTsampleDegree))
+        try {
+          connector.tableOperations().delete(oTsampleDegree);
+        } catch (AccumuloException | AccumuloSecurityException e) {
+          log.warn("trouble deleting table "+oTsampleDegree, e);
+          throw new RuntimeException(e);
+        } catch (TableNotFoundException e) {
+          throw new RuntimeException(e);
+        }
+      if (!connector.tableOperations().exists(oTsampleDegree))
+        try {
+          connector.tableOperations().create(oTsampleDegree);
+        } catch (AccumuloException | AccumuloSecurityException e) {
+          log.warn("trouble creating table " + oTsampleDegree, e);
+          throw new RuntimeException(e);
+        } catch (TableExistsException e) {
+          throw new RuntimeException(e);
+        }
+
+      bw = connector.createBatchWriter(oTsampleDegree, config);
+      Mutation m = new Mutation(sampleidb);
+      m.put(EMPTY_BYTES, ("degree|"+totalsum).getBytes(UTF_8), (""+totalsum).getBytes(UTF_8));
+
+    } catch (TableNotFoundException e) {
+      log.error("",e);
+    } finally {
+      if (bw != null)
+        try {
+          bw.close();
+        } catch (MutationsRejectedException e) {
+          log.warn("Mutation rejected at close() ", e);
+        }
+    }
+
     return ingested;
   }
 

@@ -115,6 +115,7 @@ public final class CSVIngesterKmer {
           }
           break;
         }
+        i--; continue;
       }
       byte[] e = G.encode(seqb, i);
       ArrayHolder ah = new ArrayHolder(e);

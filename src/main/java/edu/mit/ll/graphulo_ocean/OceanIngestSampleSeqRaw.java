@@ -82,6 +82,9 @@ public class OceanIngestSampleSeqRaw {
 
     @Parameter(names = {"-txe1"})
     public String txe1 = "classdb54";
+
+    @Parameter(names = {"-K"}, required = true)
+    public int K;
   }
 
   public void execute(final String[] args) {
@@ -91,7 +94,7 @@ public class OceanIngestSampleSeqRaw {
     Connector conn = setupConnector(opts.txe1);
 
     ingestFileList(conn, opts.listOfSamplesFile, opts.oTsampleSeqRaw,
-        opts.everyXLines, opts.startOffset);
+        opts.everyXLines, opts.startOffset, opts.K);
   }
 
   private Connector setupConnector(String txe1) {
@@ -124,7 +127,7 @@ public class OceanIngestSampleSeqRaw {
 
   private void ingestFileList(Connector conn,
                               String listOfSamplesFile, String oTsampleSeqRaw,
-                              int everyXLines, int startOffset) {
+                              int everyXLines, int startOffset, int K) {
     try (BufferedReader fo = new BufferedReader(new FileReader(listOfSamplesFile))) {
       for (int i = 0; i < startOffset; i++)
         fo.readLine();
@@ -141,9 +144,9 @@ public class OceanIngestSampleSeqRaw {
             continue;
           }
 
-          long ep = new CSVIngester(conn).ingestFile(file, oTsampleSeqRaw, false);
+          long ep = new CSVIngesterKmer(conn, K).ingestFile(file, oTsampleSeqRaw, false);
           entriesProcessed += ep;
-          log.info("Finished file: "+line+"; entries processed: "+ep+"; cummulative: "+entriesProcessed);
+          log.info("Finished file: "+line+"; entries ingested: "+ep+"; cummulative: "+entriesProcessed);
         }
 
     } catch (IOException e) {

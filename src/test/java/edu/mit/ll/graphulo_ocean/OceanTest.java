@@ -10,6 +10,8 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
+import java.io.IOException;
+
 /**
  * Test the ocean genomics pipeline on a small file.
  */
@@ -67,6 +69,20 @@ public class OceanTest extends AccumuloTestBase {
     long numSamplePairings = g.cartesianProductBrayCurtis(tSampleID, tSampleDistance,
         CartesianDissimilarityIterator.DistanceType.BRAY_CURTIS);
     log.info("numSamplePairings = "+numSamplePairings);
+  }
+
+  @Test
+  public void ingestKmers() throws IOException {
+    Connector conn = tester.getConnector();
+    String tKmer = "ocsa_Tkmer";
+    GraphuloUtil.deleteTables(conn, tKmer);
+//    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
+//        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+
+    CSVIngesterKmer ingester = new CSVIngesterKmer(conn, kmer);
+    long numSeqs = ingester.ingestFile(ExampleUtil.getDataFile("S0001_n1000.csv"), tKmer, true);
+    numSeqs += ingester.ingestFile(ExampleUtil.getDataFile("S0002_n1000.csv"), tKmer, false);
+    log.info("number of sequences ingested: "+numSeqs);
   }
 
 

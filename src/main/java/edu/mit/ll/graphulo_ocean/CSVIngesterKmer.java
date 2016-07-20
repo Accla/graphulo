@@ -14,6 +14,7 @@ import org.apache.accumulo.core.client.lexicoder.Lexicoder;
 import org.apache.accumulo.core.client.lexicoder.LongLexicoder;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.WritableComparator;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -48,7 +49,7 @@ public final class CSVIngesterKmer {
 
 //  static final Text EMPTY_TEXT = new Text();
 
-  private static final class ArrayHolder {
+  private static final class ArrayHolder implements Comparable<ArrayHolder> {
     public final byte[] b;
 
     public ArrayHolder(byte[] b) {
@@ -67,6 +68,11 @@ public final class CSVIngesterKmer {
     public int hashCode() {
       return Arrays.hashCode(b);
     }
+
+    @Override
+    public int compareTo(ArrayHolder o) {
+      return WritableComparator.compareBytes(b, 0, b.length, o.b, 0, o.b.length);
+    }
   }
 
 
@@ -84,8 +90,32 @@ public final class CSVIngesterKmer {
 
     // split seq into kmers
     long num = 0;
+    int i = 0;
 
-    for (int i = 0; i < seqb.length-K; i++) {
+    // skip 'N' logic
+    outer: while (true) {
+      for (int j = i; j < i + K; j++) {
+        if (seqb[j] == 'N') {
+          i = j + 1;
+          continue outer;
+        }
+      }
+      break;
+    }
+
+    for (; i < seqb.length-K; i++) {
+      if (seqb[i + K - 1] == 'N') {
+        i += K;
+        outer: while (true) {
+          for (int j = i; j < i + K; j++) {
+            if (seqb[j] == 'N') {
+              i = j + 1;
+              continue outer;
+            }
+          }
+          break;
+        }
+      }
       byte[] e = G.encode(seqb, i);
       ArrayHolder ah = new ArrayHolder(e);
       Integer curval = map.get(ah);

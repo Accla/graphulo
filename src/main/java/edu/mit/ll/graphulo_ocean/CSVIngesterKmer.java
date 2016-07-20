@@ -107,7 +107,7 @@ public final class CSVIngesterKmer {
       if (seqb[i + K - 1] == 'N') {
         i += K;
         outer: while (true) {
-          for (int j = i; j < i + K; j++) {
+          for (int j = i; j < Math.min(i + K, seqb.length); j++) {
             if (seqb[j] == 'N') {
               i = j + 1;
               continue outer;

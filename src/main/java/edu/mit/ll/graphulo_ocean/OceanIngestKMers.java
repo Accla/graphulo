@@ -17,6 +17,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.logging.Level;
 
 /**
  * Execute this in a directory that can see all the sample files.
@@ -67,6 +68,9 @@ public class OceanIngestKMers {
           ", oTsampleDegree='" + oTsampleDegree + '\'' +
           '}';
     }
+
+
+
   }
 
   public void execute(final String[] args) {

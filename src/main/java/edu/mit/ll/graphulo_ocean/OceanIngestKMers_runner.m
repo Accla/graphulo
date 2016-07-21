@@ -1,6 +1,6 @@
 
 % cp '/home/gridsan/dhutchison/gits/graphulo/src/main/java/edu/mit/ll/graphulo_ocean/OceanIngestKMers_runner.m' .
-% eval(pRUN('OceanIngestKMers_runner',16,{'txe1'}))
+% eval(pRUN('OceanIngestKMers_runner',16,grid))
 
 %PARALLEL = 1;
 
@@ -19,6 +19,17 @@ opts(11) = java.lang.String('-txe1');
 opts(12) = java.lang.String('classdb54');
 opts(13) = java.lang.String('-oTsampleSeqRaw');
 opts(14) = java.lang.String('oTsampleSeqRaw');
+
+console = org.apache.log4j.ConsoleAppender();
+console.setThreshold(org.apache.log4j.Level.INFO);
+console.activateOptions();
+PATTERN = java.lang.String('%d [%p|%c|%C{1}] %m%n');
+pl = org.apache.log4j.PatternLayout(PATTERN);
+console.setLayout(pl);
+rl = org.apache.log4j.Logger.getRootLogger();
+rl.addAppender(console);
+
+javaaddpath /home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar
 
 edu.mit.ll.graphulo_ocean.OceanIngestKMers.main(opts)
 

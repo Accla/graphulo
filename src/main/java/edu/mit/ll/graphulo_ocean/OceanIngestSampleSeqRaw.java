@@ -88,11 +88,25 @@ public class OceanIngestSampleSeqRaw {
 
     @Parameter(names = {"-oTsampleDegree"})
     public String oTsampleDegree;
+
+    @Override
+    public String toString() {
+      return "Opts{" +
+          "listOfSamplesFile='" + listOfSamplesFile + '\'' +
+          ", oTsampleSeqRaw='" + oTsampleSeqRaw + '\'' +
+          ", everyXLines=" + everyXLines +
+          ", startOffset=" + startOffset +
+          ", txe1='" + txe1 + '\'' +
+          ", K=" + K +
+          ", oTsampleDegree='" + oTsampleDegree + '\'' +
+          '}';
+    }
   }
 
   public void execute(final String[] args) {
     Opts opts = new Opts();
     opts.parseArgs(OceanIngestSampleSeqRaw.class.getName(), args);
+    log.info(OceanIngestSampleSeqRaw.class.getName() + opts);
 
     Connector conn = setupConnector(opts.txe1);
 

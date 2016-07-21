@@ -1,10 +1,9 @@
 package edu.mit.ll.graphulo.util;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.RangeSet;
 import edu.mit.ll.graphulo.DynamicIteratorSetting;
-import edu.mit.ll.graphulo.reducer.GatherReducer;
 import edu.mit.ll.graphulo.skvi.D4mRangeFilter;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
@@ -38,8 +37,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.charset.CharacterCodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
@@ -1088,4 +1085,29 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
     return dis.toIteratorSetting();
   }
 
+  public static boolean createTables(Connector connector, boolean deleteIfExists, String... tables) {
+    TableOperations tops = connector.tableOperations();
+    for (String tn : tables) {
+      if (tn == null)
+        continue;
+      if (deleteIfExists && tops.exists(tn))
+        try {
+          tops.delete(tn);
+        } catch (AccumuloException | AccumuloSecurityException e) {
+          log.warn("trouble deleting table "+tn, e);
+          throw new RuntimeException(e);
+        } catch (TableNotFoundException e) {
+          throw new RuntimeException(e);
+        }
+      if (!tops.exists(tn))
+        try {
+          tops.create(tn);
+        } catch (AccumuloException | AccumuloSecurityException e) {
+          log.warn("trouble creating table " + tn, e);
+          throw new RuntimeException(e);
+        } catch (TableExistsException e) {
+          throw new RuntimeException(e);
+        }
+    }
+  }
 }

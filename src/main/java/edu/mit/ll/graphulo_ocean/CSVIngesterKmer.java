@@ -1,14 +1,12 @@
 package edu.mit.ll.graphulo_ocean;
 
 import com.google.common.base.Preconditions;
+import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.StatusLogger;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.lexicoder.Lexicoder;
 import org.apache.accumulo.core.client.lexicoder.LongLexicoder;
@@ -51,7 +49,7 @@ public final class CSVIngesterKmer {
   private static final class ArrayHolder implements Comparable<ArrayHolder> {
     public final byte[] b;
 
-    public ArrayHolder(byte[] b) {
+    ArrayHolder(byte[] b) {
       this.b = b;
     }
 
@@ -75,7 +73,7 @@ public final class CSVIngesterKmer {
   }
 
 
-  protected long ingestLine(String line, SortedMap<ArrayHolder,Integer> map) {
+  private long ingestLine(String line, SortedMap<ArrayHolder,Integer> map) {
 //    String[] parts = line.split(",");
     int comma = line.indexOf(',');
     if (comma == -1) {
@@ -135,24 +133,7 @@ public final class CSVIngesterKmer {
   public long ingestFile(File file, String Atable, boolean deleteIfExists,
                          int everyXLines, int startOffset, String oTsampleDegree) throws IOException {
     Preconditions.checkArgument(everyXLines >= 1 && startOffset >= 0, "bad params ", everyXLines, startOffset);
-    if (deleteIfExists && connector.tableOperations().exists(Atable))
-      try {
-        connector.tableOperations().delete(Atable);
-      } catch (AccumuloException | AccumuloSecurityException e) {
-        log.warn("trouble deleting table "+Atable, e);
-        throw new RuntimeException(e);
-      } catch (TableNotFoundException e) {
-        throw new RuntimeException(e);
-      }
-    if (!connector.tableOperations().exists(Atable))
-      try {
-        connector.tableOperations().create(Atable);
-      } catch (AccumuloException | AccumuloSecurityException e) {
-        log.warn("trouble creating table " + Atable, e);
-        throw new RuntimeException(e);
-      } catch (TableExistsException e) {
-        throw new RuntimeException(e);
-      }
+    GraphuloUtil.createTables(connector, deleteIfExists, Atable, oTsampleDegree);
 
     String sampleid0 = file.getName();
     if (sampleid0.endsWith(".csv"))
@@ -218,25 +199,6 @@ public final class CSVIngesterKmer {
     }
 
     try {
-      if (deleteIfExists && connector.tableOperations().exists(oTsampleDegree))
-        try {
-          connector.tableOperations().delete(oTsampleDegree);
-        } catch (AccumuloException | AccumuloSecurityException e) {
-          log.warn("trouble deleting table "+oTsampleDegree, e);
-          throw new RuntimeException(e);
-        } catch (TableNotFoundException e) {
-          throw new RuntimeException(e);
-        }
-      if (!connector.tableOperations().exists(oTsampleDegree))
-        try {
-          connector.tableOperations().create(oTsampleDegree);
-        } catch (AccumuloException | AccumuloSecurityException e) {
-          log.warn("trouble creating table " + oTsampleDegree, e);
-          throw new RuntimeException(e);
-        } catch (TableExistsException e) {
-          throw new RuntimeException(e);
-        }
-
       bw = connector.createBatchWriter(oTsampleDegree, config);
       Mutation m = new Mutation(sampleidb);
       m.put(EMPTY_BYTES, ("degree|"+totalsum).getBytes(UTF_8), (""+totalsum).getBytes(UTF_8));

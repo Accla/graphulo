@@ -1085,7 +1085,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
     return dis.toIteratorSetting();
   }
 
-  public static boolean createTables(Connector connector, boolean deleteIfExists, String... tables) {
+  public static void createTables(Connector connector, boolean deleteIfExists, String... tables) {
     TableOperations tops = connector.tableOperations();
     for (String tn : tables) {
       if (tn == null)

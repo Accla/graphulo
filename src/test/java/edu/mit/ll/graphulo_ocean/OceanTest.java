@@ -10,8 +10,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
-import java.io.IOException;
-
 /**
  * Test the ocean genomics pipeline on a small file.
  */
@@ -22,9 +20,9 @@ public class OceanTest extends AccumuloTestBase {
 
   @Test
   public void runPipeline() throws Exception {
-    String tSampleIDSeqID = "ocsa_TsampleSeq",
-        tSampleID = "ocsa_Tsample",
-        tSampleDistance = "ocsa_TsampleDis";
+    String tSampleIDSeqID = "oceantest_TsampleSeq",
+        tSampleID = "oceantest_Tsample",
+        tSampleDistance = "oceantest_TsampleDis";
 
     ingestFiles(tSampleIDSeqID);
     sumToSample(tSampleIDSeqID, tSampleID);
@@ -72,20 +70,37 @@ public class OceanTest extends AccumuloTestBase {
   }
 
   @Test
-  public void ingestKmers() throws IOException {
+  public void ingestKmersAndDist() throws Exception {
     Connector conn = tester.getConnector();
-    String tKmer = "ocsa_Tkmer";
-    String tKmerDeg = "ocsa_TkmerDeg";
-    GraphuloUtil.deleteTables(conn, tKmer);
+    String tKmer = "oceantest_Tkmer";
+    String tKmerDeg = "oceantest_TkmerDeg";
+    String tDist = "oceantest_TsampleDist";
+
+    ingestKmers(conn, tKmer, tKmerDeg);
+    doDist(conn, tKmer, tKmerDeg, tDist);
+  }
+
+  private void ingestKmers(Connector conn, String tKmer, String tKmerDeg) throws Exception {
+    GraphuloUtil.deleteTables(conn, tKmer, tKmerDeg);
 //    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
 //        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
 
     CSVIngesterKmer ingester = new CSVIngesterKmer(conn, kmer);
-    long numSeqs = ingester.ingestFile(ExampleUtil.getDataFile("S0001_n1000.csv"), tKmer, true, tKmerDeg);
+    long numSeqs = ingester.ingestFile(ExampleUtil.getDataFile("S0001_n1000.csv"), tKmer, false, tKmerDeg);
     numSeqs += ingester.ingestFile(ExampleUtil.getDataFile("S0002_n1000.csv"), tKmer, false, tKmerDeg);
     log.info("number of sequences ingested: "+numSeqs);
   }
 
 
+  private void doDist(Connector conn, String tKmer, String tKmerDeg, String tDist) {
+    GraphuloUtil.deleteTables(conn, tDist);
+    OceanDistanceCalc odc = new OceanDistanceCalc();
+    OceanDistanceCalc.Opts opts = new OceanDistanceCalc.Opts();
+    opts.oTsampleDist = tDist;
+    opts.oTsampleDegree = tKmerDeg;
+    opts.oTsampleSeqRaw = tKmer;
+    Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+    odc.executeGraphulo(graphulo, opts);
+  }
 
 }

@@ -1110,4 +1110,16 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
         }
     }
   }
+
+  /**
+   * Copy out the private method from Key.
+   * @see Key
+   */
+  public static byte[] followingArray(byte ba[]) {
+    byte[] fba = new byte[ba.length + 1];
+    System.arraycopy(ba, 0, fba, 0, ba.length);
+    fba[ba.length] = (byte) 0x00;
+    return fba;
+  }
+
 }

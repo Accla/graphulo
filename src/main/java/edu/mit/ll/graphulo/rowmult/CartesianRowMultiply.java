@@ -36,7 +36,7 @@ public class CartesianRowMultiply implements RowMultiplyOp {
    * @return Sorted map of the entries.
    * Todo P2: replace SortedMap with a list of entries, since sorted order is guaranteed
    */
-  static SortedMap<Key, Value> readRow(SortedKeyValueIterator<Key, Value> skvi,
+  public static SortedMap<Key, Value> readRow(SortedKeyValueIterator<Key, Value> skvi,
                                        Watch<Watch.PerfSpan> watch, Watch.PerfSpan watchtype) throws IOException {
     if (!skvi.hasTop())
       throw new IllegalStateException(skvi + " should hasTop()");
@@ -48,6 +48,34 @@ public class CartesianRowMultiply implements RowMultiplyOp {
 //      watch.start(watchtype);
 //      try {
         skvi.next();
+//      } finally {
+//        watch.stop(watchtype);
+//      }
+    } while (skvi.hasTop() && skvi.getTopKey().getRow(curRow).equals(thisRow));
+    return map;
+  }
+
+
+  /**
+   * Fill a SortedMap with all the entries in the same row as skvi.getTopKey().getRow()
+   * when first called.
+   * Postcondition: !skvi.hasTop() || skvi.getTopKey().getRow() has changed.
+   *
+   * Similar to {@link #readRow(SortedKeyValueIterator, Watch, Watch.PerfSpan)},
+   * but only puts the column qualifier into the map.
+   */
+  public static SortedMap<Text, Value> readRowColumns(SortedKeyValueIterator<Key, Value> skvi,
+                                              Watch<Watch.PerfSpan> watch, Watch.PerfSpan watchtype) throws IOException {
+    if (!skvi.hasTop())
+      throw new IllegalStateException(skvi + " should hasTop()");
+    Text thisRow = skvi.getTopKey().getRow();
+    Text curRow = new Text(thisRow);
+    SortedMap<Text, Value> map = new TreeMap<>();
+    do {
+      map.put(skvi.getTopKey().getColumnQualifier(), new Value(skvi.getTopValue()));
+//      watch.start(watchtype);
+//      try {
+      skvi.next();
 //      } finally {
 //        watch.stop(watchtype);
 //      }

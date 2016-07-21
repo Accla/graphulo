@@ -122,6 +122,10 @@ public class Graphulo {
     checkGraphuloInstalled();
   }
 
+  public Connector getConnector() {
+    return connector;
+  }
+
   /**
    * Check authenticationToken works for this user.
    */
@@ -2973,6 +2977,8 @@ public class Graphulo {
 //  }
 
   /**
+   * This method shouldn't really be public, but it is useful for setting up some of the iterators.
+   *
    * Create the basic iterator settings for the {@link RemoteWriteIterator}.
    * @param prefix A prefix to apply to keys in the option map, e.g., the "B" in "B.tableName".
    * @param remoteTable Name of table to write to. Null does not put in the table name.
@@ -2980,7 +2986,7 @@ public class Graphulo {
    * @param authorizations Authorizations for the server-side iterator. Null means use default: Authorizations.EMPTY
    * @return The basic set of options for {@link RemoteWriteIterator}.
    */
-  private Map<String,String> basicRemoteOpts(String prefix, String remoteTable,
+  public Map<String,String> basicRemoteOpts(String prefix, String remoteTable,
                                              String remoteTableTranspose, Authorizations authorizations) {
     if (prefix == null) prefix = "";
     Map<String,String> opt = new HashMap<>();

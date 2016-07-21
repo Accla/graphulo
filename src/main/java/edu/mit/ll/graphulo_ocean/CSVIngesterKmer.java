@@ -158,6 +158,7 @@ public final class CSVIngesterKmer {
       StatusLogger slog = new StatusLogger();
       String partialMsg = file.getName()+": entries processed: ";
 
+      // idea: replace with a fixed-size array. Re-use between results
       SortedMap<ArrayHolder,Integer> map = new TreeMap<>();
       Lexicoder<Long> uil = new LongLexicoder();
 
@@ -201,10 +202,13 @@ public final class CSVIngesterKmer {
     try {
       bw = connector.createBatchWriter(oTsampleDegree, config);
       Mutation m = new Mutation(sampleidb);
-      m.put(EMPTY_BYTES, ("degree|"+totalsum).getBytes(UTF_8), (""+totalsum).getBytes(UTF_8));
+      m.put(EMPTY_BYTES, ("degree").getBytes(UTF_8), (""+totalsum).getBytes(UTF_8));
+      bw.addMutation(m);
 
     } catch (TableNotFoundException e) {
       log.error("",e);
+    } catch (MutationsRejectedException e) {
+      log.warn("", e);
     } finally {
       if (bw != null)
         try {

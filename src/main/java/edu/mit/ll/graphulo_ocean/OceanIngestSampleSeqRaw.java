@@ -1,8 +1,6 @@
 package edu.mit.ll.graphulo_ocean;
 
-import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
-import com.beust.jcommander.ParameterException;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
@@ -25,8 +23,8 @@ import java.io.IOException;
  * Ex: java -cp "/home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar" edu.mit.ll.graphulo_ocean.OceanIngestSampleSeqRaw -listOfSamplesFile "/home/gridsan/dhutchison/gits/istc_oceanography/metadata/test_one_sample_filename.csv"
  * cd /home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed
  * Ex: java -cp "/home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar" edu.mit.ll.graphulo_ocean.OceanIngestSampleSeqRaw -listOfSamplesFile "/home/gridsan/dhutchison/gits/istc_oceanography/metadata/valid_samples_GA02_filenames_perm.csv" -everyXLines 2 -startOffset 0 -K 11 -oTsampleDegree oTsampleDegree | tee "$HOME/node-043-ingest.log"
- * createtable oTsampleSeqRaw
- * addsplits S009 S019
+ * createtable oTsampleSeqRaw0
+ * addsplits C T G
  */
 public class OceanIngestSampleSeqRaw {
   private static final Logger log = LogManager.getLogger(OceanIngestSampleSeqRaw.class);
@@ -35,39 +33,7 @@ public class OceanIngestSampleSeqRaw {
     new OceanIngestSampleSeqRaw().execute(args);
   }
 
-  public static class Help {
-    @Parameter(names = {"-h", "-?", "--help", "-help"}, help = true)
-    boolean help = false;
-
-    public void parseArgs(String programName, String[] args, Object... others) {
-      JCommander commander = new JCommander();
-      commander.addObject(this);
-      for (Object other : others)
-        commander.addObject(other);
-      commander.setProgramName(programName);
-      try {
-        commander.parse(args);
-      } catch (ParameterException ex) {
-        commander.usage();
-        exitWithError(ex.getMessage(), 1);
-      }
-      if (help) {
-        commander.usage();
-        exit(0);
-      }
-    }
-
-    public void exit(int status) {
-      System.exit(status);
-    }
-
-    public void exitWithError(String message, int status) {
-      System.err.println(message);
-      exit(status);
-    }
-  }
-
-  static class Opts extends Help {
+  private static class Opts extends Help {
     @Parameter(names = {"-listOfSamplesFile"}, required = true)
     public String listOfSamplesFile;
 
@@ -86,7 +52,7 @@ public class OceanIngestSampleSeqRaw {
     @Parameter(names = {"-K"}, required = true)
     public int K;
 
-    @Parameter(names = {"-oTsampleDegree"})
+    @Parameter(names = {"-oTsampleDegree"}, required = true)
     public String oTsampleDegree;
 
     @Override
@@ -106,7 +72,7 @@ public class OceanIngestSampleSeqRaw {
   public void execute(final String[] args) {
     Opts opts = new Opts();
     opts.parseArgs(OceanIngestSampleSeqRaw.class.getName(), args);
-    log.info(OceanIngestSampleSeqRaw.class.getName() + opts);
+    log.info(OceanIngestSampleSeqRaw.class.getName() + " " + opts);
 
     Connector conn = setupConnector(opts.txe1);
 

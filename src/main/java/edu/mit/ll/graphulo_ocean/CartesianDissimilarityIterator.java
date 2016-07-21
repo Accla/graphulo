@@ -34,7 +34,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class CartesianDissimilarityIterator implements SortedKeyValueIterator<Key,Value> {
 
   public static final String OPT_TABLE_PREFIX = "A.";
-  public static enum DistanceType { BRAY_CURTIS, JACCARD }
+  public enum DistanceType { BRAY_CURTIS, JACCARD }
   public static final String OPT_DISTANCE_TYPE = "DistanceType";
 
   /**

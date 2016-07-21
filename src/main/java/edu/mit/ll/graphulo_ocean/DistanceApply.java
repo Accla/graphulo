@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 /**
+ * No longer used since we are running Bray-Curtis on the relative abundances.
  */
 public class DistanceApply implements ApplyOp {
   private static final Logger log = LogManager.getLogger(DistanceApply.class);

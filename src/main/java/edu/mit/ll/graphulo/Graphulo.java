@@ -111,6 +111,8 @@ public class Graphulo {
             MathTwoScalar.combinerSetting(6, null, ScalarOp.PLUS, ScalarType.BIGDECIMAL, false);
   public static final IteratorSetting PLUS_ITERATOR_LONG =
             MathTwoScalar.combinerSetting(6, null, ScalarOp.PLUS, ScalarType.LONG, false);
+  public static final IteratorSetting PLUS_ITERATOR_DOUBLE =
+      MathTwoScalar.combinerSetting(6, null, ScalarOp.PLUS, ScalarType.DOUBLE, false);
 
   protected Connector connector;
   protected AuthenticationToken authenticationToken;

@@ -1,21 +1,29 @@
 package edu.mit.ll.graphulo_ocean;
 
+import edu.mit.ll.graphulo.apply.ApplyIterator;
 import edu.mit.ll.graphulo.rowmult.RowMultiplyOp;
+import edu.mit.ll.graphulo.skvi.RemoteSourceIterator;
 import edu.mit.ll.graphulo.skvi.Watch;
 import edu.mit.ll.graphulo.util.PeekingIterator1;
 import edu.mit.ll.graphulo.util.SKVIRowIterator;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.lexicoder.Lexicoder;
 import org.apache.accumulo.core.client.lexicoder.LongLexicoder;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.AbstractMap;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.SortedMap;
@@ -28,44 +36,45 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * Don't emit non-matching entries.
  * For matching entries (kmer, sample1, sample2, cnt1, cnt2):
  * Get from degree map deg1, deg2;
- * emit (sample1, sample2, min(cnt1, cnt2) / (deg1 + deg2)).
+ * emit (sample1, sample2, min(cnt1 / deg1, cnt2 / deg2)).
  *
  * Rows aligned at kmer. Only emit when sample2 > sample1. Hold row2 in memory.
+ * Holds degrees in memory.
  */
 public class DistanceRowMult implements RowMultiplyOp {
   private static final Logger log = LogManager.getLogger(DistanceRowMult.class);
 
-//  /** Setup with {@link edu.mit.ll.graphulo.Graphulo#basicRemoteOpts(String, String, String, Authorizations)}
-//   * basicRemoteOpts("", ADeg, null, Aauthorizations)
-//   * options for RemoteSourceIterator. */
-//  public static IteratorSetting iteratorSetting(int priority, Map<String,String> remoteOpts) {
-//    IteratorSetting is = new IteratorSetting(priority, ApplyIterator.class, remoteOpts);
-//    is.addOption(ApplyIterator.APPLYOP, DistanceRowMult.class.getName());
-//    return is;
-//  }
-//
-//  private RemoteSourceIterator remoteDegTable;
-//  private Map<Text,Long> degMap;
+  private void scanDegreeTable() throws IOException {
+    remoteDegTable.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
+    while (remoteDegTable.hasTop()) {
+      degMap.put(remoteDegTable.getTopKey().getRow(),
+          Long.valueOf(remoteDegTable.getTopValue().toString()));
+      remoteDegTable.next();
+    }
+  }
 
+  /** Setup with {@link edu.mit.ll.graphulo.Graphulo#basicRemoteOpts(String, String, String, Authorizations)}
+   * basicRemoteOpts(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX, ADeg, null, Aauthorizations)
+   * options for RemoteSourceIterator. */
+  public static IteratorSetting iteratorSetting(int priority, Map<String,String> remoteOpts) {
+    IteratorSetting is = new IteratorSetting(priority, ApplyIterator.class, remoteOpts);
+    is.addOption(ApplyIterator.APPLYOP, DistanceApply.class.getName());
+    return is;
+  }
+
+  private RemoteSourceIterator remoteDegTable;
+  private Map<Text,Long> degMap;
 
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
-//    remoteDegTable = new RemoteSourceIterator();
-//    remoteDegTable.init(null, options, env);
-//    degMap = new HashMap<>();
-//    scanDegreeTable();
+    remoteDegTable = new RemoteSourceIterator();
+    remoteDegTable.init(null, options, env);
+    degMap = new HashMap<>();
+    scanDegreeTable();
   }
 
-//  private void scanDegreeTable() throws IOException {
-//    remoteDegTable.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
-//    Text rowHolder = new Text();
-//    while (remoteDegTable.hasTop()) {
-//      degMap.put(remoteDegTable.getTopKey().getRow(rowHolder),
-//          Long.valueOf(remoteDegTable.getTopValue().toString()));
-//      remoteDegTable.next();
-//    }
-//
-//  }
+  private Text tA = new Text(), tB = new Text();
+
 
   private static final Text EMPTY_TEXT = new Text();
   private static final Lexicoder<Long> LEX = new LongLexicoder();
@@ -146,10 +155,12 @@ public class DistanceRowMult implements RowMultiplyOp {
       Key nk = new Key(cola, EMPTY_TEXT, eB.getKey());
       long a = LEX.decode(eA.getValue().get());
       long b = LEX.decode(eB.getValue().get());
-//      long da = degMap.get(cola);
-//      long db = degMap.get(eB.getKey());
-      long nd = Math.min(a, b); /// (da * db); // full calc is 1 - 2*
-      Value nv = new Value(Long.toString(nd).getBytes(UTF_8));
+
+      long da = degMap.get(cola);
+      long db = degMap.get(eB.getKey());
+
+      double nd = Math.min(((double)a)/da, ((double)b)/db); /// (da * db); // full calc is 1 - 2*
+      Value nv = new Value(Double.toString(nd).getBytes(UTF_8));
       nextEntry = new AbstractMap.SimpleImmutableEntry<>(nk, nv);
     }
 

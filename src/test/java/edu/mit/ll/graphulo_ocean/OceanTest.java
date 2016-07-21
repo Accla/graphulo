@@ -1,14 +1,23 @@
 package edu.mit.ll.graphulo_ocean;
 
+import com.google.common.collect.Iterators;
 import edu.mit.ll.graphulo.DynamicIteratorSetting;
 import edu.mit.ll.graphulo.Graphulo;
 import edu.mit.ll.graphulo.examples.ExampleUtil;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
+import edu.mit.ll.graphulo.util.TestUtil;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.PartialKey;
+import org.apache.accumulo.core.data.Value;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Test the ocean genomics pipeline on a small file.
@@ -92,7 +101,7 @@ public class OceanTest extends AccumuloTestBase {
   }
 
 
-  private void doDist(Connector conn, String tKmer, String tKmerDeg, String tDist) {
+  private void doDist(Connector conn, String tKmer, String tKmerDeg, String tDist) throws Exception {
     GraphuloUtil.deleteTables(conn, tDist);
     OceanDistanceCalc odc = new OceanDistanceCalc();
     OceanDistanceCalc.Opts opts = new OceanDistanceCalc.Opts();
@@ -101,6 +110,12 @@ public class OceanTest extends AccumuloTestBase {
     opts.oTsampleSeqRaw = tKmer;
     Graphulo graphulo = new Graphulo(conn, tester.getPassword());
     odc.executeGraphulo(graphulo, opts);
+
+    Map<Key,Value> map = new HashMap<>();
+    TestUtil.scanTableToMap(conn, opts.oTsampleDist, map);
+    Map.Entry<Key, Value> actual = Iterators.getOnlyElement(map.entrySet().iterator());
+    Assert.assertTrue(actual.getKey().equals(new Key("S0001_n1000", "", "S0002_n1000"), PartialKey.ROW_COLFAM_COLQUAL_COLVIS));
+    Assert.assertEquals(0.9473744643185487, Double.parseDouble(actual.getValue().toString()), 1e-15);
   }
 
 }

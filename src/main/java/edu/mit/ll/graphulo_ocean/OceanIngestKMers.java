@@ -17,7 +17,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.logging.Level;
 
 /**
  * Execute this in a directory that can see all the sample files.
@@ -53,8 +52,8 @@ public class OceanIngestKMers {
     @Parameter(names = {"-K"}, required = true)
     public int K;
 
-    @Parameter(names = {"-oTsampleDegree"}, required = true)
-    public String oTsampleDegree;
+    @Parameter(names = {"-oTsampleDegree"})
+    public String oTsampleDegree = "oTsampleDegree";
 
     @Override
     public String toString() {

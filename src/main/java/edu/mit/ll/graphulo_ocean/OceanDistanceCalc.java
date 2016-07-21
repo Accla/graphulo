@@ -2,7 +2,7 @@ package edu.mit.ll.graphulo_ocean;
 
 import com.beust.jcommander.Parameter;
 import edu.mit.ll.graphulo.Graphulo;
-import edu.mit.ll.graphulo.apply.ApplyIterator;
+import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -29,7 +29,7 @@ import java.util.Map;
 
 /**
  * Executable.
- * Ex: java -cp "/home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar" edu.mit.ll.graphulo_ocean.OceanDistanceCalc -listOfSamplesFile "/home/gridsan/dhutchison/gits/istc_oceanography/metadata/valid_samples_GA02_filenames_perm.csv" -everyXLines 2 -startOffset 0 -K 11 -oTsampleDegree oTsampleDegree | tee "$HOME/node-043-ingest.log"
+ * Ex: java -cp "/home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar" edu.mit.ll.graphulo_ocean.OceanDistanceCalc -oTsampleDegree oTsampleDegree -oTsampleDist oTsampleDist -oTsampleSeqRaw oTsampleSeqRaw | tee "$HOME/node-043-dist.log"
  * createtable oTsampleDist
  */
 public class OceanDistanceCalc {
@@ -40,17 +40,17 @@ public class OceanDistanceCalc {
   }
 
   static class Opts extends Help {
-    @Parameter(names = {"-oTsampleSeqRaw"}, required = true)
+    @Parameter(names = {"-oTsampleSeqRaw"})
     public String oTsampleSeqRaw = "oTsampleSeqRaw";
 
     @Parameter(names = {"-txe1"})
     public String txe1 = "classdb54";
 
-    @Parameter(names = {"-oTsampleDegree"}, required = true)
-    public String oTsampleDegree;
+    @Parameter(names = {"-oTsampleDegree"})
+    public String oTsampleDegree = "oTsampleDegree";
 
-    @Parameter(names = {"-oTsampleDist"}, required = true)
-    public String oTsampleDist;
+    @Parameter(names = {"-oTsampleDist"})
+    public String oTsampleDist = "oTsampleDist";
 
     @Override
     public String toString() {
@@ -77,6 +77,7 @@ public class OceanDistanceCalc {
   void executeGraphulo(Graphulo graphulo, Opts opts) {
     Map<String,String> opt = new HashMap<>();
     opt.put("rowMultiplyOp", DistanceRowMult.class.getName());
+    opt.putAll(graphulo.basicRemoteOpts("rowMultiplyOp.opt.", opts.oTsampleDegree, null, null));
 //    opt.put("rowMultiplyOp.opt.multiplyOp", multOp.getName()); // treated same as multiplyOp
 //    if (multOpOptions != null)
 //      for (Map.Entry<String, String> entry : multOpOptions.entrySet()) {
@@ -85,15 +86,17 @@ public class OceanDistanceCalc {
 //    opt.put("rowMultiplyOp.opt.rowmode", rowmode.name());
 
     long l = graphulo.TwoTable(TwoTableIterator.CLONESOURCE_TABLENAME, opts.oTsampleSeqRaw, opts.oTsampleDist, null,
-        -1, TwoTableIterator.DOTMODE.ROW, opt, Graphulo.PLUS_ITERATOR_LONG,
+        -1, TwoTableIterator.DOTMODE.ROW, opt, Graphulo.PLUS_ITERATOR_DOUBLE,
         null, null, null,
         false, false, null, null, null,
         null, null,
         -1, null, null);
     log.info("Number of entries written to distance table "+opts.oTsampleDist+": "+l);
 
-    IteratorSetting isDistFinish = DistanceApply.iteratorSetting(Graphulo.DEFAULT_COMBINER_PRIORITY+1,
-        graphulo.basicRemoteOpts(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX, opts.oTsampleDegree, null, null));
+//    IteratorSetting isDistFinish = DistanceApply.iteratorSetting(Graphulo.DEFAULT_COMBINER_PRIORITY+1,
+//        graphulo.basicRemoteOpts(ApplyIterator.APPLYOP + GraphuloUtil.OPT_SUFFIX, opts.oTsampleDegree, null, null));
+    IteratorSetting isDistFinish = MathTwoScalar.applyOpDouble(Graphulo.DEFAULT_COMBINER_PRIORITY+1,
+        false, MathTwoScalar.ScalarOp.MINUS, 1, true); // keep zero
     GraphuloUtil.addOnScopeOption(isDistFinish, EnumSet.of(IteratorUtil.IteratorScope.scan));
     GraphuloUtil.applyIteratorSoft(isDistFinish, graphulo.getConnector().tableOperations(), opts.oTsampleDist);
   }

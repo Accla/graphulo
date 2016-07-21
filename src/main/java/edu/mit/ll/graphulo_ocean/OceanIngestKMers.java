@@ -20,17 +20,17 @@ import java.io.IOException;
 
 /**
  * Execute this in a directory that can see all the sample files.
- * Ex: java -cp "/home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar" edu.mit.ll.graphulo_ocean.OceanIngestSampleSeqRaw -listOfSamplesFile "/home/gridsan/dhutchison/gits/istc_oceanography/metadata/test_one_sample_filename.csv"
+ * Ex: java -cp "/home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar" edu.mit.ll.graphulo_ocean.OceanIngestKMers -listOfSamplesFile "/home/gridsan/dhutchison/gits/istc_oceanography/metadata/test_one_sample_filename.csv"
  * cd /home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed
- * Ex: java -cp "/home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar" edu.mit.ll.graphulo_ocean.OceanIngestSampleSeqRaw -listOfSamplesFile "/home/gridsan/dhutchison/gits/istc_oceanography/metadata/valid_samples_GA02_filenames_perm.csv" -everyXLines 2 -startOffset 0 -K 11 -oTsampleDegree oTsampleDegree | tee "$HOME/node-043-ingest.log"
+ * Ex: java -cp "/home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar" edu.mit.ll.graphulo_ocean.OceanIngestKMers -listOfSamplesFile "/home/gridsan/dhutchison/gits/istc_oceanography/metadata/valid_samples_GA02_filenames_perm.csv" -everyXLines 2 -startOffset 0 -K 11 -oTsampleDegree oTsampleDegree | tee "$HOME/node-043-ingest.log"
  * createtable oTsampleSeqRaw0
  * addsplits C T G
  */
-public class OceanIngestSampleSeqRaw {
-  private static final Logger log = LogManager.getLogger(OceanIngestSampleSeqRaw.class);
+public class OceanIngestKMers {
+  private static final Logger log = LogManager.getLogger(OceanIngestKMers.class);
 
   public static void main(String[] args) {
-    new OceanIngestSampleSeqRaw().execute(args);
+    new OceanIngestKMers().execute(args);
   }
 
   private static class Opts extends Help {
@@ -71,8 +71,8 @@ public class OceanIngestSampleSeqRaw {
 
   public void execute(final String[] args) {
     Opts opts = new Opts();
-    opts.parseArgs(OceanIngestSampleSeqRaw.class.getName(), args);
-    log.info(OceanIngestSampleSeqRaw.class.getName() + " " + opts);
+    opts.parseArgs(OceanIngestKMers.class.getName(), args);
+    log.info(OceanIngestKMers.class.getName() + " " + opts);
 
     Connector conn = setupConnector(opts.txe1);
 

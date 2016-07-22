@@ -55,6 +55,9 @@ public class OceanIngestKMers {
     @Parameter(names = {"-oTsampleDegree"})
     public String oTsampleDegree = "oTsampleDegree";
 
+    @Parameter(names = {"-alsoIngestReverseComplement"})
+    public boolean alsoIngestReverseComplement = false;
+
     @Override
     public String toString() {
       return "Opts{" +
@@ -65,11 +68,9 @@ public class OceanIngestKMers {
           ", txe1='" + txe1 + '\'' +
           ", K=" + K +
           ", oTsampleDegree='" + oTsampleDegree + '\'' +
+          ", alsoIngestReverseComplement=" + alsoIngestReverseComplement +
           '}';
     }
-
-
-
   }
 
   public void execute(final String[] args) {
@@ -79,8 +80,7 @@ public class OceanIngestKMers {
 
     Connector conn = setupConnector(opts.txe1);
 
-    ingestFileList(conn, opts.listOfSamplesFile, opts.oTsampleSeqRaw,
-        opts.everyXLines, opts.startOffset, opts.K, opts.oTsampleDegree);
+    ingestFileList(conn, opts);
   }
 
   private Connector setupConnector(String txe1) {
@@ -111,18 +111,16 @@ public class OceanIngestKMers {
     return token;
   }
 
-  private void ingestFileList(Connector conn,
-                              String listOfSamplesFile, String oTsampleSeqRaw,
-                              int everyXLines, int startOffset, int K, String oTsampleDegree) {
-    try (BufferedReader fo = new BufferedReader(new FileReader(listOfSamplesFile))) {
-      for (int i = 0; i < startOffset; i++)
+  private void ingestFileList(Connector conn, Opts opts) {
+    try (BufferedReader fo = new BufferedReader(new FileReader(opts.listOfSamplesFile))) {
+      for (int i = 0; i < opts.startOffset; i++)
         fo.readLine();
 
       String line;
       long linecnt = 0;
       long entriesProcessed = 0;
       while ((line = fo.readLine()) != null)
-        if (!line.isEmpty() && linecnt++ % everyXLines == 0) {
+        if (!line.isEmpty() && linecnt++ % opts.everyXLines == 0) {
           log.info("Starting file: "+line);
           File file = new File(line);
           if (!file.exists() || !file.canRead()) {
@@ -130,7 +128,8 @@ public class OceanIngestKMers {
             continue;
           }
 
-          long ep = new CSVIngesterKmer(conn, K).ingestFile(file, oTsampleSeqRaw, false, oTsampleDegree);
+          long ep = new CSVIngesterKmer(conn, opts.K, opts.alsoIngestReverseComplement)
+              .ingestFile(file, opts.oTsampleSeqRaw, false, opts.oTsampleDegree);
           entriesProcessed += ep;
           log.info("Finished file: "+line+"; entries ingested: "+ep+"; cummulative: "+entriesProcessed);
         }

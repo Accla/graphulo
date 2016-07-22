@@ -37,14 +37,20 @@ public final class CSVIngesterKmer {
   private final int K;
   private final GenomicEncoder G;
   private final Connector connector;
+  private final boolean alsoIngestReverseComplement;
 
   public CSVIngesterKmer(Connector connector, int K) {
+    this(connector, K, false);
+  }
+
+  public CSVIngesterKmer(Connector connector, int K, boolean alsoIngestReverseComplement) {
     this.connector = connector;
     this.K = K;
     G = new GenomicEncoder(K);
+    this.alsoIngestReverseComplement = alsoIngestReverseComplement;
   }
 
-//  static final Text EMPTY_TEXT = new Text();
+  //  static final Text EMPTY_TEXT = new Text();
 
   private static final class ArrayHolder implements Comparable<ArrayHolder> {
     public final byte[] b;
@@ -118,8 +124,15 @@ public final class CSVIngesterKmer {
       int newval = curval == null ? 1 : curval+1;
       map.put(ah, newval);
       num++;
+      if (alsoIngestReverseComplement) {
+        e = G.reverseComplement(Arrays.copyOf(e, e.length));
+        ah = new ArrayHolder(e);
+        curval = map.get(ah);
+        newval = curval == null ? 1 : curval+1;
+        map.put(ah, newval);
+        num++;
+      }
     }
-
     return num;
   }
 

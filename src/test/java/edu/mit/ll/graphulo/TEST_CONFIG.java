@@ -1,6 +1,7 @@
 package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.util.KnownBugSuite;
+import edu.mit.ll.graphulo_ocean.GenomicEncoderTest;
 import edu.mit.ll.graphulo_ocean.OceanTest;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.commons.configuration.Configuration;
@@ -34,6 +35,7 @@ import java.io.IOException;
     SCCTest.class,
     LineTest.class,
     AlgorithmTest.class,
+    GenomicEncoderTest.class,
     OceanTest.class
 })
 

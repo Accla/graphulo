@@ -78,17 +78,20 @@ public class OceanIngestKMers {
     opts.parseArgs(OceanIngestKMers.class.getName(), args);
     log.info(OceanIngestKMers.class.getName() + " " + opts);
 
-    Connector conn = setupConnector(opts.txe1);
+    Connector conn = setupTXE1Connector(opts.txe1);
 
     ingestFileList(conn, opts);
   }
 
-  private Connector setupConnector(String txe1) {
+  static Connector setupTXE1Connector(String txe1) {
+    return setupTXE1Connector(txe1, getTXE1Authentication(txe1));
+  }
+
+  static Connector setupTXE1Connector(String txe1, AuthenticationToken auth) {
     String instanceName = txe1;
     String zookeeperHost = txe1+".cloud.llgrid.txe1.mit.edu:2181";
     ClientConfiguration cc = new ClientConfiguration().withInstance(instanceName).withZkHosts(zookeeperHost);// .withZkTimeout(timeout)
     Instance instance = new ZooKeeperInstance(cc);
-    AuthenticationToken auth = getTXE1Authentication(txe1);
     try {
       return instance.getConnector("AccumuloUser", auth);
     } catch (AccumuloException | AccumuloSecurityException e) {
@@ -96,7 +99,8 @@ public class OceanIngestKMers {
     }
   }
 
-  private AuthenticationToken getTXE1Authentication(String txe1) {
+
+  static AuthenticationToken getTXE1Authentication(String txe1) {
     File file = new File("/home/gridsan/groups/databases/"+txe1+"/accumulo_user_password.txt");
     PasswordToken token;
     try (BufferedReader is = new BufferedReader(new FileReader(file))) {
@@ -133,7 +137,7 @@ public class OceanIngestKMers {
           entriesProcessed += ep;
           log.info("Finished file: "+line+"; entries ingested: "+ep+"; cummulative: "+entriesProcessed);
         }
-
+      log.info("Finished all files! (every "+opts.everyXLines+" lines; offset "+opts.startOffset+")");
     } catch (IOException e) {
       throw new RuntimeException("",e);
     }

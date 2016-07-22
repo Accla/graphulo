@@ -5,27 +5,19 @@ import edu.mit.ll.graphulo.Graphulo;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
+
+import static edu.mit.ll.graphulo_ocean.OceanIngestKMers.getTXE1Authentication;
+import static edu.mit.ll.graphulo_ocean.OceanIngestKMers.setupTXE1Connector;
 
 /**
  * Executable.
@@ -69,7 +61,7 @@ public class OceanDistanceCalc {
     log.info(OceanDistanceCalc.class.getName() + " " + opts);
 
     AuthenticationToken auth = getTXE1Authentication(opts.txe1);
-    Connector conn = setupConnector(opts.txe1);
+    Connector conn = setupTXE1Connector(opts.txe1, auth);
     Graphulo graphulo = new Graphulo(conn, auth);
     executeGraphulo(graphulo, opts);
   }
@@ -100,34 +92,5 @@ public class OceanDistanceCalc {
     GraphuloUtil.addOnScopeOption(isDistFinish, EnumSet.of(IteratorUtil.IteratorScope.scan));
     GraphuloUtil.applyIteratorSoft(isDistFinish, graphulo.getConnector().tableOperations(), opts.oTsampleDist);
   }
-
-  private Connector setupConnector(String txe1) {
-    String instanceName = txe1;
-    String zookeeperHost = txe1+".cloud.llgrid.txe1.mit.edu:2181";
-    ClientConfiguration cc = new ClientConfiguration().withInstance(instanceName).withZkHosts(zookeeperHost);// .withZkTimeout(timeout)
-    Instance instance = new ZooKeeperInstance(cc);
-    AuthenticationToken auth = getTXE1Authentication(txe1);
-    try {
-      return instance.getConnector("AccumuloUser", auth);
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      throw new RuntimeException("Trouble authenticating to database "+txe1,e);
-    }
-  }
-
-  private AuthenticationToken getTXE1Authentication(String txe1) {
-    File file = new File("/home/gridsan/groups/databases/"+txe1+"/accumulo_user_password.txt");
-    PasswordToken token;
-    try (BufferedReader is = new BufferedReader(new FileReader(file))) {
-      token = new PasswordToken(is.readLine());
-    } catch (FileNotFoundException e) {
-      log.error("Cannot find accumulo_user_password.txt for instance "+txe1, e);
-      throw new RuntimeException(e);
-    } catch (IOException e) {
-      log.error("Problem reading accumulo_user_password.txt for instance " + txe1, e);
-      throw new RuntimeException(e);
-    }
-    return token;
-  }
-
 
 }

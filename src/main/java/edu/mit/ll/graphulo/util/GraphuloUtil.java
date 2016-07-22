@@ -1003,9 +1003,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
         } catch (AccumuloException | AccumuloSecurityException e) {
           log.error("Problem deleing temporary table " + tn, e);
           throw new RuntimeException(e);
-        } catch (TableNotFoundException e) {
-          log.error("crazy", e);
-          throw new RuntimeException(e);
+        } catch (TableNotFoundException ignored) {
         }
       }
     }
@@ -1096,8 +1094,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
         } catch (AccumuloException | AccumuloSecurityException e) {
           log.warn("trouble deleting table "+tn, e);
           throw new RuntimeException(e);
-        } catch (TableNotFoundException e) {
-          throw new RuntimeException(e);
+        } catch (TableNotFoundException ignored) {
         }
       if (!tops.exists(tn))
         try {
@@ -1105,8 +1102,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
         } catch (AccumuloException | AccumuloSecurityException e) {
           log.warn("trouble creating table " + tn, e);
           throw new RuntimeException(e);
-        } catch (TableExistsException e) {
-          throw new RuntimeException(e);
+        } catch (TableExistsException ignored) {
         }
     }
   }

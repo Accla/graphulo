@@ -93,7 +93,7 @@ public class GenomicEncoder implements Lexicoder<char[]> {
     return ret;
   }
 
-  /** Take the reverse complement of an encoded k-mer. */
+  /** Take the reverse complement of an encoded k-mer. Modifies the input bytes directly. */
   public byte[] reverseComplement(byte[] bs) {
     if (bs.length != NB)
       throw new IllegalArgumentException("input does not match length NB="+NB+": "+ Arrays.toString(bs));

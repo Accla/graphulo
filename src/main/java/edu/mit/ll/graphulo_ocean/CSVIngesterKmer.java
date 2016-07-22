@@ -87,6 +87,12 @@ public final class CSVIngesterKmer {
       return 0;
     }
 
+    // Find the '/' character before the comma.
+    // If the character after it is '2', then take the reverse complement.
+    String header = line.substring(0, comma-1);
+    int slash = header.indexOf('/');
+    boolean reverse = slash != -1 && slash != header.length()-1 && header.charAt(slash+1) == '2';
+
 //    String seqid = parts[0];
     String seq = line.substring(comma+1);
     char[] seqb = seq.toCharArray();
@@ -119,14 +125,20 @@ public final class CSVIngesterKmer {
         i--; continue;
       }
       byte[] e = G.encode(seqb, i);
+      byte[] eo = null;
+      if (alsoIngestReverseComplement)
+        eo = Arrays.copyOf(e, e.length);
+      if (reverse)
+        G.reverseComplement(e);
       ArrayHolder ah = new ArrayHolder(e);
       Integer curval = map.get(ah);
       int newval = curval == null ? 1 : curval+1;
       map.put(ah, newval);
       num++;
       if (alsoIngestReverseComplement) {
-        e = G.reverseComplement(Arrays.copyOf(e, e.length));
-        ah = new ArrayHolder(e);
+        if (!reverse)
+          G.reverseComplement(eo);
+        ah = new ArrayHolder(eo);
         curval = map.get(ah);
         newval = curval == null ? 1 : curval+1;
         map.put(ah, newval);

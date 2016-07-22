@@ -44,6 +44,10 @@ public class OceanDistanceCalc {
     @Parameter(names = {"-oTsampleDist"})
     public String oTsampleDist = "oTsampleDist";
 
+    /** In D4M syntax */
+    @Parameter(names = {"-sampleFilter"})
+    public String sampleFilter = null;
+
     @Override
     public String toString() {
       return "Opts{" +
@@ -51,6 +55,7 @@ public class OceanDistanceCalc {
           ", txe1='" + txe1 + '\'' +
           ", oTsampleDegree='" + oTsampleDegree + '\'' +
           ", oTsampleDist='" + oTsampleDist + '\'' +
+          ", sampleFilter='" + sampleFilter + '\'' +
           '}';
     }
   }
@@ -79,7 +84,7 @@ public class OceanDistanceCalc {
 
     long l = graphulo.TwoTable(TwoTableIterator.CLONESOURCE_TABLENAME, opts.oTsampleSeqRaw, opts.oTsampleDist, null,
         -1, TwoTableIterator.DOTMODE.ROW, opt, Graphulo.PLUS_ITERATOR_DOUBLE,
-        null, null, null,
+        null, opts.sampleFilter, opts.sampleFilter,
         false, false, null, null, null,
         null, null,
         -1, null, null);

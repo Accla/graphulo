@@ -73,9 +73,6 @@ public class DistanceRowMult implements RowMultiplyOp {
     scanDegreeTable();
   }
 
-  private Text tA = new Text(), tB = new Text();
-
-
   private static final Text EMPTY_TEXT = new Text();
   private static final Lexicoder<Long> LEX = new LongLexicoder();
   private static final byte[] ZERO_BYTE = new byte[] { 0x00 };

@@ -10,6 +10,8 @@ import java.util.Random;
 /**
  * Generate a random sequence of given length, and write its kmer frequencies to a file.
  * Option to normalize, and to set the probability of G or C vs. A or T.
+ *
+ * Added function to restart a kmer sequence after every ~200 bases.
  */
 public class KmerGenerator {
 
@@ -25,14 +27,14 @@ public class KmerGenerator {
   }
 
   public static void main(String[] args) throws IOException {
-    File f = new File("kmer_random_norm.csv");
+    File f = new File("kmer_random_norm03.csv");
     KmerGenerator kgen = new KmerGenerator(11);
     try (PrintWriter fw = new PrintWriter(new BufferedWriter(new FileWriter(f)))) {
-      kgen.generateKmerCounts(fw, "Srand01", 963323535, true, 0.417);
+      kgen.generateKmerCounts(fw, "Srand03", 963323535, true, 0.417);
     }
   }
 
-  private final Random R = new Random(20160726);
+  private final Random R = new Random(2016072701);
 
   // 0, 1, 2, 3: G, C, A, T
   private byte genChar(double fix_gc) {
@@ -60,14 +62,23 @@ public class KmerGenerator {
     int[] countMap = new int[1 << (K << 1)];
 
     // generate first K-1 bases
-    for (int i = 0; i < K - 1; i++) {
+    for (int i = 0; i < K - 1; i++)
       buf[i] = genChar(fix_gc);
-    }
 
     char[] mer = new char[K];
 
+    int nextRestart = (int) (R.nextGaussian()*25 + 200); // standard deviation 25, mean 200
     int pos = K-1;
     for (int i = 0; i < numkmers; i++) {
+      // check if we should "restart" the read
+      if (i >= nextRestart) {
+        // generate first K-1 bases
+        for (int j = 0; j < K - 1; j++)
+          buf[j] = genChar(fix_gc);
+        pos = K - 1;
+        nextRestart = i + (int) (R.nextGaussian()*25 + 200);
+      }
+
       // check if we wrapped around
       if (pos == buf.length) {
         // copy K-1 bases to front

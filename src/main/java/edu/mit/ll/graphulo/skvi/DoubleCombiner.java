@@ -17,7 +17,6 @@
 package edu.mit.ll.graphulo.skvi;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -110,7 +109,7 @@ public abstract class DoubleCombiner extends TypedValueCombiner<Double> {
   /**
    * An Encoder that uses a String representation of Longs. It uses Long.toString and Long.parseLong for encoding and decoding.
    */
-  public static class StringEncoder extends AbstractLexicoder<Double> implements Encoder<Double> {
+  public static class StringEncoder implements Encoder<Double> { // 1.6 compat
     @Override
     public byte[] encode(Double v) {
       return Double.toString(v).getBytes(UTF_8);
@@ -119,10 +118,9 @@ public abstract class DoubleCombiner extends TypedValueCombiner<Double> {
     @Override
     public Double decode(byte[] b) {
       // This concrete implementation is provided for binary compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
-      return super.decode(b);
+      return decodeUnchecked(b, 0, b.length);
     }
 
-    @Override
     protected Double decodeUnchecked(byte[] b, int offset, int len) {
       try {
         return Double.parseDouble(new String(b, offset, len, UTF_8));

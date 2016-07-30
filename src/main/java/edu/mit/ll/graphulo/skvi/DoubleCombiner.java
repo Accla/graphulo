@@ -17,7 +17,6 @@
 package edu.mit.ll.graphulo.skvi;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.lexicoder.DoubleLexicoder;
 import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -42,7 +41,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * VARNUM, LONG, and STRING which indicate the VarNumEncoder, LongEncoder, and StringEncoder respectively.
  */
 public abstract class DoubleCombiner extends TypedValueCombiner<Double> {
-  public static final Encoder<Double> BYTE_ENCODER = new DoubleLexicoder();
+  public static final Encoder<Double> BYTE_ENCODER = new DoubleLexicoderTemp(); // attempt 1.6 compat
   public static final Encoder<Double> STRING_ENCODER = new StringEncoder();
 
   protected static final String TYPE = "type";

@@ -2,13 +2,12 @@ package edu.mit.ll.graphulo_ocean;
 
 import edu.mit.ll.graphulo.apply.ApplyIterator;
 import edu.mit.ll.graphulo.rowmult.RowMultiplyOp;
+import edu.mit.ll.graphulo.skvi.DoubleLexicoderTemp;
 import edu.mit.ll.graphulo.skvi.RemoteSourceIterator;
 import edu.mit.ll.graphulo.skvi.Watch;
 import edu.mit.ll.graphulo.util.PeekingIterator1;
 import edu.mit.ll.graphulo.util.SKVIRowIterator;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.lexicoder.DoubleLexicoder;
-import org.apache.accumulo.core.client.lexicoder.Lexicoder;
 import org.apache.accumulo.core.client.lexicoder.LongLexicoder;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -16,6 +15,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.TypedValueCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
@@ -74,8 +74,8 @@ public class DistanceRowMult implements RowMultiplyOp {
   }
 
   private static final Text EMPTY_TEXT = new Text();
-  private static final Lexicoder<Long> LEX = new LongLexicoder();
-  private static final Lexicoder<Double> LEXDOUBLE = new DoubleLexicoder();
+  private static final TypedValueCombiner.Encoder<Long> LEX = new LongLexicoder();
+  private static final TypedValueCombiner.Encoder<Double> LEXDOUBLE = new DoubleLexicoderTemp(); // attempt 1.6 compat
   private static final byte[] ZERO_BYTE = new byte[] { 0x00 };
 
   @Override

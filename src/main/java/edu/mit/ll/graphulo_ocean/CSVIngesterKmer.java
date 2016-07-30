@@ -83,7 +83,7 @@ public final class CSVIngesterKmer {
 //    String[] parts = line.split(",");
     int comma = line.indexOf(',');
     if (comma == -1) {
-      log.error("Bad CSV line: "+line);
+      log.warn("Bad CSV line: "+line);
       return 0;
     }
 

@@ -3,6 +3,7 @@ package edu.mit.ll.graphulo_ocean;
 import com.beust.jcommander.Parameter;
 import edu.mit.ll.graphulo.Graphulo;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
+import edu.mit.ll.graphulo.skvi.LruCacheIterator;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.Connector;
@@ -12,8 +13,10 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static edu.mit.ll.graphulo_ocean.OceanIngestKMers.getTXE1Authentication;
@@ -23,6 +26,11 @@ import static edu.mit.ll.graphulo_ocean.OceanIngestKMers.setupTXE1Connector;
  * Executable.
  * Ex: java -cp "/home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar" edu.mit.ll.graphulo_ocean.OceanDistanceCalc -oTsampleDegree oTsampleDegree -oTsampleDist oTsampleDist -oTsampleSeqRaw oTsampleSeqRaw | tee "$HOME/node-043-dist.log"
  * createtable oTsampleDist
+ * addsplits S0004 S0010 S0027
+ * <p>
+ * This performs a min.+ matrix multiply on the kmer table with itself, restricting output to the strict upper triangle.
+ * Because the resulting table is small, I added an optimization to hold the whole output table in memory
+ * for complete pre-summing.
  */
 public class OceanDistanceCalc {
   private static final Logger log = LogManager.getLogger(OceanDistanceCalc.class);
@@ -44,7 +52,7 @@ public class OceanDistanceCalc {
     @Parameter(names = {"-oTsampleDist"})
     public String oTsampleDist = "oTsampleDist";
 
-    /** In D4M syntax */
+    /** In D4M syntax. For example: S0001,:,S0002, */
     @Parameter(names = {"-sampleFilter"})
     public String sampleFilter = null;
 
@@ -82,10 +90,15 @@ public class OceanDistanceCalc {
 //      }
 //    opt.put("rowMultiplyOp.opt.rowmode", rowmode.name());
 
+    List<IteratorSetting> itersAfterTT = new ArrayList<>();
+    itersAfterTT.add(LruCacheIterator.combinerSetting(1, null, 50_000,
+        MathTwoScalar.class, Graphulo.PLUS_ITERATOR_DOUBLE.getOptions(), true));
+
+
     long l = graphulo.TwoTable(TwoTableIterator.CLONESOURCE_TABLENAME, opts.oTsampleSeqRaw, opts.oTsampleDist, null,
         -1, TwoTableIterator.DOTMODE.ROW, opt, Graphulo.PLUS_ITERATOR_DOUBLE,
         null, opts.sampleFilter, opts.sampleFilter,
-        false, false, null, null, null,
+        false, false, null, null, itersAfterTT,
         null, null,
         -1, null, null);
     log.info("Number of entries written to distance table "+opts.oTsampleDist+": "+l);

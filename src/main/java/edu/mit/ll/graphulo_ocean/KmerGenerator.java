@@ -30,16 +30,16 @@ public class KmerGenerator {
   }
 
   public static void main(String[] args) throws IOException {
-    File f = new File("kmer_random_norm04.csv");
+    File f = new File("kmer_random_norm05.csv");
     String sampleid = "Srand04";
-    KmerGenerator kgen = new KmerGenerator(11);
+    KmerGenerator kgen = new KmerGenerator(13);
     int[] countMap = null;
     try (PrintWriter fw = new PrintWriter(new BufferedWriter(new FileWriter(f)))) {
 //      kgen.generateKmerCounts(fw, "Srand03", 963323535, true, 0.417, 25, 200);
       countMap = kgen.generateKmerCounts_Restart(fw, sampleid, 963323535, 93323535, true, 0.417, 25, 200);
     }
 
-    File f2 = new File("kmer_random_norm04_degreedist.csv");
+    File f2 = new File("kmer_random_norm05_degreedist.csv");
     try (PrintWriter fw = new PrintWriter(new BufferedWriter(new FileWriter(f2)))) {
       writeCountMap(fw, sampleid, countMap, 963323535);
     }

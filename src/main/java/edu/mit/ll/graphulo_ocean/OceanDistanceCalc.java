@@ -3,12 +3,16 @@ package edu.mit.ll.graphulo_ocean;
 import com.beust.jcommander.Parameter;
 import edu.mit.ll.graphulo.Graphulo;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
+import edu.mit.ll.graphulo.skvi.DoubleCombiner;
+import edu.mit.ll.graphulo.skvi.DoubleDecodeIterator;
+import edu.mit.ll.graphulo.skvi.DoubleSummingCombiner;
 import edu.mit.ll.graphulo.skvi.LruCacheIterator;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -90,9 +94,15 @@ public class OceanDistanceCalc {
 //      }
 //    opt.put("rowMultiplyOp.opt.rowmode", rowmode.name());
 
+    // double combiner
+    IteratorSetting dc = new IteratorSetting(1, DoubleSummingCombiner.class);
+    DoubleCombiner.setEncodingType(dc, DoubleCombiner.Type.BYTE);
+    Combiner.setCombineAllColumns(dc, true);
+
     List<IteratorSetting> itersAfterTT = new ArrayList<>();
     itersAfterTT.add(LruCacheIterator.combinerSetting(1, null, 50_000,
-        MathTwoScalar.class, Graphulo.PLUS_ITERATOR_DOUBLE.getOptions(), true));
+        DoubleSummingCombiner.class, dc.getOptions(), true)); // do a byte-wise combining inside the cache
+    itersAfterTT.add(new IteratorSetting(1, DoubleDecodeIterator.class));
 
 
     long l = graphulo.TwoTable(TwoTableIterator.CLONESOURCE_TABLENAME, opts.oTsampleSeqRaw, opts.oTsampleDist, null,

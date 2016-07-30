@@ -214,10 +214,31 @@ public abstract class KeyTwoScalar extends Combiner implements ApplyOp {
     return new KeyTwoScalar() {
       DoubletonIterator<Value> iter = new DoubletonIterator<>();
 
+      Map<String, String> origOptions;
+
+      @Override
+      public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
+        origOptions = options;
+        super.init(options, env);
+        combiner.init(null, options, env);
+      }
+
       @Override
       public Value multiply(Key key, Value Aval, Value Bval) {
         iter.reuseAndReset(Aval, Bval);
         return combiner.reduce(key, iter);
+      }
+
+      @Override
+      public KeyTwoScalar deepCopy(IteratorEnvironment env) {
+        Combiner c = (Combiner) combiner.deepCopy(env);
+        KeyTwoScalar k = KeyTwoScalar.toKeyTwoScalar(c);
+        try {
+          k.init(origOptions, env);
+        } catch (IOException e) {
+          throw new RuntimeException("",e);
+        }
+        return k;
       }
     };
   }

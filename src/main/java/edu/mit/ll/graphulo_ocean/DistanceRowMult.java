@@ -7,6 +7,7 @@ import edu.mit.ll.graphulo.skvi.Watch;
 import edu.mit.ll.graphulo.util.PeekingIterator1;
 import edu.mit.ll.graphulo.util.SKVIRowIterator;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.lexicoder.DoubleLexicoder;
 import org.apache.accumulo.core.client.lexicoder.Lexicoder;
 import org.apache.accumulo.core.client.lexicoder.LongLexicoder;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -29,7 +30,6 @@ import java.util.Map;
 import java.util.SortedMap;
 
 import static edu.mit.ll.graphulo.rowmult.CartesianRowMultiply.readRowColumns;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Bray-Curtis index.
@@ -75,6 +75,7 @@ public class DistanceRowMult implements RowMultiplyOp {
 
   private static final Text EMPTY_TEXT = new Text();
   private static final Lexicoder<Long> LEX = new LongLexicoder();
+  private static final Lexicoder<Double> LEXDOUBLE = new DoubleLexicoder();
   private static final byte[] ZERO_BYTE = new byte[] { 0x00 };
 
   @Override
@@ -157,7 +158,7 @@ public class DistanceRowMult implements RowMultiplyOp {
       long db = degMap.get(eB.getKey());
 
       double nd = Math.min(((double)a)/da, ((double)b)/db); /// (da * db); // full calc is 1 - 2*
-      Value nv = new Value(Double.toString(nd).getBytes(UTF_8));
+      Value nv = new Value(LEXDOUBLE.encode(nd)); //new Value(Double.toString(nd).getBytes(UTF_8));
       nextEntry = new AbstractMap.SimpleImmutableEntry<>(nk, nv);
     }
 

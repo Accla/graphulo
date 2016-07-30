@@ -43,8 +43,13 @@ zl.setAdditivity(false);
 javaaddpath /home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar
 %javaaddpath /home/dhutchis/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar
 
-edu.mit.ll.graphulo_ocean.OceanIngestKMers.main(opts)
+mymap = map([Np 1],{},0:Np-1);
+X = zeros(Np,1,mymap);
+Xloc = local(X);
 
+Xloc = edu.mit.ll.graphulo_ocean.OceanIngestKMers.executeNew(opts);
 
+X = put_local(X, Xloc);
+display(X);
 
 

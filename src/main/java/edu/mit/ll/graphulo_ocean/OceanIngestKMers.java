@@ -33,6 +33,8 @@ public class OceanIngestKMers {
     new OceanIngestKMers().execute(args);
   }
 
+  public static int executeNew(String[] args) { return new OceanIngestKMers().execute(args); }
+
   private static class Opts extends Help {
     @Parameter(names = {"-listOfSamplesFile"}, required = true)
     public String listOfSamplesFile;
@@ -79,14 +81,15 @@ public class OceanIngestKMers {
     }
   }
 
-  public void execute(final String[] args) {
+  /** @return Number of files processed */
+  public int execute(final String[] args) {
     Opts opts = new Opts();
     opts.parseArgs(OceanIngestKMers.class.getName(), args);
     log.info(OceanIngestKMers.class.getName() + " " + opts);
 
     Connector conn = setupTXE1Connector(opts.txe1);
 
-    ingestFileList(conn, opts);
+    return ingestFileList(conn, opts);
   }
 
   static Connector setupTXE1Connector(String txe1) {
@@ -121,13 +124,15 @@ public class OceanIngestKMers {
     return token;
   }
 
-  private void ingestFileList(Connector conn, Opts opts) {
+  /** @return Number of files processed */
+  private int ingestFileList(Connector conn, Opts opts) {
     try (BufferedReader fo = new BufferedReader(new FileReader(opts.listOfSamplesFile))) {
       for (int i = 0; i < opts.startOffset; i++)
         fo.readLine();
 
       String line;
       long linecnt = 0;
+      int filesprocessed = 0;
       long entriesProcessed = 0;
       while ((line = fo.readLine()) != null)
         if (!line.isEmpty() && linecnt++ % opts.everyXLines == 0) {
@@ -142,8 +147,10 @@ public class OceanIngestKMers {
               .ingestFile(file, opts.oTsampleSeqRaw, false, opts.oTsampleDegree);
           entriesProcessed += ep;
           log.info("Finished file: "+line+"; entries ingested: "+ep+"; cummulative: "+entriesProcessed);
+          filesprocessed++;
         }
-      log.info("Finished all files! (every "+opts.everyXLines+" lines; offset "+opts.startOffset+")");
+      log.info("Finished all "+filesprocessed+" files! (every "+opts.everyXLines+" lines; offset "+opts.startOffset+")");
+      return filesprocessed;
     } catch (IOException e) {
       throw new RuntimeException("",e);
     }

@@ -19,6 +19,8 @@ opts(11) = java.lang.String('-txe1');
 opts(12) = java.lang.String('classdb54');
 opts(13) = java.lang.String('-oTsampleSeqRaw');
 opts(14) = java.lang.String('oTsampleSeqRaw');
+opts(14) = java.lang.String('-onlyIngestSmallerLex');
+opts(14) = java.lang.String(true);
 
 console = org.apache.log4j.ConsoleAppender();
 console.setThreshold(org.apache.log4j.Level.INFO);

@@ -40,11 +40,12 @@ public final class CSVIngesterKmer {
   private final boolean alsoIngestReverseComplement;
 
   public CSVIngesterKmer(Connector connector, int K) {
-    this(connector, K, false);
+    this(connector, K, false, false);
   }
 
-  public CSVIngesterKmer(Connector connector, int K, boolean alsoIngestReverseComplement) {
+  public CSVIngesterKmer(Connector connector, int K, boolean alsoIngestReverseComplement, boolean onlyIngestSmallerLex) {
     this.connector = connector;
+    this.onlyIngestSmallerLex = onlyIngestSmallerLex;
     this.K = K;
     G = new GenomicEncoder(K);
     this.alsoIngestReverseComplement = alsoIngestReverseComplement;
@@ -124,23 +125,35 @@ public final class CSVIngesterKmer {
         }
         i--; continue;
       }
+
       byte[] e = G.encode(seqb, i);
       byte[] eo = null;
-      if (alsoIngestReverseComplement)
+      if (!onlyIngestSmallerLex) {
+        if (alsoIngestReverseComplement)
+          eo = Arrays.copyOf(e, e.length);
+        if (reverse)
+          G.reverseComplement(e);
+        ArrayHolder ah = new ArrayHolder(e);
+        Integer curval = map.get(ah);
+        int newval = curval == null ? 1 : curval + 1;
+        map.put(ah, newval);
+        num++;
+        if (alsoIngestReverseComplement) {
+          if (!reverse)
+            G.reverseComplement(eo);
+          ah = new ArrayHolder(eo);
+          curval = map.get(ah);
+          newval = curval == null ? 1 : curval + 1;
+          map.put(ah, newval);
+          num++;
+        }
+      } else {
         eo = Arrays.copyOf(e, e.length);
-      if (reverse)
-        G.reverseComplement(e);
-      ArrayHolder ah = new ArrayHolder(e);
-      Integer curval = map.get(ah);
-      int newval = curval == null ? 1 : curval+1;
-      map.put(ah, newval);
-      num++;
-      if (alsoIngestReverseComplement) {
-        if (!reverse)
-          G.reverseComplement(eo);
-        ah = new ArrayHolder(eo);
-        curval = map.get(ah);
-        newval = curval == null ? 1 : curval+1;
+        G.reverseComplement(eo);
+        ArrayHolder ah = new ArrayHolder(WritableComparator.compareBytes(e, 0, e.length, eo, 0, eo.length) <= 0
+            ? e : eo);
+        Integer curval = map.get(ah);
+        int newval = curval == null ? 1 : curval + 1;
         map.put(ah, newval);
         num++;
       }
@@ -152,6 +165,8 @@ public final class CSVIngesterKmer {
   public long ingestFile(File file, String Atable, boolean deleteIfExists, String oTsampleDegree) throws IOException {
     return ingestFile(file, Atable, deleteIfExists, 1, 0, oTsampleDegree);
   }
+
+  private boolean onlyIngestSmallerLex = false;
 
   public long ingestFile(File file, String Atable, boolean deleteIfExists,
                          int everyXLines, int startOffset, String oTsampleDegree) throws IOException {

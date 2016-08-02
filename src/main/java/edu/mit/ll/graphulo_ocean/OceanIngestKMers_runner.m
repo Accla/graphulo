@@ -4,7 +4,7 @@
 
 %PARALLEL = 1;
 
-opts = javaArray('java.lang.String',16);
+opts = javaArray('java.lang.String',15);
 opts(1) = java.lang.String('-listOfSamplesFile');
 opts(2) = java.lang.String('/home/gridsan/dhutchison/gits/istc_oceanography/metadata/valid_samples_GA02_filenames_perm.csv');
 opts(3) = java.lang.String('-everyXLines');
@@ -20,7 +20,6 @@ opts(12) = java.lang.String('classdb54');
 opts(13) = java.lang.String('-oTsampleSeqRaw');
 opts(14) = java.lang.String('oTsampleSeqRaw');
 opts(15) = java.lang.String('-onlyIngestSmallerLex');
-opts(16) = java.lang.String(true);
 
 console = org.apache.log4j.ConsoleAppender();
 console.setThreshold(org.apache.log4j.Level.INFO);
@@ -45,11 +44,25 @@ javaaddpath /home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHO
 
 mymap = map([Np 1],{},0:Np-1);
 X = zeros(Np,1,mymap);
-Xloc = local(X);
+%Xloc = local(X);
 
+% sync
+Xloc = -Pid
+X = put_local(X, Xloc);
+agg_all(X)
+
+if Pid <> 0
+  pause(10);
+end
+
+tic;
 Xloc = edu.mit.ll.graphulo_ocean.OceanIngestKMers.executeNew(opts);
+t = toc; fprintf('Total time is %d\n', t);
 
 X = put_local(X, Xloc);
 display(X);
 
-
+%if Pid == 0
+%  fprintf('Count is %d\n', nnz(X));
+%  fprintf('Sum is   %d\n', sum(X));
+%end

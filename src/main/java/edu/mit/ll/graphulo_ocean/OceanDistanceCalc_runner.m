@@ -9,9 +9,9 @@ opts(4) = java.lang.String('oTsampleDegree');
 opts(5) = java.lang.String('-oTsampleDist');
 opts(6) = java.lang.String('oTsampleDist');
 opts(7) = java.lang.String('-txe1');
-opts(8) = java.lang.String('classdb54');
+opts(8) = java.lang.String('classdb55');
 opts(9) = java.lang.String('-sampleFilter');
-opts(10) = java.lang.String('S0001,:,S0003,');
+opts(10) = java.lang.String(':,');
 
 console = org.apache.log4j.ConsoleAppender();
 console.setThreshold(org.apache.log4j.Level.INFO);

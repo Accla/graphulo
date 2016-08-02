@@ -30,7 +30,7 @@ public class OceanIngestKMers {
   private static final Logger log = LogManager.getLogger(OceanIngestKMers.class);
 
   public static void main(String[] args) {
-    new OceanIngestKMers().execute(args);
+    executeNew(args);
   }
 
   public static int executeNew(String[] args) { return new OceanIngestKMers().execute(args); }

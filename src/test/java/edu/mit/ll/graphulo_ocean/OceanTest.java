@@ -115,7 +115,7 @@ public class OceanTest extends AccumuloTestBase {
     TestUtil.scanTableToMap(conn, opts.oTsampleDist, map);
     Map.Entry<Key, Value> actual = Iterators.getOnlyElement(map.entrySet().iterator());
     Assert.assertTrue(actual.getKey().equals(new Key("S0001_n1000", "", "S0002_n1000"), PartialKey.ROW_COLFAM_COLQUAL_COLVIS));
-    Assert.assertEquals(0.9473744643185487, Double.parseDouble(actual.getValue().toString()), 1e-15);
+    Assert.assertEquals(0.9473744643185487, Double.parseDouble(actual.getValue().toString()), 1e-11);
   }
 
 }

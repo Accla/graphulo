@@ -1,16 +1,24 @@
 package edu.mit.ll.graphulo_ocean;
 
 import com.google.common.base.Preconditions;
+import edu.mit.ll.graphulo.Graphulo;
+import edu.mit.ll.graphulo.skvi.LongLexicoderTemp;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.StatusLogger;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.lexicoder.Lexicoder;
 import org.apache.accumulo.core.client.lexicoder.LongLexicoder;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.iterators.user.SummingCombiner;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -22,7 +30,9 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import static edu.mit.ll.graphulo.util.GraphuloUtil.EMPTY_BYTES;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -168,10 +178,57 @@ public final class CSVIngesterKmer {
 
   private boolean onlyIngestSmallerLex = false;
 
+  private SortedSet<Text> getSplitPoints(int power4splits) {
+    SortedSet<Text> set = new TreeSet<>();
+    Preconditions.checkArgument(power4splits < 8);
+    for (byte i = 1; i < 1 << power4splits; i++) {
+      byte[] ba = new byte[1];
+      ba[0] = (byte) (i << (8 - power4splits));
+      set.add(new Text( ba ));
+    }
+    return set;
+  }
+
+  private void createSeqTable(String table) {
+    // create tables if they don't exist
+    if (!connector.tableOperations().exists(table)) {
+
+      IteratorSetting longCombiner = new IteratorSetting(1, SummingCombiner.class);
+      SummingCombiner.setCombineAllColumns(longCombiner, true);
+      SummingCombiner.setEncodingType(longCombiner, LongLexicoderTemp.class);
+
+      try {
+        connector.tableOperations().create(table);
+        connector.tableOperations().addSplits(table, getSplitPoints(3));
+        GraphuloUtil.applyIteratorSoft(longCombiner, connector.tableOperations(), table);
+
+      } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException | TableExistsException e) {
+        log.warn("", e);
+      }
+    }
+  }
+
+  private void createDegreeTable(String table) {
+    // create tables if they don't exist
+    if (!connector.tableOperations().exists(table)) {
+
+      IteratorSetting longCombiner = Graphulo.PLUS_ITERATOR_LONG;
+
+      try {
+        connector.tableOperations().create(table);
+        GraphuloUtil.applyIteratorSoft(longCombiner, connector.tableOperations(), table);
+
+      } catch (AccumuloException | AccumuloSecurityException | TableExistsException e) {
+        log.warn("", e);
+      }
+    }
+  }
+
   public long ingestFile(File file, String Atable, boolean deleteIfExists,
                          int everyXLines, int startOffset, String oTsampleDegree) throws IOException {
     Preconditions.checkArgument(everyXLines >= 1 && startOffset >= 0, "bad params ", everyXLines, startOffset);
-    GraphuloUtil.createTables(connector, deleteIfExists, Atable, oTsampleDegree);
+    createSeqTable(Atable);
+    createDegreeTable(oTsampleDegree);
 
     String sampleid0 = file.getName();
     if (sampleid0.endsWith(".csv"))

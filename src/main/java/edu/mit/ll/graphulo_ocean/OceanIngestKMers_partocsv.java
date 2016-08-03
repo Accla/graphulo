@@ -18,13 +18,10 @@ import java.util.Map;
 import java.util.SortedMap;
 
 /**
- * Execute this in a directory that can see all the sample files.
  * Ex: java -cp "/home/dhutchis/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar" edu.mit.ll.graphulo_ocean.OceanIngestKMers_partocsv -inputDir "/home/dhutchis/gits/istc_oceanography/parse_fastq" -K 11
  * Ex: java -cp "/home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar" edu.mit.ll.graphulo_ocean.OceanIngestKMers_partocsv -inputDir "/home/gridsan/dhutchison/gits/istc_oceanography/parse_fastq" -K 11
- * cd /home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed
- * Ex: java -cp "/home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar" edu.mit.ll.graphulo_ocean.OceanIngestKMers_partocsv -inputDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed" -K 11
- * createtable oTsampleSeqRaw
- * addsplits C T G
+ * Ex: java -cp "/home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar" edu.mit.ll.graphulo_ocean.OceanIngestKMers_partocsv -inputDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed" -K 11 -numthreads 8 -lockDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed_11_cnt_claim" -outputDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed_11_cnt"
+ * Ex: java -cp "/home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar" edu.mit.ll.graphulo_ocean.OceanIngestKMers_partocsv -inputDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed_non_overlapped" -K 11 -numthreads 8 -lockDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed_non_overlapped_11_cnt_claim" -outputDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed_non_overlapped_11_cnt"
  */
 public class OceanIngestKMers_partocsv {
   private static final Logger log = LogManager.getLogger(OceanIngestKMers_partocsv.class);
@@ -102,7 +99,7 @@ public class OceanIngestKMers_partocsv {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(outFile))) {
           for (Map.Entry<CSVIngesterKmer.ArrayHolder, Integer> entry : map.entrySet()) {
             writer.write(G.decode(entry.getKey().b));
-            writer.write(','+sampleid+'\n');
+            writer.write(','+entry.getValue().toString()+'\n');
           }
         } catch (IOException e) {
           log.error("error writing to file "+outFile, e);

@@ -58,12 +58,12 @@ public class OceanIngestKMers {
     public String oTsampleDegree = "oTsampleDegree";
 
     @Parameter(names = {"-alsoIngestReverseComplement"},
-    description = "No effect if onlyIngestSmallerLex is turned on.")
+        description = "No effect if alsoIngestSmallerLex is turned on.")
     public boolean alsoIngestReverseComplement = false;
 
-    @Parameter(names = {"-onlyIngestSmallerLex"},
+    @Parameter(names = {"-alsoIngestSmallerLex"},
         description = "For example, store for ACG but not CGT, since ACG < CGT.")
-    public boolean onlyIngestSmallerLex = false;
+    public boolean alsoIngestSmallerLex = false;
 
     @Override
     public String toString() {
@@ -76,7 +76,7 @@ public class OceanIngestKMers {
           ", K=" + K +
           ", oTsampleDegree='" + oTsampleDegree + '\'' +
           ", alsoIngestReverseComplement=" + alsoIngestReverseComplement +
-          ", onlyIngestSmallerLex=" + onlyIngestSmallerLex +
+          ", alsoIngestSmallerLex=" + alsoIngestSmallerLex +
           '}';
     }
   }
@@ -143,7 +143,7 @@ public class OceanIngestKMers {
             continue;
           }
 
-          long ep = new CSVIngesterKmer(conn, opts.K, opts.alsoIngestReverseComplement, opts.onlyIngestSmallerLex)
+          long ep = new CSVIngesterKmer(conn, opts.K, opts.alsoIngestReverseComplement, opts.alsoIngestSmallerLex)
               .ingestFile(file, opts.oTsampleSeqRaw, false, opts.oTsampleDegree);
           entriesProcessed += ep;
           log.info("Finished file: "+line+"; entries ingested: "+ep+"; cummulative: "+entriesProcessed);

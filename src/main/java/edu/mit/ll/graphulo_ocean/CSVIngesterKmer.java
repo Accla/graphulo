@@ -11,6 +11,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -18,6 +19,7 @@ import org.apache.accumulo.core.client.lexicoder.Lexicoder;
 import org.apache.accumulo.core.client.lexicoder.LongLexicoder;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
+import org.apache.commons.math3.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.log4j.LogManager;
@@ -53,9 +55,9 @@ public final class CSVIngesterKmer {
     this(connector, K, false, false);
   }
 
-  public CSVIngesterKmer(Connector connector, int K, boolean alsoIngestReverseComplement, boolean onlyIngestSmallerLex) {
+  public CSVIngesterKmer(Connector connector, int K, boolean alsoIngestReverseComplement, boolean alsoIngestSmallerLex) {
     this.connector = connector;
-    this.onlyIngestSmallerLex = onlyIngestSmallerLex;
+    this.alsoIngestSmallerLex = alsoIngestSmallerLex;
     this.K = K;
     G = new GenomicEncoder(K);
     this.alsoIngestReverseComplement = alsoIngestReverseComplement;
@@ -90,7 +92,7 @@ public final class CSVIngesterKmer {
   }
 
 
-  private long ingestLine(String line, SortedMap<ArrayHolder,Integer> map) {
+  private long ingestLine(String line, SortedMap<ArrayHolder,Integer> map, SortedMap<ArrayHolder,Integer> mapRC, SortedMap<ArrayHolder,Integer> mapSmaller) {
 //    String[] parts = line.split(",");
     int comma = line.indexOf(',');
     if (comma == -1) {
@@ -137,38 +139,30 @@ public final class CSVIngesterKmer {
       }
 
       byte[] e = G.encode(seqb, i);
-      byte[] eo = null;
-      if (!onlyIngestSmallerLex) {
-        if (alsoIngestReverseComplement)
-          eo = Arrays.copyOf(e, e.length);
-        if (reverse)
-          G.reverseComplement(e);
-        ArrayHolder ah = new ArrayHolder(e);
-        Integer curval = map.get(ah);
-        int newval = curval == null ? 1 : curval + 1;
-        map.put(ah, newval);
-        num++;
-        if (alsoIngestReverseComplement) {
-          if (!reverse)
-            G.reverseComplement(eo);
-          ah = new ArrayHolder(eo);
-          curval = map.get(ah);
-          newval = curval == null ? 1 : curval + 1;
-          map.put(ah, newval);
-          num++;
-        }
-      } else {
-        eo = Arrays.copyOf(e, e.length);
+      putInMap(map, e);
+
+      if (alsoIngestReverseComplement || alsoIngestSmallerLex) {
+        byte[] eo = Arrays.copyOf(e, e.length);
         G.reverseComplement(eo);
-        ArrayHolder ah = new ArrayHolder(WritableComparator.compareBytes(e, 0, e.length, eo, 0, eo.length) <= 0
-            ? e : eo);
-        Integer curval = map.get(ah);
-        int newval = curval == null ? 1 : curval + 1;
-        map.put(ah, newval);
-        num++;
+        if (alsoIngestReverseComplement) {
+          putInMap(mapRC, eo);
+        }
+        if (alsoIngestSmallerLex) {
+          putInMap(mapSmaller,
+              WritableComparator.compareBytes(e, 0, e.length, eo, 0, eo.length) <= 0
+                  ? e : eo);
+        }
       }
+      num++;
     }
     return num;
+  }
+
+  private void putInMap(Map<ArrayHolder, Integer> map, byte[] e) {
+    ArrayHolder ah = new ArrayHolder(e);
+    Integer curval = map.get(ah);
+    int newval = curval == null ? 1 : curval + 1;
+    map.put(ah, newval);
   }
 
 
@@ -176,7 +170,7 @@ public final class CSVIngesterKmer {
     return ingestFile(file, Atable, deleteIfExists, 1, 0, oTsampleDegree);
   }
 
-  private boolean onlyIngestSmallerLex = false;
+  private boolean alsoIngestSmallerLex = false;
 
   private SortedSet<Text> getSplitPoints(int power4splits) {
     SortedSet<Text> set = new TreeSet<>();
@@ -227,21 +221,31 @@ public final class CSVIngesterKmer {
   public long ingestFile(File file, String Atable, boolean deleteIfExists,
                          int everyXLines, int startOffset, String oTsampleDegree) throws IOException {
     Preconditions.checkArgument(everyXLines >= 1 && startOffset >= 0, "bad params ", everyXLines, startOffset);
+
     createSeqTable(Atable);
     createDegreeTable(oTsampleDegree);
+    String AtableRC = Atable+"_RC", AtableSmaller = Atable+"_Smaller";
+    if (alsoIngestReverseComplement)
+      createSeqTable(AtableRC);
+    if (alsoIngestSmallerLex)
+      createSeqTable(AtableSmaller);
 
     String sampleid0 = file.getName();
     if (sampleid0.endsWith(".csv"))
       sampleid0 = sampleid0.substring(0, sampleid0.length()-4);
     byte[] sampleidb = sampleid0.getBytes(UTF_8);
 
-    BatchWriter bw = null;
+    MultiTableBatchWriter mtbw = null;
     String line = null;
     long entriesProcessed = 0, ingested = 0, totalsum = 0;
 
     BatchWriterConfig config = new BatchWriterConfig();
     try (BufferedReader fo = new BufferedReader(new FileReader(file))) {
-      bw = connector.createBatchWriter(Atable, config);
+      BatchWriter bw, bwRC, bwSmaller;
+      mtbw = connector.createMultiTableBatchWriter(config);
+      bw = mtbw.getBatchWriter(Atable);
+      bwRC = alsoIngestReverseComplement ? mtbw.getBatchWriter(AtableRC) : null;
+      bwSmaller = alsoIngestSmallerLex ? mtbw.getBatchWriter(AtableSmaller) : null;
 
       // Skip header line
       fo.readLine();
@@ -254,13 +258,14 @@ public final class CSVIngesterKmer {
       String partialMsg = file.getName()+": entries processed: ";
 
       // idea: replace with a fixed-size array. Re-use between results
-      SortedMap<ArrayHolder,Integer> map = new TreeMap<>();
-      Lexicoder<Long> uil = new LongLexicoder();
+      SortedMap<ArrayHolder,Integer> map = new TreeMap<>(),
+          mapRC = alsoIngestReverseComplement ? new TreeMap<ArrayHolder,Integer>() : null,
+          mapSmaller = alsoIngestSmallerLex ? new TreeMap<ArrayHolder,Integer>() : null;
 
       long linecnt = 0;
       while ((line = fo.readLine()) != null)
         if (!line.isEmpty() && linecnt++ % everyXLines == 0) {
-          entriesProcessed += ingestLine(line, map);
+          entriesProcessed += ingestLine(line, map, mapRC, mapSmaller);
           if (linecnt % 5 == 0)
             slog.logPeriodic(log, partialMsg+entriesProcessed);
         }
@@ -268,54 +273,62 @@ public final class CSVIngesterKmer {
       log.info("Finished putting "+sampleid0+" into an in-memory map; now starting ingest");
       partialMsg = sampleid0+": entries ingested: ";
 
-      ingested = 0;
-      for (Map.Entry<ArrayHolder, Integer> entry : map.entrySet()) {
-        Mutation m = new Mutation(entry.getKey().b);
-        long lv = entry.getValue().longValue();
-        totalsum += lv;
-        m.put(EMPTY_BYTES, sampleidb, uil.encode(lv));
-        bw.addMutation(m);
-        ingested++;
-        if (linecnt % 5 == 0)
-          slog.logPeriodic(log, partialMsg+ingested);
-      }
 
+      Pair<Long, Long> p = ingestMap(map, bw, sampleidb);
+      log.info("wrote "+p.getSecond()+" forward entries to "+Atable);
+      ingested = p.getFirst();
+      totalsum = p.getSecond();
+
+      p = alsoIngestReverseComplement ? ingestMap(mapRC, bwRC, sampleidb) : p;
+      if (alsoIngestReverseComplement)
+        log.info("wrote "+p.getSecond()+" reverse complement entries to "+AtableRC);
+      if (ingested != p.getFirst() || p.getSecond() != totalsum)
+        log.warn("RC "+p.getFirst()+" not equal to ingested "+ingested+" or totalsum "+p.getSecond()+" not equal to totalsum "+totalsum);
+
+      p = alsoIngestSmallerLex ? ingestMap(mapSmaller, bwSmaller, sampleidb) : p;
+      if (alsoIngestSmallerLex)
+        log.info("wrote "+p.getSecond()+" smaller lex entries to "+AtableSmaller);
+      if (ingested != p.getFirst() || p.getSecond() != totalsum)
+        log.warn("SMALLER "+p.getFirst()+" not equal to ingested "+ingested+" or totalsum "+p.getSecond()+" not equal to totalsum "+totalsum);
+
+
+      // write degree
+      BatchWriter bwd = mtbw.getBatchWriter(oTsampleDegree);
+      Mutation m = new Mutation(sampleidb);
+      m.put(EMPTY_BYTES, ("degree").getBytes(UTF_8), (""+totalsum).getBytes(UTF_8));
+      bwd.addMutation(m);
+      log.info("wrote "+totalsum+" as degree of "+sampleid0+" to "+oTsampleDegree);
 
     } catch (TableNotFoundException e) {
       throw new RuntimeException(e);
-    } catch (MutationsRejectedException e) {
+    } catch (AccumuloSecurityException | AccumuloException e) {
       log.warn("", e);
     } finally {
-      if (bw != null)
+      if (mtbw != null)
         try {
-          bw.close();
+          mtbw.close();
         } catch (MutationsRejectedException e) {
           log.warn("Mutation rejected at close() on line "+line, e);
-        }
-    }
-
-    try {
-      bw = connector.createBatchWriter(oTsampleDegree, config);
-      Mutation m = new Mutation(sampleidb);
-      m.put(EMPTY_BYTES, ("degree").getBytes(UTF_8), (""+totalsum).getBytes(UTF_8));
-      bw.addMutation(m);
-
-    } catch (TableNotFoundException e) {
-      log.error("",e);
-    } catch (MutationsRejectedException e) {
-      log.warn("", e);
-    } finally {
-      if (bw != null)
-        try {
-          bw.close();
-        } catch (MutationsRejectedException e) {
-          log.warn("Mutation rejected at close() ", e);
         }
     }
 
     return ingested;
   }
 
+  private final static Lexicoder<Long> LEX = new LongLexicoder();
+
+  private Pair<Long,Long> ingestMap(SortedMap<ArrayHolder, Integer> map, BatchWriter bw, byte[] sampleidb) throws MutationsRejectedException {
+    long ingested = 0, totalsum = 0;
+    for (Map.Entry<ArrayHolder, Integer> entry : map.entrySet()) {
+      Mutation m = new Mutation(entry.getKey().b);
+      long lv = entry.getValue().longValue();
+      totalsum += lv;
+      m.put(EMPTY_BYTES, sampleidb, LEX.encode(lv));
+      bw.addMutation(m);
+      ingested++;
+    }
+    return new Pair<>(ingested, totalsum);
+  }
 
 
 }

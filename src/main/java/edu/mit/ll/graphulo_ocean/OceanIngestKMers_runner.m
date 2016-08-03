@@ -4,7 +4,7 @@
 
 %PARALLEL = 1;
 
-opts = javaArray('java.lang.String',15);
+opts = javaArray('java.lang.String',16);
 opts(1) = java.lang.String('-listOfSamplesFile');
 opts(2) = java.lang.String('/home/gridsan/dhutchison/gits/istc_oceanography/metadata/valid_samples_GA02_filenames_perm.csv');
 opts(3) = java.lang.String('-everyXLines');
@@ -16,10 +16,11 @@ opts(8) = java.lang.String('11');
 opts(9) = java.lang.String('-oTsampleDegree');
 opts(10) = java.lang.String('oTsampleDegree');
 opts(11) = java.lang.String('-txe1');
-opts(12) = java.lang.String('classdb54');
+opts(12) = java.lang.String('classdb55');
 opts(13) = java.lang.String('-oTsampleSeqRaw');
 opts(14) = java.lang.String('oTsampleSeqRaw');
-opts(15) = java.lang.String('-onlyIngestSmallerLex');
+opts(15) = java.lang.String('-alsoIngestSmallerLex');
+opts(15) = java.lang.String('-alsoIngestReverseComplement');
 
 console = org.apache.log4j.ConsoleAppender();
 console.setThreshold(org.apache.log4j.Level.INFO);

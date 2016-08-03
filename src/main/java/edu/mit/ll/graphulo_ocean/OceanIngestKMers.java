@@ -57,8 +57,7 @@ public class OceanIngestKMers {
     @Parameter(names = {"-oTsampleDegree"})
     public String oTsampleDegree = "oTsampleDegree";
 
-    @Parameter(names = {"-alsoIngestReverseComplement"},
-        description = "No effect if alsoIngestSmallerLex is turned on.")
+    @Parameter(names = {"-alsoIngestReverseComplement"})
     public boolean alsoIngestReverseComplement = false;
 
     @Parameter(names = {"-alsoIngestSmallerLex"},

@@ -227,7 +227,7 @@ public final class CSVIngesterKmer {
 
   //  static final Text EMPTY_TEXT = new Text();
 
-  private static final class ArrayHolder implements Comparable<ArrayHolder> {
+  public static final class ArrayHolder implements Comparable<ArrayHolder> {
     public final byte[] b;
 
     ArrayHolder(byte[] b) {
@@ -353,7 +353,7 @@ public final class CSVIngesterKmer {
             slog.logPeriodic(log, partialMsg+entriesProcessed);
         }
 
-      log.info("Finished putting "+sampleid0+" into an in-memory map; now starting ingest");
+      log.info("Finished putting "+sampleid0+" into an in-memory map");
 
       action.run(sampleid0, map);
 

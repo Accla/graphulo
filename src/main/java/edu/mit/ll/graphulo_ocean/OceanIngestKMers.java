@@ -143,8 +143,11 @@ public class OceanIngestKMers {
             continue;
           }
 
-          long ep = new CSVIngesterKmer(conn, opts.K, opts.alsoIngestReverseComplement, opts.alsoIngestSmallerLex)
-              .ingestFile(file, opts.oTsampleSeqRaw, false, opts.oTsampleDegree);
+          CSVIngesterKmer.KmerAction action = new CSVIngesterKmer.IngestIntoAccumulo(
+              conn, opts.oTsampleSeqRaw, opts.oTsampleDegree, opts.alsoIngestReverseComplement, opts.alsoIngestSmallerLex, opts.K
+          );
+
+          long ep = new CSVIngesterKmer(opts.K, action).ingestFile(file);
           entriesProcessed += ep;
           log.info("Finished file: "+line+"; entries ingested: "+ep+"; cummulative: "+entriesProcessed);
           filesprocessed++;

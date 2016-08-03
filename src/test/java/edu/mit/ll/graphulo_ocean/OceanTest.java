@@ -84,25 +84,37 @@ public class OceanTest extends AccumuloTestBase {
     String tKmer = "oceantest_Tkmer";
     String tKmerDeg = "oceantest_TkmerDeg";
     String tDist = "oceantest_TsampleDist";
+    GraphuloUtil.deleteTables(conn, tKmer, tKmerDeg, tDist);
 
     ingestKmers(conn, tKmer, tKmerDeg);
     doDist(conn, tKmer, tKmerDeg, tDist);
+
+    // test repeated add
+    String tKmer2 = tKmer+"2";
+    String tKmerDeg2 = tKmerDeg+"2";
+//    String tDist2 = tDist+"2";
+    GraphuloUtil.deleteTables(conn, tKmer2, tKmerDeg2);
+    conn.tableOperations().clone(tKmer, tKmer2, true, null, null);
+
+    ingestKmers(conn, tKmer2, tKmerDeg2);
   }
 
   private void ingestKmers(Connector conn, String tKmer, String tKmerDeg) throws Exception {
-    GraphuloUtil.deleteTables(conn, tKmer, tKmerDeg);
 //    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
 //        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
 
-    CSVIngesterKmer ingester = new CSVIngesterKmer(conn, kmer);
-    long numSeqs = ingester.ingestFile(ExampleUtil.getDataFile("S0001_n1000.csv"), tKmer, false, tKmerDeg);
-    numSeqs += ingester.ingestFile(ExampleUtil.getDataFile("S0002_n1000.csv"), tKmer, false, tKmerDeg);
+    CSVIngesterKmer.KmerAction action = new CSVIngesterKmer.IngestIntoAccumulo(
+        conn, tKmer, tKmerDeg, false, false, kmer
+    );
+
+    CSVIngesterKmer ingester = new CSVIngesterKmer(kmer, action);
+    long numSeqs = ingester.ingestFile(ExampleUtil.getDataFile("S0001_n1000.csv"));
+    numSeqs += ingester.ingestFile(ExampleUtil.getDataFile("S0002_n1000.csv"));
     log.info("number of sequences ingested: "+numSeqs);
   }
 
 
   private void doDist(Connector conn, String tKmer, String tKmerDeg, String tDist) throws Exception {
-    GraphuloUtil.deleteTables(conn, tDist);
     OceanDistanceCalc odc = new OceanDistanceCalc();
     OceanDistanceCalc.Opts opts = new OceanDistanceCalc.Opts();
     opts.oTsampleDist = tDist;

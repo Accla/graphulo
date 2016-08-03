@@ -46,21 +46,183 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public final class CSVIngesterKmer {
   private static final Logger log = LogManager.getLogger(CSVIngesterKmer.class);
 
-  private final int K;
-  private final GenomicEncoder G;
-  private final Connector connector;
-  private final boolean alsoIngestReverseComplement;
 
-  public CSVIngesterKmer(Connector connector, int K) {
-    this(connector, K, false, false);
+  /** An action to take on all the kmers collected from a sample file. */
+  public interface KmerAction {
+    void run(String sampleid, SortedMap<ArrayHolder, Integer> map);
   }
 
-  public CSVIngesterKmer(Connector connector, int K, boolean alsoIngestReverseComplement, boolean alsoIngestSmallerLex) {
-    this.connector = connector;
-    this.alsoIngestSmallerLex = alsoIngestSmallerLex;
+  /** An action that ingests into Accumulo. */
+  public static class IngestIntoAccumulo implements KmerAction {
+    private final static Lexicoder<Long> LEX = new LongLexicoder();
+
+    private final boolean alsoIngestReverseComplement;
+    private final boolean alsoIngestSmallerLex;
+    private final String Atable, oTsampleDegree, AtableRC, AtableSmaller;
+    private final Connector connector;
+    private final GenomicEncoder G;
+
+    public IngestIntoAccumulo(Connector connector, String atable, String oTsampleDegree, boolean alsoIngestReverseComplement, boolean alsoIngestSmallerLex, int k) {
+      this.alsoIngestReverseComplement = alsoIngestReverseComplement;
+      this.alsoIngestSmallerLex = alsoIngestSmallerLex;
+      Atable = atable;
+      this.connector = connector;
+      this.oTsampleDegree = oTsampleDegree;
+      this.G = new GenomicEncoder(k);
+
+      createSeqTable(Atable);
+      createDegreeTable(oTsampleDegree);
+      AtableRC = Atable+"_RC";
+      AtableSmaller = Atable+"_Smaller";
+      if (alsoIngestReverseComplement)
+        createSeqTable(AtableRC);
+      if (alsoIngestSmallerLex)
+        createSeqTable(AtableSmaller);
+    }
+
+    private SortedSet<Text> getSplitPoints(int power4splits) {
+      SortedSet<Text> set = new TreeSet<>();
+      Preconditions.checkArgument(power4splits < 8);
+      for (byte i = 1; i < 1 << power4splits; i++) {
+        byte[] ba = new byte[1];
+        ba[0] = (byte) (i << (8 - power4splits));
+        set.add(new Text( ba ));
+      }
+      return set;
+    }
+
+    private void createSeqTable(String table) {
+      // create tables if they don't exist
+      if (!connector.tableOperations().exists(table)) {
+
+        IteratorSetting longCombiner = new IteratorSetting(1, SummingCombiner.class);
+        SummingCombiner.setCombineAllColumns(longCombiner, true);
+        SummingCombiner.setEncodingType(longCombiner, LongLexicoderTemp.class);
+
+        try {
+          connector.tableOperations().create(table);
+          connector.tableOperations().addSplits(table, getSplitPoints(3));
+          GraphuloUtil.applyIteratorSoft(longCombiner, connector.tableOperations(), table);
+
+        } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException | TableExistsException e) {
+          log.warn("", e);
+        }
+      }
+    }
+
+    private void createDegreeTable(String table) {
+      // create tables if they don't exist
+      if (!connector.tableOperations().exists(table)) {
+
+        IteratorSetting longCombiner = Graphulo.PLUS_ITERATOR_LONG;
+
+        try {
+          connector.tableOperations().create(table);
+          GraphuloUtil.applyIteratorSoft(longCombiner, connector.tableOperations(), table);
+
+        } catch (AccumuloException | AccumuloSecurityException | TableExistsException e) {
+          log.warn("", e);
+        }
+      }
+    }
+
+    @Override
+    public void run(String sampleid, SortedMap<ArrayHolder, Integer> map) {
+      BatchWriterConfig config = new BatchWriterConfig();
+      MultiTableBatchWriter mtbw = connector.createMultiTableBatchWriter(config);
+      BatchWriter bw, bwRC, bwSmaller;
+
+      try {
+        byte[] sampleidb = sampleid.getBytes(UTF_8);
+        bw = mtbw.getBatchWriter(Atable);
+        bwRC = alsoIngestReverseComplement ? mtbw.getBatchWriter(AtableRC) : null;
+        bwSmaller = alsoIngestSmallerLex ? mtbw.getBatchWriter(AtableSmaller) : null;
+
+        Pair<Long, Long> p = ingestMap(map, bw, sampleidb, null);
+        log.info("wrote "+p.getSecond()+" forward entries to "+Atable);
+        long ingested = p.getFirst();
+        long totalsum = p.getSecond();
+
+        if (alsoIngestReverseComplement) {
+          p = ingestMap(map, bwRC, sampleidb,
+              new SpecificKmerAction() {
+                @Override
+                public byte[] transformKmer(byte[] mer) {
+                  byte[] b2 = Arrays.copyOf(mer, mer.length);
+                  G.reverseComplement(b2);
+                  return b2;
+                }
+              });
+          log.info("wrote " + p.getSecond() + " reverse complement entries to " + AtableRC);
+          if (ingested != p.getFirst() || p.getSecond() != totalsum)
+            log.warn("RC " + p.getFirst() + " not equal to ingested " + ingested + " or totalsum " + p.getSecond() + " not equal to totalsum " + totalsum);
+        }
+
+        if (alsoIngestSmallerLex) {
+          p = ingestMap(map, bwSmaller, sampleidb,
+              new SpecificKmerAction() {
+                @Override
+                public byte[] transformKmer(byte[] e) {
+                  byte[] eo = Arrays.copyOf(e, e.length);
+                  G.reverseComplement(eo);
+                  return WritableComparator.compareBytes(e, 0, e.length, eo, 0, eo.length) <= 0
+                      ? e : eo;
+                }
+              });
+          log.info("wrote " + p.getSecond() + " smaller lex entries to " + AtableSmaller);
+          if (ingested != p.getFirst() || p.getSecond() != totalsum)
+            log.warn("SMALLER " + p.getFirst() + " not equal to ingested " + ingested + " or totalsum " + p.getSecond() + " not equal to totalsum " + totalsum);
+        }
+
+        // write degree
+        BatchWriter bwd = mtbw.getBatchWriter(oTsampleDegree);
+        Mutation m = new Mutation(sampleidb);
+        m.put(EMPTY_BYTES, ("degree").getBytes(UTF_8), (""+totalsum).getBytes(UTF_8));
+        bwd.addMutation(m);
+        log.info("wrote "+totalsum+" as degree of "+sampleid+" to "+oTsampleDegree);
+
+
+      } catch (Exception e) {
+        log.warn("",e);
+      } finally {
+        if (mtbw != null)
+          try {
+            mtbw.close();
+          } catch (MutationsRejectedException e) {
+            log.warn("Mutation rejected at close()", e);
+          }
+      }
+    }
+
+    private interface SpecificKmerAction {
+      byte[] transformKmer(byte[] mer);
+    }
+
+    private Pair<Long,Long> ingestMap(SortedMap<ArrayHolder, Integer> map, BatchWriter bw, byte[] sampleidb,
+                                      SpecificKmerAction specificKmerAction) throws MutationsRejectedException {
+      long ingested = 0, totalsum = 0;
+      for (Map.Entry<ArrayHolder, Integer> entry : map.entrySet()) {
+        Mutation m = new Mutation(specificKmerAction == null ? entry.getKey().b : specificKmerAction.transformKmer(entry.getKey().b));
+        long lv = entry.getValue().longValue();
+        totalsum += lv;
+        m.put(EMPTY_BYTES, sampleidb, LEX.encode(lv));
+        bw.addMutation(m);
+        ingested++;
+      }
+      return new Pair<>(ingested, totalsum);
+    }
+  }
+
+
+  private final KmerAction action;
+  private final GenomicEncoder G;
+  private final int K;
+
+
+  public CSVIngesterKmer(int K, KmerAction action) {
     this.K = K;
     G = new GenomicEncoder(K);
-    this.alsoIngestReverseComplement = alsoIngestReverseComplement;
+    this.action = action;
   }
 
   //  static final Text EMPTY_TEXT = new Text();
@@ -92,7 +254,7 @@ public final class CSVIngesterKmer {
   }
 
 
-  private long ingestLine(String line, SortedMap<ArrayHolder,Integer> map, SortedMap<ArrayHolder,Integer> mapRC, SortedMap<ArrayHolder,Integer> mapSmaller) {
+  private long ingestLine(String line, SortedMap<ArrayHolder,Integer> map) {
 //    String[] parts = line.split(",");
     int comma = line.indexOf(',');
     if (comma == -1) {
@@ -106,14 +268,12 @@ public final class CSVIngesterKmer {
     int slash = header.indexOf('/');
     boolean reverse = slash != -1 && slash != header.length()-1 && header.charAt(slash+1) == '2';
 
-//    String seqid = parts[0];
     String seq = line.substring(comma+1);
     char[] seqb = seq.toCharArray();
 
     // split seq into kmers
     long num = 0;
     int i = 0;
-
     // skip 'N' logic
     outer: while (true) {
       for (int j = i; j < i + K; j++)
@@ -139,20 +299,9 @@ public final class CSVIngesterKmer {
       }
 
       byte[] e = G.encode(seqb, i);
+      if (reverse)
+        G.reverseComplement(e);
       putInMap(map, e);
-
-      if (alsoIngestReverseComplement || alsoIngestSmallerLex) {
-        byte[] eo = Arrays.copyOf(e, e.length);
-        G.reverseComplement(eo);
-        if (alsoIngestReverseComplement) {
-          putInMap(mapRC, eo);
-        }
-        if (alsoIngestSmallerLex) {
-          putInMap(mapSmaller,
-              WritableComparator.compareBytes(e, 0, e.length, eo, 0, eo.length) <= 0
-                  ? e : eo);
-        }
-      }
       num++;
     }
     return num;
@@ -166,87 +315,23 @@ public final class CSVIngesterKmer {
   }
 
 
-  public long ingestFile(File file, String Atable, boolean deleteIfExists, String oTsampleDegree) throws IOException {
-    return ingestFile(file, Atable, deleteIfExists, 1, 0, oTsampleDegree);
+  public long ingestFile(File file) throws IOException {
+    return ingestFile(file, 1, 0);
   }
 
-  private boolean alsoIngestSmallerLex = false;
 
-  private SortedSet<Text> getSplitPoints(int power4splits) {
-    SortedSet<Text> set = new TreeSet<>();
-    Preconditions.checkArgument(power4splits < 8);
-    for (byte i = 1; i < 1 << power4splits; i++) {
-      byte[] ba = new byte[1];
-      ba[0] = (byte) (i << (8 - power4splits));
-      set.add(new Text( ba ));
-    }
-    return set;
-  }
-
-  private void createSeqTable(String table) {
-    // create tables if they don't exist
-    if (!connector.tableOperations().exists(table)) {
-
-      IteratorSetting longCombiner = new IteratorSetting(1, SummingCombiner.class);
-      SummingCombiner.setCombineAllColumns(longCombiner, true);
-      SummingCombiner.setEncodingType(longCombiner, LongLexicoderTemp.class);
-
-      try {
-        connector.tableOperations().create(table);
-        connector.tableOperations().addSplits(table, getSplitPoints(3));
-        GraphuloUtil.applyIteratorSoft(longCombiner, connector.tableOperations(), table);
-
-      } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException | TableExistsException e) {
-        log.warn("", e);
-      }
-    }
-  }
-
-  private void createDegreeTable(String table) {
-    // create tables if they don't exist
-    if (!connector.tableOperations().exists(table)) {
-
-      IteratorSetting longCombiner = Graphulo.PLUS_ITERATOR_LONG;
-
-      try {
-        connector.tableOperations().create(table);
-        GraphuloUtil.applyIteratorSoft(longCombiner, connector.tableOperations(), table);
-
-      } catch (AccumuloException | AccumuloSecurityException | TableExistsException e) {
-        log.warn("", e);
-      }
-    }
-  }
-
-  public long ingestFile(File file, String Atable, boolean deleteIfExists,
-                         int everyXLines, int startOffset, String oTsampleDegree) throws IOException {
+  public long ingestFile(File file, int everyXLines, int startOffset) throws IOException {
     Preconditions.checkArgument(everyXLines >= 1 && startOffset >= 0, "bad params ", everyXLines, startOffset);
-
-    createSeqTable(Atable);
-    createDegreeTable(oTsampleDegree);
-    String AtableRC = Atable+"_RC", AtableSmaller = Atable+"_Smaller";
-    if (alsoIngestReverseComplement)
-      createSeqTable(AtableRC);
-    if (alsoIngestSmallerLex)
-      createSeqTable(AtableSmaller);
 
     String sampleid0 = file.getName();
     if (sampleid0.endsWith(".csv"))
       sampleid0 = sampleid0.substring(0, sampleid0.length()-4);
-    byte[] sampleidb = sampleid0.getBytes(UTF_8);
 
-    MultiTableBatchWriter mtbw = null;
-    String line = null;
+
+    String line;
     long entriesProcessed = 0, ingested = 0, totalsum = 0;
 
-    BatchWriterConfig config = new BatchWriterConfig();
     try (BufferedReader fo = new BufferedReader(new FileReader(file))) {
-      BatchWriter bw, bwRC, bwSmaller;
-      mtbw = connector.createMultiTableBatchWriter(config);
-      bw = mtbw.getBatchWriter(Atable);
-      bwRC = alsoIngestReverseComplement ? mtbw.getBatchWriter(AtableRC) : null;
-      bwSmaller = alsoIngestSmallerLex ? mtbw.getBatchWriter(AtableSmaller) : null;
-
       // Skip header line
       fo.readLine();
       // Offset
@@ -258,77 +343,22 @@ public final class CSVIngesterKmer {
       String partialMsg = file.getName()+": entries processed: ";
 
       // idea: replace with a fixed-size array. Re-use between results
-      SortedMap<ArrayHolder,Integer> map = new TreeMap<>(),
-          mapRC = alsoIngestReverseComplement ? new TreeMap<ArrayHolder,Integer>() : null,
-          mapSmaller = alsoIngestSmallerLex ? new TreeMap<ArrayHolder,Integer>() : null;
+      SortedMap<ArrayHolder,Integer> map = new TreeMap<>();
 
       long linecnt = 0;
       while ((line = fo.readLine()) != null)
         if (!line.isEmpty() && linecnt++ % everyXLines == 0) {
-          entriesProcessed += ingestLine(line, map, mapRC, mapSmaller);
+          entriesProcessed += ingestLine(line, map);
           if (linecnt % 5 == 0)
             slog.logPeriodic(log, partialMsg+entriesProcessed);
         }
 
       log.info("Finished putting "+sampleid0+" into an in-memory map; now starting ingest");
-      partialMsg = sampleid0+": entries ingested: ";
 
+      action.run(sampleid0, map);
 
-      Pair<Long, Long> p = ingestMap(map, bw, sampleidb);
-      log.info("wrote "+p.getSecond()+" forward entries to "+Atable);
-      ingested = p.getFirst();
-      totalsum = p.getSecond();
-
-      p = alsoIngestReverseComplement ? ingestMap(mapRC, bwRC, sampleidb) : p;
-      if (alsoIngestReverseComplement)
-        log.info("wrote "+p.getSecond()+" reverse complement entries to "+AtableRC);
-      if (ingested != p.getFirst() || p.getSecond() != totalsum)
-        log.warn("RC "+p.getFirst()+" not equal to ingested "+ingested+" or totalsum "+p.getSecond()+" not equal to totalsum "+totalsum);
-
-      p = alsoIngestSmallerLex ? ingestMap(mapSmaller, bwSmaller, sampleidb) : p;
-      if (alsoIngestSmallerLex)
-        log.info("wrote "+p.getSecond()+" smaller lex entries to "+AtableSmaller);
-      if (ingested != p.getFirst() || p.getSecond() != totalsum)
-        log.warn("SMALLER "+p.getFirst()+" not equal to ingested "+ingested+" or totalsum "+p.getSecond()+" not equal to totalsum "+totalsum);
-
-
-      // write degree
-      BatchWriter bwd = mtbw.getBatchWriter(oTsampleDegree);
-      Mutation m = new Mutation(sampleidb);
-      m.put(EMPTY_BYTES, ("degree").getBytes(UTF_8), (""+totalsum).getBytes(UTF_8));
-      bwd.addMutation(m);
-      log.info("wrote "+totalsum+" as degree of "+sampleid0+" to "+oTsampleDegree);
-
-    } catch (TableNotFoundException e) {
-      throw new RuntimeException(e);
-    } catch (AccumuloSecurityException | AccumuloException e) {
-      log.warn("", e);
-    } finally {
-      if (mtbw != null)
-        try {
-          mtbw.close();
-        } catch (MutationsRejectedException e) {
-          log.warn("Mutation rejected at close() on line "+line, e);
-        }
     }
-
     return ingested;
   }
-
-  private final static Lexicoder<Long> LEX = new LongLexicoder();
-
-  private Pair<Long,Long> ingestMap(SortedMap<ArrayHolder, Integer> map, BatchWriter bw, byte[] sampleidb) throws MutationsRejectedException {
-    long ingested = 0, totalsum = 0;
-    for (Map.Entry<ArrayHolder, Integer> entry : map.entrySet()) {
-      Mutation m = new Mutation(entry.getKey().b);
-      long lv = entry.getValue().longValue();
-      totalsum += lv;
-      m.put(EMPTY_BYTES, sampleidb, LEX.encode(lv));
-      bw.addMutation(m);
-      ingested++;
-    }
-    return new Pair<>(ingested, totalsum);
-  }
-
 
 }

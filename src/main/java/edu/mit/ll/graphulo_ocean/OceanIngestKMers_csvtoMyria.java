@@ -21,8 +21,8 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Ex: java -cp "/home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar" edu.mit.ll.graphulo_ocean.OceanIngestKMers_csvtoMyria -myriaHostAndPort node-109:8753 -inputDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed_11_cnt" -K 11 -numthreads 8 -lockDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed_11_cnt_upload_claim" -outputDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed_11_cnt_upload"
- * Ex: java -cp "/home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar" edu.mit.ll.graphulo_ocean.OceanIngestKMers_csvtoMyria -myriaHostAndPort node-109:8753 -inputDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed_non_overlapped_11_cnt" -K 11 -numthreads 8 -lockDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed_non_overlapped_11_cnt_upload_claim" -outputDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed_non_overlapped_11_cnt_upload"
+ * Ex: java -cp "/home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar" edu.mit.ll.graphulo_ocean.OceanIngestKMers_csvtoMyria -myriaHost node-109 -inputDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed_11_cnt" -K 11 -numthreads 1 -lockDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed_11_cnt_upload_claim" -outputDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed_11_cnt_upload"
+ * Ex: java -cp "/home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar" edu.mit.ll.graphulo_ocean.OceanIngestKMers_csvtoMyria -myriaHost node-109 -inputDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed_non_overlapped_11_cnt" -K 11 -numthreads 1 -lockDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed_non_overlapped_11_cnt_upload_claim" -outputDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed_non_overlapped_11_cnt_upload"
  */
 public class OceanIngestKMers_csvtoMyria {
   private static final Logger log = LogManager.getLogger(OceanIngestKMers_csvtoMyria.class);
@@ -95,23 +95,23 @@ public class OceanIngestKMers_csvtoMyria {
         log.info(Thread.currentThread().getName()+": Processing "+f.getName());
         final String sampleid = f.getName().substring(0,5);
         final String json =
-            "\"{\n" +
-                "  \"relationKey\" : {\n" +
-                "    \"userName\" : \"public\",\n" +
-                "    \"programName\" : \"adhoc\",\n" +
-                "    \"relationName\" : \"kmercnt_"+opts.K+"_forward_"+sampleid+"\"\n" +
-                "  },\n" +
-                "  \"schema\" : {\n" +
-                "    \"columnTypes\" : [\"LONG_TYPE\", \"LONG_TYPE\"],\n" +
-                "    \"columnNames\" : [\"col1\", \"col2\"]\n" +
-                "  },\n" +
-                "  \"source\" : {\n" +
-                "    \"dataType\" : \"File\",\n" +
-                "    \"filename\" : \""+f.getAbsolutePath()+"\"\n" +
-                "  },\n" +
-                "  \"overwrite\" : false,\n" +
-                "  \"delimiter\": \",\"\n" +
-                "}\"";
+            "{" +
+                "  \"relationKey\" : {" +
+                "    \"userName\" : \"public\"," +
+                "    \"programName\" : \"adhoc\"," +
+                "    \"relationName\" : \"kmercnt_"+opts.K+"_forward_"+sampleid+"\"" +
+                "  }," +
+                "  \"schema\" : {" +
+                "    \"columnTypes\" : [\"LONG_TYPE\", \"LONG_TYPE\"]," +
+                "    \"columnNames\" : [\"col1\", \"col2\"]" +
+                "  }," +
+                "  \"source\" : {" +
+                "    \"dataType\" : \"File\"," +
+                "    \"filename\" : \""+f.getAbsolutePath()+"\"" +
+                "  }," +
+                "  \"overwrite\" : false," +
+                "  \"delimiter\": \",\"" +
+                "}";
 
         HttpURLConnection conn = null;
         File outFile = new File(opts.outputDir, f.getName()+"_upload_response");
@@ -128,10 +128,12 @@ public class OceanIngestKMers_csvtoMyria {
             wr.flush();
           }
 
-          try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+          java.io.InputStream is = conn.getResponseCode() >= 400 ? conn.getErrorStream() : conn.getInputStream();
+
+          try (BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
             String line;
             while ((line = reader.readLine()) != null) {
-              writer.write(line);
+              writer.write(line+'\n');
             }
           }
 

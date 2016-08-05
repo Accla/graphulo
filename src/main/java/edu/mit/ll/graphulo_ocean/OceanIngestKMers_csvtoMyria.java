@@ -1,5 +1,13 @@
 package edu.mit.ll.graphulo_ocean;
 
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.converters.FileConverter;
+import com.google.common.base.Preconditions;
+import com.google.common.io.PatternFilenameFilter;
+import edu.mit.ll.graphulo_ocean.parfile.ParallelFileMapper;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -8,20 +16,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
-
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.converters.FileConverter;
-import com.google.common.base.Preconditions;
-import com.google.common.io.PatternFilenameFilter;
-
-import edu.mit.ll.graphulo_ocean.parfile.ParallelFileMapper;
 
 /**
  * Ex: java -cp "/home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar" edu.mit.ll.graphulo_ocean.OceanIngestKMers_csvtoMyria -myriaHostAndPort node-109:8753 -inputDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed_11_cnt" -K 11 -numthreads 8 -lockDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed_11_cnt_upload_claim" -outputDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed_11_cnt_upload"
@@ -94,7 +91,7 @@ public class OceanIngestKMers_csvtoMyria {
 
     final ParallelFileMapper.FileAction fileAction = new ParallelFileMapper.FileAction() {
       @Override
-      public void run(File f) throws MalformedURLException {
+      public void run(File f) {
         log.info(Thread.currentThread().getName()+": Processing "+f.getName());
         final String sampleid = f.getName().substring(0,5);
         final String json =

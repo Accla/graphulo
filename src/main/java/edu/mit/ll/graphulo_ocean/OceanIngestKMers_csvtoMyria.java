@@ -102,8 +102,8 @@ public class OceanIngestKMers_csvtoMyria {
                 "    \"relationName\" : \"kmercnt_"+opts.K+"_forward_"+sampleid+"\"" +
                 "  }," +
                 "  \"schema\" : {" +
-                "    \"columnTypes\" : [\"LONG_TYPE\", \"LONG_TYPE\"]," +
-                "    \"columnNames\" : [\"col1\", \"col2\"]" +
+                "    \"columnTypes\" : [\"STRING_TYPE\", \"LONG_TYPE\"]," +
+                "    \"columnNames\" : [\"kmer\", \"cnt\"]" +
                 "  }," +
                 "  \"source\" : {" +
                 "    \"dataType\" : \"File\"," +

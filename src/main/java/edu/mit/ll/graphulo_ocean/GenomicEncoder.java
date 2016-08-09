@@ -98,15 +98,14 @@ public class GenomicEncoder implements Lexicoder<char[]> {
     if (bs.length != NB)
       throw new IllegalArgumentException("input does not match length NB="+NB+": "+ Arrays.toString(bs));
     ArrayUtils.reverse(bs);
-    bs[0] = reverseComplement(bs[0], 4-REM);
-    if (REM != 0) {
-      byte orem642 = (byte) (0b11111111 >>> 2 * (4 - REM));
-      byte lrem642 = (byte) (0b00111111 << 2*REM & 0b11111111);
+    for (int i = 0; i < NB; i++)
+      bs[i] = reverseComplement(bs[i], i == 0 ? REM : 4);
+    if (REM != 4) {
+//      byte orem642 = (byte) (0b11111111 >>> 2 * REM);
+      byte lrem642 = (byte) (0b00111111 << 2*(4-REM) & 0b11111111);
       for (int i = 0; i < NB - 1; i++) {
-//      bs[i] &= 0b11111100 | bs[i+1] >>> 6 & 0b11;
-        bs[i+1] = reverseComplement(bs[i+1], 4);
-        bs[i] &= lrem642 | bs[i+1] >>> 2 * (4 - REM) & orem642;
-        bs[i+1] <<= 2*REM;
+        bs[i] |= bs[i+1] >>> 2 * REM;
+        bs[i+1] = (byte) (bs[i+1] << 2*(4 - REM) & lrem642);
       }
     }
     return bs;

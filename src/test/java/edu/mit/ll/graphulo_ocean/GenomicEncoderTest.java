@@ -53,6 +53,8 @@ public class GenomicEncoderTest {
     Assert.assertArrayEquals(c, g.decode(g.encode(c)));
     g = new GenomicEncoder(5); c = new char[]{'A','C','T','G','T'};
     Assert.assertArrayEquals(c, g.decode(g.encode(c)));
+    g = new GenomicEncoder(11); c = "AAAAAAAAAAA".toCharArray();
+    Assert.assertArrayEquals(c, g.decode(g.encode(c)));
   }
 
   @Test
@@ -79,7 +81,7 @@ public class GenomicEncoderTest {
 
   @Test
   public void testReverseComplementFull() {
-    GenomicEncoder g4 = new GenomicEncoder(4), g3 = new GenomicEncoder(3), g5 = new GenomicEncoder(5), g7 = new GenomicEncoder(7);
+    GenomicEncoder g4 = new GenomicEncoder(4), g3 = new GenomicEncoder(3), g5 = new GenomicEncoder(5), g7 = new GenomicEncoder(7), g11 = new GenomicEncoder(11);
     byte[][][] tests = new byte[][][] {
         new byte[][] { g4.encode(new char[] {'A','C','T','G'}), g4.reverseComplement(g4.encode(new char[] {'C','A','G','T'})) },
         new byte[][] { g4.encode(new char[] {'A','A','A','A'}), g4.reverseComplement(g4.encode(new char[] {'T','T','T','T'})) },
@@ -88,8 +90,14 @@ public class GenomicEncoderTest {
         new byte[][] { g3.encode(new char[] {'T','C','C'}), g3.reverseComplement(g3.encode(new char[] {'G','G','A'})) },
         new byte[][] { g3.encode(new char[] {'T','C','G'}), g3.reverseComplement(g3.encode(new char[] {'C','G','A'})) },
         new byte[][] { g5.encode(new char[] {'A','A','C','T','G'}), g5.reverseComplement(g5.encode(new char[] {'C','A','G','T','T'})) },
-        new byte[][] { g7.encode(new char[] {'C','G','A','A','C','T','G'}), g7.reverseComplement(g7.encode(new char[] {'C','A','G','T','T','C','G'})) }
+        new byte[][] { g7.encode(new char[] {'C','G','A','A','C','T','G'}), g7.reverseComplement(g7.encode(new char[] {'C','A','G','T','T','C','G'})) },
+        new byte[][] { g11.encode("TTTTTTTTTTT".toCharArray()), g11.reverseComplement(g11.encode("AAAAAAAAAAA45trret43t".toCharArray())) }
     };
+    for (int i = 0; i < tests.length; i++) {
+      byte[][] test = tests[i];
+      Assert.assertArrayEquals("test "+i, test[0], test[1]);
+    }
+
   }
 
   @Test

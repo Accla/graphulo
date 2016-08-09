@@ -2,7 +2,6 @@ package edu.mit.ll.graphulo_ocean;
 
 import com.google.common.base.Preconditions;
 import org.apache.accumulo.core.client.lexicoder.Lexicoder;
-import org.apache.accumulo.core.iterators.ValueFormatException;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.Arrays;
@@ -87,10 +86,14 @@ public class GenomicEncoder implements Lexicoder<char[]> {
   }
 
   @Override
-  public char[] decode(byte[] b) throws ValueFormatException {
-    if (b.length != NB)
+  public char[] decode(byte[] b) {
+    return decode(b, new char[K]);
+  }
+
+  /** Use an existing char[] instead of allocating a new one. Ensure it is length at least K. */
+  public char[] decode(byte[] b, char[] ret) {
+    if (b.length < NB)
       throw new IllegalArgumentException("input does not match length NB="+NB+": "+ Arrays.toString(b));
-    char[] ret = new char[K];
     for (int i = 0; i < NB; i++)
       dec1(b[i], i == NB - 1 ? REM : 4, ret, 4 * i);
     return ret;

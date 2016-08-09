@@ -89,6 +89,7 @@ public class OceanPipeKmers {
     ) {
       String line;
       byte[] enc = new byte[G.NB], encrc = new byte[G.NB];
+      char[] dec = new char[G.K];
 
       while ((line = reader.readLine()) != null) {
 
@@ -97,30 +98,23 @@ public class OceanPipeKmers {
             writer.println(line);
             break;
           default:
-            //parseAndWrite(readMode, line, writer, commaPos)
             char[] linearr = line.toCharArray();
 
             enc = G.encode(linearr, 0, enc);
-            char[] dec;
             switch (readMode) {
               case RC:
-//                System.err.print(linearr);
-//                System.err.print(" "+linearr.length+" "+Arrays.toString(Arrays.copyOf(linearr, 11))+" "+Arrays.toString(G.decode(enc))+" ");
                 enc = G.reverseComplement(enc);
-                dec = G.decode(enc);
-//                System.err.print(dec.length+" "+Arrays.toString(dec)+" ");
-                System.arraycopy(dec, 0, linearr, 0, dec.length);
+                dec = G.decode(enc, dec);
                 break;
               case LEX:
                 System.arraycopy(enc, 0, encrc, 0, G.NB);
                 encrc = G.reverseComplement(encrc);
                 dec = G.decode(WritableComparator.compareBytes(enc, 0, G.NB, encrc, 0, G.NB) <= 0
-                    ? enc : encrc);
-                System.arraycopy(dec, 0, linearr, 0, dec.length);
+                    ? enc : encrc, dec);
                 break;
               default: throw new AssertionError();
             }
-//            System.err.println(linearr);
+            System.arraycopy(dec, 0, linearr, 0, dec.length);
             writer.println(linearr);
         }
         linesProcessed++;
@@ -131,7 +125,6 @@ public class OceanPipeKmers {
     } catch (IOException e) {
       e.printStackTrace();
     }
-//    System.err.flush();
     return linesProcessed;
   }
 

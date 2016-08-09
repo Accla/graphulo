@@ -14,12 +14,11 @@ import java.util.Arrays;
 public class GenomicEncoder implements Lexicoder<char[]> {
 
   /** Length of k-mer. */
-  private final int K;
+  public final int K;
   /** Number of bytes required to encode the k-mer. */
-  private final int NB;
-  /** Remainder - number of bases in the final byte.
-   * The last 2*REM bits of the encoded form are 0s. */
-  private final int REM;
+  public final int NB;
+  /** Remainder - number of bases in the final byte. A number from 1 to 4, unless K=0. */
+  public final int REM;
 
   public GenomicEncoder(int k) {
     Preconditions.checkArgument(k > 0, "bad k ", k);
@@ -59,9 +58,13 @@ public class GenomicEncoder implements Lexicoder<char[]> {
 
   /** Encode a k-mer of length k characters, starting from offset off of bs.  */
   public byte[] encode(char[] bs, int off) {
+    return encode(bs, off, new byte[NB]);
+  }
+
+  /** Use an existing byte[] instead of allocating a new one. Ensure it is length at least NB. */
+  public byte[] encode(char[] bs, int off, byte[] ret) {
     if (off > bs.length-K)
       throw new IllegalArgumentException("input does not match length K="+K+": "+new String(bs)+" and off = "+off);
-    byte[] ret = new byte[NB];
     for (int i = 0; i < NB; i++)
       ret[i] = enc1(bs, off + 4 * i, i == NB - 1 ? REM : 4);
     return ret;
@@ -101,10 +104,10 @@ public class GenomicEncoder implements Lexicoder<char[]> {
     for (int i = 0; i < NB; i++)
       bs[i] = reverseComplement(bs[i], i == 0 ? REM : 4);
     if (REM != 4) {
-//      byte orem642 = (byte) (0b11111111 >>> 2 * REM);
+      byte orem642 = (byte) (0b11111111 >>> 2 * REM);
       byte lrem642 = (byte) (0b00111111 << 2*(4-REM) & 0b11111111);
       for (int i = 0; i < NB - 1; i++) {
-        bs[i] |= bs[i+1] >>> 2 * REM;
+        bs[i] |= bs[i+1] >>> 2 * REM & orem642;
         bs[i+1] = (byte) (bs[i+1] << 2*(4 - REM) & lrem642);
       }
     }

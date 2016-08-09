@@ -90,8 +90,10 @@ public class GenomicEncoderTest {
         new byte[][] { g3.encode(new char[] {'T','C','C'}), g3.reverseComplement(g3.encode(new char[] {'G','G','A'})) },
         new byte[][] { g3.encode(new char[] {'T','C','G'}), g3.reverseComplement(g3.encode(new char[] {'C','G','A'})) },
         new byte[][] { g5.encode(new char[] {'A','A','C','T','G'}), g5.reverseComplement(g5.encode(new char[] {'C','A','G','T','T'})) },
+        new byte[][] { g5.encode("ATCTG".toCharArray()), g5.reverseComplement(g5.encode("CAGAT45trret43t".toCharArray())) },
         new byte[][] { g7.encode(new char[] {'C','G','A','A','C','T','G'}), g7.reverseComplement(g7.encode(new char[] {'C','A','G','T','T','C','G'})) },
-        new byte[][] { g11.encode("TTTTTTTTTTT".toCharArray()), g11.reverseComplement(g11.encode("AAAAAAAAAAA45trret43t".toCharArray())) }
+        new byte[][] { g11.encode("TTTTTTTTTTT".toCharArray()), g11.reverseComplement(g11.encode("AAAAAAAAAAA45trret43t".toCharArray())) },
+        new byte[][] { g11.encode("ATCTGTTTTTT".toCharArray()), g11.reverseComplement(g11.encode("AAAAAACAGAT45trret43t".toCharArray())) }
     };
     for (int i = 0; i < tests.length; i++) {
       byte[][] test = tests[i];

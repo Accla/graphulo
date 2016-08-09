@@ -13,7 +13,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.util.Arrays;
 
 /**
  * Ex: java -cp "/home/gridsan/dhutchison/gits/graphulo/target/graphulo-1.0.0-SNAPSHOT-all.jar" edu.mit.ll.graphulo_ocean.OceanPipeKmers -myriaHost node-109 -K 11 -numthreads 1 -lockDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed_11_cnt_upload_claim" -outputDir "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed_11_cnt_upload" < "/home/gridsan/groups/istcdata/datasets/ocean_metagenome/csv_data/parsed_11_cnt"
@@ -52,8 +51,10 @@ public class OceanPipeKmers {
     @Parameter(names = {"-lex"}, description = "lesserLex; overrides -rc")
     public boolean lex = false;
 
-    @Parameter(names = {"-binary"})
-    public boolean binary = false;
+    // Myria does not support the binary format with variable-length strings
+    // Myria could be modified to support this; see BinaryFileScan.java in Myria
+//    @Parameter(names = {"-binary"})
+//    public boolean binary = false;
 
     @Override
     public String toString() {
@@ -61,7 +62,6 @@ public class OceanPipeKmers {
           "K=" + K +
           ", rc=" + rc +
           ", lex=" + lex +
-          ", binary=" + binary +
           '}';
     }
   }
@@ -88,8 +88,7 @@ public class OceanPipeKmers {
         PrintStream writer = System.out
     ) {
       String line;
-//      final DataOutputStream dos = new DataOutputStream(writer);
-//      int commaPos = -1;
+      byte[] enc = new byte[G.NB], encrc = new byte[G.NB];
 
       while ((line = reader.readLine()) != null) {
 
@@ -100,29 +99,22 @@ public class OceanPipeKmers {
           default:
             //parseAndWrite(readMode, line, writer, commaPos)
             char[] linearr = line.toCharArray();
-//            commaPos = findComma(linearr, commaPos);
-//            if (commaPos == -1)
-//              commaPos = findComma(linearr, -1);
-//            if (commaPos == -1) {
-//              log.warn("bad line: "+line);
-//              continue;
-//            }
 
-            byte[] enc = G.encode(linearr);
+            enc = G.encode(linearr, 0, enc);
             char[] dec;
             switch (readMode) {
               case RC:
 //                System.err.print(linearr);
 //                System.err.print(" "+linearr.length+" "+Arrays.toString(Arrays.copyOf(linearr, 11))+" "+Arrays.toString(G.decode(enc))+" ");
-                G.reverseComplement(enc);
+                enc = G.reverseComplement(enc);
                 dec = G.decode(enc);
 //                System.err.print(dec.length+" "+Arrays.toString(dec)+" ");
                 System.arraycopy(dec, 0, linearr, 0, dec.length);
                 break;
               case LEX:
-                byte[] encrc = Arrays.copyOf(enc, enc.length);
-                G.reverseComplement(encrc);
-                dec = G.decode(WritableComparator.compareBytes(enc, 0, enc.length, encrc, 0, encrc.length) <= 0
+                System.arraycopy(enc, 0, encrc, 0, G.NB);
+                encrc = G.reverseComplement(encrc);
+                dec = G.decode(WritableComparator.compareBytes(enc, 0, G.NB, encrc, 0, G.NB) <= 0
                     ? enc : encrc);
                 System.arraycopy(dec, 0, linearr, 0, dec.length);
                 break;
@@ -139,7 +131,7 @@ public class OceanPipeKmers {
     } catch (IOException e) {
       e.printStackTrace();
     }
-    System.err.flush();
+//    System.err.flush();
     return linesProcessed;
   }
 

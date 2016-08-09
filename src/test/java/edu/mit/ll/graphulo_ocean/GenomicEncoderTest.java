@@ -21,6 +21,7 @@ import java.util.TreeMap;
 
 import static edu.mit.ll.graphulo.UtilTest.mockIteratorEnvrironment;
 import static edu.mit.ll.graphulo.util.GraphuloUtil.EMPTY_BYTES;
+import static edu.mit.ll.graphulo_ocean.GenomicEncoder.bytesToInt;
 import static edu.mit.ll.graphulo_ocean.GenomicEncoder.reverseComplement;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -46,15 +47,23 @@ public class GenomicEncoderTest {
 
   @Test
   public void decodeEncode() {
-    GenomicEncoder g = new GenomicEncoder(4);
-    char[] c = new char[]{'A','C','T','G'};
+    GenomicEncoder g;
+    char[] c;
+    g = new GenomicEncoder(1); c = new char[]{'G'};
     Assert.assertArrayEquals(c, g.decode(g.encode(c)));
+    Assert.assertArrayEquals(c, g.decode(g.intToBytes(bytesToInt(g.encode(c)))));
+    g = new GenomicEncoder(4); c = new char[]{'A','C','T','G'};
+    Assert.assertArrayEquals(c, g.decode(g.encode(c)));
+    Assert.assertArrayEquals(c, g.decode(g.intToBytes(bytesToInt(g.encode(c)))));
     g = new GenomicEncoder(3); c = new char[]{'A','C','T'};
     Assert.assertArrayEquals(c, g.decode(g.encode(c)));
+    Assert.assertArrayEquals(c, g.decode(g.intToBytes(bytesToInt(g.encode(c)))));
     g = new GenomicEncoder(5); c = new char[]{'A','C','T','G','T'};
     Assert.assertArrayEquals(c, g.decode(g.encode(c)));
-    g = new GenomicEncoder(11); c = "AAAAAAAAAAA".toCharArray();
+    Assert.assertArrayEquals(c, g.decode(g.intToBytes(bytesToInt(g.encode(c)))));
+    g = new GenomicEncoder(11); c = "AAAGTAACACA".toCharArray();
     Assert.assertArrayEquals(c, g.decode(g.encode(c)));
+    Assert.assertArrayEquals(c, g.decode(g.intToBytes(bytesToInt(g.encode(c)))));
   }
 
   @Test

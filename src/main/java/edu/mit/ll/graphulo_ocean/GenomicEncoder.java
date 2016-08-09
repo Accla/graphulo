@@ -125,4 +125,25 @@ public class GenomicEncoder implements Lexicoder<char[]> {
             | (nx & 0b00001100) << 2
             | (nx & 0b00000011) << 6) << ((4-sig) << 1));
   }
+
+  public static int bytesToInt(byte[] bs) {
+    if (bs.length > 4)
+      throw new IllegalArgumentException("too many bytes: "+bs.length);
+    int res = 0;
+    for (int i = 0; i < bs.length; i++) {
+      byte b = bs[i];
+      res |= (b & 0b11111111) << (24 - 8*i);
+    }
+    return res;
+  }
+
+  public byte[] intToBytes(int n) {
+    return intToBytes(n, new byte[NB]);
+  }
+
+  public byte[] intToBytes(int n, byte[] res) {
+    for (int i = 0; i < NB; i++)
+      res[i] = (byte) (n >>> (24 - 8 * i) & 0b11111111);
+    return res;
+  }
 }

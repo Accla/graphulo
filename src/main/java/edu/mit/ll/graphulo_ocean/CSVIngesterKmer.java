@@ -37,30 +37,36 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import static edu.mit.ll.graphulo.util.GraphuloUtil.EMPTY_BYTES;
+import static edu.mit.ll.graphulo_ocean.GenomicEncoder.bytesToInt;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
- * The Accumulo column qualifier is the file name.
- * The Accumulo row is the kmer.
+ * Takes a generic action to run on each csv file. Parses the csv file into kmers and runs the action when the file is completed.
+ * The IntegerMap variant stores all kmer counts in one big int[].
+ * The VariableMap variant uses a Map data structure.
+ * Prefer the IntegerMap for performance unless K is too large.
  */
-public final class CSVIngesterKmer {
+public abstract class CSVIngesterKmer<T> {
   private static final Logger log = LogManager.getLogger(CSVIngesterKmer.class);
 
 
   /** An action to take on all the kmers collected from a sample file. */
-  public interface KmerAction {
-    void run(String sampleid, SortedMap<ArrayHolder, Integer> map);
+  public interface KmerAction<T> {
+    void run(String sampleid, T map);
   }
 
-  /** An action that ingests into Accumulo. */
-  public static class IngestIntoAccumulo implements KmerAction {
+  /** An action that ingests into Accumulo.
+   * The Accumulo column qualifier is the file name.
+   * The Accumulo row is the kmer.
+   * */
+  public static abstract class IngestIntoAccumulo<T> implements KmerAction<T> {
     private final static Lexicoder<Long> LEX = new LongLexicoder();
 
     private final boolean alsoIngestReverseComplement;
     private final boolean alsoIngestSmallerLex;
     private final String Atable, oTsampleDegree, AtableRC, AtableSmaller;
     private final Connector connector;
-    private final GenomicEncoder G;
+    protected final GenomicEncoder G;
 
     public IngestIntoAccumulo(Connector connector, String atable, String oTsampleDegree, boolean alsoIngestReverseComplement, boolean alsoIngestSmallerLex, int k) {
       this.alsoIngestReverseComplement = alsoIngestReverseComplement;
@@ -127,7 +133,7 @@ public final class CSVIngesterKmer {
     }
 
     @Override
-    public void run(String sampleid, SortedMap<ArrayHolder, Integer> map) {
+    public void run(String sampleid, T map) {
       BatchWriterConfig config = new BatchWriterConfig();
       MultiTableBatchWriter mtbw = connector.createMultiTableBatchWriter(config);
       BatchWriter bw, bwRC, bwSmaller;
@@ -198,31 +204,66 @@ public final class CSVIngesterKmer {
       byte[] transformKmer(byte[] mer);
     }
 
-    private Pair<Long,Long> ingestMap(SortedMap<ArrayHolder, Integer> map, BatchWriter bw, byte[] sampleidb,
-                                      SpecificKmerAction specificKmerAction) throws MutationsRejectedException {
-      long ingested = 0, totalsum = 0;
-      for (Map.Entry<ArrayHolder, Integer> entry : map.entrySet()) {
-        Mutation m = new Mutation(specificKmerAction == null ? entry.getKey().b : specificKmerAction.transformKmer(entry.getKey().b));
-        long lv = entry.getValue().longValue();
-        totalsum += lv;
-        m.put(EMPTY_BYTES, sampleidb, LEX.encode(lv));
-        bw.addMutation(m);
-        ingested++;
+    public abstract Pair<Long,Long> ingestMap(T map, BatchWriter bw, byte[] sampleidb,
+                                       SpecificKmerAction specificKmerAction) throws MutationsRejectedException;
+
+    public static class VariableMap extends IngestIntoAccumulo<SortedMap<ArrayHolder, Integer>> {
+
+      public VariableMap(Connector connector, String atable, String oTsampleDegree, boolean alsoIngestReverseComplement, boolean alsoIngestSmallerLex, int k) {
+        super(connector, atable, oTsampleDegree, alsoIngestReverseComplement, alsoIngestSmallerLex, k);
       }
-      return new Pair<>(ingested, totalsum);
+
+      public Pair<Long, Long> ingestMap(SortedMap<ArrayHolder, Integer> map, BatchWriter bw, byte[] sampleidb,
+                                        SpecificKmerAction specificKmerAction) throws MutationsRejectedException {
+        long ingested = 0, totalsum = 0;
+        for (Map.Entry<ArrayHolder, Integer> entry : map.entrySet()) {
+          Mutation m = new Mutation(specificKmerAction == null ? entry.getKey().b : specificKmerAction.transformKmer(entry.getKey().b));
+          long lv = entry.getValue().longValue();
+          totalsum += lv;
+          m.put(EMPTY_BYTES, sampleidb, LEX.encode(lv));
+          bw.addMutation(m);
+          ingested++;
+        }
+        return new Pair<>(ingested, totalsum);
+      }
+    }
+
+    public static class IntegerMap extends IngestIntoAccumulo<int[]> {
+
+      public IntegerMap(Connector connector, String atable, String oTsampleDegree, boolean alsoIngestReverseComplement, boolean alsoIngestSmallerLex, int k) {
+        super(connector, atable, oTsampleDegree, alsoIngestReverseComplement, alsoIngestSmallerLex, k);
+      }
+
+      public Pair<Long, Long> ingestMap(int[] map, BatchWriter bw, byte[] sampleidb,
+                                        SpecificKmerAction specificKmerAction) throws MutationsRejectedException {
+        long ingested = 0, totalsum = 0;
+        for (int idx = 0; idx < map.length; idx++) {
+          int ival = map[idx];
+          if (ival == 0)
+            continue;
+          byte[] idxBytes = G.intToBytes(Integer.reverse(idx));
+          Mutation m = new Mutation(specificKmerAction == null ? idxBytes : specificKmerAction.transformKmer(idxBytes));
+          totalsum += ival;
+          m.put(EMPTY_BYTES, sampleidb, LEX.encode((long) ival));
+          bw.addMutation(m);
+          ingested++;
+        }
+        return new Pair<>(ingested, totalsum);
+      }
     }
   }
 
 
-  private final KmerAction action;
-  private final GenomicEncoder G;
-  private final int K;
+  protected final KmerAction<T> action;
+  protected final GenomicEncoder G;
+  public final int K;
 
 
-  public CSVIngesterKmer(int K, KmerAction action) {
+  public CSVIngesterKmer(int K, KmerAction<T> action) {
     this.K = K;
     G = new GenomicEncoder(K);
     this.action = action;
+    map = allocateMap();
   }
 
   //  static final Text EMPTY_TEXT = new Text();
@@ -253,8 +294,9 @@ public final class CSVIngesterKmer {
     }
   }
 
+  private T map;
 
-  private long ingestLine(String line, SortedMap<ArrayHolder,Integer> map) {
+  private long ingestLine(String line) {
 //    String[] parts = line.split(",");
     int comma = line.indexOf(',');
     if (comma == -1) {
@@ -307,12 +349,11 @@ public final class CSVIngesterKmer {
     return num;
   }
 
-  private void putInMap(Map<ArrayHolder, Integer> map, byte[] e) {
-    ArrayHolder ah = new ArrayHolder(e);
-    Integer curval = map.get(ah);
-    int newval = curval == null ? 1 : curval + 1;
-    map.put(ah, newval);
-  }
+  public abstract void putInMap(T map, byte[] e);
+
+  public abstract T allocateMap();
+
+  public abstract void clearMap(T map);
 
 
   public long ingestFile(File file) throws IOException {
@@ -342,13 +383,12 @@ public final class CSVIngesterKmer {
       StatusLogger slog = new StatusLogger();
       String partialMsg = file.getName()+": entries processed: ";
 
-      // idea: replace with a fixed-size array. Re-use between results
-      SortedMap<ArrayHolder,Integer> map = new TreeMap<>();
+      clearMap(map);
 
       long linecnt = 0;
       while ((line = fo.readLine()) != null)
         if (!line.isEmpty() && linecnt++ % everyXLines == 0) {
-          entriesProcessed += ingestLine(line, map);
+          entriesProcessed += ingestLine(line);
           if (linecnt % 5 == 0)
             slog.logPeriodic(log, partialMsg+entriesProcessed);
         }
@@ -359,6 +399,54 @@ public final class CSVIngesterKmer {
 
     }
     return ingested;
+  }
+
+
+  public static class VariableMap extends CSVIngesterKmer<SortedMap<ArrayHolder, Integer>> {
+
+    public VariableMap(int K, KmerAction<SortedMap<ArrayHolder, Integer>> action) {
+      super(K, action);
+    }
+
+    @Override
+    public void putInMap(SortedMap<ArrayHolder, Integer> map, byte[] e) {
+        ArrayHolder ah = new ArrayHolder(e);
+        Integer curval = map.get(ah);
+        int newval = curval == null ? 1 : curval + 1;
+        map.put(ah, newval);
+    }
+
+    @Override
+    public SortedMap<ArrayHolder, Integer> allocateMap() {
+      return new TreeMap<>();
+    }
+
+    @Override
+    public void clearMap(SortedMap<ArrayHolder, Integer> map) {
+      map.clear();
+    }
+  }
+
+  public static class IntegerMap extends CSVIngesterKmer<int[]> {
+
+    public IntegerMap(int K, KmerAction<int[]> action) {
+      super(K, action);
+    }
+
+    @Override
+    public void putInMap(int[] map, byte[] e) {
+      map[Integer.reverse(bytesToInt(e))]++;
+    }
+
+    @Override
+    public int[] allocateMap() {
+      return new int[1 << (K << 1)];
+    }
+
+    @Override
+    public void clearMap(int[] map) {
+      Arrays.fill(map, 0);
+    }
   }
 
 }

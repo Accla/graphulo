@@ -81,6 +81,7 @@ public class OceanIngestKMers_partocsv {
       opts.lockDir = new File(opts.inputDir, "lockDir_cnt");
     if (opts.outputDir == null)
       opts.outputDir = new File(opts.inputDir, "outputDir_cnt");
+    //noinspection Duplicates
     if (!opts.outputDir.exists()) {
       try {
         Thread.sleep((long)(Math.random() * 1000));
@@ -93,26 +94,55 @@ public class OceanIngestKMers_partocsv {
     }
     final GenomicEncoder G = new GenomicEncoder(opts.K);
 
-    final CSVIngesterKmer.KmerAction kmerAction = new CSVIngesterKmer.KmerAction() {
-      @Override
-      public void run(String sampleid, SortedMap<CSVIngesterKmer.ArrayHolder, Integer> map) {
-        File outFile = new File(opts.outputDir, sampleid+"_"+opts.K+"_cnt.csv");
+    final CSVIngesterKmer.KmerAction<SortedMap<CSVIngesterKmer.ArrayHolder, Integer>> kmerActionBigK =
+        new CSVIngesterKmer.KmerAction<SortedMap<CSVIngesterKmer.ArrayHolder, Integer>>() {
+          private char[] charBuffer = new char[G.K];
+          @Override
+          public void run(String sampleid, SortedMap<CSVIngesterKmer.ArrayHolder, Integer> map) {
+            File outFile = new File(opts.outputDir, sampleid+"_"+opts.K+"_cnt.csv");
 
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(outFile))) {
-          for (Map.Entry<CSVIngesterKmer.ArrayHolder, Integer> entry : map.entrySet()) {
-            writer.write(G.decode(entry.getKey().b));
-            writer.write(','+entry.getValue().toString()+'\n');
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(outFile))) {
+              for (Map.Entry<CSVIngesterKmer.ArrayHolder, Integer> entry : map.entrySet()) {
+                writer.write(G.decode(entry.getKey().b, charBuffer));
+                writer.write(','+entry.getValue().toString()+'\n');
+              }
+            } catch (IOException e) {
+              log.error("error writing to file "+outFile, e);
+            }
           }
-        } catch (IOException e) {
-          log.error("error writing to file "+outFile, e);
-        }
-      }
-    };
+        };
+
+    final CSVIngesterKmer.KmerAction<int[]> kmerActionLittleK =
+        new CSVIngesterKmer.KmerAction<int[]>() {
+          private byte[] idxBytes = new byte[G.NB];
+          private char[] charBuffer = new char[G.K];
+
+          @Override
+          public void run(String sampleid, int[] map) {
+            File outFile = new File(opts.outputDir, sampleid+"_"+opts.K+"_cnt.csv");
+
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(outFile))) {
+              for (int idx = 0; idx < map.length; idx++) {
+                int ival = map[idx];
+                if (ival == 0)
+                  continue;
+                writer.write(G.decode(G.intToBytes(Integer.reverse(idx), idxBytes), charBuffer));
+                writer.write(","+ival+"\n");
+              }
+            } catch (IOException e) {
+              log.error("error writing to file "+outFile, e);
+            }
+          }
+        };
 
     final ParallelFileMapper.FileAction fileAction = new ParallelFileMapper.FileAction() {
+      private CSVIngesterKmer<?> ingester =
+          opts.K <= 15 ?
+              new CSVIngesterKmer.VariableMap(opts.K, kmerActionBigK) :
+              new CSVIngesterKmer.IntegerMap(opts.K, kmerActionLittleK);
+
       @Override
       public void run(File f) {
-        CSVIngesterKmer ingester = new CSVIngesterKmer(opts.K, kmerAction);
         try {
           ingester.ingestFile(f);
         } catch (IOException e) {

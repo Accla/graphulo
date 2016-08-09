@@ -133,6 +133,14 @@ public class OceanIngestKMers {
       long linecnt = 0;
       int filesprocessed = 0;
       long entriesProcessed = 0;
+      CSVIngesterKmer<?> ingester =
+          opts.K <= 15 ?
+              new CSVIngesterKmer.IntegerMap(opts.K, new CSVIngesterKmer.IngestIntoAccumulo.IntegerMap(
+                  conn, opts.oTsampleSeqRaw, opts.oTsampleDegree, opts.alsoIngestReverseComplement, opts.alsoIngestSmallerLex, opts.K
+              )) :
+              new CSVIngesterKmer.VariableMap(opts.K, new CSVIngesterKmer.IngestIntoAccumulo.VariableMap(
+                  conn, opts.oTsampleSeqRaw, opts.oTsampleDegree, opts.alsoIngestReverseComplement, opts.alsoIngestSmallerLex, opts.K
+              ));
       while ((line = fo.readLine()) != null)
         if (!line.isEmpty() && linecnt++ % opts.everyXLines == 0) {
           log.info("Starting file: "+line);
@@ -142,11 +150,7 @@ public class OceanIngestKMers {
             continue;
           }
 
-          CSVIngesterKmer.KmerAction action = new CSVIngesterKmer.IngestIntoAccumulo(
-              conn, opts.oTsampleSeqRaw, opts.oTsampleDegree, opts.alsoIngestReverseComplement, opts.alsoIngestSmallerLex, opts.K
-          );
-
-          long ep = new CSVIngesterKmer(opts.K, action).ingestFile(file);
+          long ep = ingester.ingestFile(file);
           entriesProcessed += ep;
           log.info("Finished file: "+line+"; entries ingested: "+ep+"; cummulative: "+entriesProcessed);
           filesprocessed++;

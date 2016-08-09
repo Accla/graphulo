@@ -18,6 +18,7 @@ import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.SortedMap;
 
 /**
  * Test the ocean genomics pipeline on a small file.
@@ -80,13 +81,20 @@ public class OceanTest extends AccumuloTestBase {
 
   @Test
   public void ingestKmersAndDist() throws Exception {
-    Connector conn = tester.getConnector();
-    String tKmer = "oceantest_Tkmer";
-    String tKmerDeg = "oceantest_TkmerDeg";
+    final Connector conn = tester.getConnector();
+    final String tKmer = "oceantest_Tkmer";
+    final String tKmerDeg = "oceantest_TkmerDeg";
     String tDist = "oceantest_TsampleDist";
     GraphuloUtil.deleteTables(conn, tKmer, tKmerDeg, tDist);
 
-    ingestKmers(conn, tKmer, tKmerDeg);
+    ingestKmers(conn, tKmer, tKmerDeg, new Creator<SortedMap<CSVIngesterKmer.ArrayHolder, Integer>>() {
+      @Override
+      public CSVIngesterKmer<SortedMap<CSVIngesterKmer.ArrayHolder, Integer>> create(int kmer) {
+        return new CSVIngesterKmer.VariableMap(kmer, new CSVIngesterKmer.IngestIntoAccumulo.VariableMap(
+            conn, tKmer, tKmerDeg, false, false, kmer
+        ));
+      }
+    });
     doDist(conn, tKmer, tKmerDeg, tDist);
 
     // test repeated add
@@ -96,18 +104,25 @@ public class OceanTest extends AccumuloTestBase {
     GraphuloUtil.deleteTables(conn, tKmer2, tKmerDeg2);
     conn.tableOperations().clone(tKmer, tKmer2, true, null, null);
 
-    ingestKmers(conn, tKmer2, tKmerDeg2);
+    ingestKmers(conn, tKmer2, tKmerDeg2, new Creator<int[]>() {
+      @Override
+      public CSVIngesterKmer<int[]> create(int kmer) {
+        return new CSVIngesterKmer.IntegerMap(kmer, new CSVIngesterKmer.IngestIntoAccumulo.IntegerMap(
+            conn, tKmer, tKmerDeg, false, false, kmer
+        ));
+      }
+    });
   }
 
-  private void ingestKmers(Connector conn, String tKmer, String tKmerDeg) throws Exception {
+  private interface Creator<T> {
+    CSVIngesterKmer<T> create(int kmer);
+  }
+
+  private void ingestKmers(Connector conn, String tKmer, String tKmerDeg, Creator<?> creator) throws Exception {
 //    Map<Key,Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ),
 //        actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
 
-    CSVIngesterKmer.KmerAction action = new CSVIngesterKmer.IngestIntoAccumulo(
-        conn, tKmer, tKmerDeg, false, false, kmer
-    );
-
-    CSVIngesterKmer ingester = new CSVIngesterKmer(kmer, action);
+    CSVIngesterKmer ingester = creator.create(kmer);
     long numSeqs = ingester.ingestFile(ExampleUtil.getDataFile("S0001_n1000.csv"));
     numSeqs += ingester.ingestFile(ExampleUtil.getDataFile("S0002_n1000.csv"));
     log.info("number of sequences ingested: "+numSeqs);

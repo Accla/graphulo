@@ -127,7 +127,7 @@ public class OceanIngestKMers_partocsv {
                 if (ival == 0)
                   continue;
                 writer.write(G.decode(G.intToBytes(Integer.reverse(idx), idxBytes), charBuffer));
-                writer.write(","+ival+"\n");
+                writer.write(","+Integer.toString(ival)+"\n");
               }
             } catch (IOException e) {
               log.error("error writing to file "+outFile, e);
@@ -135,30 +135,41 @@ public class OceanIngestKMers_partocsv {
           }
         };
 
-    final ParallelFileMapper.FileAction fileAction = new ParallelFileMapper.FileAction() {
-      private CSVIngesterKmer<?> ingester =
-          opts.K <= 15 ?
-              new CSVIngesterKmer.VariableMap(opts.K, kmerActionBigK) :
-              new CSVIngesterKmer.IntegerMap(opts.K, kmerActionLittleK);
-
-      @Override
-      public void run(File f) {
-        try {
-          ingester.ingestFile(f);
-        } catch (IOException e) {
-          log.error("error reading file "+f, e);
-        }
-      }
-    };
 
     @SuppressWarnings("ConstantConditions")
     List<File> inputFiles = Arrays.asList(opts.inputDir.listFiles(new PatternFilenameFilter(".*\\.csv$")));
 
     Thread[] threads = new Thread[opts.numthreads];
     for (int i = 0; i < threads.length; i++)
-      threads[i] = new Thread(new ParallelFileMapper(inputFiles, opts.lockDir, fileAction), "t" + i);
-    for (Thread t : threads)
+      threads[i] = new Thread(new ParallelFileMapper(inputFiles, opts.lockDir,
+          new ParallelFileMapper.FileAction() {
+            private CSVIngesterKmer<?> ingester =
+                opts.K <= 15 ?
+                    new CSVIngesterKmer.IntegerMap(opts.K, kmerActionLittleK) :
+                    new CSVIngesterKmer.VariableMap(opts.K, kmerActionBigK);
+
+            @Override
+            public void run(File f) {
+              try {
+                try {
+                  Thread t = Thread.currentThread();
+                  t.setName(t.getName().substring(0,t.getName().indexOf(' ')+1)+f.getName());
+                } catch (SecurityException ignored) {}
+                ingester.ingestFile(f);
+              } catch (Exception e) {
+                log.error("error while processing file "+f, e);
+              }
+            }
+          }),
+          "t" + i+" ");
+    for (Thread t : threads) {
       t.start();
+      try {
+        Thread.sleep((long) (Math.random()*200));
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
     for (Thread t : threads)
       try {
         t.join();

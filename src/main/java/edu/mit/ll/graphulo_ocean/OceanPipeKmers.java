@@ -64,6 +64,7 @@ public class OceanPipeKmers {
           "K=" + K +
           ", rc=" + rc +
           ", lex=" + lex +
+          ", binary=" + binary +
           '}';
     }
   }

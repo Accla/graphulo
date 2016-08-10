@@ -10,7 +10,9 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.SimpleLayout;
 
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 
@@ -30,7 +32,7 @@ public class OceanPipeKmers {
     executeNew(args);
   }
 
-  public static int executeNew(String[] args) { return new OceanPipeKmers().execute(args); }
+  public static int executeNew(String[] args) { return new OceanPipeKmers().execute(args, System.in, System.out); }
 
   private static class Opts extends Help {
 //    @Parameter(names = {"-listOfSamplesFile"}, required = true)
@@ -53,8 +55,8 @@ public class OceanPipeKmers {
 
     // Myria does not support the binary format with variable-length strings
     // Myria could be modified to support this; see BinaryFileScan.java in Myria
-//    @Parameter(names = {"-binary"})
-//    public boolean binary = false;
+    @Parameter(names = {"-binary"})
+    public boolean binary = false;
 
     @Override
     public String toString() {
@@ -69,7 +71,8 @@ public class OceanPipeKmers {
   enum ReadMode { FORWARD, RC, LEX }
 
   /** @return Number of lines processed */
-  public int execute(final String[] args) {
+  @SuppressWarnings("ConstantConditions")
+  public int execute(final String[] args, final InputStream in, final PrintStream out) {
     final Opts opts = new Opts();
     opts.parseArgs(OceanPipeKmers.class.getName(), args);
     log.info(OceanPipeKmers.class.getName() + " " + opts);
@@ -84,18 +87,24 @@ public class OceanPipeKmers {
 
     int linesProcessed = 0;
     try (
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-        PrintStream writer = System.out
+        BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+        PrintStream writer = out
     ) {
       String line;
       byte[] enc = new byte[G.NB], encrc = new byte[G.NB];
       char[] dec = new char[G.K];
+      final DataOutputStream dos = opts.binary ? new DataOutputStream(writer) : null;
 
       while ((line = reader.readLine()) != null) {
 
         switch (readMode) {
           case FORWARD:
-            writer.println(line);
+//            System.err.println("WRITE: "+line.substring(0,opts.K)+" with long: "+Long.parseLong(line.substring(opts.K+1)));
+            if (opts.binary) {
+              dos.writeUTF(line.substring(0,opts.K));
+              dos.writeLong(Long.parseLong(line.substring(opts.K+1)));
+            } else
+              writer.println(line);
             break;
           default:
             char[] linearr = line.toCharArray();
@@ -114,8 +123,13 @@ public class OceanPipeKmers {
                 break;
               default: throw new AssertionError();
             }
-            System.arraycopy(dec, 0, linearr, 0, dec.length);
-            writer.println(linearr);
+            if (opts.binary) {
+              dos.writeUTF(String.valueOf(dec));
+              dos.writeLong(Long.parseLong(line.substring(opts.K+1)));
+            } else {
+              System.arraycopy(dec, 0, linearr, 0, dec.length);
+              writer.println(linearr);
+            }
         }
         linesProcessed++;
         if (linesProcessed % 1_000 == 0)

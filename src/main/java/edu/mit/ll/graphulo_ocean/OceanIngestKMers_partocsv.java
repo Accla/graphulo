@@ -168,6 +168,7 @@ public class OceanIngestKMers_partocsv {
             }
           }),
           "t" + i+" ");
+    final long startTime = System.currentTimeMillis();
     for (Thread t : threads) {
       t.start();
       try {
@@ -179,6 +180,7 @@ public class OceanIngestKMers_partocsv {
     for (Thread t : threads)
       try {
         t.join();
+        log.info("Thread "+t.getName()+" finished. Duration: "+(System.currentTimeMillis()-startTime)/1000+" sec");
       } catch (InterruptedException e) {
         log.warn("while waiting for thread "+t, e);
       }

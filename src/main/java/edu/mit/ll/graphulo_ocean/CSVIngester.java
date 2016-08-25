@@ -1,5 +1,7 @@
 package edu.mit.ll.graphulo_ocean;
 
+import com.google.common.base.Preconditions;
+import edu.mit.ll.graphulo.util.StatusLogger;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -36,6 +38,12 @@ public class CSVIngester {
   }
 
   public long ingestFile(File file, String Atable, boolean deleteIfExists) throws IOException {
+    return ingestFile(file, Atable, deleteIfExists, 1, 0);
+  }
+
+  public long ingestFile(File file, String Atable, boolean deleteIfExists,
+                         int everyXLines, int startOffset) throws IOException {
+    Preconditions.checkArgument(everyXLines >= 1 && startOffset >= 0, "bad params ", everyXLines, startOffset);
     if (deleteIfExists && connector.tableOperations().exists(Atable))
       try {
         connector.tableOperations().delete(Atable);
@@ -70,10 +78,20 @@ public class CSVIngester {
 
       // Skip header line
       fo.readLine();
+      // Offset
+      for (int i = 0; i < startOffset; i++)
+        fo.readLine();
 
+      // log every 2 minutes
+      StatusLogger slog = new StatusLogger();
+      String partialMsg = file.getName()+": entries processed: ";
+
+      long linecnt = 0;
       while ((line = fo.readLine()) != null)
-        if (!line.isEmpty())
+        if (!line.isEmpty() && linecnt++ % everyXLines == 0) {
           entriesProcessed += ingestLine(sampleid, bw, line);
+          slog.logPeriodic(log, partialMsg+entriesProcessed);
+        }
 
     } catch (TableNotFoundException e) {
       throw new RuntimeException(e);
@@ -92,7 +110,7 @@ public class CSVIngester {
 
 //  static final Text EMPTY_TEXT = new Text();
 
-  private int ingestLine(Text row, BatchWriter bw, String line) throws MutationsRejectedException {
+  protected long ingestLine(Text row, BatchWriter bw, String line) throws MutationsRejectedException {
     String[] parts = line.split(",");
     if (parts.length != 2) {
       log.error("Bad CSV line: "+line);

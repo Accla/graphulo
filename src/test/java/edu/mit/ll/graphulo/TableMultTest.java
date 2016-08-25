@@ -13,6 +13,8 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.lexicoder.Lexicoder;
+import org.apache.accumulo.core.client.lexicoder.LongLexicoder;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -90,6 +92,84 @@ public class TableMultTest extends AccumuloTestBase {
     long numpp = graphulo.TableMult(tAT, tB, tC, tCT, -1,
         MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.BIGDECIMAL, "", false),
         Graphulo.PLUS_ITERATOR_BIGDECIMAL,
+        null, null, null, false, false, 1);
+
+    Assert.assertEquals(4, numpp);
+
+    Scanner scanner = conn.createScanner(tC, Authorizations.EMPTY);
+    {
+      SortedMap<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actual.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expect, actual);
+    }
+
+    scanner = conn.createScanner(tCT, Authorizations.EMPTY);
+    {
+      SortedMap<Key, Value> actualT = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
+      for (Map.Entry<Key, Value> entry : scanner) {
+        actualT.put(entry.getKey(), entry.getValue());
+      }
+      scanner.close();
+      Assert.assertEquals(expectT, actualT);
+    }
+
+    conn.tableOperations().delete(tAT);
+    conn.tableOperations().delete(tB);
+    conn.tableOperations().delete(tC);
+    conn.tableOperations().delete(tCT);
+  }
+
+  /**
+   * <pre>
+   *      C1 C2        C1 C2 C3          B1  B2
+   * A1 [ 5  2 ] * B1 [   3  3  ] = A1 [ 6   15+6 ]
+   * A2 [ 4    ]   B2 [3  3     ]   A2 [     12   ]
+   * </pre>
+   */
+  @Test
+//  @Ignore("New version only works with BatchWriter. KnownBug: ACCUMULO-3645")
+  public void testLongLex() throws TableExistsException, AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
+    Connector conn = tester.getConnector();
+
+    final String tC, tAT, tB, tCT;
+    {
+      String[] names = getUniqueNames(4);
+      tAT = names[0];
+      tB = names[1];
+      tC = names[2];
+      tCT = names[3];
+    }
+    Lexicoder<Long> lex = new LongLexicoder();
+    {
+      Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("A1", "", "C1"), new Value(lex.encode(5L)));
+      input.put(new Key("A1", "", "C2"), new Value(lex.encode(2L)));
+      input.put(new Key("A2", "", "C1"), new Value(lex.encode(4L)));
+      input = GraphuloUtil.transposeMap(input);
+      TestUtil.createTestTable(conn, tAT, null, input);
+    }
+    {
+      Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("B1", "", "C2"), new Value(lex.encode(3L)));
+      input.put(new Key("B1", "", "C3"), new Value(lex.encode(3L)));
+      input.put(new Key("B2", "", "C1"), new Value(lex.encode(3L)));
+      input.put(new Key("B2", "", "C2"), new Value(lex.encode(3L)));
+      input = GraphuloUtil.transposeMap(input);
+      TestUtil.createTestTable(conn, tB, null, input);
+    }
+    SortedMap<Key, Value> expect = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
+    expect.put(new Key("A1", "", "B1"), new Value(lex.encode(6L)));
+    expect.put(new Key("A1", "", "B2"), new Value(lex.encode(21L)));
+    expect.put(new Key("A2", "", "B2"), new Value(lex.encode(12L)));
+    SortedMap<Key, Value> expectT = GraphuloUtil.transposeMap(expect);
+
+    Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+    long numpp = graphulo.TableMult(tAT, tB, tC, tCT, -1,
+        MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LEX_LONG, "", false),
+        MathTwoScalar.combinerSetting(6, null, MathTwoScalar.ScalarOp.PLUS, MathTwoScalar.ScalarType.LEX_LONG, false),
         null, null, null, false, false, 1);
 
     Assert.assertEquals(4, numpp);

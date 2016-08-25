@@ -213,157 +213,173 @@
           </filesets>
         </configuration>
       </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.10.3</version>
-        <configuration>
-          <links>
-            <link>https://accumulo.apache.org/${accumulo.version.majorminor}/apidocs</link>
-          </links>
-          <detectLinks>true</detectLinks>
-        </configuration>
-        <executions>
-          <execution>
-            <id>gen-javadoc</id>
-            <phase>install</phase>
-            <goals>
-              <goal>javadoc</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-
-      <!-- Copy all original dependency JARs (including recursive dependencies) into target/libext
-             Note that the original JARs will have overlapping code, e.g.,
-             explicit deps accumulo-core and hadoop-hdfs may have a transitive dep commons-math. The commons-math dep is stored twice.
-             To store the dep once, use the build-single method. -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <version>2.9</version>
-        <executions>
-          <execution>
-            <id>copy-dependencies</id>
-            <phase>package</phase>
-            <goals>
-              <goal>copy-dependencies</goal>
-            </goals>
-            <configuration>
-              <outputDirectory>${project.build.directory}/libext</outputDirectory>
-              <type>jar</type>
-              <includeScope>runtime</includeScope>
-              <!-- Don't include the test scope - we don't need those classes for dependencies. -->
-              <!--<includeScope>compile</includeScope> Only adds the dep jdk-tools.jar, which has useless stuff provided by any jdk installation. -->
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin> <!-- Create a super-JAR out of the JARs for every dependency in target/libext -->
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-assembly-plugin</artifactId>
-        <version>2.5.4</version>
-        <executions>
-          <execution>
-            <id>libext_assembly</id>
-            <phase>package</phase>
-            <goals>
-              <goal>single</goal>
-            </goals>
-            <configuration>
-              <descriptors>
-                <descriptor>${basedir}/src/assembly/libext_assembly.xml</descriptor>
-              </descriptors>
-              <outputDirectory>${project.build.directory}</outputDirectory>
-              <!--<finalName>${DBinit.path.libextZip}</finalName>-->
-              <appendAssemblyId>true</appendAssemblyId>
-            </configuration>
-          </execution>
-            <execution>
-              <id>all-assembly</id>
-              <phase>install</phase>
-              <goals>
-                <goal>single</goal>
-              </goals>
-              <configuration>
-                <descriptors>
-                  <descriptor>src/assembly/dist_assembly.xml</descriptor>
-                </descriptors>
-                <finalName>graphulo-${project.version}</finalName>
-                <appendAssemblyId>true</appendAssemblyId>
-              </configuration>
-            </execution>
-        </executions>
-      </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <version>2.4.1</version>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-            <configuration>
-              <shadedArtifactAttached>true</shadedArtifactAttached>
-              <shadedClassifierName>alldeps</shadedClassifierName>
-              <minimizeJar>true</minimizeJar>
-              <artifactSet>
-                <excludes>
-                  <exclude>org.apache.accumulo:*</exclude>
-                </excludes>
-              </artifactSet>
-              <filters>
-                <filter>
-
-                </filter>
-                <filter>
-                  <artifact>org.apache.htrace:*</artifact>
-                  <includes>
-                    <include>**</include>
-                  </includes>
-                  <!--<excludes>-->
-                    <!--<exclude>org/junit/experimental/**</exclude>-->
-                  <!--</excludes>-->
-                </filter>
-              </filters>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
-
-      <!-- Ensure this is the last step before the linux-specific profile for the message to be seen by non-linux users. -->
-      <plugin>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>run</goal>
-            </goals>
-            <configuration>
-              <tasks>
-                <chmod file="${basedir}/src/assembly/build_DBinit/build_DBinit.bash" perm="u+x" />
-                <echo>If you are on linux and have 'zip' installed, DBinit will build automatically.</echo>
-                <echo>If not building on linux, you may not be able to build DBinit.m.</echo>
-                <echo>Try and execute the following script once: (do not move the file)</echo>
-                <echo>  ${basedir}/src/assembly/build_DBinit/build_DBinit.bash</echo>
-              </tasks>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
-
-
     </plugins>
   </build>
 
+
+
   <profiles>
+    <!--Create the libext and alldeps jars-->
+    <profile>
+      <id>DoAll</id>
+      <activation>
+        <!--Doesn't work; see https://stackoverflow.com/questions/5309379/how-to-keep-maven-profiles-which-are-activebydefault-active-even-if-another-prof-->
+        <!--<activeByDefault>true</activeByDefault>-->
+        <property>
+          <name>!NoDoAll</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <!-- Copy all original dependency JARs (including recursive dependencies) into target/libext
+             Note that the original JARs will have overlapping code, e.g.,
+             explicit deps accumulo-core and hadoop-hdfs may have a transitive dep commons-math. The commons-math dep is stored twice.
+             To store the dep once, use the build-single method. -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <version>2.9</version>
+            <executions>
+              <execution>
+                <id>copy-dependencies</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>copy-dependencies</goal>
+                </goals>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/libext</outputDirectory>
+                  <type>jar</type>
+                  <includeScope>runtime</includeScope>
+                  <!-- Don't include the test scope - we don't need those classes for dependencies. -->
+                  <!--<includeScope>compile</includeScope> Only adds the dep jdk-tools.jar, which has useless stuff provided by any jdk installation. -->
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <plugin> <!-- Create a super-JAR out of the JARs for every dependency in target/libext -->
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <version>2.5.4</version>
+            <executions>
+              <execution>
+                <id>libext_assembly</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+                <configuration>
+                  <descriptors>
+                    <descriptor>${basedir}/src/assembly/libext_assembly.xml</descriptor>
+                  </descriptors>
+                  <outputDirectory>${project.build.directory}</outputDirectory>
+                  <!--<finalName>${DBinit.path.libextZip}</finalName>-->
+                  <appendAssemblyId>true</appendAssemblyId>
+                </configuration>
+              </execution>
+              <execution>
+                <id>all-assembly</id>
+                <phase>install</phase>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+                <configuration>
+                  <descriptors>
+                    <descriptor>src/assembly/dist_assembly.xml</descriptor>
+                  </descriptors>
+                  <finalName>graphulo-${project.version}</finalName>
+                  <appendAssemblyId>true</appendAssemblyId>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-shade-plugin</artifactId>
+            <version>2.4.1</version>
+            <executions>
+              <execution>
+                <id>alldeps</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>shade</goal>
+                </goals>
+                <configuration>
+                  <shadedArtifactAttached>true</shadedArtifactAttached>
+                  <shadedClassifierName>alldeps</shadedClassifierName>
+                  <minimizeJar>true</minimizeJar>
+                  <artifactSet>
+                    <excludes>
+                      <exclude>org.apache.accumulo:*</exclude>
+                    </excludes>
+                  </artifactSet>
+                  <filters>
+                    <filter>
+
+                    </filter>
+                    <filter>
+                      <artifact>org.apache.htrace:*</artifact>
+                      <includes>
+                        <include>**</include>
+                      </includes>
+                      <!--<excludes>-->
+                      <!--<exclude>org/junit/experimental/**</exclude>-->
+                      <!--</excludes>-->
+                    </filter>
+                  </filters>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <!-- Ensure this is the last step before the linux-specific profile for the message to be seen by non-linux users. -->
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+              <execution>
+                <phase>package</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <tasks>
+                    <chmod file="${basedir}/src/assembly/build_DBinit/build_DBinit.bash" perm="u+x" />
+                    <echo>If you are on linux and have 'zip' installed, DBinit will build automatically.</echo>
+                    <echo>If not building on linux, you may not be able to build DBinit.m.</echo>
+                    <echo>Try and execute the following script once: (do not move the file)</echo>
+                    <echo>  ${basedir}/src/assembly/build_DBinit/build_DBinit.bash</echo>
+                  </tasks>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>2.10.3</version>
+            <configuration>
+              <links>
+                <link>https://accumulo.apache.org/${accumulo.version.majorminor}/apidocs</link>
+              </links>
+              <detectLinks>true</detectLinks>
+            </configuration>
+            <executions>
+              <execution>
+                <id>gen-javadoc</id>
+                <phase>install</phase>
+                <goals>
+                  <goal>javadoc</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+
     <!-- This profile stops javadoc from complaining on mvn install. -->
     <profile>
       <id>JDK 8 Build</id>
@@ -381,6 +397,9 @@
         <os>
           <family>unix</family>
         </os>
+        <property>
+          <name>!NoDoAll</name>
+        </property>
       </activation>
       <build>
         <plugins>
@@ -410,7 +429,61 @@
               </execution>
             </executions>
           </plugin>
+        </plugins>
+      </build>
+    </profile>
 
+    <!--Bundle Everything, including Accumulo classes.-->
+    <profile>
+      <id>BundleAll</id>
+      <activation>
+        <property>
+          <name>BundleAll</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-shade-plugin</artifactId>
+            <version>2.4.1</version>
+            <executions>
+              <execution>
+                <id>all</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>shade</goal>
+                </goals>
+                <configuration>
+                  <shadedArtifactAttached>true</shadedArtifactAttached>
+                  <shadedClassifierName>all</shadedClassifierName>
+                  <minimizeJar>true</minimizeJar>
+                  <artifactSet>
+                    <!--<excludes>-->
+                      <!--<exclude>org.apache.accumulo:*</exclude>-->
+                    <!--</excludes>-->
+                  </artifactSet>
+                  <filters>
+                    <filter>
+                      <artifact>org.apache.htrace:*</artifact>
+                      <includes>
+                        <include>**</include>
+                      </includes>
+                      <!--<excludes>-->
+                      <!--<exclude>org/junit/experimental/**</exclude>-->
+                      <!--</excludes>-->
+                    </filter>
+                    <filter>
+                      <artifact>commons-logging:commons-logging</artifact>
+                      <includes>
+                        <include>org/apache/commons/logging/**</include>
+                      </includes>
+                    </filter>
+                  </filters>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
         </plugins>
       </build>
     </profile>

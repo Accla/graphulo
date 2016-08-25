@@ -1,10 +1,9 @@
 package edu.mit.ll.graphulo.util;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.RangeSet;
 import edu.mit.ll.graphulo.DynamicIteratorSetting;
-import edu.mit.ll.graphulo.reducer.GatherReducer;
 import edu.mit.ll.graphulo.skvi.D4mRangeFilter;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
@@ -38,8 +37,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.charset.CharacterCodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
@@ -1006,9 +1003,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
         } catch (AccumuloException | AccumuloSecurityException e) {
           log.error("Problem deleing temporary table " + tn, e);
           throw new RuntimeException(e);
-        } catch (TableNotFoundException e) {
-          log.error("crazy", e);
-          throw new RuntimeException(e);
+        } catch (TableNotFoundException ignored) {
         }
       }
     }
@@ -1086,6 +1081,41 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
     if (!optC.isEmpty())
       dis.append(new IteratorSetting(1, RemoteWriteIterator.class, optC));
     return dis.toIteratorSetting();
+  }
+
+  public static void createTables(Connector connector, boolean deleteIfExists, String... tables) {
+    TableOperations tops = connector.tableOperations();
+    for (String tn : tables) {
+      if (tn == null)
+        continue;
+      if (deleteIfExists && tops.exists(tn))
+        try {
+          tops.delete(tn);
+        } catch (AccumuloException | AccumuloSecurityException e) {
+          log.warn("trouble deleting table "+tn, e);
+          throw new RuntimeException(e);
+        } catch (TableNotFoundException ignored) {
+        }
+      if (!tops.exists(tn))
+        try {
+          tops.create(tn);
+        } catch (AccumuloException | AccumuloSecurityException e) {
+          log.warn("trouble creating table " + tn, e);
+          throw new RuntimeException(e);
+        } catch (TableExistsException ignored) {
+        }
+    }
+  }
+
+  /**
+   * Copy out the private method from Key.
+   * @see Key
+   */
+  public static byte[] followingArray(byte ba[]) {
+    byte[] fba = new byte[ba.length + 1];
+    System.arraycopy(ba, 0, fba, 0, ba.length);
+    fba[ba.length] = (byte) 0x00;
+    return fba;
   }
 
 }

@@ -36,27 +36,11 @@ import org.apache.hadoop.io.WritableComparator;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.PriorityQueue;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.*;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -859,7 +843,7 @@ public class UtilTest {
     }
   }
 
-  private static IteratorEnvironment mockIteratorEnvrironment(final DynamicIteratorSetting.MyIteratorScope scope) {
+  public static IteratorEnvironment mockIteratorEnvrironment(final DynamicIteratorSetting.MyIteratorScope scope) {
     return new IteratorEnvironment() {
       @Override
       public SortedKeyValueIterator<Key, Value> reserveMapFileReader(String mapFileName) throws IOException {
@@ -1062,15 +1046,15 @@ public class UtilTest {
     expect.putAll(input);
 
     IteratorAdapter ia = new IteratorAdapter(skvi);
-    while (ia.hasNext()) {
-      Map.Entry<Key, Value> next = ia.next();
-      System.out.println(next.getKey().toString()+" -> "+next.getValue());
-    }
-//    for (Map.Entry<Key, Value> expectEntry : expect.entrySet()) {
-//      Assert.assertTrue(ia.hasNext());
-//      Map.Entry<Key, Value> actualEntry = ia.next();
-//      Assert.assertEquals(expectEntry, actualEntry);
+//    while (ia.hasNext()) {
+//      Map.Entry<Key, Value> next = ia.next();
+//      System.out.println(next.getKey().toString()+" -> "+next.getValue());
 //    }
-//    Assert.assertFalse(ia.hasNext());
+    for (Map.Entry<Key, Value> expectEntry : expect.entrySet()) {
+      Assert.assertTrue(ia.hasNext());
+      Map.Entry<Key, Value> actualEntry = ia.next();
+      Assert.assertEquals(expectEntry, actualEntry);
+    }
+    Assert.assertFalse(ia.hasNext());
   }
 }

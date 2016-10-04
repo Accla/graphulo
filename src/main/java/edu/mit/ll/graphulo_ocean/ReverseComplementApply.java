@@ -1,6 +1,6 @@
 package edu.mit.ll.graphulo_ocean;
 
-import com.sun.xml.internal.xsom.impl.scd.Iterators;
+import com.google.common.collect.Iterators;
 import edu.mit.ll.graphulo.apply.ApplyIterator;
 import edu.mit.ll.graphulo.apply.ApplyOp;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
@@ -89,7 +89,7 @@ public class ReverseComplementApply implements ApplyOp {
     if (G == null)
       G = new GenomicEncoder(seqBytes.length);
     G.reverseComplement(seqBytes);
-    return Iterators.singleton(new AbstractMap.SimpleImmutableEntry<>(k, v));
+    return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(k, v));
   }
 
 

@@ -22,6 +22,7 @@ import java.io.IOException;
 @Suite.SuiteClasses({
     UtilTest.class,
     AccumuloApiTest.class,
+    InsertDataTest.class,
     InjectTest.class,
     RemoteIteratorTest.class,
     TableMultIteratorTest.class,

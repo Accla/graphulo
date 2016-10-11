@@ -24,7 +24,7 @@ public class AccumuloTestBase {
   public String[] getUniqueNames(int num) {
     String[] names = new String[num];
     for (int i = 0; i < num; i++)
-      names[i] = this.getClass().getSimpleName() + "_" + testName.getMethodName() + i;
+      names[i] = "test_" + this.getClass().getSimpleName() + "_" + testName.getMethodName() + i;
     return names;
   }
 }

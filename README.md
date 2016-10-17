@@ -103,7 +103,7 @@ This build will be much faster than normal builds.
 Run `mvn package -DskipTests -DBundleAll` to create a jar that includes the Accumulo dependencies 
 alongside all other dependencies. This should not be used in an Accumulo installation because
 the Accumulo classes will conflict with the jars in the Accumulo installation.
-It is useful for running standalong programs.
+It is useful for running standalone programs.
 
 ### Test
 Tests only run on Unix-like systems.

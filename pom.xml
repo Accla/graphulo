@@ -312,6 +312,8 @@
                   <artifactSet>
                     <excludes>
                       <exclude>org.apache.accumulo:*</exclude>
+                      <exclude>org.apache.hadoop:*</exclude>
+                      <exclude>org.apache.zookeeper:*</exclude>
                     </excludes>
                   </artifactSet>
                   <filters>

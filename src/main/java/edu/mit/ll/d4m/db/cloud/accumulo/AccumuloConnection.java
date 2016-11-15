@@ -40,6 +40,10 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.transport.TTransportException;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -287,8 +291,10 @@ public class AccumuloConnection {
 		try {
 			//${accumulo.VERSION.1.6}TabletLocator tc = TabletLocator.getLocator(instance, new Text(Tables.getTableId(instance, tableName))); // 1.6 change to getLocator for 1.6
       ClientContext cc = new ClientContext(instance, new Credentials(principal, token), instance.getConfiguration()); // 1.7
-      TabletLocator tc = TabletLocator.getLocator(cc, new Text(Tables.getTableId(instance, tableName))); // 1.7
+			// Change in API in 1.7 and 1.8 -- second parameter is String instead of Text
+			String str = Tables.getTableId(instance, tableName);
 
+			TabletLocator tc = getTabletLocator(cc, str); // use dynamic invocation to cross the API change
 			
 			org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation loc =
 					//${accumulo.VERSION.1.6}tc.locateTablet(new Credentials(principal, token), new Text(splitName), false, false); // 1.6
@@ -302,6 +308,27 @@ public class AccumuloConnection {
 
 
     return tabletName;
+	}
+
+	private TabletLocator getTabletLocator(ClientContext cc, String tableid) {
+		// first try new one
+		for (Method method : TabletLocator.class.getMethods()) {
+			if (method.getName().equals("getLocator") && Modifier.isStatic(method.getModifiers()) && method.getReturnType().equals(TabletLocator.class)) {
+				Type[] types = method.getGenericParameterTypes();
+				if (types.length == 2 && types[0].equals(ClientContext.class)) {
+					try {
+						if (types[1].equals(String.class)) {
+							return (TabletLocator) method.invoke(null, cc, tableid);
+						} else if (types[1].equals(Text.class)) {
+							return (TabletLocator) method.invoke(null, cc, new Text(tableid));
+						}
+					} catch (InvocationTargetException | IllegalAccessException e) {
+						log.warn("problem calling getLocator on "+method, e);
+					}
+				}
+			}
+		}
+		throw new RuntimeException("Cannot locate tablets for tableid "+tableid);
 	}
 }
 

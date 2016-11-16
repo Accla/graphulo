@@ -2,6 +2,7 @@ package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
+import edu.mit.ll.graphulo.util.DebugUtil;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.TestUtil;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -711,5 +712,15 @@ public class AlgorithmTest extends AccumuloTestBase {
     conn.tableOperations().delete(tRT);
     conn.tableOperations().delete(tR);
   }
+
+  // for debugging
+//  @Test
+//  public void temp() {
+//    Connector conn = tester.getConnector();
+//    Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+////    DebugUtil.printTable("DH_pg10_20160331_TgraphAdjUU", conn, "DH_pg10_20160331_TgraphAdjUU");
+//    long numpp = graphulo.Jaccard("DH_pg10_20160331_TgraphAdjUU", "DH_pg10_20160331_TgraphAdjUUDeg", "j10", null, null, null);
+//    System.out.println(numpp);
+//  }
 
 }

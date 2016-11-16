@@ -606,6 +606,10 @@ public class Graphulo {
 //      throw new IllegalArgumentException("multOp is required but given null");
     if (rowFilter != null && (rowFilter.isEmpty() || (rowFilter.length()==2 && rowFilter.charAt(0)==':')))
       rowFilter = null;
+    if (colFilterAT != null && (colFilterAT.isEmpty() || (colFilterAT.length()==2 && colFilterAT.charAt(0)==':')))
+      colFilterAT = null;
+    if (colFilterB != null && (colFilterB.isEmpty() || (colFilterB.length()==2 && colFilterB.charAt(0)==':')))
+      colFilterB = null;
 
     TableOperations tops = connector.tableOperations();
     if (!ATtable.equals(TwoTableIterator.CLONESOURCE_TABLENAME) && !tops.exists(ATtable))
@@ -841,6 +845,8 @@ public class Graphulo {
 //    }
     if (rowFilter != null && (rowFilter.isEmpty() || (rowFilter.length()==2 && rowFilter.charAt(0)==':')))
       rowFilter = null;
+    if (colFilter != null && (colFilter.isEmpty() || (colFilter.length()==2 && colFilter.charAt(0)==':')))
+      colFilter = null;
 
     TableOperations tops = connector.tableOperations();
     if (!tops.exists(Atable))
@@ -898,7 +904,8 @@ public class Graphulo {
         log.error("crazy", e);
         throw new RuntimeException(e);
       }
-    bs.setRanges(Collections.singleton(new Range()));
+    if (useRWI || rowFilter == null) bs.setRanges(Collections.singleton(new Range()));
+    else bs.setRanges(GraphuloUtil.d4mRowToRanges(rowFilter));
 
     Map<String, String>
         optRWI = useRWI ? basicRemoteOpts("", Rtable, RTtable, authorizations) : null;
@@ -909,10 +916,10 @@ public class Graphulo {
 
     if (rowFilter != null) {
       Map<String,String> rowFilterOpt = Collections.singletonMap(RemoteSourceIterator.ROWRANGES, rowFilter);
-      if (useRWI)
+//      if (useRWI)
         optRWI.put(RemoteSourceIterator.ROWRANGES, rowFilter); // translate row filter to D4M notation
-      else
-        dis.append(new IteratorSetting(4, SeekFilterIterator.class, rowFilterOpt));
+//      else
+//        dis.append(new IteratorSetting(4, SeekFilterIterator.class, rowFilterOpt));
     }
 
     if (colFilter != null)
@@ -929,7 +936,6 @@ public class Graphulo {
     }
     if (useRWI)
       dis.append(new IteratorSetting(1, RemoteWriteIterator.class, optRWI));
-
     dis.addToScanner(bs);
 
     long numEntries = 0, thisEntries;
@@ -2805,6 +2811,7 @@ public class Graphulo {
 //        null, null, -1, Aauthorizations, Aauthorizations);
 
     // optimized to a OneTable operation
+//    System.out.println("filter is "+filterRowCol);
     npp = OneTable(Aorig, Rfinal, null, null, -1, null, null,
         RPlusIteratorSetting,
         filterRowCol, filterRowCol,

@@ -43,7 +43,7 @@ public class JaccardMultiplyIterator implements SortedKeyValueIterator<Key,Value
 //  private Map<String,String> initOptions;
   private SortedKeyValueIterator<Key,Value> source;
   private SKVIRowIterator sourceRows;
-  private PeekingIterator1<Map.Entry<Key,Value>> retIter;
+  private PeekingIterator1<Map.Entry<Key,Value>> retIter = PeekingIterator1.emptyIterator();
 
   @Override
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
@@ -89,53 +89,65 @@ public class JaccardMultiplyIterator implements SortedKeyValueIterator<Key,Value
     }
   };
 
-  private static final GeneralCartesianIterator.Multiply<Text,Long,Key,Value> multiplyPrint = new GeneralCartesianIterator.Multiply<Text, Long, Key, Value>() {
-    @Override
-    public Iterator<? extends Map.Entry<Key, Value>> multiply(Map.Entry<Text, Long> eA, Map.Entry<Text, Long> eB) {
-      Key k = new Key(eA.getKey(), EMPTY, eB.getKey());
-      Value v = ONE; //new Value(Long.toString(eA.getValue()*eB.getValue()).getBytes(StandardCharsets.UTF_8));
-      return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(k, v));
-    }
-  };
+//  private static final GeneralCartesianIterator.Multiply<Text,Long,Key,Value> multiplyPrint = new GeneralCartesianIterator.Multiply<Text, Long, Key, Value>() {
+//    @Override
+//    public Iterator<? extends Map.Entry<Key, Value>> multiply(Map.Entry<Text, Long> eA, Map.Entry<Text, Long> eB) {
+//      Key k = new Key(eA.getKey(), EMPTY, eB.getKey());
+//      Value v = ONE; //new Value(Long.toString(eA.getValue()*eB.getValue()).getBytes(StandardCharsets.UTF_8));
+//      return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(k, v));
+//    }
+//  };
 
   private void prepareNext() throws IOException {
-    ImmutableSortedMap<Text,Long> less, great;
-    {
-      Text row = null;
-      ImmutableSortedMap.Builder<Text, Long> bless = ImmutableSortedMap.naturalOrder();
-      boolean nowEqual = false, nowGreat = false;
-      ImmutableSortedMap.Builder<Text, Long> bgreat = ImmutableSortedMap.naturalOrder();
+    while (!retIter.hasNext() && sourceRows.hasNext()) {
+      ImmutableSortedMap<Text, Long> less, great;
+      {
+        Text row = null;
+        ImmutableSortedMap.Builder<Text, Long> bless = ImmutableSortedMap.naturalOrder();
+        boolean nowEqual = false, nowGreat = false;
+        ImmutableSortedMap.Builder<Text, Long> bgreat = ImmutableSortedMap.naturalOrder();
 
-      while (sourceRows.hasNext()) {
-        Map.Entry<Key, Value> next = sourceRows.next();
-        if (row == null)
-          row = next.getKey().getRow();
+        while (sourceRows.hasNext()) {
+          Map.Entry<Key, Value> next = sourceRows.next();
+          if (row == null)
+            row = next.getKey().getRow();
 
-        if (!nowEqual && next.getKey().compareColumnQualifier(row) < 0) {
-          bless.put(next.getKey().getColumnQualifier(), 1L);//Long.parseLong(next.getValue().toString()));
-          continue;
-        } else
-          nowEqual = true;
+//        int c = next.getKey().compareColumnQualifier(row);
+//        if (c < 0) {
+//          bless.put(next.getKey().getColumnQualifier(), 1L);
+//        } else if (c > 0) {
+//          bgreat.put(next.getKey().getColumnQualifier(), 1L);
+//        }
 
-        if (!nowGreat && next.getKey().compareColumnQualifier(row) == 0)
-          continue;
-        else
-          nowGreat = true;
+          if (!nowEqual && next.getKey().compareColumnQualifier(row) < 0) {
+            bless.put(next.getKey().getColumnQualifier(), 1L);//Long.parseLong(next.getValue().toString()));
+            continue;
+          } else
+            nowEqual = true;
 
-        bgreat.put(next.getKey().getColumnQualifier(), 1L); //Long.parseLong(next.getValue().toString()));
+          if (!nowGreat && next.getKey().compareColumnQualifier(row) == 0)
+            continue;
+          else
+            nowGreat = true;
+
+          bgreat.put(next.getKey().getColumnQualifier(), 1L); //Long.parseLong(next.getValue().toString()));
+        }
+        less = bless.build();
+        great = bgreat.build();
+//        if (log.isInfoEnabled())
+//          log.info("row " + row + " less " + less + " great " + great);
       }
-      less = bless.build();
-      great = bgreat.build();
-    }
 
-    retIter = new PeekingIterator1<Map.Entry<Key, Value>>(
-        Iterators.concat(
-            // todo - these could be further optimized, since we know the inputs are always 1. Multiply just returns value 1. Don't need to track value from input.
-            new GeneralCartesianIterator<Text, Long, Key, Value>(less.entrySet().iterator(), less, multiply, false, lessCondition),
-            new GeneralCartesianIterator<Text, Long, Key, Value>(less.entrySet().iterator(), great, multiplyPrint, false, null),
-            new GeneralCartesianIterator<Text, Long, Key, Value>(great.entrySet().iterator(), great, multiply, false, lessCondition)
-        )
-    );
+      retIter = new PeekingIterator1<Map.Entry<Key, Value>>(
+          Iterators.concat(
+              // todo - these could be further optimized, since we know the inputs are always 1. Multiply just returns value 1. Don't need to track value from input.
+              new GeneralCartesianIterator<Text, Long, Key, Value>(less.entrySet().iterator(), less, multiply, false, lessCondition),
+              new GeneralCartesianIterator<Text, Long, Key, Value>(less.entrySet().iterator(), great, multiply, false, null),
+              new GeneralCartesianIterator<Text, Long, Key, Value>(great.entrySet().iterator(), great, multiply, false, lessCondition)
+          )
+      );
+      sourceRows.reuseNextRow();
+    }
   }
 
 
@@ -157,7 +169,7 @@ public class JaccardMultiplyIterator implements SortedKeyValueIterator<Key,Value
   @Override
   public void next() throws IOException {
     retIter.next();
-    if (!retIter.hasNext() && sourceRows.reuseNextRow()) 
+    if (!retIter.hasNext())
       prepareNext();
   }
 

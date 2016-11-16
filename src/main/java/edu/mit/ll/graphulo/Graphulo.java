@@ -23,6 +23,7 @@ import edu.mit.ll.graphulo.simplemult.MathTwoScalar.ScalarOp;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar.ScalarType;
 import edu.mit.ll.graphulo.skvi.CountAllIterator;
 import edu.mit.ll.graphulo.skvi.InverseMatrixIterator;
+import edu.mit.ll.graphulo.skvi.JaccardMultiplyIterator;
 import edu.mit.ll.graphulo.skvi.LruCacheIterator;
 import edu.mit.ll.graphulo.skvi.MinMaxFilter;
 import edu.mit.ll.graphulo.skvi.RemoteSourceIterator;
@@ -2791,16 +2792,25 @@ public class Graphulo {
         DEFAULT_COMBINER_PRIORITY, null, ScalarOp.PLUS, ScalarType.LONG_OR_DOUBLE, false);
 
     // use a deepCopy of the local iterator on A for the left part of the TwoTable
-    long npp = TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Aorig, Rfinal, null, -1,
-        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.LONG, RNewVisibility, false),    // this could be a ConstantTwoScalar if we knew no "0" entries present
+    long npp;
+//    npp = TableMult(TwoTableIterator.CLONESOURCE_TABLENAME, Aorig, Rfinal, null, -1,
+//        MathTwoScalar.class, MathTwoScalar.optionMap(ScalarOp.TIMES, ScalarType.LONG, RNewVisibility, false),    // this could be a ConstantTwoScalar if we knew no "0" entries present
+//        RPlusIteratorSetting,
+//        filterRowCol,
+//        filterRowCol, filterRowCol,
+//        true, true,
+//        Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularType.Lower)),
+//        Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularType.Upper)),
+//        Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularType.Upper)),
+//        null, null, -1, Aauthorizations, Aauthorizations);
+
+    // optimized to a OneTable operation
+    npp = OneTable(Aorig, Rfinal, null, null, -1, null, null,
         RPlusIteratorSetting,
-        filterRowCol,
         filterRowCol, filterRowCol,
-        true, true,
-        Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularType.Lower)),
-        Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularType.Upper)),
-        Collections.singletonList(TriangularFilter.iteratorSetting(1, TriangularType.Upper)),
-        null, null, -1, Aauthorizations, Aauthorizations);
+        Collections.singletonList(JaccardMultiplyIterator.iteratorSetting(1)),
+        null, Aauthorizations);
+
     log.debug("Jaccard #partial products " + npp);
 
     // Because JaccardDegreeApply must see all entries, apply JaccardDegreeApply on scan scope after the TableMult.

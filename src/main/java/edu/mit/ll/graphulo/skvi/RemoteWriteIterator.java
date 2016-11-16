@@ -513,6 +513,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
       reducer.update(k, v);
 
+//      System.out.printf("%s -> %s\n", k.toStringNoTime(), v.toString());
+
       if (writer != null) {
         m = new Mutation(k.getRowData().toArray());
         m.put(k.getColumnFamilyData().toArray(), k.getColumnQualifierData().toArray(),

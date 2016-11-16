@@ -1,12 +1,12 @@
 package edu.mit.ll.graphulo_ndsi;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import edu.mit.ll.graphulo.Graphulo;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.Collections;
 
@@ -41,10 +41,10 @@ public class NDSIGraphulo extends Graphulo {
     Preconditions.checkArgument(minX >= 0 && minY >= 0 && maxX > minX && maxY > minY
         && binsizeX > 0 && binsizeY > 0 && Atable != null && Rtable != null);
 
-    String startX = StringUtils.leftPad(Long.toString(minX), PADSIZE_LATLON, '0');
-    String startY = StringUtils.leftPad(Long.toString(minY), PADSIZE_LATLON, '0');
-    String endX = StringUtils.leftPad(Long.toString(maxX), PADSIZE_LATLON, '0');
-    String endY = StringUtils.leftPad(Long.toString(maxY), PADSIZE_LATLON, '0');
+    String startX = Strings.padStart(Long.toString(minX), PADSIZE_LATLON, '0');
+    String startY = Strings.padStart(Long.toString(minY), PADSIZE_LATLON, '0');
+    String endX = Strings.padStart(Long.toString(maxX), PADSIZE_LATLON, '0');
+    String endY = Strings.padStart(Long.toString(maxY), PADSIZE_LATLON, '0');
     String rowFilter = startX + ",:," + endX + ",";
     String colFilter = startY + ",:," + endY + ",";
 

@@ -28,7 +28,6 @@ public class TopColPerRowIterator implements SortedKeyValueIterator<Key,Value> {
 
   public static final String K = "k";//, //SCALAR_TYPE = MathTwoScalar.SCALAR_TYPE; //"encoderType";
 
-  /** Pass columns as null or empty to combine on all columns. */
   public static IteratorSetting combinerSetting(int priority, int k/*, ScalarType scalarType*/) {
     IteratorSetting itset = new IteratorSetting(priority, TopColPerRowIterator.class);
     itset.addOption(K, Integer.toString(k));

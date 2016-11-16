@@ -1,5 +1,6 @@
 package edu.mit.ll.graphulo;
 
+import com.google.common.base.Strings;
 import edu.mit.ll.graphulo.skvi.RemoteSourceIterator;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import edu.mit.ll.graphulo.util.TestUtil;
@@ -17,7 +18,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -76,10 +76,10 @@ public class AccumuloBugTest extends AccumuloTestBase {
     Map<Key, Value> input = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ);
     SortedSet<Text> splits = new TreeSet<>();
     for (int i = 0; i < numtablets; i++) {
-      String row = StringUtils.leftPad(Integer.toString(1+2*i), 2, '0');                  // 01, 03, 05, ...
+      String row = Strings.padStart(Integer.toString(1+2*i), 2, '0');                  // 01, 03, 05, ...
       input.put(new Key(row, "", ""), new Value(Integer.toString(1+2*i).getBytes(StandardCharsets.UTF_8)));
       if (i > 0)
-        splits.add(new Text(StringUtils.leftPad(Integer.toString(2 * (i - 1)), 2, '0'))); // --, 02, 04, ...
+        splits.add(new Text(Strings.padStart(Integer.toString(2 * (i - 1)), 2, '0'))); // --, 02, 04, ...
     }
     TestUtil.createTestTable(connector, tA, splits, input);
 

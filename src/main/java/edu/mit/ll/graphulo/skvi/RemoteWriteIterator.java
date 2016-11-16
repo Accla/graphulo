@@ -1,6 +1,7 @@
 package edu.mit.ll.graphulo.skvi;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import edu.mit.ll.graphulo.reducer.Reducer;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.PeekingIterator1;
@@ -28,7 +29,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -454,7 +454,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
             // enforce timestamp == numRowRangesIterated
             Key sk = thisTargetRange.getStartKey();
             lastSafeKey = new Key(sk.getRow(), sk.getColumnFamily(), sk.getColumnQualifier(),
-                new Text(StringUtils.leftPad(Integer.toString(numRowRangesIterated), rowRangesSizeWidth, '0').getBytes(UTF_8)));
+                new Text(Strings.padStart(Integer.toString(numRowRangesIterated), rowRangesSizeWidth, '0').getBytes(UTF_8)));
           }
 //          System.out.println(thisInst+" changing lastSafeKey to: "+lastSafeKey);
           log.debug("RemoteWrite actual seek " + thisTargetRange);// + "(thread " + Thread.currentThread().getName() + ")");
@@ -470,7 +470,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
         rowRangeIterator.next();
         numRowRangesIterated++;
         lastSafeKey = new Key(lastSafeKey.getRow(), lastSafeKey.getColumnFamily(), lastSafeKey.getColumnQualifier(),
-            new Text(StringUtils.leftPad(Integer.toString(numRowRangesIterated), rowRangesSizeWidth, '0').getBytes(UTF_8)));
+            new Text(Strings.padStart(Integer.toString(numRowRangesIterated), rowRangesSizeWidth, '0').getBytes(UTF_8)));
       }
     } finally {
       // send reducer entries, if any present
@@ -607,7 +607,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
         rowRangeIterator.next();
         numRowRangesIterated++;
         lastSafeKey = new Key(lastSafeKey.getRow(), lastSafeKey.getColumnFamily(), lastSafeKey.getColumnQualifier(),
-            new Text(StringUtils.leftPad(Integer.toString(numRowRangesIterated), rowRangesSizeWidth, '0').getBytes(UTF_8)));
+            new Text(Strings.padStart(Integer.toString(numRowRangesIterated), rowRangesSizeWidth, '0').getBytes(UTF_8)));
         writeWrapper(true);
       }
     }

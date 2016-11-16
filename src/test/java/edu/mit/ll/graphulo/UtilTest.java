@@ -13,11 +13,12 @@ import edu.mit.ll.graphulo.skvi.ktruss.KTrussFilterIterator;
 import edu.mit.ll.graphulo.skvi.ktruss.SumConditionTimestampIterator;
 import edu.mit.ll.graphulo.util.DoubletonIterator;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
+import edu.mit.ll.graphulo.util.IteratorAdapter;
 import edu.mit.ll.graphulo.util.PeekingIterator2;
 import edu.mit.ll.graphulo.util.RangeSet;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.lexicoder.AbstractEncoder;
-import org.apache.accumulo.core.client.mock.IteratorAdapter;
+import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -879,6 +880,21 @@ public class UtilTest {
 
       @Override
       public Authorizations getAuthorizations() {
+        return null;
+      }
+
+      @Override
+      public IteratorEnvironment cloneWithSamplingEnabled() {
+        return null;
+      }
+
+      @Override
+      public boolean isSamplingEnabled() {
+        return false;
+      }
+
+      @Override
+      public SamplerConfiguration getSamplerConfiguration() {
         return null;
       }
     };

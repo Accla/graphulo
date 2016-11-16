@@ -1,10 +1,11 @@
 package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.skvi.MapIterator;
+import edu.mit.ll.graphulo.util.IteratorAdapter;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.impl.ScannerOptions;
-import org.apache.accumulo.core.client.mock.IteratorAdapter;
+import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
@@ -88,6 +89,21 @@ public class ClientSideIteratorAggregatingScanner extends ScannerOptions impleme
         @Override
         public Authorizations getAuthorizations() {
           return bs.getAuthorizations();
+        }
+
+        @Override
+        public IteratorEnvironment cloneWithSamplingEnabled() {
+          return null;
+        }
+
+        @Override
+        public boolean isSamplingEnabled() {
+          return false;
+        }
+
+        @Override
+        public SamplerConfiguration getSamplerConfiguration() {
+          return null;
         }
       }, false, null);
     } catch (IOException e) {

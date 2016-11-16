@@ -1,9 +1,9 @@
 package edu.mit.ll.graphulo.skvi;
 
 import com.google.common.base.Preconditions;
+import edu.mit.ll.graphulo.util.IteratorAdapter;
 import edu.mit.ll.graphulo.util.MemMatrixUtil;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.mock.IteratorAdapter;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;

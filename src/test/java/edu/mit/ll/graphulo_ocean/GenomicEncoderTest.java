@@ -5,7 +5,7 @@ import edu.mit.ll.graphulo.skvi.D4mRangeFilter;
 import edu.mit.ll.graphulo.skvi.DynamicIterator;
 import edu.mit.ll.graphulo.skvi.MapIterator;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.mock.IteratorAdapter;
+import edu.mit.ll.graphulo.util.IteratorAdapter;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;

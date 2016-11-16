@@ -2,7 +2,6 @@ package edu.mit.ll.graphulo_ocean;
 
 import com.google.common.base.Preconditions;
 import org.apache.accumulo.core.client.lexicoder.Lexicoder;
-import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.Arrays;
 
@@ -103,7 +102,7 @@ public class GenomicEncoder implements Lexicoder<char[]> {
   public byte[] reverseComplement(byte[] bs) {
     if (bs.length != NB)
       throw new IllegalArgumentException("input does not match length NB="+NB+": "+ Arrays.toString(bs));
-    ArrayUtils.reverse(bs);
+      reverse(bs);
     for (int i = 0; i < NB; i++)
       bs[i] = reverseComplement(bs[i], i == 0 ? REM : 4);
     if (REM != 4) {
@@ -115,6 +114,28 @@ public class GenomicEncoder implements Lexicoder<char[]> {
       }
     }
     return bs;
+  }
+
+  /**
+   * <p>Reverses the order of the given array.</p>
+   * <p>This method does nothing for a {@code null} input array.</p>
+   * Borrowed from Apache Commons Lang3.
+   * @param array  the array to reverse, may be {@code null}
+   */
+  private static void reverse(byte[] array) {
+    if (array == null) {
+      return;
+    }
+    int i = 0;
+    int j = array.length - 1;
+    byte tmp;
+    while (j > i) {
+      tmp = array[j];
+      array[j] = array[i];
+      array[i] = tmp;
+      j--;
+      i++;
+    }
   }
 
   /** Reverse and complement the first sig bits of x */

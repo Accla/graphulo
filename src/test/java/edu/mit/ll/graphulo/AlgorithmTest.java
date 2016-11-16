@@ -339,6 +339,7 @@ public class AlgorithmTest extends AccumuloTestBase {
 
   public void testJaccard_Inner(JaccardAlg jalg) throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
     Connector conn = tester.getConnector();
+    conn.tableOperations().compact("accumulo.metadata", null, null, true, true);
     final String tA, tADeg, tR;
     {
       String[] names = getUniqueNames(3);

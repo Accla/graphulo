@@ -916,7 +916,7 @@ public class Graphulo {
 
     if (rowFilter != null) {
       Map<String,String> rowFilterOpt = Collections.singletonMap(RemoteSourceIterator.ROWRANGES, rowFilter);
-//      if (useRWI)
+      if (useRWI)
         optRWI.put(RemoteSourceIterator.ROWRANGES, rowFilter); // translate row filter to D4M notation
 //      else
 //        dis.append(new IteratorSetting(4, SeekFilterIterator.class, rowFilterOpt));

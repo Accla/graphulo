@@ -37,6 +37,8 @@ public class OceanTest extends AccumuloTestBase {
     ingestFiles(tSampleIDSeqID);
     sumToSample(tSampleIDSeqID, tSampleID);
     doBrayCurtis(tSampleID, tSampleDistance);
+
+    GraphuloUtil.deleteTables(tester.getConnector(), tSampleIDSeqID, tSampleID, tSampleDistance);
   }
 
   private void ingestFiles(String tSampleIDSeqID) throws Exception {
@@ -98,8 +100,8 @@ public class OceanTest extends AccumuloTestBase {
     doDist(conn, tKmer, tKmerDeg, tDist);
 
     // test repeated add
-    String tKmer2 = tKmer+"2";
-    String tKmerDeg2 = tKmerDeg+"2";
+    final String tKmer2 = tKmer+"2";
+    final String tKmerDeg2 = tKmerDeg+"2";
 //    String tDist2 = tDist+"2";
     GraphuloUtil.deleteTables(conn, tKmer2, tKmerDeg2);
     conn.tableOperations().clone(tKmer, tKmer2, true, null, null);
@@ -112,6 +114,8 @@ public class OceanTest extends AccumuloTestBase {
         ));
       }
     });
+
+    GraphuloUtil.deleteTables(tester.getConnector(), tKmer, tKmerDeg, tDist, tKmer2); //, tKmerDeg2);
   }
 
   private interface Creator<T> {

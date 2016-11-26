@@ -29,7 +29,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.trace.Trace;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.TraceScope;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -409,6 +412,9 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     log.debug("RemoteWrite on table " + tableName + " / "+tableNameTranspose+" seek(): " + range);
     //System.out.println("RW passed seek " + range + "(thread " + Thread.currentThread().getName() + ")");
+//    if (Trace.isTracing()) {
+//
+//    }
 
     reducer.reset();
 //    boolean initialSeek = seekRange == null;
@@ -437,8 +443,17 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     while (numToSkip-- > 0 && rowRangeIterator.hasNext())
       rowRangeIterator.next();
 
-    writeWrapper(true/*, initialSeek*/);
+    TraceScope scope = org.apache.htrace.Trace.startSpan("RWI seek");
+    if (Trace.isTracing())
+      scope.getSpan().addKVAnnotation(SEEK_RANGE, range.toString().getBytes(StandardCharsets.UTF_8));
+    try {
+      writeWrapper(true/*, initialSeek*/);
+    } finally {
+      scope.close();
+    }
   }
+
+  private static final byte[] SEEK_RANGE = "seek_range".getBytes(StandardCharsets.UTF_8);
 
   private boolean writeWrapper(boolean doSeekNext/*, boolean initialSeek*/) throws IOException {
     boolean stoppedAtSafe = false;
@@ -500,12 +515,14 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     return stoppedAtSafe;
   }
 
+//  private Mutation mutation, mutationTranspose;
+
   /**
    * Return true if we stopped at a safe state with more entries to write, or
    * return false if no more entries to write (even if stopped at a safe state).
    */
   private boolean writeUntilSafeOrFinish() throws IOException {
-    Mutation m;
+//    Mutation m;
 //    Watch<Watch.PerfSpan> watch = Watch.getInstance();
     while (source.hasTop()) {
       Key k = source.getTopKey();
@@ -515,36 +532,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
 //      System.out.printf("%s -> %s\n", k.toStringNoTime(), v.toString());
 
-      if (writer != null) {
-        m = new Mutation(k.getRowData().toArray());
-        m.put(k.getColumnFamilyData().toArray(), k.getColumnQualifierData().toArray(),
-            k.getColumnVisibilityParsed(), k.getTimestamp(), v.get()); // no ts? System.currentTimeMillis()
-//        watch.start(Watch.PerfSpan.WriteAddMut);
-        try {
-          writer.addMutation(m);
-        } catch (MutationsRejectedException e) {
-          numRejects++;
-          log.warn("rejected mutations #"+numRejects+"; last one added is " + m, e);
-        }
-//        finally {
-//          watch.stop(Watch.PerfSpan.WriteAddMut);
-//        }
-      }
-      if (writerTranspose != null) {
-        m = new Mutation(k.getColumnQualifierData().toArray());
-        m.put(k.getColumnFamilyData().toArray(), k.getRowData().toArray(),
-            k.getColumnVisibilityParsed(), k.getTimestamp(), v.get()); // no ts? System.currentTimeMillis()
-//        watch.start(Watch.PerfSpan.WriteAddMut);
-        try {
-          writerTranspose.addMutation(m);
-        } catch (MutationsRejectedException e) {
-          numRejects++;
-          log.warn("rejected mutations #"+numRejects+"; last one added is " + m, e);
-        }
-//        finally {
-//          watch.stop(Watch.PerfSpan.WriteAddMut);
-//        }
-      }
+      addToWriter(writer, k, v, false);
+      addToWriter(writerTranspose, k, v, true);
 
       if (numRejects >= REJECT_FAILURE_THRESHOLD) { // declare global failure after 10 rejects
         // last entry emitted declares failure
@@ -575,6 +564,36 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 //      }
     }
     return false;
+  }
+
+  private void addToWriter(BatchWriter bw, Key k, Value v, boolean transpose) {
+    if (bw != null) {
+      byte[] rowBytes = transpose ? k.getColumnQualifierData().toArray() : k.getRowData().toArray();
+      byte[] colQualBytes = transpose ? k.getRowData().toArray() : k.getColumnQualifierData().toArray();
+      byte[] colFamBytes = k.getColumnFamilyData().toArray();
+      ColumnVisibility columnVisibilityParsed = k.getColumnVisibilityParsed();
+      long ts = k.getTimestamp();
+      Mutation m;
+
+      m = new Mutation(rowBytes);
+      if (ts != Long.MAX_VALUE)
+        m.put(colFamBytes, colQualBytes,
+          columnVisibilityParsed, ts, v.get()); // no ts? System.currentTimeMillis()
+      else // don't set ts if Long.MAX_VALUE
+        m.put(colFamBytes, colQualBytes,
+            columnVisibilityParsed, v.get());
+
+//        watch.start(Watch.PerfSpan.WriteAddMut);
+      try {
+        bw.addMutation(m);
+      } catch (MutationsRejectedException e) {
+        numRejects++;
+        log.warn("rejected mutations #"+numRejects+"; last one added is " + m, e);
+      }
+//        finally {
+//          watch.stop(Watch.PerfSpan.WriteAddMut);
+//        }
+    }
   }
 
 

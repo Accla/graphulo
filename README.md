@@ -21,7 +21,7 @@ and writing to multiple tables in one client call,
 as opposed to ordinary scans that read fconfrom a single table 
 and send results back to the client.
 
-Graphulo is tested on Accumulo 1.6 and 1.7.
+Graphulo is tested on Accumulo 1.6,  1.7, 1.8.
 
 [Apache Accumulo]: https://accumulo.apache.org/
 [GraphBLAS]: http://istc-bigdata.org/GraphBlas/

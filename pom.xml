@@ -530,6 +530,7 @@
         <optional>true</optional>
       </dependency>
 
+      <!-- Upgrading to 4.2.0-incubating is impossible without upgrading Zipkin inside Accumulo. -->
       <dependency>
         <groupId>org.apache.htrace</groupId>
         <artifactId>htrace-zipkin</artifactId>
@@ -563,6 +564,13 @@
         <groupId>com.googlecode.matrix-toolkits-java</groupId>
         <artifactId>mtj</artifactId>
         <version>1.0.4</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-tracer</artifactId>
+        <version>${accumulo.version}</version>
+        <scope>runtime</scope>
       </dependency>
 
     </dependencies>

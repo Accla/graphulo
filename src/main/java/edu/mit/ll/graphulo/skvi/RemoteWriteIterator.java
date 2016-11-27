@@ -522,39 +522,40 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
    * return false if no more entries to write (even if stopped at a safe state).
    */
   private boolean writeUntilSafeOrFinish() throws IOException {
-//    Mutation m;
+    Mutation m = null, mt = null;
 //    Watch<Watch.PerfSpan> watch = Watch.getInstance();
-    while (source.hasTop()) {
-      Key k = source.getTopKey();
-      Value v = source.getTopValue();
+    try {
+      while (source.hasTop()) {
+        Key k = source.getTopKey();
+        Value v = source.getTopValue();
 
-      reducer.update(k, v);
+        reducer.update(k, v);
 
 //      System.out.printf("%s -> %s\n", k.toStringNoTime(), v.toString());
 
-      addToWriter(writer, k, v, false);
-      addToWriter(writerTranspose, k, v, true);
+        m = addToWriter(writer, k, v, false, m);
+        mt = addToWriter(writerTranspose, k, v, true, mt);
 
-      if (numRejects >= REJECT_FAILURE_THRESHOLD) { // declare global failure after 10 rejects
-        // last entry emitted declares failure
-        rowRangeIterator = PeekingIterator1.emptyIterator();
-        numRowRangesIterated = rowRanges.size();
-        reducer = new NOOP_REDUCER();
-        return true;
-      }
-
-      entriesWritten++;
-      // check to see if we can save state
-      if (numEntriesCheckpoint > 0 && entriesWritten >= numEntriesCheckpoint) {
-        Key safeKey = ((SaveStateIterator) source).safeState();
-        if (safeKey != null) {
-          lastSafeKey = new Key(safeKey);
-          // we can re-sync from the safe key; no need to encode the following
-//          lastSafeKey = new Key(safeKey.getRow(), safeKey.getColumnFamily(), safeKey.getColumnQualifier(),
-//              new Text(StringUtils.leftPad(Integer.toString(numRowRangesIterated), rowRangesSizeWidth, '0').getBytes(UTF_8)));
+        if (numRejects >= REJECT_FAILURE_THRESHOLD) { // declare global failure after 10 rejects
+          // last entry emitted declares failure
+          rowRangeIterator = PeekingIterator1.emptyIterator();
+          numRowRangesIterated = rowRanges.size();
+          reducer = new NOOP_REDUCER();
           return true;
         }
-      }
+
+        entriesWritten++;
+        // check to see if we can save state
+        if (numEntriesCheckpoint > 0 && entriesWritten >= numEntriesCheckpoint) {
+          Key safeKey = ((SaveStateIterator) source).safeState();
+          if (safeKey != null) {
+            lastSafeKey = new Key(safeKey);
+            // we can re-sync from the safe key; no need to encode the following
+//          lastSafeKey = new Key(safeKey.getRow(), safeKey.getColumnFamily(), safeKey.getColumnQualifier(),
+//              new Text(StringUtils.leftPad(Integer.toString(numRowRangesIterated), rowRangesSizeWidth, '0').getBytes(UTF_8)));
+            return true;
+          }
+        }
 
 //      watch.start(Watch.PerfSpan.WriteGetNext);
 //      try {
@@ -562,38 +563,63 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 //      } finally {
 //        watch.stop(Watch.PerfSpan.WriteGetNext);
 //      }
+      }
+    } finally {
+      try {
+        if (m != null) writer.addMutation(m);
+        if (mt != null) writerTranspose.addMutation(mt);
+      } catch (MutationsRejectedException e) {
+        numRejects++;
+        log.warn("rejected mutations on last mutation #"+numRejects+"; last one added is " + m+" and "+mt, e);
+      }
     }
     return false;
   }
 
-  private void addToWriter(BatchWriter bw, Key k, Value v, boolean transpose) {
+  /**
+   * Keeps the same Mutation object as long as the row is the same.
+   */
+  private Mutation addToWriter(BatchWriter bw, Key k, Value v, boolean transpose, Mutation m) {
     if (bw != null) {
       byte[] rowBytes = transpose ? k.getColumnQualifierData().toArray() : k.getRowData().toArray();
       byte[] colQualBytes = transpose ? k.getRowData().toArray() : k.getColumnQualifierData().toArray();
       byte[] colFamBytes = k.getColumnFamilyData().toArray();
       ColumnVisibility columnVisibilityParsed = k.getColumnVisibilityParsed();
+      byte[] cvExpr = columnVisibilityParsed.getExpression();
+      boolean hasCv = cvExpr == null || cvExpr.length == 0;
       long ts = k.getTimestamp();
-      Mutation m;
 
-      m = new Mutation(rowBytes);
+      if (m == null) {
+        m = new Mutation(rowBytes);
+      } else if (!Arrays.equals(m.getRow(), rowBytes)) {
+
+        try {
+          bw.addMutation(m);
+        } catch (MutationsRejectedException e) {
+          numRejects++;
+          log.warn("rejected mutations #" + numRejects + "; last one added is " + m, e);
+        }
+        m = new Mutation(rowBytes);
+
+      } // else they are equal - keep it
+
+
       if (ts != Long.MAX_VALUE)
-        m.put(colFamBytes, colQualBytes,
-          columnVisibilityParsed, ts, v.get()); // no ts? System.currentTimeMillis()
+        if (hasCv)
+          m.put(colFamBytes, colQualBytes,
+              columnVisibilityParsed, ts, v.get()); // no ts? System.currentTimeMillis()
+        else
+          m.put(colFamBytes, colQualBytes, ts, v.get());
       else // don't set ts if Long.MAX_VALUE
-        m.put(colFamBytes, colQualBytes,
-            columnVisibilityParsed, v.get());
+        if (hasCv)
+          m.put(colFamBytes, colQualBytes,
+              columnVisibilityParsed, v.get());
+        else
+          m.put(colFamBytes, colQualBytes, v.get());
 
-//        watch.start(Watch.PerfSpan.WriteAddMut);
-      try {
-        bw.addMutation(m);
-      } catch (MutationsRejectedException e) {
-        numRejects++;
-        log.warn("rejected mutations #"+numRejects+"; last one added is " + m, e);
-      }
-//        finally {
-//          watch.stop(Watch.PerfSpan.WriteAddMut);
-//        }
+
     }
+    return m;
   }
 
 

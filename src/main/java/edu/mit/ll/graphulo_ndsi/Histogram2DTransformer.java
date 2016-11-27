@@ -77,7 +77,7 @@ public class Histogram2DTransformer implements ApplyOp {
     long newCol = (long)((col-minY)/binsizeY);
     Text newRowText = new Text(Long.toString(newRow));
     Text newColText = new Text(Long.toString(newCol));
-    Key newKey = new Key(newRowText, key.getColumnFamily(), newColText, System.currentTimeMillis());
+    Key newKey = new Key(newRowText, key.getColumnFamily(), newColText);
     return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(newKey, value));
   }
 

@@ -21,11 +21,11 @@ public class BadHardListIterator implements SortedKeyValueIterator<Key, Value> {
 
   static {
     SortedMap<Key, Value> t = new TreeMap<>();
-    t.put(new Key(new Text("a1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
+    t.put(new Key("a1", "colF3", "colQ3"),
         new Value("1".getBytes(StandardCharsets.UTF_8)));
-    t.put(new Key(new Text("c1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
+    t.put(new Key("c1", "colF3", "colQ3"),
         new Value("1".getBytes(StandardCharsets.UTF_8)));
-    t.put(new Key(new Text("m1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),
+    t.put(new Key("m1", "colF3", "colQ3"),
         new Value("1".getBytes(StandardCharsets.UTF_8)));
     allEntriesToInject = Collections.unmodifiableSortedMap(t); // for safety
   }

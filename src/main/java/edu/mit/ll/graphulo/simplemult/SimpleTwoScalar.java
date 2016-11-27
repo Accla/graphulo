@@ -96,7 +96,7 @@ public abstract class SimpleTwoScalar extends KeyTwoScalar implements MultiplyOp
 //    System.err.println("Mrow:"+Mrow+" ATcolQ:"+ATcolQ+" BcolQ:"+BcolQ+" ATval:"+ATval+" Bval:"+Bval);
     assert ATval != null || Bval != null;
     Key k = new Key(ATcolQ.toArray(), ATcolF.toArray(),
-        BcolQ.toArray(), useNewVisibility ? newVisibility : GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis());
+        BcolQ.toArray(), useNewVisibility ? newVisibility : GraphuloUtil.EMPTY_BYTES);
     Value v = reverse ? multiply(Bval, ATval) : multiply(ATval, Bval);
     return v == null ? Collections.<Entry<Key,Value>>emptyIterator() : Iterators.singletonIterator(new SimpleImmutableEntry<>(k, v));
   }
@@ -111,7 +111,7 @@ public abstract class SimpleTwoScalar extends KeyTwoScalar implements MultiplyOp
     // Decision is to emit the non-matching entries untouched by the operation.  This is a *SIMPLETwoScalar* operator.
     assert Aval != null || Bval != null;
     final Key k = new Key(Mrow.toArray(), McolF.toArray(),
-        McolQ.toArray(), useNewVisibility ? newVisibility : McolVis.toArray(), System.currentTimeMillis());
+        McolQ.toArray(), useNewVisibility ? newVisibility : McolVis.toArray());
     if (Aval == null)
       return Iterators.singletonIterator(new SimpleImmutableEntry<>(k, Bval));
     if (Bval == null)

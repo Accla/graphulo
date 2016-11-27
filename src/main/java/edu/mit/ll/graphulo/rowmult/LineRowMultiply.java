@@ -224,7 +224,7 @@ public class LineRowMultiply implements RowMultiplyOp {
       k = new Key(doCat(Mrow, ATcolQ, newrow),
           ATcolF.toArray(),
           doCat(Mrow, BcolQ, newcol),
-          useNewVisibility ? newVisibility : GraphuloUtil.EMPTY_BYTES, System.currentTimeMillis());
+          useNewVisibility ? newVisibility : GraphuloUtil.EMPTY_BYTES);
       // reuse object instead of new one each time?
       return Iterators.singletonIterator(new AbstractMap.SimpleImmutableEntry<>(k, winPerEdgeValue));
     }

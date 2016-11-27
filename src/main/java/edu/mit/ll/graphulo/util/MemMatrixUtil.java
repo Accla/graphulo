@@ -72,7 +72,7 @@ public class MemMatrixUtil {
 //        log.debug("("+row+","+column+") <- "+v);
         trow.set(Integer.toString(row + 1).getBytes(StandardCharsets.UTF_8));
         tcol.set(Integer.toString(column + 1).getBytes(StandardCharsets.UTF_8));
-        map.put(new Key(trow, EMPTY_TEXT, tcol, System.currentTimeMillis()),
+        map.put(new Key(trow, EMPTY_TEXT, tcol),
             new Value(Double.toString(v).getBytes(StandardCharsets.UTF_8)));
       }
     });

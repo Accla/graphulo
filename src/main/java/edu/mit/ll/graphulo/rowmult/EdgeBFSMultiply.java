@@ -70,11 +70,10 @@ public class EdgeBFSMultiply implements MultiplyOp, Iterator<Map.Entry<Key,Value
 //      return;
 //    }
     if (useNewTimestamp) {
-      long t = System.currentTimeMillis();
       emitKeyFirst = new Key(Mrow.toArray(), ATcolF.toArray(), ATcolQ.toArray(),
-          useNewVisibility ? newVisibility : ATcolVis.toArray(), t); // experiment with copy=false?
+          useNewVisibility ? newVisibility : ATcolVis.toArray()); // experiment with copy=false?
       emitKeySecond = new Key(Mrow.toArray(), BcolF.toArray(), BcolQ.toArray(),
-          useNewVisibility ? newVisibility : BcolVis.toArray(), t); // experiment with copy=false?
+          useNewVisibility ? newVisibility : BcolVis.toArray()); // experiment with copy=false?
     } else {
       emitKeyFirst = new Key(Mrow.toArray(), ATcolF.toArray(), ATcolQ.toArray(),
           useNewVisibility ? newVisibility : ATcolVis.toArray(), ATtime); // experiment with copy=false?

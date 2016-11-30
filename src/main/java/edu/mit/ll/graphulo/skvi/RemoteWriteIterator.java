@@ -525,8 +525,6 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     Mutation m = null, mt = null;
 //    Watch<Watch.PerfSpan> watch = Watch.getInstance();
     writeCounter = 0;
-    firstCounter = 0;
-    totalCalls = 0;
     try {
       while (source.hasTop()) {
         Key k = source.getTopKey();
@@ -576,21 +574,18 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
         numRejects++;
         log.warn("rejected mutations on last mutation #"+numRejects+"; last one added is " + m+" and "+mt, e);
       }
-      System.out.println("writeCounter "+writeCounter+" / totalCalls "+totalCalls+" == "+(((float)writeCounter)/totalCalls));
+//      System.out.println("writeCounter "+writeCounter+" / entriesWritten "+entriesWritten+" == "+(((float)writeCounter)/entriesWritten));
     }
     return false;
   }
 
-  private long writeCounter, firstCounter, totalCalls;
+  private long writeCounter;
 
   /**
    * Keeps the same Mutation object as long as the row is the same.
    */
   private Mutation addToWriter(BatchWriter bw, Key k, Value v, boolean transpose, Mutation m) {
     if (bw != null) {
-      totalCalls++;
-      if (firstCounter++ < 100)
-        System.out.println(k.toStringNoTime());
 
       byte[] rowBytes = transpose ? k.getColumnQualifierData().toArray() : k.getRowData().toArray();
       byte[] colQualBytes = transpose ? k.getRowData().toArray() : k.getColumnQualifierData().toArray();
@@ -687,7 +682,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
   @Override
   public Value getTopValue() {
-    System.out.println(thisInst+" getTopValue(): source.hasTop()=="+source.hasTop()+" lastSafeKey=="+lastSafeKey+" entriesWritten=="+entriesWritten);
+//    System.out.println(thisInst+" getTopValue(): source.hasTop()=="+source.hasTop()+" lastSafeKey=="+lastSafeKey+" entriesWritten=="+entriesWritten);
     if (numRejects >= REJECT_FAILURE_THRESHOLD) {
       byte[] orig = REJECT_MESSAGE;
       ByteBuffer bb = ByteBuffer.allocate(orig.length + 8 + 2);

@@ -1947,7 +1947,7 @@ public class Graphulo {
 
     BatchScanner bs;
     try {
-      bs = connector.createBatchScanner(table, Authorizations.EMPTY, 2); // todo: 2 threads is arbitrary
+      bs = connector.createBatchScanner(table, Authorizations.EMPTY, 50); // todo: 50 threads is arbitrary
     } catch (TableNotFoundException e) {
       log.error("table "+table+" does not exist", e);
       throw new RuntimeException(e);
@@ -2956,7 +2956,7 @@ public class Graphulo {
     try {
       if (!tops.exists(Degtable))
         tops.create(Degtable);
-      bs = connector.createBatchScanner(table, Authorizations.EMPTY, 2); // todo: 2 threads arbitrary
+      bs = connector.createBatchScanner(table, Authorizations.EMPTY, 50); // todo: 50 threads is arbitrary
     } catch (TableNotFoundException | TableExistsException e) {
       log.error("crazy", e);
       throw new RuntimeException(e);
@@ -3033,7 +3033,7 @@ public class Graphulo {
 
     BatchScanner bs;
     try {
-      bs = connector.createBatchScanner(table, Authorizations.EMPTY, 2); // todo: 2 threads is arbitrary
+      bs = connector.createBatchScanner(table, Authorizations.EMPTY, 50); // todo: 50 threads is arbitrary // todo: 2 threads is arbitrary
     } catch (TableNotFoundException e) {
       log.error("table "+table+" does not exist", e);
       throw new RuntimeException(e);

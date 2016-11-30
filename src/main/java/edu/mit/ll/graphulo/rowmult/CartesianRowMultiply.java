@@ -44,7 +44,7 @@ public class CartesianRowMultiply implements RowMultiplyOp {
     Text curRow = new Text(thisRow);
     SortedMap<Key, Value> map = new TreeMap<>();
     do {
-      map.put(skvi.getTopKey(), new Value(skvi.getTopValue()));
+      map.put(new Key(skvi.getTopKey()), new Value(skvi.getTopValue()));
 //      watch.start(watchtype);
 //      try {
         skvi.next();

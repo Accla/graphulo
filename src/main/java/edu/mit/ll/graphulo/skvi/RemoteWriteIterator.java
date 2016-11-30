@@ -524,6 +524,9 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   private boolean writeUntilSafeOrFinish() throws IOException {
     Mutation m = null, mt = null;
 //    Watch<Watch.PerfSpan> watch = Watch.getInstance();
+    writeCounter = 0;
+    firstCounter = 0;
+    totalCalls = 0;
     try {
       while (source.hasTop()) {
         Key k = source.getTopKey();
@@ -568,19 +571,27 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
       try {
         if (m != null) writer.addMutation(m);
         if (mt != null) writerTranspose.addMutation(mt);
+        if (m != null || mt != null) writeCounter++;
       } catch (MutationsRejectedException e) {
         numRejects++;
         log.warn("rejected mutations on last mutation #"+numRejects+"; last one added is " + m+" and "+mt, e);
       }
+      System.out.println("writeCounter "+writeCounter+" / totalCalls "+totalCalls+" == "+(((float)writeCounter)/totalCalls));
     }
     return false;
   }
+
+  private long writeCounter, firstCounter, totalCalls;
 
   /**
    * Keeps the same Mutation object as long as the row is the same.
    */
   private Mutation addToWriter(BatchWriter bw, Key k, Value v, boolean transpose, Mutation m) {
     if (bw != null) {
+      totalCalls++;
+      if (firstCounter++ < 100)
+        System.out.println(k.toStringNoTime());
+
       byte[] rowBytes = transpose ? k.getColumnQualifierData().toArray() : k.getRowData().toArray();
       byte[] colQualBytes = transpose ? k.getRowData().toArray() : k.getColumnQualifierData().toArray();
       byte[] colFamBytes = k.getColumnFamilyData().toArray();
@@ -595,6 +606,7 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
         try {
           bw.addMutation(m);
+          writeCounter++;
         } catch (MutationsRejectedException e) {
           numRejects++;
           log.warn("rejected mutations #" + numRejects + "; last one added is " + m, e);

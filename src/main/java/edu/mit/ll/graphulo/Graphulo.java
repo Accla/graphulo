@@ -438,10 +438,10 @@ public class Graphulo {
     CartesianRowMultiply.ROWMODE rowmode;
     if ((alsoDoAA || alsoEmitA) && (alsoEmitB || alsoDoBB))
       rowmode = CartesianRowMultiply.ROWMODE.TWOROW;
-    else if (alsoDoBB || alsoEmitB)
-      rowmode = CartesianRowMultiply.ROWMODE.ONEROWB;
-    else
+    else if (alsoDoAA || alsoEmitA)
       rowmode = CartesianRowMultiply.ROWMODE.ONEROWA;
+    else // performance improvement when we access A first then B; we can re-use Mutation objects
+      rowmode = CartesianRowMultiply.ROWMODE.ONEROWB;
     opt.put("rowMultiplyOp.opt.rowmode", rowmode.name());
     opt.put("rowMultiplyOp.opt."+CartesianRowMultiply.ALSODOAA, Boolean.toString(alsoDoAA));
     opt.put("rowMultiplyOp.opt."+CartesianRowMultiply.ALSODOBB, Boolean.toString(alsoDoBB));

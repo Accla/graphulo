@@ -29,7 +29,6 @@ import edu.mit.ll.graphulo.skvi.MinMaxFilter;
 import edu.mit.ll.graphulo.skvi.RemoteSourceIterator;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
 import edu.mit.ll.graphulo.skvi.SamplingFilter;
-import edu.mit.ll.graphulo.skvi.SeekFilterIterator;
 import edu.mit.ll.graphulo.skvi.SingleTransposeIterator;
 import edu.mit.ll.graphulo.skvi.SmallLargeRowFilter;
 import edu.mit.ll.graphulo.skvi.TopColPerRowIterator;
@@ -54,6 +53,7 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -2339,8 +2339,6 @@ public class Graphulo {
    * <p>
    * From input <b>unweighted, undirected</b> adjacency table Aorig, put the k-Truss
    * of Aorig in Rfinal.
-   * <p>
-   * Uses a "log" durability level on the intermeidary tables.
    * @param Aorig Unweighted, undirected adjacency table.
    * @param Rfinal Does not have to previously exist. Writes the kTruss into Rfinal if it already exists.
    *               Use a combiner if you want to sum it in.
@@ -2364,6 +2362,41 @@ public class Graphulo {
                               Authorizations Aauthorizations, String RNewVisibility,
                               int maxiter,
                               List<Long> specialLongList) {
+    return kTrussAdj_Smart(Aorig, Rfinal, k, filterRowCol, forceDelete, Aauthorizations, RNewVisibility, maxiter, specialLongList, null);
+  }
+
+  /**
+   * This version writes significantly fewer entries
+   * by cloning table A and using parity.
+   * <p>
+   * From input <b>unweighted, undirected</b> adjacency table Aorig, put the k-Truss
+   * of Aorig in Rfinal.
+   * @param Aorig Unweighted, undirected adjacency table.
+   * @param Rfinal Does not have to previously exist. Writes the kTruss into Rfinal if it already exists.
+   *               Use a combiner if you want to sum it in.
+   * @param k Trivial if k <= 2.
+   * @param filterRowCol Filter applied to rows and columns of Aorig
+   *                     (must apply to both rows and cols because A is undirected Adjacency table).
+   * @param forceDelete False means throws exception if the temporary tables used inside the algorithm already exist.
+   *                    True means delete them if they exist.
+   * @param Aauthorizations Authorizations for scanning Atable. Null means use default: Authorizations.EMPTY
+   * @param RNewVisibility Visibility label for new entries created. Null means no visibility label.
+   * @param maxiter A bound on the number of iterations. The algorithm will halt
+   *                either at convergence or after reaching the maximum number of iterations.
+   *                Note that if the algorithm stops before convergence, the result may not be correct.
+   * @param specialLongList Used for evaluating performance. If not null, stores the total number of partial products
+   *                        written over the course of the algorithm as a long inside the list.
+   * @param intermediateDurability Reduced write-ahead log durability level,
+   *                               when writing entries during the intermediate matrix multiply operations.
+   *                               If null, then use the durability of Aorig.
+   * @return A somewhat meaningless number. This fused version loses the ability to directly measure nnz.
+   *          Returns -1 if k < 2 since there is no point in counting the number of edges.
+   */
+  public long kTrussAdj_Smart(String Aorig, String Rfinal, int k,
+                              String filterRowCol, boolean forceDelete,
+                              Authorizations Aauthorizations, String RNewVisibility,
+                              int maxiter,
+                              List<Long> specialLongList, String intermediateDurability) {
     checkGiven(true, "Aorig", Aorig);
     Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
     TableOperations tops = connector.tableOperations();
@@ -2371,6 +2404,9 @@ public class Graphulo {
     if (RfinalExists)
       log.warn("Fused version of kTruss may not work when the result table already exists due to iterator conflicts");
     Preconditions.checkArgument(maxiter > 0, "bad maxiter %s", maxiter);
+    intermediateDurability = emptyToNull(intermediateDurability);
+    Preconditions.checkArgument(intermediateDurability == null || Durability.valueOf(intermediateDurability.toUpperCase()) != Durability.DEFAULT,
+        "bad durability given: %s", intermediateDurability);
 
     try {
       if (k <= 2) {               // trivial case: every graph is a 2-truss
@@ -2392,12 +2428,15 @@ public class Graphulo {
       deleteTables(Atmp, AtmpAlt);
 
       // determine if we will relax the durability of the intermediate tables
-      String AorigDur = "sync"; // defulat durability
-      for (Map.Entry<String, String> e : tops.getProperties(Aorig)) {
-        if (e.getKey().equals(TABLE_DURABILITY)) {
-          String v = e.getValue();
-          if (v.equalsIgnoreCase("sync") || v.equalsIgnoreCase("flush")) {
-            AorigDur = e.getValue();
+      String AorigDur = null;
+      if (intermediateDurability != null) {
+        for (Map.Entry<String, String> e : tops.getProperties(Aorig)) {
+          if (e.getKey().equals(TABLE_DURABILITY)) {
+            String v = e.getValue();
+            if (!v.equalsIgnoreCase(intermediateDurability)) {
+              AorigDur = e.getValue();
+            } else
+              intermediateDurability = null; // use the same as the existing durability; no special changes needed
           }
         }
       }
@@ -2405,7 +2444,7 @@ public class Graphulo {
 
 //      if (filterRowCol == null) {
       {
-        Map<String, String> propsToSet = AorigDur == null ? null : Collections.singletonMap(TABLE_DURABILITY, "log");
+        Map<String, String> propsToSet = intermediateDurability == null ? null : Collections.singletonMap(TABLE_DURABILITY, intermediateDurability);
         tops.clone(Aorig, Atmp, true, propsToSet, null);
       }
 //        long l = System.currentTimeMillis();
@@ -2481,8 +2520,9 @@ public class Graphulo {
       if (RfinalExists)  // sum whole graph into existing graph
         AdjBFS(Atmp, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Aauthorizations, Aauthorizations, false, null);
       else {                                         // result is new;
-        Map<String, String> propsToSet = AorigDur == null ? null : Collections.singletonMap(TABLE_DURABILITY, AorigDur);
-        tops.clone(Atmp, Rfinal, true, propsToSet, null);  // flushes Atmp before cloning
+        Map<String, String> propsToSet = intermediateDurability == null || AorigDur == null ? null : Collections.singletonMap(TABLE_DURABILITY, AorigDur);
+        Set<String> propsToExclude = intermediateDurability == null || AorigDur != null ? null : Collections.singleton(TABLE_DURABILITY);
+        tops.clone(Atmp, Rfinal, true, propsToSet, propsToExclude);  // flushes Atmp before cloning
       }
 
       tops.delete(Atmp);

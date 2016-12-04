@@ -2331,6 +2331,7 @@ public class Graphulo {
     }
   }
 
+  private static final String TABLE_DURABILITY = "table.durability";
 
   /**
    * This version writes significantly fewer entries
@@ -2338,6 +2339,8 @@ public class Graphulo {
    * <p>
    * From input <b>unweighted, undirected</b> adjacency table Aorig, put the k-Truss
    * of Aorig in Rfinal.
+   * <p>
+   * Uses a "log" durability level on the intermeidary tables.
    * @param Aorig Unweighted, undirected adjacency table.
    * @param Rfinal Does not have to previously exist. Writes the kTruss into Rfinal if it already exists.
    *               Use a combiner if you want to sum it in.
@@ -2388,8 +2391,23 @@ public class Graphulo {
       AtmpAlt = tmpBaseName+"tmpAalt";
       deleteTables(Atmp, AtmpAlt);
 
+      // determine if we will relax the durability of the intermediate tables
+      String AorigDur = "sync"; // defulat durability
+      for (Map.Entry<String, String> e : tops.getProperties(Aorig)) {
+        if (e.getKey().equals(TABLE_DURABILITY)) {
+          String v = e.getValue();
+          if (v.equalsIgnoreCase("sync") || v.equalsIgnoreCase("flush")) {
+            AorigDur = e.getValue();
+          }
+        }
+      }
+
+
 //      if (filterRowCol == null) {
-      tops.clone(Aorig, Atmp, true, null, null);
+      {
+        Map<String, String> propsToSet = AorigDur == null ? null : Collections.singletonMap(TABLE_DURABILITY, "log");
+        tops.clone(Aorig, Atmp, true, propsToSet, null);
+      }
 //        long l = System.currentTimeMillis();
 //        nnzAfter = countEntries(Aorig);
 //        long dur = System.currentTimeMillis()-l;
@@ -2462,9 +2480,10 @@ public class Graphulo {
 //      Thread.sleep(7000);
       if (RfinalExists)  // sum whole graph into existing graph
         AdjBFS(Atmp, null, 1, Rfinal, null, null, -1, null, null, false, 0, Integer.MAX_VALUE, null, Aauthorizations, Aauthorizations, false, null);
-      else                                           // result is new;
-        tops.clone(Atmp, Rfinal, true, null, null);  // flushes Atmp before cloning
-
+      else {                                         // result is new;
+        Map<String, String> propsToSet = AorigDur == null ? null : Collections.singletonMap(TABLE_DURABILITY, AorigDur);
+        tops.clone(Atmp, Rfinal, true, propsToSet, null);  // flushes Atmp before cloning
+      }
 
       tops.delete(Atmp);
       if (specialLongList != null)

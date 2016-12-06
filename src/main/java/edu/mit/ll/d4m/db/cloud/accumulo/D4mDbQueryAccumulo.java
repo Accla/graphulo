@@ -785,7 +785,8 @@ public class D4mDbQueryAccumulo extends D4mParentQuery {
 			if(rowArray[1].equals(":")) {
 				rowkey1 = rowArray[0];
 				rowkey2 = rowArray[length-1];
-				log.debug("3__RANGE__"+rowkey1+","+rowkey2);
+				if (log.isDebugEnabled())
+					log.debug("3__RANGE__"+rowkey1+","+rowkey2);
 				range = new Range(rowkey1,true,rowkey2, true);
 				SearchIt(range,columnArray);
 				rowArrayGood = true;

@@ -14,6 +14,8 @@ import edu.mit.ll.d4m.db.cloud.D4mInsertBase;
 import edu.mit.ll.d4m.db.cloud.util.D4mQueryUtil;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Comparator;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -58,36 +60,70 @@ public class AccumuloInsert extends D4mInsertBase {
 
   }
 
+  private static class RowIndex implements Comparator<Integer> {
+		private final String[] array;
+
+		public RowIndex(String[] array) {
+			this.array = array;
+		}
+
+		public Integer[] createIndexArray() {
+			Integer[] indexes = new Integer[array.length];
+			for (int i = 0; i < array.length; i++) {
+				indexes[i] = i;
+			}
+			return indexes;
+		}
+
+		@Override
+		public int compare(Integer index1, Integer index2) {
+			return array[index1].compareTo(array[index2]);
+		}
+	}
+
 	private void makeAndAddMutations() throws TableNotFoundException, MutationsRejectedException {
 		//		AccumuloConnection connection = new AccumuloConnection(super.connProps);
-		BatchWriter bw = this.connection.createBatchWriter(tableName);
 //		HashMap<String, Object> rowsMap = D4mQueryUtil.processParam(rows);
 //		HashMap<String, Object> colsMap = D4mQueryUtil.processParam(cols);
 //		HashMap<String, Object> weightMap = D4mQueryUtil.processParam(vals);
 
-		String[] rowsArr = D4mQueryUtil.processParam(rows);//(String[]) rowsMap.get("content");
-		String[] colsArr = D4mQueryUtil.processParam(cols);//(String[]) colsMap.get("content");
-		String[] valsArr = D4mQueryUtil.processParam(vals);//(String[]) weightMap.get("content");
+		final String[] rowsArr = D4mQueryUtil.processParam(rows);//(String[]) rowsMap.get("content");
+		if (rowsArr.length == 0)
+			return;
+		final String[] colsArr = D4mQueryUtil.processParam(cols);//(String[]) colsMap.get("content");
+		final String[] valsArr = D4mQueryUtil.processParam(vals);//(String[]) weightMap.get("content");
 
-		ColumnVisibility colVisibility = new ColumnVisibility(super.visibility);
-		Text colFamily = new Text(super.family);
-		for(int i =0; i < rowsArr.length; i++) {
-			String thisRow = rowsArr[i];
-			String thisCol = colsArr[i];
-			String thisVal = valsArr[i];
-			Mutation m;
-			Text column = new Text(thisCol);
+		final BatchWriter bw = this.connection.createBatchWriter(tableName);
 
-			Value value = new Value(thisVal.getBytes(UTF_8));
-			log.debug(i+" - INSERTING [r,c,v] =  ["+ thisRow+","+thisCol+","+thisVal+"]");
-			m = new Mutation(new Text(thisRow));
-			m.put(colFamily, column, colVisibility, value);
-			bw.addMutation(m);
+		// DH: group same rows together for efficient mutations
+		final RowIndex rowIndex = new RowIndex(rowsArr);
+		final Integer[] indices = rowIndex.createIndexArray();
+		Arrays.sort(indices, rowIndex);
 
+		final ColumnVisibility colVisibility = new ColumnVisibility(super.visibility);
+		final Text colFamily = new Text(super.family);
+		String mRow = rowsArr[indices[0]];
+		Mutation m = new Mutation(mRow);
+		final Text mCol = new Text(colsArr[indices[0]]);
+		final Value mVal = new Value(valsArr[indices[0]]);
+
+		for (int i : indices) {
+			if (!mRow.equals(rowsArr[i])) {
+				bw.addMutation(m);
+				mRow = rowsArr[i];
+				m = new Mutation(rowsArr[i]);
+			}
+			mCol.set(colsArr[i]);
+			mVal.set(valsArr[i].getBytes(UTF_8));
+
+			if (log.isDebugEnabled())
+				log.debug(i+" - INSERTING [r,c,v] =  ["+ mRow +","+mCol+","+mVal+"]");
+
+			m.put(colFamily, mCol, colVisibility, mVal);
 		}
-		bw.flush();
-		bw.close();
 
+		bw.addMutation(m);
+		bw.close();
 	}
 
 	private void createTable () throws AccumuloException,AccumuloSecurityException{

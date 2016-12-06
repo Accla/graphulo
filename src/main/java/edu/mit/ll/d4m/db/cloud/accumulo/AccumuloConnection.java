@@ -91,7 +91,8 @@ public class AccumuloConnection {
         } else {
             this.auth= Authorizations.EMPTY;
         }
-        log.debug("!!!WHOAMI="+this.connector.whoami());
+        if (log.isDebugEnabled())
+	        log.debug("!!!WHOAMI="+this.connector.whoami());
 	}
 
 

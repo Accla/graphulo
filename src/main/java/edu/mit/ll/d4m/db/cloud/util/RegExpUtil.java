@@ -51,7 +51,8 @@ public class RegExpUtil {
 			if( str[1].equals(":")) {
 				String s0 = str[0].replace(ASCII_127, ".*");
 				String s2 = str[2].replace(ASCII_127, ".*");
-				log.debug("[0] = "+s0 + " ,[2]="+s2);
+				if (log.isDebugEnabled())
+					log.debug("[0] = "+s0 + " ,[2]="+s2);
 				s="^"+s0+"|^"+s2;
 				//s="^"+str[0]+"|^"+str[2]+".*";
 				//s="("+str[0]+")|("+str[2]+".*)|";

@@ -111,7 +111,8 @@ public class AccumuloTableOperations {
 	private long getNumberOfEntries_help(List<TabletStats> list) {
 		long retval = 0;
 		for(TabletStats ts: list) {
-			log.debug("num entries = "+ts.numEntries);
+			if (log.isDebugEnabled())
+				log.debug("num entries = "+ts.numEntries);
 
 			retval += ts.numEntries;
 		}

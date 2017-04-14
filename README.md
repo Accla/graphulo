@@ -156,7 +156,7 @@ The classes in [`src/test/java/edu/mit/ll/graphulo/examples/`](src/test/java/edu
 contain simple, well-commented examples of how to use Graphulo.
 To run an example, use the command `mvn test -Dtest=TESTNAME`, replacing `TESTNAME` with the name of the test.
 To run every example, use the command `mvn test -Dtest=*Example`.
-View example output with `./post-test.bash`, or inspect the `shippable/testreusults/` directory.
+View example output with `./post-test.bash`, or inspect the `shippable/testresults/` directory.
 
 Examples run inside [MiniAccumulo][] by default. To run an example in a local Accumulo instance,
 add the option `-DTEST_CONFIG=local` to the Maven command.

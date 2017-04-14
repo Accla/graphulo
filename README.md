@@ -350,7 +350,7 @@ MultiplyOp, EWiseOp, ApplyOp or more general SKVI as applicable.
 ### Debugging
 Before debugging a problem, consider 
 
-1. checking the Accumulo monitor, running by default on <http://localhost:50095/>;
+1. checking the Accumulo monitor, running by default on <http://localhost:9995/> (as of Accumulo 1.8);
 2. printf or log4j debugging;
 3. debugging by deletion, i.e., if removing a piece of code solves your problem, 
 then you know where the problem is;
@@ -360,13 +360,13 @@ which log information about every call from the iterator above it at the `DEBUG`
 Debuggers can be extraordinarily helpful once running but challenging to set up.
 There are two methods to use a debugger: 
 
-1. starting a "debug server" in your IDE
-and having a Java application connect to it at startup, or 
-2. having a Java application start a "debug server" 
+1. start a "debug server" in your IDE
+and have a Java application connect to it at startup, or 
+2. have a Java application start a "debug server" 
 and listen for you to make a connection from your IDE.
  
 #### Debugging Standalone Accumulo
-I tend to use method (1) for standalone Accumulo, not for any particular reason.
+I tend to use method (1) for standalone Accumulo.
 Run the following before launching Accumulo via its start scripts or via `accumulo tserver &`:
 
 ```bash
@@ -378,15 +378,16 @@ which you should configure to listen on port 5005 (of 127.0.0.1).
 
 You must debug quickly in this mode.  If you idle too long without making a debug step,
 then the Accumulo tablet server will lose its Zookeeper lock and kill itself.
+You can increase the Zookeeper timeout in Accumulo's site config file.
 
 #### Debugging MiniAccumulo
 Set `-DTEST_CONFIG=miniDebug` for any test using MiniAccumulo.
-The code will print to `System.out` the ports that MiniAccumulo randomly chooses to listen on 
+The code will print the ports that MiniAccumulo randomly chooses to listen on 
 for each Accumulo process after starting MiniAccumulo.
 You have 10 seconds to connect to one of the ports (probably the TABLET_SERVER port)
 before the test continues executing.
 I recommend using `tail -f shippable/testresults/edu.mit.ll.graphulo.TESTNAME-output.txt`
-to see the ports as they are printed.  Replace `TESTNAME` with the name of the test you are runnning.
+to see the ports as they are printed.  Replace `TESTNAME` with the name of the test you are running.
 
 For a bit more insight, see the `before()` method of [MiniAccumuloTester][].
 

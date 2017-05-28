@@ -40,7 +40,7 @@
     <DBinit.path.libextZip>graphulo-${project.version}-libext</DBinit.path.libextZip>
     <test>TEST_CONFIG</test>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <accumulo.version>1.8.0</accumulo.version>
+    <accumulo.version>1.8.1</accumulo.version>
     <accumulo.version.majorminor>1.8</accumulo.version.majorminor>
     <!--<accumulo.VERSION.1.7>  </accumulo.VERSION.1.7>-->
     <!--<accumulo.VERSION.1.6>//</accumulo.VERSION.1.6>-->

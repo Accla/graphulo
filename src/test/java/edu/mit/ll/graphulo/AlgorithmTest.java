@@ -223,7 +223,8 @@ public class AlgorithmTest extends AccumuloTestBase {
   }
 
   private final static IntegerLexicoder INTEGER_LEXICODER = new IntegerLexicoder();
-  private final static Value VALUE_ONE = new Value(INTEGER_LEXICODER.encode(1));
+  // works with both String 1s and byte-encoded 1s. Does not work with non-1 Stings, but these are illegal in an unweighted adjacency matrix.
+  private final static Value VALUE_ONE = new Value("1".getBytes(StandardCharsets.UTF_8)); // new Value(INTEGER_LEXICODER.encode(1));
 
   @Test
   public void testTriCount()  throws TableNotFoundException, AccumuloSecurityException, AccumuloException {

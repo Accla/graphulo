@@ -2546,11 +2546,11 @@ public class Graphulo {
 
   /**
    *
-   * @param Aorig Adjacency matrix table
-   * @param filterRowCol
+   * @param Aorig Unweighted adjacency matrix table
+   * @param filterRowCol could be more efficient, at the moment. Need to push filter into Atmp.
    * @param Aauthorizations
    * @param RNewVisibility
-   * @param intermediateDurability
+   * @param intermediateDurability choices: none, log, flush, sync (default)
    * @return Number of triangles
    */
   public int triCount(final String Aorig,
@@ -2565,7 +2565,7 @@ public class Graphulo {
         "bad durability given: %s", intermediateDurability);
 
     try {
-      final String Atmp = Aorig + "_kTrussAdj_tmpA";
+      final String Atmp = Aorig + "_triCount_tmpA";
       deleteTables(Atmp);
 
       // determine if we will relax the durability of the intermediate tables
@@ -2594,7 +2594,7 @@ public class Graphulo {
       }
 
       final IteratorSetting agg = new IteratorSetting(1, IntSummingCombiner.class);
-      IntSummingCombiner.setEncodingType(agg, Type.BYTE);
+      IntSummingCombiner.setEncodingType(agg, Type.BYTE_ONE);
       IntSummingCombiner.setCombineAllColumns(agg, true);
 
       final IteratorSetting filterAndAgg = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, "filterAndAgg")
@@ -2618,7 +2618,7 @@ public class Graphulo {
 
 
       final IteratorSetting aggAll = new IteratorSetting(1, OddDivideIntSummingCombiner.class);
-      OddDivideIntSummingCombiner.setEncodingType(aggAll, Type.BYTE);
+      OddDivideIntSummingCombiner.setEncodingType(aggAll, Type.BYTE_ONE);
       OddDivideIntSummingCombiner.setCombineAllColumns(aggAll, true);
 
       // Iterator that filters away values less than an amount

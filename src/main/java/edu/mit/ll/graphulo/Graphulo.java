@@ -15,6 +15,7 @@ import edu.mit.ll.graphulo.reducer.SingleBFSReducer;
 import edu.mit.ll.graphulo.rowmult.CartesianRowMultiply;
 import edu.mit.ll.graphulo.rowmult.EdgeBFSMultiply;
 import edu.mit.ll.graphulo.rowmult.LineRowMultiply;
+import edu.mit.ll.graphulo.rowmult.UpperTriTwoJoin;
 import edu.mit.ll.graphulo.rowmult.MultiplyOp;
 import edu.mit.ll.graphulo.rowmult.SelectorRowMultiply;
 import edu.mit.ll.graphulo.simplemult.ConstantTwoScalar;
@@ -22,10 +23,13 @@ import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar.ScalarOp;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar.ScalarType;
 import edu.mit.ll.graphulo.skvi.CountAllIterator;
+import edu.mit.ll.graphulo.skvi.IntCombiner.Type;
+import edu.mit.ll.graphulo.skvi.IntSummingCombiner;
 import edu.mit.ll.graphulo.skvi.InverseMatrixIterator;
 import edu.mit.ll.graphulo.skvi.JaccardMultiplyIterator;
 import edu.mit.ll.graphulo.skvi.LruCacheIterator;
 import edu.mit.ll.graphulo.skvi.MinMaxFilter;
+import edu.mit.ll.graphulo.skvi.OddDivideIntSummingCombiner;
 import edu.mit.ll.graphulo.skvi.RemoteSourceIterator;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
 import edu.mit.ll.graphulo.skvi.SamplingFilter;
@@ -61,6 +65,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.lexicoder.IntegerLexicoder;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -93,6 +98,7 @@ import org.apache.log4j.Logger;
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.Map.Entry;
 
 import static edu.mit.ll.graphulo.skvi.TriangularFilter.TriangularType;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -114,6 +120,7 @@ public class Graphulo {
             MathTwoScalar.combinerSetting(6, null, ScalarOp.PLUS, ScalarType.LONG, false);
   public static final IteratorSetting PLUS_ITERATOR_DOUBLE =
       MathTwoScalar.combinerSetting(6, null, ScalarOp.PLUS, ScalarType.DOUBLE, false);
+  public static final IntegerLexicoder INTEGER_LEXICODER = new IntegerLexicoder();
 
   protected Connector connector;
   protected AuthenticationToken authenticationToken;
@@ -2535,6 +2542,116 @@ public class Graphulo {
       throw new RuntimeException(e);
     }
   }
+
+
+  /**
+   *
+   * @param Aorig Adjacency matrix table
+   * @param filterRowCol
+   * @param Aauthorizations
+   * @param RNewVisibility
+   * @param intermediateDurability
+   * @return Number of triangles
+   */
+  public int triCount(final String Aorig,
+                       final String filterRowCol,
+                       final Authorizations Aauthorizations, final String RNewVisibility,
+                       String intermediateDurability) {
+
+    checkGiven(true, "Aorig", Aorig);
+    final TableOperations tops = connector.tableOperations();
+    intermediateDurability = emptyToNull(intermediateDurability);
+    Preconditions.checkArgument(intermediateDurability == null || Durability.valueOf(intermediateDurability.toUpperCase()) != Durability.DEFAULT,
+        "bad durability given: %s", intermediateDurability);
+
+    try {
+      final String Atmp = Aorig + "_kTrussAdj_tmpA";
+      deleteTables(Atmp);
+
+      // determine if we will relax the durability of the intermediate tables
+      String AorigDur = null;
+      if (intermediateDurability != null) {
+        for (Map.Entry<String, String> e : tops.getProperties(Aorig)) {
+          if (e.getKey().equals(TABLE_DURABILITY)) {
+            String v = e.getValue();
+            if (!v.equalsIgnoreCase(intermediateDurability)) {
+              AorigDur = e.getValue();
+            } else
+              intermediateDurability = null; // use the same as the existing durability; no special changes needed
+          }
+        }
+      }
+
+
+      final IteratorSetting upperTriangleFilter = TriangularFilter.iteratorSetting(1, TriangularType.Upper);
+      GraphuloUtil.applyIteratorSoft(upperTriangleFilter, tops, Aorig);
+
+//      if (filterRowCol == null)
+      {
+        final Map<String, String> propsToSet = intermediateDurability == null ? null : Collections.singletonMap(TABLE_DURABILITY, intermediateDurability);
+        tops.clone(Aorig, Atmp, true, propsToSet, null);
+        // this copies upperTriangleFilter
+      }
+
+      final IteratorSetting agg = new IteratorSetting(1, IntSummingCombiner.class);
+      IntSummingCombiner.setEncodingType(agg, Type.BYTE);
+      IntSummingCombiner.setCombineAllColumns(agg, true);
+
+      final IteratorSetting filterAndAgg = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, "filterAndAgg")
+          .append(upperTriangleFilter)
+          .append(agg)
+          .toIteratorSetting();
+
+      final Map<String,String> opt = new HashMap<>();
+      opt.put("rowMultiplyOp", UpperTriTwoJoin.class.getName());
+
+
+      final long tBegin = System.currentTimeMillis();
+      final long npp = TwoTable(TwoTableIterator.CLONESOURCE_TABLENAME, Aorig, Atmp, null,
+          -1, TwoTableIterator.DOTMODE.ROW, opt, filterAndAgg,
+          filterRowCol, filterRowCol, filterRowCol,
+          false, false, null, null, null,
+          null, null,
+          -1, Aauthorizations, Aauthorizations);
+      System.out.println("npp "+npp+" Self-multiply time: "+(System.currentTimeMillis() - tBegin)/1000.0);
+
+
+
+      final IteratorSetting aggAll = new IteratorSetting(1, OddDivideIntSummingCombiner.class);
+      OddDivideIntSummingCombiner.setEncodingType(aggAll, Type.BYTE);
+      OddDivideIntSummingCombiner.setCombineAllColumns(aggAll, true);
+
+      // Iterator that filters away values less than an amount
+      final IteratorSetting filterAndReduce = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY + 1, "filterAndReduce",
+          EnumSet.of(DynamicIteratorSetting.MyIteratorScope.SCAN))
+          .append(KeyRetainOnlyApply.iteratorSetting(1, null)) // reduce entries to seek start key; requires final summing at client
+          .append(aggAll)
+          .toIteratorSetting();
+
+      int triangles = 0;
+      final long tBegin2 = System.currentTimeMillis();
+      try (final BatchScanner bs = connector.createBatchScanner(Atmp, Aauthorizations, 50)) {
+        bs.addScanIterator(filterAndReduce);
+        bs.setRanges(Collections.singleton(new Range()));
+        for (Entry<Key, Value> e : bs) {
+          final int tri = INTEGER_LEXICODER.decode(e.getValue().get());
+          System.out.println("received: "+tri);
+          triangles += tri;
+        }
+      }
+      System.out.println("AggAll time: "+(System.currentTimeMillis() - tBegin2)/1000.0);
+      System.out.println("Triangles: "+triangles);
+      return triangles;
+
+    } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
+      log.error("", e);
+      throw new RuntimeException(e);
+    }
+
+  }
+
+
+
 
   /**
    * This version pulls the adjacency table into client memory.

@@ -3,6 +3,7 @@ package edu.mit.ll.graphulo.apply;
 import com.google.common.collect.Iterators;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.lexicoder.IntegerLexicoder;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -61,9 +62,10 @@ public class KeyRetainOnlyApply implements ApplyOp {
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
     parseOptions(options);
   }
-
+  private final static IntegerLexicoder INTEGER_LEXICODER = new IntegerLexicoder();
   @Override
   public Iterator<? extends Map.Entry<Key, Value>> apply(Key k, Value v) {
+//    log.info("keyretainonlyapply see "+k.toStringNoTime()+" -> "+INTEGER_LEXICODER.decode(v.get()));
     Key knew;
     if (pk == null)
       knew = seekStartKey;

@@ -11,6 +11,7 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.lexicoder.IntegerLexicoder;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -65,7 +66,7 @@ public class AlgorithmTest extends AccumuloTestBase {
 
 
   private void testkTrussAdj_Inner(KTrussAdjAlg alg) throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
-    Connector conn = tester.getConnector();
+    final Connector conn = tester.getConnector();
     final String tA, tR;
     {
       String[] names = getUniqueNames(2);
@@ -219,6 +220,37 @@ public class AlgorithmTest extends AccumuloTestBase {
 
     conn.tableOperations().delete(tA);
     conn.tableOperations().delete(tR);
+  }
+
+  private final static IntegerLexicoder INTEGER_LEXICODER = new IntegerLexicoder();
+  private final static Value VALUE_ONE = new Value(INTEGER_LEXICODER.encode(1));
+
+  @Test
+  public void testTriCount()  throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    final Connector conn = tester.getConnector();
+    final String tA = getUniqueNames(1)[0];
+
+    {
+      final Map<Key, Value> input = new HashMap<>();
+      input.put(new Key("v1", "", "v2"), VALUE_ONE);
+      input.put(new Key("v1", "", "v3"), VALUE_ONE);
+      input.put(new Key("v1", "", "v4"), VALUE_ONE);
+      input.put(new Key("v2", "", "v3"), VALUE_ONE);
+      input.put(new Key("v3", "", "v4"), VALUE_ONE);
+      input.putAll(GraphuloUtil.transposeMap(input));
+//      expect.putAll(input);
+      input.put(new Key("v2", "", "v5"), VALUE_ONE);
+      input.put(new Key("v5", "", "v2"), VALUE_ONE);
+      SortedSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("v15"));
+      TestUtil.createTestTable(conn, tA, splits, input);
+    }
+    {
+      final Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+      final int triangles = graphulo.triCount(tA, null, Authorizations.EMPTY, null, null);
+      log.info("triCount " + triangles + " triangles");
+      Assert.assertEquals(2, triangles);
+    }
   }
 
 

@@ -2555,11 +2555,12 @@ public class Graphulo {
    */
   public int triCount(final String Aorig,
                        final String filterRowCol,
-                       final Authorizations Aauthorizations, final String RNewVisibility,
+                       Authorizations Aauthorizations, final String RNewVisibility,
                        String intermediateDurability) {
 
     checkGiven(true, "Aorig", Aorig);
     final TableOperations tops = connector.tableOperations();
+    Aauthorizations = Aauthorizations == null ? Authorizations.EMPTY : Aauthorizations;
     intermediateDurability = emptyToNull(intermediateDurability);
     Preconditions.checkArgument(intermediateDurability == null || Durability.valueOf(intermediateDurability.toUpperCase()) != Durability.DEFAULT,
         "bad durability given: %s", intermediateDurability);

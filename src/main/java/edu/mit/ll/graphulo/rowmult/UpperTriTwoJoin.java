@@ -1,5 +1,6 @@
 package edu.mit.ll.graphulo.rowmult;
 
+import com.google.common.primitives.Ints;
 import edu.mit.ll.graphulo.util.PeekingIterator1;
 import edu.mit.ll.graphulo.util.SKVIRowIteratorNoValues;
 import org.apache.accumulo.core.client.lexicoder.IntegerLexicoder;
@@ -26,15 +27,21 @@ import static edu.mit.ll.graphulo.rowmult.CartesianRowMultiply.readRowColumnsNoV
  */
 public class UpperTriTwoJoin implements RowMultiplyOp {
   private static final Logger log = LogManager.getLogger(UpperTriTwoJoin.class);
+  public static final String MAGIC = "magic";
+  private boolean magic = false;
 
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
+    if( options.containsKey(MAGIC) )
+      magic = Boolean.parseBoolean(options.get(MAGIC));
   }
+
 
   private static final Text EMPTY_TEXT = new Text();
   private static final TypedValueCombiner.Encoder<Integer> LEX = new IntegerLexicoder();
   private static final byte[] ZERO_BYTE = new byte[] { 0x00 };
   private static final Value VALUE_TWO = new Value(LEX.encode(2));
+  private static final Value VALUE_TWO_MAGIC = new Value(Ints.toByteArray(2));
 
   @Override
   public Iterator<Map.Entry<Key, Value>> multiplyRow(
@@ -95,6 +102,8 @@ public class UpperTriTwoJoin implements RowMultiplyOp {
       return ret;
     }
 
+    private final Text cola = new Text();
+
     private void prepNext() {
       Key eA;
       Text eB = itBreset.next();
@@ -107,7 +116,7 @@ public class UpperTriTwoJoin implements RowMultiplyOp {
       } else
         eA = itAonce.peek();
 
-      Text cola = eA.getColumnQualifier();
+      eA.getColumnQualifier(cola);
       Key nk = new Key(cola, EMPTY_TEXT, eB);
 //      long a = LEX.decode(eA.getValue().get());
 //      long b = LEX.decode(eB.getValue().get());
@@ -117,7 +126,7 @@ public class UpperTriTwoJoin implements RowMultiplyOp {
 
 //      log.info("LowerTiJoin emits "+nk.toStringNoTime()+" value "+VALUE_TWO);
 
-      nextEntry = new AbstractMap.SimpleImmutableEntry<>(nk, VALUE_TWO); // need to copy?
+      nextEntry = new AbstractMap.SimpleImmutableEntry<>(nk, magic ? VALUE_TWO_MAGIC : VALUE_TWO); // need to copy?
     }
 
     @Override

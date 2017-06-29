@@ -39,6 +39,8 @@ import edu.mit.ll.graphulo.skvi.TopColPerRowIterator;
 import edu.mit.ll.graphulo.skvi.TriangularFilter;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import edu.mit.ll.graphulo.skvi.ktruss.SmartKTrussFilterIterator;
+import edu.mit.ll.graphulo.tricount.IntegerEmptyLexicoder;
+import edu.mit.ll.graphulo.tricount.TriangularFilter_TriCountMagic;
 import edu.mit.ll.graphulo.util.DebugUtil;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.MTJUtil;
@@ -121,6 +123,7 @@ public class Graphulo {
   public static final IteratorSetting PLUS_ITERATOR_DOUBLE =
       MathTwoScalar.combinerSetting(6, null, ScalarOp.PLUS, ScalarType.DOUBLE, false);
   public static final IntegerLexicoder INTEGER_LEXICODER = new IntegerLexicoder();
+  public static final IntegerEmptyLexicoder INTEGER_EMPTY_LEXICODER = new IntegerEmptyLexicoder();
 
   protected Connector connector;
   protected AuthenticationToken authenticationToken;
@@ -2548,14 +2551,13 @@ public class Graphulo {
    *
    * @param Aorig Unweighted adjacency matrix table
    * @param filterRowCol could be more efficient, at the moment. Need to push filter into Atmp.
-   * @param Aauthorizations
-   * @param RNewVisibility
+   * @param Aauthorizations authorizations to scan Aorig
    * @param intermediateDurability choices: none, log, flush, sync (default)
    * @return Number of triangles
    */
   public int triCount(final String Aorig,
                        final String filterRowCol,
-                       Authorizations Aauthorizations, final String RNewVisibility,
+                       Authorizations Aauthorizations,
                        String intermediateDurability) {
 
     checkGiven(true, "Aorig", Aorig);
@@ -2570,14 +2572,15 @@ public class Graphulo {
       deleteTables(Atmp);
 
       // determine if we will relax the durability of the intermediate tables
-      String AorigDur = null;
+//      String AorigDur = null;
       if (intermediateDurability != null) {
         for (Map.Entry<String, String> e : tops.getProperties(Aorig)) {
           if (e.getKey().equals(TABLE_DURABILITY)) {
             String v = e.getValue();
-            if (!v.equalsIgnoreCase(intermediateDurability)) {
-              AorigDur = e.getValue();
-            } else
+//            if (!v.equalsIgnoreCase(intermediateDurability)) {
+////              AorigDur = e.getValue();
+//            } else
+            if (v.equalsIgnoreCase(intermediateDurability))
               intermediateDurability = null; // use the same as the existing durability; no special changes needed
           }
         }
@@ -2614,7 +2617,7 @@ public class Graphulo {
           false, false, null, null, null,
           null, null,
           -1, Aauthorizations, Aauthorizations);
-      System.out.println("npp "+npp+" Self-multiply time: "+(System.currentTimeMillis() - tBegin)/1000.0);
+      log.info("npp "+npp+" Self-multiply time: "+(System.currentTimeMillis() - tBegin)/1000.0);
 
 
 
@@ -2636,12 +2639,118 @@ public class Graphulo {
         bs.setRanges(Collections.singleton(new Range()));
         for (Entry<Key, Value> e : bs) {
           final int tri = INTEGER_LEXICODER.decode(e.getValue().get());
-          System.out.println("received: "+tri);
+          log.info("received: "+tri);
           triangles += tri;
         }
       }
-      System.out.println("AggAll time: "+(System.currentTimeMillis() - tBegin2)/1000.0);
-      System.out.println("Triangles: "+triangles);
+      log.info("AggAll time: "+(System.currentTimeMillis() - tBegin2)/1000.0);
+      log.info("Triangles: "+triangles);
+      return triangles;
+
+    } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
+      log.error("", e);
+      throw new RuntimeException(e);
+    }
+
+  }
+
+
+
+  /**
+   * Uses special byte on row to scatter entries.
+   * @param Aorig Unweighted adjacency matrix table
+   * @param filterRowCol could be more efficient, at the moment. Need to push filter into Atmp.
+   * @param Aauthorizations authorizations to scan Aorig
+   * @param intermediateDurability choices: none, log, flush, sync (default)
+   * @return Number of triangles
+   */
+  public int triCountMagic(final String Aorig,
+                      final String filterRowCol,
+                      Authorizations Aauthorizations,
+                      String intermediateDurability) {
+
+    checkGiven(true, "Aorig", Aorig);
+    final TableOperations tops = connector.tableOperations();
+    Aauthorizations = Aauthorizations == null ? Authorizations.EMPTY : Aauthorizations;
+    intermediateDurability = emptyToNull(intermediateDurability);
+    Preconditions.checkArgument(intermediateDurability == null || Durability.valueOf(intermediateDurability.toUpperCase()) != Durability.DEFAULT,
+        "bad durability given: %s", intermediateDurability);
+
+    try {
+      final String Atmp = Aorig + "_triCount_tmpA";
+      deleteTables(Atmp);
+
+      // determine if we will relax the durability of the intermediate tables
+//      String AorigDur = null;
+      if (intermediateDurability != null) {
+        for (Map.Entry<String, String> e : tops.getProperties(Aorig)) {
+          if (e.getKey().equals(TABLE_DURABILITY)) {
+            if (e.getValue().equalsIgnoreCase(intermediateDurability))
+              intermediateDurability = null; // use the same as the existing durability; no special changes needed
+          }
+        }
+      }
+
+
+      final IteratorSetting upperTriangleFilter = TriangularFilter_TriCountMagic.iteratorSetting(1, TriangularFilter_TriCountMagic.TriangularType.Upper);
+      GraphuloUtil.applyIteratorSoft(upperTriangleFilter, tops, Aorig);
+
+//      if (filterRowCol == null)
+      {
+        final Map<String, String> propsToSet = intermediateDurability == null ? null : Collections.singletonMap(TABLE_DURABILITY, intermediateDurability);
+        tops.clone(Aorig, Atmp, true, propsToSet, null);
+        // this copies upperTriangleFilter
+      }
+
+      final IteratorSetting agg = new IteratorSetting(1, IntSummingCombiner.class);
+      IntSummingCombiner.setEncodingType(agg, Type.BYTE_EMPTY);
+      IntSummingCombiner.setCombineAllColumns(agg, true);
+
+      final IteratorSetting filterAndAgg = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, "filterAndAgg")
+          .append(upperTriangleFilter)
+          .append(agg)
+          .toIteratorSetting();
+
+      final Map<String,String> opt = new HashMap<>();
+      opt.put("rowMultiplyOp", UpperTriTwoJoin.class.getName());
+      opt.put("rowMultiplyOp.opt."+UpperTriTwoJoin.MAGIC, Boolean.TRUE.toString());
+
+
+      final long tBegin = System.currentTimeMillis();
+      final long npp = TwoTable(TwoTableIterator.CLONESOURCE_TABLENAME, Aorig, Atmp, null,
+          -1, TwoTableIterator.DOTMODE.ROW, opt, filterAndAgg,
+          filterRowCol, filterRowCol, filterRowCol,
+          false, false, null, null, null,
+          null, null,
+          -1, Aauthorizations, Aauthorizations);
+      log.info("npp "+npp+" Self-multiply time: "+(System.currentTimeMillis() - tBegin)/1000.0);
+
+
+
+      final IteratorSetting aggAll = new IteratorSetting(1, OddDivideIntSummingCombiner.class);
+      OddDivideIntSummingCombiner.setEncodingType(aggAll, Type.BYTE_EMPTY);
+      OddDivideIntSummingCombiner.setCombineAllColumns(aggAll, true);
+
+      // Iterator that filters away values less than an amount
+      final IteratorSetting filterAndReduce = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY + 1, "filterAndReduce",
+          EnumSet.of(DynamicIteratorSetting.MyIteratorScope.SCAN))
+          .append(KeyRetainOnlyApply.iteratorSetting(1, null)) // reduce entries to seek start key; requires final summing at client
+          .append(aggAll)
+          .toIteratorSetting();
+
+      int triangles = 0;
+      final long tBegin2 = System.currentTimeMillis();
+      try (final BatchScanner bs = connector.createBatchScanner(Atmp, Aauthorizations, 50)) {
+        bs.setRanges(Collections.singleton(new Range()));
+        bs.addScanIterator(filterAndReduce);
+        for (Entry<Key, Value> e : bs) {
+          final int tri = INTEGER_EMPTY_LEXICODER.decode(e.getValue().get());
+          log.info("received: "+tri);
+          triangles += tri;
+        }
+      }
+      log.info("AggAll time: "+(System.currentTimeMillis() - tBegin2)/1000.0);
+      log.info("Triangles: "+triangles);
       return triangles;
 
     } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {

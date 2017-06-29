@@ -16,6 +16,7 @@
  */
 package edu.mit.ll.graphulo.skvi;
 
+import edu.mit.ll.graphulo.tricount.IntegerEmptyLexicoder;
 import edu.mit.ll.graphulo.util.IntegerOneLexicoder;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.lexicoder.IntegerLexicoder;
@@ -44,6 +45,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public abstract class IntCombiner extends TypedValueCombiner<Integer> {
   public static final Encoder<Integer> BYTE_ENCODER = new IntegerLexicoder(); // attempt 1.6 compat
   public static final Encoder<Integer> BYTE_ONE_ENCODER = new IntegerOneLexicoder(); // attempt 1.6 compat
+  public static final Encoder<Integer> BYTE_EMPTY_ENCODER = new IntegerEmptyLexicoder(); // attempt 1.6 compat
   public static final Encoder<Integer> STRING_ENCODER = new StringEncoder();
 
   protected static final String TYPE = "type";
@@ -59,6 +61,11 @@ public abstract class IntCombiner extends TypedValueCombiner<Integer> {
      * except that it checks for the presence of "1".
      */
     BYTE_ONE,
+    /**
+     * indicates a variable-length encoding of an Integer using {@link org.apache.accumulo.core.client.lexicoder.IntegerLexicoder}
+     * except that it treats empty values as "0".
+     */
+    BYTE_EMPTY,
     /**
      * indicates a string representation of an Integer using {@link IntCombiner.StringEncoder}
      */
@@ -85,6 +92,9 @@ public abstract class IntCombiner extends TypedValueCombiner<Integer> {
           return;
         case BYTE_ONE:
           setEncoder(BYTE_ONE_ENCODER);
+          return;
+        case BYTE_EMPTY:
+          setEncoder(BYTE_EMPTY_ENCODER);
           return;
         case STRING:
           setEncoder(STRING_ENCODER);

@@ -16,18 +16,13 @@
  */
 package edu.mit.ll.graphulo.util;
 
-import org.apache.accumulo.core.client.lexicoder.IntegerLexicoder;
-import org.apache.accumulo.core.client.lexicoder.UIntegerLexicoder;
 import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 
 /**
  * A lexicoder for signed integers. The encoding sorts Integer.MIN_VALUE first and Integer.MAX_VALUE last. The encoding sorts -2 before -1. It corresponds to
  * the sort order of Integer.
- *
- * @since 1.6.0
  */
 public class IntegerOneLexicoder extends AbstractLexicoder<Integer> {
 
@@ -89,11 +84,6 @@ public class IntegerOneLexicoder extends AbstractLexicoder<Integer> {
 
     return ret;
 
-  }
-
-  private Integer decodeUIL(byte[] b) {
-    // This concrete implementation is provided for binary compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
-    return super.decode(b);
   }
 
     private Integer decodeUncheckedUIL(byte[] data, int offset, int len) {

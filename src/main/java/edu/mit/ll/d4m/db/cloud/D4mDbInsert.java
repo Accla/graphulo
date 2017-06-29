@@ -17,7 +17,7 @@ public class D4mDbInsert extends D4mParent {
 	// used to control special behavior in AccumuloInsert
   public static boolean MagicInsert = false;
   @SuppressWarnings("unused")
-  public void setMagicInsert(boolean magicInsert) {
+  public static void setMagicInsert(boolean magicInsert) {
   	MagicInsert = magicInsert;
 	}
 	@SuppressWarnings("unused")

@@ -1521,6 +1521,7 @@ public class Graphulo {
    * @param numEntriesPerTablet desired #entries per tablet = (total #entries in table) / (#desired tablets)
    * @return String with the split points with a newline separator, e.g. "ca\nf\nq\n"
    */
+  @SuppressWarnings("unused")
   public String findEvenSplits(String table, int numSplitPoints, int numEntriesPerTablet) {
     if (numSplitPoints < 0)
       throw new IllegalArgumentException("numSplitPoints: " + numSplitPoints);
@@ -1550,6 +1551,35 @@ public class Graphulo {
     }
     scan.close();
     return sb.toString();
+  }
+
+
+  /**
+   * Set uniformly spaced splits across the bytes.
+   * Max 255.
+   *
+   * @param numSplitPoints      # of desired tablets = numSplitPoints+1
+   * @return String with the split points with a newline separator, e.g. "ca\nf\nq\n"
+   */
+  @SuppressWarnings("unused")
+  public String setUniformSplits(String table, int numSplitPoints) throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    if (numSplitPoints < 0)
+      throw new IllegalArgumentException("numSplitPoints: " + numSplitPoints);
+    if (numSplitPoints == 0)
+      return "";
+    if (numSplitPoints > 255)
+      throw new IllegalArgumentException("too many splits for numSplitPoints: " + numSplitPoints);
+
+    SortedSet<Text> set = new TreeSet<>();
+    final int mul = 256 / (numSplitPoints+1);
+    for (int i = 1; i <= numSplitPoints; i++) {
+      final int pt = i*mul;
+      set.add(new Text(new byte[]{(byte)(pt & 0xFF)}));
+    }
+
+    connector.tableOperations().addSplits(table, set);
+
+    return set.toString();
   }
 
 
@@ -2597,14 +2627,14 @@ public class Graphulo {
         // this copies upperTriangleFilter
       }
 
-      final IteratorSetting agg = new IteratorSetting(1, IntSummingCombiner.class);
+      final IteratorSetting agg = new IteratorSetting(DEFAULT_COMBINER_PRIORITY, "agg", IntSummingCombiner.class);
       IntSummingCombiner.setEncodingType(agg, Type.BYTE_ONE);
       IntSummingCombiner.setCombineAllColumns(agg, true);
 
-      final IteratorSetting filterAndAgg = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, "filterAndAgg")
-          .append(upperTriangleFilter)
-          .append(agg)
-          .toIteratorSetting();
+//      final IteratorSetting filterAndAgg = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, "filterAndAgg")
+////          .append(upperTriangleFilter)
+//          .append(agg)
+//          .toIteratorSetting();
 
       final Map<String,String> opt = new HashMap<>();
       opt.put("rowMultiplyOp", UpperTriTwoJoin.class.getName());
@@ -2612,7 +2642,7 @@ public class Graphulo {
 
       final long tBegin = System.currentTimeMillis();
       final long npp = TwoTable(TwoTableIterator.CLONESOURCE_TABLENAME, Aorig, Atmp, null,
-          -1, TwoTableIterator.DOTMODE.ROW, opt, filterAndAgg,
+          -1, TwoTableIterator.DOTMODE.ROW, opt, agg,
           filterRowCol, filterRowCol, filterRowCol,
           false, false, null, null, null,
           null, null,
@@ -2702,14 +2732,14 @@ public class Graphulo {
         // this copies upperTriangleFilter
       }
 
-      final IteratorSetting agg = new IteratorSetting(1, IntSummingCombiner.class);
+      final IteratorSetting agg = new IteratorSetting(DEFAULT_COMBINER_PRIORITY, "agg", IntSummingCombiner.class);
       IntSummingCombiner.setEncodingType(agg, Type.BYTE_EMPTY);
       IntSummingCombiner.setCombineAllColumns(agg, true);
 
-      final IteratorSetting filterAndAgg = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, "filterAndAgg")
-          .append(upperTriangleFilter)
-          .append(agg)
-          .toIteratorSetting();
+//      final IteratorSetting filterAndAgg = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, "filterAndAgg")
+////          .append(upperTriangleFilter)
+//          .append(agg)
+//          .toIteratorSetting();
 
       final Map<String,String> opt = new HashMap<>();
       opt.put("rowMultiplyOp", UpperTriTwoJoin.class.getName());
@@ -2718,7 +2748,7 @@ public class Graphulo {
 
       final long tBegin = System.currentTimeMillis();
       final long npp = TwoTable(TwoTableIterator.CLONESOURCE_TABLENAME, Aorig, Atmp, null,
-          -1, TwoTableIterator.DOTMODE.ROW, opt, filterAndAgg,
+          -1, TwoTableIterator.DOTMODE.ROW, opt, agg,
           filterRowCol, filterRowCol, filterRowCol,
           false, false, null, null, null,
           null, null,

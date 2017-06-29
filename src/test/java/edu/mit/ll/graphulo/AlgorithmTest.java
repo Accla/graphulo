@@ -327,8 +327,6 @@ public class AlgorithmTest extends AccumuloTestBase {
       input.put(new Key(encodeRowNum(4), EMPTY_BYTES, encodeColQ(1)), VALUE_EMPTY);
       input.put(new Key(encodeRowNum(3), EMPTY_BYTES, encodeColQ(2)), VALUE_EMPTY);
       input.put(new Key(encodeRowNum(4), EMPTY_BYTES, encodeColQ(3)), VALUE_EMPTY);
-      input.putAll(GraphuloUtil.transposeMap(input));
-//      expect.putAll(input);
       input.put(new Key(encodeRowNum(2), EMPTY_BYTES, encodeColQ(5)), VALUE_EMPTY);
       input.put(new Key(encodeRowNum(5), EMPTY_BYTES, encodeColQ(2)), VALUE_EMPTY);
       SortedSet<Text> splits = new TreeSet<>();

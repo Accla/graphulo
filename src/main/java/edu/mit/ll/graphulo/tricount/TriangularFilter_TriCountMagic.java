@@ -14,7 +14,7 @@ import java.util.Arrays;
 import java.util.Map;
 
 /**
- * Like {@link edu.mit.ll.graphulo.skvi.TriangularFilter}, except that it skips the first byte of the row.
+ * Like {@link edu.mit.ll.graphulo.skvi.TriangularFilter}, except that it skips the first byte of the row if the row has length 5.
  */
 public class TriangularFilter_TriCountMagic extends Filter {
 
@@ -41,11 +41,15 @@ public class TriangularFilter_TriCountMagic extends Filter {
     final ByteSequence ro = k.getRowData();
     final ByteSequence cq = k.getColumnQualifierData();
     final int cmp;
-    if( ro.isBackedByArray() && cq.isBackedByArray() )
-      cmp = WritableComparator.compareBytes(ro.getBackingArray(), ro.offset() + 1, ro.length() - 1, cq.getBackingArray(), cq.offset(), cq.length());
-    else
-      cmp = compareBytesMagic(ro, cq);
-//    int cmp = k.getRowData().compareTo(k.getColumnQualifierData());
+//    if( ro.length() == 5 ) {
+      if (ro.isBackedByArray() && cq.isBackedByArray())
+        cmp = WritableComparator.compareBytes(ro.getBackingArray(), ro.offset() + 1, ro.length() - 1, cq.getBackingArray(), cq.offset(), cq.length());
+      else
+        cmp = compareBytesMagic(ro, cq);
+//    }
+//    else
+//      cmp = ro.compareTo(cq);
+//    System.out.println(Arrays.toString(ro.toArray())+" x "+Arrays.toString(cq.toArray())+" ==> "+cmp);
     switch (triangularType) {
       case Upper: return cmp < 0;
       case UpperDiagonal: return cmp <= 0;
@@ -79,7 +83,7 @@ public class TriangularFilter_TriCountMagic extends Filter {
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
     io.setName(TriangularFilter_TriCountMagic.class.getCanonicalName());
-    io.setDescription("Filter based on relative ordering of row and column qualifier, skipping first byte of row");
+    io.setDescription("Filter based on relative ordering of row and column qualifier, skipping first byte of row if the row has length 5");
     io.addNamedOption(TRIANGULAR_TYPE, "TriangularFilter type: one of "+Arrays.toString(TriangularType.values())+", default "+triangularType);
     return io;
   }

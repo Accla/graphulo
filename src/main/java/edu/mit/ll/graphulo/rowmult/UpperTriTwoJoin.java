@@ -4,6 +4,7 @@ import com.google.common.primitives.Ints;
 import edu.mit.ll.graphulo.util.PeekingIterator1;
 import edu.mit.ll.graphulo.util.SKVIRowIteratorNoValues;
 import org.apache.accumulo.core.client.lexicoder.IntegerLexicoder;
+import org.apache.accumulo.core.client.lexicoder.UIntegerLexicoder;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -40,7 +41,7 @@ public class UpperTriTwoJoin implements RowMultiplyOp {
 
   private static final Text EMPTY_TEXT = new Text();
   private static final byte[] EMPTY_BYTES = new byte[0];
-  private static final TypedValueCombiner.Encoder<Integer> LEX = new IntegerLexicoder();
+  private static final TypedValueCombiner.Encoder<Integer> LEX = new UIntegerLexicoder();
   private static final byte[] ZERO_BYTE = new byte[] { 0x00 };
   private static final Value VALUE_TWO = new Value(LEX.encode(2));
   private static final Value VALUE_TWO_MAGIC = new Value(Ints.toByteArray(2));

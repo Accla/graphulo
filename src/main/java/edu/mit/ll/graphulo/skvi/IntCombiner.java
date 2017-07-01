@@ -58,12 +58,12 @@ public abstract class IntCombiner extends TypedValueCombiner<Integer> {
     BYTE,
     /**
      * indicates a variable-length encoding of an Integer using {@link org.apache.accumulo.core.client.lexicoder.IntegerLexicoder}
-     * except that it checks for the presence of "1".
+     * except that it checks for the presence of "1" and treats empty values as 1.
      */
     BYTE_ONE,
     /**
      * indicates a variable-length encoding of an Integer using {@link org.apache.accumulo.core.client.lexicoder.IntegerLexicoder}
-     * except that it treats empty values as "0".
+     * except that it treats empty values as "1".
      */
     BYTE_EMPTY,
     /**

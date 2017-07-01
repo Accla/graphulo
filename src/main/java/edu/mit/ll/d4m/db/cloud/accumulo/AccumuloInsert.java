@@ -5,6 +5,8 @@ package edu.mit.ll.d4m.db.cloud.accumulo;
 
 import edu.mit.ll.d4m.db.cloud.D4mDbInsert;
 import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.lexicoder.Lexicoder;
+import org.apache.accumulo.core.client.lexicoder.UIntegerLexicoder;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -125,8 +127,14 @@ public class AccumuloInsert extends D4mInsertBase {
 		bw.close();
 	}
 
+	private static final Lexicoder<Integer> LEX = new UIntegerLexicoder();
+
 	private static byte[] transformRow(final String str) {
 		if (D4mDbInsert.MagicInsert) {
+			final int i = Integer.parseInt(str);
+			return LEX.encode(i);
+		}
+		else if (D4mDbInsert.MagicInsert2) {
 			// parse String as int
 			// first byte is the last byte of the int, reversed
 			final int i = Integer.parseInt(str);
@@ -141,7 +149,10 @@ public class AccumuloInsert extends D4mInsertBase {
 			return str.getBytes(StandardCharsets.UTF_8);
 	}
 	private static byte[] transformColQ(final String str) {
-		if( D4mDbInsert.MagicInsert ) {
+		if (D4mDbInsert.MagicInsert) {
+			final int i = Integer.parseInt(str);
+			return LEX.encode(i);
+		} else if( D4mDbInsert.MagicInsert ) {
 			final int i = Integer.parseInt(str);
 			return new byte[] {
 					(byte) (i >> 24),
@@ -153,7 +164,7 @@ public class AccumuloInsert extends D4mInsertBase {
 			return str.getBytes(StandardCharsets.UTF_8);
 	}
 	private static byte[] transformVal(final String str) {
-		if( D4mDbInsert.MagicInsert )
+		if( D4mDbInsert.MagicInsert || D4mDbInsert.MagicInsert2 )
 			return EMPTY_BYTES;
 		else
 			return str.getBytes(StandardCharsets.UTF_8);

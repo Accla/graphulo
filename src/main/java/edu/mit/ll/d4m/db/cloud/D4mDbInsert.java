@@ -15,14 +15,25 @@ public class D4mDbInsert extends D4mParent {
 	private static final Logger log = Logger.getLogger(D4mDbInsert.class);
 
 	// used to control special behavior in AccumuloInsert
-  public static boolean MagicInsert = false;
+  public static boolean MagicInsert = false; // set vals to empty; UIntegerLexicode
   @SuppressWarnings("unused")
   public static void setMagicInsert(boolean magicInsert) {
   	MagicInsert = magicInsert;
+		if( magicInsert ) MagicInsert2 = false;
 	}
 	@SuppressWarnings("unused")
 	public static boolean isMagicInsert() {
 		return MagicInsert;
+	}
+	public static boolean MagicInsert2 = false; // prepend shard byte to Row; set vals to empty; 4 bytes integer encode
+  @SuppressWarnings("unused")
+  public static void setMagicInsert2(boolean magicInsert2) {
+  	MagicInsert2 = magicInsert2;
+  	if( magicInsert2 ) MagicInsert = false;
+	}
+	@SuppressWarnings("unused")
+	public static boolean isMagicInsert2() {
+		return MagicInsert2;
 	}
 
 	private String tableName = "";

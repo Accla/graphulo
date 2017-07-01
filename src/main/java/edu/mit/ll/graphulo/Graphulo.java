@@ -67,7 +67,8 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.lexicoder.IntegerLexicoder;
+import org.apache.accumulo.core.client.lexicoder.Lexicoder;
+import org.apache.accumulo.core.client.lexicoder.UIntegerLexicoder;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -122,7 +123,7 @@ public class Graphulo {
             MathTwoScalar.combinerSetting(6, null, ScalarOp.PLUS, ScalarType.LONG, false);
   public static final IteratorSetting PLUS_ITERATOR_DOUBLE =
       MathTwoScalar.combinerSetting(6, null, ScalarOp.PLUS, ScalarType.DOUBLE, false);
-  public static final IntegerLexicoder INTEGER_LEXICODER = new IntegerLexicoder();
+  public static final Lexicoder<Integer> UINTEGER_LEXICODER = new UIntegerLexicoder();
   public static final IntegerEmptyLexicoder INTEGER_EMPTY_LEXICODER = new IntegerEmptyLexicoder();
 
   protected Connector connector;
@@ -2586,9 +2587,25 @@ public class Graphulo {
    * @return Number of triangles
    */
   public int triCount(final String Aorig,
-                       final String filterRowCol,
-                       Authorizations Aauthorizations,
-                       String intermediateDurability) {
+                      final String filterRowCol,
+                      Authorizations Aauthorizations,
+                      String intermediateDurability) {
+    return triCount(Aorig, filterRowCol, Aauthorizations, intermediateDurability, null);
+  }
+
+  /**
+   *
+   * @param Aorig Unweighted adjacency matrix table
+   * @param filterRowCol could be more efficient, at the moment. Need to push filter into Atmp.
+   * @param Aauthorizations authorizations to scan Aorig
+   * @param intermediateDurability choices: none, log, flush, sync (default)
+   * @param specialLongList A list appended with the number of partial products seen in the multiply step. Ignored if null.
+   * @return Number of triangles
+   */
+  public int triCount(final String Aorig,
+                      final String filterRowCol,
+                      Authorizations Aauthorizations,
+                      String intermediateDurability, List<Long> specialLongList) {
 
     checkGiven(true, "Aorig", Aorig);
     final TableOperations tops = connector.tableOperations();
@@ -2648,6 +2665,7 @@ public class Graphulo {
           null, null,
           -1, Aauthorizations, Aauthorizations);
       log.info("npp "+npp+" Self-multiply time: "+(System.currentTimeMillis() - tBegin)/1000.0);
+      if( specialLongList != null ) specialLongList.add(npp);
 
 
 
@@ -2668,7 +2686,7 @@ public class Graphulo {
         bs.addScanIterator(filterAndReduce);
         bs.setRanges(Collections.singleton(new Range()));
         for (Entry<Key, Value> e : bs) {
-          final int tri = INTEGER_LEXICODER.decode(e.getValue().get());
+          final int tri = UINTEGER_LEXICODER.decode(e.getValue().get());
           log.info("received: "+tri);
           triangles += tri;
         }
@@ -2685,7 +2703,6 @@ public class Graphulo {
   }
 
 
-
   /**
    * Uses special byte on row to scatter entries.
    * @param Aorig Unweighted adjacency matrix table
@@ -2694,10 +2711,26 @@ public class Graphulo {
    * @param intermediateDurability choices: none, log, flush, sync (default)
    * @return Number of triangles
    */
-  public int triCountMagic(final String Aorig,
-                      final String filterRowCol,
-                      Authorizations Aauthorizations,
-                      String intermediateDurability) {
+  public int triCountMagic2(final String Aorig,
+                            final String filterRowCol,
+                            Authorizations Aauthorizations,
+                            String intermediateDurability) {
+    return triCountMagic2(Aorig, filterRowCol, Aauthorizations, intermediateDurability, null);
+  }
+
+  /**
+   * Uses special byte on row to scatter entries.
+   * @param Aorig Unweighted adjacency matrix table
+   * @param filterRowCol could be more efficient, at the moment. Need to push filter into Atmp.
+   * @param Aauthorizations authorizations to scan Aorig
+   * @param intermediateDurability choices: none, log, flush, sync (default)
+   * @param specialLongList A list appended with the number of partial products seen in the multiply step. Ignored if null.
+   * @return Number of triangles
+   */
+  public int triCountMagic2(final String Aorig,
+                            final String filterRowCol,
+                            Authorizations Aauthorizations,
+                            String intermediateDurability, List<Long> specialLongList) {
 
     checkGiven(true, "Aorig", Aorig);
     final TableOperations tops = connector.tableOperations();
@@ -2754,7 +2787,7 @@ public class Graphulo {
           null, null,
           -1, Aauthorizations, Aauthorizations);
       log.info("npp "+npp+" Self-multiply time: "+(System.currentTimeMillis() - tBegin)/1000.0);
-
+      if( specialLongList != null ) specialLongList.add(npp);
 
 
       final IteratorSetting aggAll = new IteratorSetting(1, OddDivideIntSummingCombiner.class);

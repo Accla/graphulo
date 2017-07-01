@@ -21,14 +21,14 @@ import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
 import java.nio.charset.StandardCharsets;
 
 /**
- * A lexicoder for signed integers. The encoding sorts Integer.MIN_VALUE first and Integer.MAX_VALUE last. The encoding sorts -2 before -1. It corresponds to
+ * A lexicoder for unsigned integers. The encoding sorts Integer.MIN_VALUE first and Integer.MAX_VALUE last. The encoding sorts -2 before -1. It corresponds to
  * the sort order of Integer.
  */
 public class IntegerOneLexicoder extends AbstractLexicoder<Integer> {
 
   @Override
   public byte[] encode(Integer i) {
-    return encodeUIL(i ^ 0x80000000);
+    return encodeUIL(i);
   }
 
   private static final byte[] STRING_ONE = "1".getBytes(StandardCharsets.UTF_8);
@@ -41,9 +41,9 @@ public class IntegerOneLexicoder extends AbstractLexicoder<Integer> {
 
   @Override
   protected Integer decodeUnchecked(byte[] data, int offset, int len) {
-    if( arrayEqualsOne(data, offset, len) )
+    if( data.length == 0 || arrayEqualsOne(data, offset, len) )
       return 1;
-    return decodeUncheckedUIL(data, offset, len) ^ 0x80000000;
+    return decodeUncheckedUIL(data, offset, len);
   }
 
   private static boolean arrayEqualsOne(

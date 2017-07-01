@@ -2,7 +2,6 @@ package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
-import edu.mit.ll.graphulo.util.DebugUtil;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.TestUtil;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -226,7 +225,7 @@ public class AlgorithmTest extends AccumuloTestBase {
 
   private final static IntegerLexicoder INTEGER_LEXICODER = new IntegerLexicoder();
   // works with both String 1s and byte-encoded 1s. Does not work with non-1 Stings, but these are illegal in an unweighted adjacency matrix.
-  private final static Value VALUE_ONE = new Value("1".getBytes(StandardCharsets.UTF_8)); // new Value(INTEGER_LEXICODER.encode(1));
+  private final static Value VALUE_ONE = new Value("1".getBytes(StandardCharsets.UTF_8)); // new Value(UINTEGER_LEXICODER.encode(1));
   private final static Value VALUE_EMPTY = new Value();
 
   @Test
@@ -311,7 +310,7 @@ public class AlgorithmTest extends AccumuloTestBase {
   };
 
   @Test
-  public void testTriCountMagic()  throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+  public void testTriCountMagic2()  throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
     final Connector conn = tester.getConnector();
     final String tA = getUniqueNames(1)[0];
 
@@ -337,7 +336,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
     {
       final Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      final int triangles = graphulo.triCountMagic(tA, null, Authorizations.EMPTY, null);
+      final int triangles = graphulo.triCountMagic2(tA, null, Authorizations.EMPTY, null);
       log.info("triCount " + triangles + " triangles");
       Assert.assertEquals(2, triangles);
     }

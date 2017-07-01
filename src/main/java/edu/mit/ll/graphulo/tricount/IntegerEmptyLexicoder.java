@@ -30,7 +30,7 @@ public class IntegerEmptyLexicoder extends AbstractLexicoder<Integer> {
 
   @Override
   public byte[] encode(Integer i) {
-    if (i == 0) return EMPTY_BYTES;
+    if (i == 1) return EMPTY_BYTES;
     return new byte[] {
         (byte) (i >> 24),
         (byte) (i >> 16),

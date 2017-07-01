@@ -30,6 +30,7 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import static edu.mit.ll.graphulo.Graphulo.TRICOUNT_TEMP_TABLE_SUFFIX;
 import static edu.mit.ll.graphulo.util.GraphuloUtil.EMPTY_BYTES;
 
 /**
@@ -254,6 +255,7 @@ public class AlgorithmTest extends AccumuloTestBase {
       log.info("triCount " + triangles + " triangles");
       Assert.assertEquals(2, triangles);
     }
+    GraphuloUtil.deleteTables(conn, tA, tA+TRICOUNT_TEMP_TABLE_SUFFIX);
   }
 
   private byte[] encodeRowNum(int i) {
@@ -340,6 +342,7 @@ public class AlgorithmTest extends AccumuloTestBase {
       log.info("triCount " + triangles + " triangles");
       Assert.assertEquals(2, triangles);
     }
+    GraphuloUtil.deleteTables(conn, tA, tA+TRICOUNT_TEMP_TABLE_SUFFIX);
   }
 
 

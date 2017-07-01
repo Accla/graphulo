@@ -2615,7 +2615,7 @@ public class Graphulo {
         "bad durability given: %s", intermediateDurability);
 
     try {
-      final String Atmp = Aorig + "_triCount_tmpA";
+      final String Atmp = Aorig + TRICOUNT_TEMP_TABLE_SUFFIX;
       deleteTables(Atmp);
 
       // determine if we will relax the durability of the intermediate tables
@@ -2702,6 +2702,8 @@ public class Graphulo {
 
   }
 
+  public static final String TRICOUNT_TEMP_TABLE_SUFFIX = "_triCount_tmpA";
+
 
   /**
    * Uses special byte on row to scatter entries.
@@ -2740,7 +2742,7 @@ public class Graphulo {
         "bad durability given: %s", intermediateDurability);
 
     try {
-      final String Atmp = Aorig + "_triCount_tmpA";
+      final String Atmp = Aorig + TRICOUNT_TEMP_TABLE_SUFFIX;
       deleteTables(Atmp);
 
       // determine if we will relax the durability of the intermediate tables

@@ -251,7 +251,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     }
     {
       final Graphulo graphulo = new Graphulo(conn, tester.getPassword());
-      final int triangles = graphulo.triCount(tA, null, Authorizations.EMPTY, null);
+      final long triangles = graphulo.triCount(tA, null, Authorizations.EMPTY, null);
       log.info("triCount " + triangles + " triangles");
       Assert.assertEquals(2, triangles);
     }

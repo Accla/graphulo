@@ -15,9 +15,9 @@ import edu.mit.ll.graphulo.reducer.SingleBFSReducer;
 import edu.mit.ll.graphulo.rowmult.CartesianRowMultiply;
 import edu.mit.ll.graphulo.rowmult.EdgeBFSMultiply;
 import edu.mit.ll.graphulo.rowmult.LineRowMultiply;
-import edu.mit.ll.graphulo.rowmult.UpperTriTwoJoin;
 import edu.mit.ll.graphulo.rowmult.MultiplyOp;
 import edu.mit.ll.graphulo.rowmult.SelectorRowMultiply;
+import edu.mit.ll.graphulo.rowmult.UpperTriTwoJoin;
 import edu.mit.ll.graphulo.simplemult.ConstantTwoScalar;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar.ScalarOp;
@@ -40,6 +40,8 @@ import edu.mit.ll.graphulo.skvi.TriangularFilter;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import edu.mit.ll.graphulo.skvi.ktruss.SmartKTrussFilterIterator;
 import edu.mit.ll.graphulo.tricount.IntegerEmptyLexicoder;
+import edu.mit.ll.graphulo.tricount.OddUntransformAgg;
+import edu.mit.ll.graphulo.tricount.PowerLawDegreeTriangleApply;
 import edu.mit.ll.graphulo.tricount.TriangularFilter_TriCountMagic;
 import edu.mit.ll.graphulo.util.DebugUtil;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
@@ -100,8 +102,24 @@ import org.apache.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.PriorityQueue;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import static edu.mit.ll.graphulo.skvi.TriangularFilter.TriangularType;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -126,8 +144,8 @@ public class Graphulo {
   public static final Lexicoder<Integer> UINTEGER_LEXICODER = new UIntegerLexicoder();
   public static final IntegerEmptyLexicoder INTEGER_EMPTY_LEXICODER = new IntegerEmptyLexicoder();
 
-  protected Connector connector;
-  protected AuthenticationToken authenticationToken;
+  protected final Connector connector;
+  protected final AuthenticationToken authenticationToken;
 
   public Graphulo(@Nonnull Connector connector, @Nonnull AuthenticationToken password) {
     this.connector = connector;
@@ -157,7 +175,7 @@ public class Graphulo {
     try {
       connector.tableOperations().testClassLoad(MetadataTable.NAME, RemoteWriteIterator.class.getName(), SortedKeyValueIterator.class.getName());
     } catch (AccumuloException | AccumuloSecurityException e) {
-      log.error("Problem loading a Graphulo class in Accumulo. Did you install the Graphulo JAR in the Accumulo server?", e);
+      log.error("Problem loading a Graphulo class in Accumulo. Did you install the Graphulo JAR in the Accumulo server under $ACCUMULO_HOME/lib/ext?", e);
       throw new RuntimeException(e);
     } catch (TableNotFoundException e) {
       log.error("No metadata table?", e);
@@ -1536,19 +1554,31 @@ public class Graphulo {
       log.error("Table does not exist: " + table, e);
       throw new RuntimeException(e);
     }
-    char sep = '\n';
+    final char sep = '\n';
     StringBuilder sb = new StringBuilder();
     Iterator<Map.Entry<Key, Value>> iterator = scan.iterator();
+    Map.Entry<Key, Value> entry = null;
     for (int sp = 0; sp < numSplitPoints; sp++) {
       for (int entnum = 0; entnum < numEntriesPerTablet - 1; entnum++) {
         if (!iterator.hasNext())
           throw new RuntimeException("not enough entries in table to split into " + (numSplitPoints + 1) + " tablets. Stopped after " + sp + " split points and " + entnum + " entries in the last split point");
-        iterator.next();
+        entry = iterator.next();
       }
       if (!iterator.hasNext())
         throw new RuntimeException("not enough entries in table to split into " + (numSplitPoints + 1) + " tablets. Stopped after " + sp + " split points and " + (numEntriesPerTablet - 1) + " entries in the last split point");
-      sb.append(iterator.next().getKey().getRow().toString())
-          .append(sep);
+      final byte[] bs = entry.getKey().getRowData().toArray();
+      final Text t;
+      if( bs.length == 0 || bs.length == 1 && bs[0] == 0 )
+        t = new Text(bs);
+      else if( bs[bs.length-1] == 0 ) {
+        t = new Text(Arrays.copyOf(bs, bs.length-1));
+      } else {
+        bs[bs.length-1]--;
+        t = new Text(bs);
+      }
+      System.out.println("split: "+Arrays.toString(bs));
+      sb.append(t.toString()).append(sep);
+      iterator.next();
     }
     scan.close();
     return sb.toString();
@@ -2577,6 +2607,112 @@ public class Graphulo {
     }
   }
 
+  public static final String PROP_TOTAL = "table.custom.total";
+
+  public void setDegreeTableTotal(final String degreeTable, final long total) {
+    try {
+      connector.tableOperations().setProperty(degreeTable, PROP_TOTAL, Long.toString(total));
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      log.error("problem setting table property "+PROP_TOTAL+" on table "+degreeTable+" to "+total, e);
+    }
+  }
+
+  public long getDegreeTableTotal(final String degreeTable) {
+    try {
+      final Iterable<Entry<String, String>> props = connector.tableOperations().getProperties(degreeTable);
+      for (Entry<String, String> prop : props) {
+        if( prop.getKey().equals(PROP_TOTAL) )
+          return Long.parseLong(prop.getValue());
+      }
+    } catch (TableNotFoundException | AccumuloException e) {
+      log.error("problem getting table properties for table "+degreeTable, e);
+    }
+    log.info("re-computing degree table total for "+degreeTable);
+    // assume prop has not been computed
+    final long total = sumAllPowerLawTriangle(degreeTable);
+    setDegreeTableTotal(degreeTable, total);
+    return total;
+  }
+
+  public long sumAllPowerLawTriangle(final String table) {
+    Objects.requireNonNull(table);
+
+    final BatchScanner bs;
+    try {
+      bs = connector.createBatchScanner(table, Authorizations.EMPTY, 50); // todo: 50 threads is arbitrary
+    } catch (TableNotFoundException e) {
+      log.error("table "+table+" does not exist", e);
+      throw new RuntimeException(e);
+    }
+
+    bs.setRanges(Collections.singleton(new Range()));
+    bs.addScanIterator(KeyRetainOnlyApply.iteratorSetting(28, null));
+    bs.addScanIterator(PowerLawDegreeTriangleApply.iteratorSetting(29));
+    final IteratorSetting itset = new IteratorSetting(30, "sumAllPowerLawTriangle", IntSummingCombiner.class);
+    IntSummingCombiner.setEncodingType(itset, Type.BYTE);
+    IntSummingCombiner.setCombineAllColumns(itset, true);
+    bs.addScanIterator(itset);
+
+    long cnt = 0L;
+    try {
+      for (Map.Entry<Key, Value> entry : bs) {
+        cnt += UINTEGER_LEXICODER.decode(entry.getValue().get());
+      }
+    } finally {
+      bs.close();
+    }
+    log.info("sumAllPowerLawTriangle: "+cnt);
+    return cnt;
+  }
+
+  public void setUIntegerLexicoder(final String table) {
+    final IteratorSetting itset = new IteratorSetting(1, "degreeSums", IntSummingCombiner.class);
+    IntSummingCombiner.setEncodingType(itset, Type.BYTE_ONE);
+    IntSummingCombiner.setCombineAllColumns(itset, true);
+    GraphuloUtil.applyIteratorSoft(itset, connector.tableOperations(), table);
+  }
+
+
+  public void setPowerLawTriangleSplits(final String degreeTable, final int numSplitPoints, final String mainTable) {
+    if (numSplitPoints < 0)
+      throw new IllegalArgumentException("numSplitPoints: " + numSplitPoints);
+    if (numSplitPoints == 0)
+      return;
+
+    final long tableNnz = getDegreeTableTotal(degreeTable);
+    final long threshold = tableNnz / (numSplitPoints+1);
+
+    final Scanner scan;
+    try {
+      scan = connector.createScanner(degreeTable, Authorizations.EMPTY);
+    } catch (TableNotFoundException e) {
+      log.error("Table does not exist: " + degreeTable, e);
+      throw new RuntimeException(e);
+    }
+    final SortedSet<Text> set = new TreeSet<>();
+    final Iterator<Map.Entry<Key, Value>> iterator = scan.iterator();
+    long cnt = 0L;
+    int splitsAdded = 0;
+
+    while (iterator.hasNext() && splitsAdded < numSplitPoints) {
+      final Entry<Key, Value> next = iterator.next();
+      final long thisCnt = UINTEGER_LEXICODER.decode(next.getValue().get());
+      cnt += thisCnt*(thisCnt-1)/2;
+      if( cnt >= threshold ) {
+        set.add(next.getKey().getRow());
+        splitsAdded++;
+        cnt = 0L;
+      }
+    }
+    scan.close();
+
+    try {
+      connector.tableOperations().addSplits(mainTable, set);
+    } catch (AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
+      log.error("cannot set splits "+set+" on main table "+mainTable, e);
+    }
+  }
+
 
   /**
    *
@@ -2586,7 +2722,7 @@ public class Graphulo {
    * @param intermediateDurability choices: none, log, flush, sync (default)
    * @return Number of triangles
    */
-  public int triCount(final String Aorig,
+  public long triCount(final String Aorig,
                       final String filterRowCol,
                       Authorizations Aauthorizations,
                       String intermediateDurability) {
@@ -2602,7 +2738,7 @@ public class Graphulo {
    * @param specialLongList A list appended with the number of partial products seen in the multiply step. Ignored if null.
    * @return Number of triangles
    */
-  public int triCount(final String Aorig,
+  public long triCount(final String Aorig,
                       final String filterRowCol,
                       Authorizations Aauthorizations,
                       String intermediateDurability, List<Long> specialLongList) {
@@ -2648,11 +2784,6 @@ public class Graphulo {
       IntSummingCombiner.setEncodingType(agg, Type.BYTE_ONE);
       IntSummingCombiner.setCombineAllColumns(agg, true);
 
-//      final IteratorSetting filterAndAgg = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, "filterAndAgg")
-////          .append(upperTriangleFilter)
-//          .append(agg)
-//          .toIteratorSetting();
-
       final Map<String,String> opt = new HashMap<>();
       opt.put("rowMultiplyOp", UpperTriTwoJoin.class.getName());
 
@@ -2669,28 +2800,14 @@ public class Graphulo {
 
 
 
-      final IteratorSetting aggAll = new IteratorSetting(1, OddDivideIntSummingCombiner.class);
-      OddDivideIntSummingCombiner.setEncodingType(aggAll, Type.BYTE_ONE);
-      OddDivideIntSummingCombiner.setCombineAllColumns(aggAll, true);
-
-      // Iterator that filters away values less than an amount
-      final IteratorSetting filterAndReduce = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY + 1, "filterAndReduce",
-          EnumSet.of(DynamicIteratorSetting.MyIteratorScope.SCAN))
-          .append(KeyRetainOnlyApply.iteratorSetting(1, null)) // reduce entries to seek start key; requires final summing at client
-          .append(aggAll)
-          .toIteratorSetting();
-
-      int triangles = 0;
+      final OddUntransformAgg reducer = new OddUntransformAgg();
+      reducer.init(null, null);
       final long tBegin2 = System.currentTimeMillis();
-      try (final BatchScanner bs = connector.createBatchScanner(Atmp, Aauthorizations, 50)) {
-        bs.addScanIterator(filterAndReduce);
-        bs.setRanges(Collections.singleton(new Range()));
-        for (Entry<Key, Value> e : bs) {
-          final int tri = UINTEGER_LEXICODER.decode(e.getValue().get());
-          log.info("received: "+tri);
-          triangles += tri;
-        }
-      }
+
+      OneTable(Atmp, null, null, null, -1, reducer, null,
+          null, null, null, null, null, Aauthorizations);
+
+      long triangles = reducer.getSerializableForClient();
       log.info("AggAll time: "+(System.currentTimeMillis() - tBegin2)/1000.0);
       log.info("Triangles: "+triangles);
       return triangles;

@@ -23,10 +23,12 @@ public class ApplyIterator implements SortedKeyValueIterator<Key, Value> {
   private static final Logger log = LogManager.getLogger(ApplyIterator.class);
 
   public static final String APPLYOP = "applyOp";
+  public static final String IGNORE_SEEK_EXCLUSIVE_START = "ignoreSeekExclusiveStart";
 
 
   private SortedKeyValueIterator<Key, Value> source;
   private ApplyOp applyOp;
+  private boolean ignoreSeekExclusiveStart = false;
   private Map<String,String> applyOpOptions = new HashMap<>();
 
   private PeekingIterator1<? extends Map.Entry<Key,Value>> topIterator;
@@ -41,6 +43,9 @@ public class ApplyIterator implements SortedKeyValueIterator<Key, Value> {
         switch (optionKey) {
           case APPLYOP:
             applyOp = GraphuloUtil.subclassNewInstance(optionValue, ApplyOp.class);
+            break;
+          case IGNORE_SEEK_EXCLUSIVE_START:
+            ignoreSeekExclusiveStart = Boolean.parseBoolean(optionValue);
             break;
           default:
             log.warn("Unrecognized option: " + optionEntry);
@@ -60,6 +65,11 @@ public class ApplyIterator implements SortedKeyValueIterator<Key, Value> {
 
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+//    log.info("apply seek: "+range);
+    if( ignoreSeekExclusiveStart && !range.isStartKeyInclusive() ) {
+      topIterator = PeekingIterator1.emptyIterator();
+      return;
+    }
     source.seek(range, columnFamilies, inclusive);
     applyOp.seekApplyOp(range, columnFamilies, inclusive);
     if (source.hasTop()) {

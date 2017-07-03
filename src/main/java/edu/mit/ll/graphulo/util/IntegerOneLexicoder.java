@@ -31,8 +31,6 @@ public class IntegerOneLexicoder extends AbstractLexicoder<Integer> {
     return encodeUIL(i);
   }
 
-  private static final byte[] STRING_ONE = "1".getBytes(StandardCharsets.UTF_8);
-
   @Override
   public Integer decode(byte[] b) {
     // This concrete implementation is provided for binary compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
@@ -45,6 +43,8 @@ public class IntegerOneLexicoder extends AbstractLexicoder<Integer> {
       return 1;
     return decodeUncheckedUIL(data, offset, len);
   }
+
+  private static final byte[] STRING_ONE = "1".getBytes(StandardCharsets.UTF_8);
 
   private static boolean arrayEqualsOne(
       final byte[] first,
@@ -60,7 +60,7 @@ public class IntegerOneLexicoder extends AbstractLexicoder<Integer> {
     return true;
   }
 
-  private byte[] encodeUIL(Integer i) {
+  private static byte[] encodeUIL(int i) {
     int shift = 56;
     int index;
     int prefix = i < 0 ? 0xff : 0x00;
@@ -86,7 +86,7 @@ public class IntegerOneLexicoder extends AbstractLexicoder<Integer> {
 
   }
 
-    private Integer decodeUncheckedUIL(byte[] data, int offset, int len) {
+    private static Integer decodeUncheckedUIL(byte[] data, int offset, int len) {
 
     if (data[offset] < 0 || data[offset] > 8)
       throw new IllegalArgumentException("Unexpected length " + (0xff & data[offset]));

@@ -165,7 +165,7 @@ public class AccumuloInsert extends D4mInsertBase {
 	}
 	private static byte[] transformVal(final String str) {
 		if( D4mDbInsert.MagicInsert || D4mDbInsert.MagicInsert2 )
-			return EMPTY_BYTES;
+			return str.equals("1") ? EMPTY_BYTES : LEX.encode(Integer.parseInt(str));
 		else
 			return str.getBytes(StandardCharsets.UTF_8);
 	}

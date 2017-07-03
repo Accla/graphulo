@@ -19,7 +19,6 @@ public class D4mDbInsert extends D4mParent {
   @SuppressWarnings("unused")
   public static void setMagicInsert(boolean magicInsert) {
   	MagicInsert = magicInsert;
-		if( magicInsert ) MagicInsert2 = false;
 	}
 	@SuppressWarnings("unused")
 	public static boolean isMagicInsert() {
@@ -29,7 +28,6 @@ public class D4mDbInsert extends D4mParent {
   @SuppressWarnings("unused")
   public static void setMagicInsert2(boolean magicInsert2) {
   	MagicInsert2 = magicInsert2;
-  	if( magicInsert2 ) MagicInsert = false;
 	}
 	@SuppressWarnings("unused")
 	public static boolean isMagicInsert2() {

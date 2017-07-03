@@ -1542,6 +1542,29 @@ public class Graphulo {
    */
   @SuppressWarnings("unused")
   public String findEvenSplits(String table, int numSplitPoints, int numEntriesPerTablet) {
+    return findEvenSplits(table, numSplitPoints, numEntriesPerTablet, 1.0, 1.0);
+  }
+
+  /**
+   * Usage with Matlab D4M:
+   * <pre>
+   * desiredNumTablets = ...;
+   * numEntries = nnz(T);
+   * G = DBaddJavaOps('edu.mit.ll.graphulo.MatlabGraphulo','instance','localhost:2181','root','secret');
+   * splitPoints = G.findEvenSplits(getName(T), desiredNumTablets-1, numEntries / desiredNumTablets);
+   * putSplits(T, splitPoints);
+   * % Verify:
+   * [splits,entriesPerSplit] = getSplits(T);
+   * </pre>
+   *
+   * @param numSplitPoints      # of desired tablets = numSplitPoints+1
+   * @param numEntriesPerTablet desired #entries per tablet = (total #entries in table) / (#desired tablets)
+   * @param linearFactor All splits except the last will have this factor fewer entries. The last will have more entries. You could use factor 0.8. Factor 1.0 does nothing.
+   * @param expFactor Exponentially vary the number of entries, starting with fewer at first and more later (assuming factor > 1.0). Factor 1.0 does nothing.
+   * @return String with the split points with a newline separator, e.g. "ca\nf\nq\n"
+   */
+  @SuppressWarnings("unused")
+  public String findEvenSplits(String table, int numSplitPoints, int numEntriesPerTablet, double linearFactor, double expFactor) {
     if (numSplitPoints < 0)
       throw new IllegalArgumentException("numSplitPoints: " + numSplitPoints);
     if (numSplitPoints == 0)
@@ -1557,27 +1580,22 @@ public class Graphulo {
     final char sep = '\n';
     StringBuilder sb = new StringBuilder();
     Iterator<Map.Entry<Key, Value>> iterator = scan.iterator();
-    Map.Entry<Key, Value> entry = null;
+    Text t = new Text();
+
+    // (sum r^i * y, i=0 to n-1) = n*x, solve for y
+    final double limitBase = expFactor == 1.0 ? numEntriesPerTablet : numSplitPoints*(expFactor-1)*numEntriesPerTablet / (Math.pow(expFactor, numSplitPoints)-1);
     for (int sp = 0; sp < numSplitPoints; sp++) {
-      for (int entnum = 0; entnum < numEntriesPerTablet - 1; entnum++) {
+      final int limit = (int) (Math.pow(expFactor, sp)*limitBase * linearFactor);
+      for (int entnum = 0; entnum < limit; entnum++) {
         if (!iterator.hasNext())
           throw new RuntimeException("not enough entries in table to split into " + (numSplitPoints + 1) + " tablets. Stopped after " + sp + " split points and " + entnum + " entries in the last split point");
-        entry = iterator.next();
+        iterator.next();
       }
       if (!iterator.hasNext())
         throw new RuntimeException("not enough entries in table to split into " + (numSplitPoints + 1) + " tablets. Stopped after " + sp + " split points and " + (numEntriesPerTablet - 1) + " entries in the last split point");
-      final byte[] bs = entry.getKey().getRowData().toArray();
-      final Text t;
-      if( bs.length == 0 || bs.length == 1 && bs[0] == 0 )
-        t = new Text(bs);
-      else if( bs[bs.length-1] == 0 ) {
-        t = new Text(Arrays.copyOf(bs, bs.length-1));
-      } else {
-        bs[bs.length-1]--;
-        t = new Text(bs);
-      }
-      System.out.println("split: "+Arrays.toString(bs));
+      final byte[] bs = iterator.next().getKey().getRow(t).copyBytes();
       sb.append(t.toString()).append(sep);
+      System.out.println("split: "+Arrays.toString(bs));
       iterator.next();
     }
     scan.close();

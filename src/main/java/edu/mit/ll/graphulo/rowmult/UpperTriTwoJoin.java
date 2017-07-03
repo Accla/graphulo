@@ -98,7 +98,7 @@ public class UpperTriTwoJoin implements RowMultiplyOp {
 
     @Override
     public Map.Entry<Key, Value> next() {
-      Map.Entry<Key, Value> ret = nextEntry;
+      final Map.Entry<Key, Value> ret = nextEntry;
       nextEntry = null;
       if (itBreset.hasNext())
         prepNext();
@@ -141,6 +141,8 @@ public class UpperTriTwoJoin implements RowMultiplyOp {
 //      Value nv = new Value(LEXDOUBLE.encode(nd)); //new Value(Double.toString(nd).getBytes(UTF_8));
 
 //      log.info("LowerTiJoin emits "+nk.toStringNoTime()+" value "+VALUE_TWO);
+
+//      System.out.println(Arrays.toString(LEX.decode(eA.getRowData().toArray()).toString().getBytes())+": "+Arrays.toString(LEX.decode(cola.getBytes()).toString().getBytes())+" xx "+Arrays.toString(LEX.decode(eB.getBytes()).toString().getBytes()));
 
       nextEntry = new AbstractMap.SimpleImmutableEntry<>(nk, magic ? VALUE_TWO_MAGIC : VALUE_TWO); // need to copy?
     }

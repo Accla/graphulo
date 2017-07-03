@@ -130,11 +130,12 @@ public class AccumuloInsert extends D4mInsertBase {
 	private static final Lexicoder<Integer> LEX = new UIntegerLexicoder();
 
 	private static byte[] transformRow(final String str) {
-		if (D4mDbInsert.MagicInsert) {
-			final int i = Integer.parseInt(str);
-			return LEX.encode(i);
-		}
-		else if (D4mDbInsert.MagicInsert2) {
+//		if (D4mDbInsert.MagicInsert) {
+//			final int i = Integer.parseInt(str);
+//			return LEX.encode(i);
+//		}
+//		else
+			if (D4mDbInsert.MagicInsert2) {
 			// parse String as int
 			// first byte is the last byte of the int, reversed
 			final int i = Integer.parseInt(str);
@@ -149,10 +150,11 @@ public class AccumuloInsert extends D4mInsertBase {
 			return str.getBytes(StandardCharsets.UTF_8);
 	}
 	private static byte[] transformColQ(final String str) {
-		if (D4mDbInsert.MagicInsert) {
-			final int i = Integer.parseInt(str);
-			return LEX.encode(i);
-		} else if( D4mDbInsert.MagicInsert ) {
+//		if (D4mDbInsert.MagicInsert) {
+//			final int i = Integer.parseInt(str);
+//			return LEX.encode(i);
+//		} else
+			if( D4mDbInsert.MagicInsert2 ) {
 			final int i = Integer.parseInt(str);
 			return new byte[] {
 					(byte) (i >> 24),

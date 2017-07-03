@@ -2807,7 +2807,7 @@ public class Graphulo {
       OneTable(Atmp, null, null, null, -1, reducer, null,
           null, null, null, null, null, Aauthorizations);
 
-      long triangles = reducer.getSerializableForClient();
+      final long triangles = reducer.getSerializableForClient();
       log.info("AggAll time: "+(System.currentTimeMillis() - tBegin2)/1000.0);
       log.info("Triangles: "+triangles);
       return triangles;

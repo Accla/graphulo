@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 
-import static edu.mit.ll.graphulo.util.GraphuloUtil.VALUE_ONE_STRING;
+import static edu.mit.ll.graphulo.util.GraphuloUtil.VALUE_ONE_VLONG;
 
 public final class EmptyToOneIterator implements SortedKeyValueIterator<Key, Value> {
 
@@ -61,13 +61,13 @@ public final class EmptyToOneIterator implements SortedKeyValueIterator<Key, Val
     topKey = new Key(source.getTopKey());
     topValue = source.getTopValue();
     if( topValue.getSize() == 0 ) topValue = EMPTY;
-    else if( topValue.equals(VALUE_ONE_STRING) ) topValue = VALUE_ONE_STRING;
-    else topValue = new Value(topValue); // this should never occur
+//    else if( topValue.equals(VALUE_ONE_VLONG) ) topValue = VALUE_ONE_VLONG;
+//    else topValue = new Value(topValue); // this should never occur
     source.next();
 
     while( source.hasTop() && source.getTopKey().equals(topKey, PartialKey.ROW_COLFAM_COLQUAL) ) {
       if( topValue == EMPTY && source.getTopValue().getSize() == 0 )
-        topValue = VALUE_ONE_STRING;
+        topValue = VALUE_ONE_VLONG;
       source.next();
     }
   }

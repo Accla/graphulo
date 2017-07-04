@@ -65,6 +65,7 @@ public class GraphuloUtil {
   public static final String OPT_SUFFIX = ".opt.";
 
   public static final Value VALUE_ONE_STRING = new Value("1".getBytes(StandardCharsets.UTF_8));
+  public static final Value VALUE_ONE_VLONG = new Value(GraphuloUtil.writeVUnsignedLong(1));
 
   private GraphuloUtil() {
   }

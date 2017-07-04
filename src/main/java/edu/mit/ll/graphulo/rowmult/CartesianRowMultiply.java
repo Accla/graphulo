@@ -89,7 +89,7 @@ public class CartesianRowMultiply implements RowMultiplyOp {
   public static SortedSet<Text> readRowColumnsNoValues(SortedKeyValueIterator<Key, Value> skvi) throws IOException {
     if (!skvi.hasTop())
       throw new IllegalStateException(skvi + " should hasTop()");
-    Text thisRow = skvi.getTopKey().getRow();
+    final Text thisRow = skvi.getTopKey().getRow();
     Text curRow = new Text(thisRow);
     SortedSet<Text> map = new TreeSet<>();
     do {

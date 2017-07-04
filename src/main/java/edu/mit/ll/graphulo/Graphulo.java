@@ -23,6 +23,7 @@ import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar.ScalarOp;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar.ScalarType;
 import edu.mit.ll.graphulo.skvi.CountAllIterator;
+import edu.mit.ll.graphulo.skvi.DebugInfoIterator;
 import edu.mit.ll.graphulo.skvi.IntCombiner.Type;
 import edu.mit.ll.graphulo.skvi.IntSummingCombiner;
 import edu.mit.ll.graphulo.skvi.InverseMatrixIterator;
@@ -39,10 +40,13 @@ import edu.mit.ll.graphulo.skvi.TopColPerRowIterator;
 import edu.mit.ll.graphulo.skvi.TriangularFilter;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import edu.mit.ll.graphulo.skvi.ktruss.SmartKTrussFilterIterator;
+import edu.mit.ll.graphulo.tricount.EmptyToOneIterator;
 import edu.mit.ll.graphulo.tricount.IntegerEmptyLexicoder;
 import edu.mit.ll.graphulo.tricount.OddUntransformAgg;
+import edu.mit.ll.graphulo.tricount.OneAggReducer;
 import edu.mit.ll.graphulo.tricount.PowerLawDegreeTriangleApply;
 import edu.mit.ll.graphulo.tricount.TriangularFilter_TriCountMagic;
+import edu.mit.ll.graphulo.tricount.UpperTriCountTrianglesAdjEdgeJoin;
 import edu.mit.ll.graphulo.util.DebugUtil;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.MTJUtil;
@@ -2838,6 +2842,108 @@ public class Graphulo {
   }
 
   public static final String TRICOUNT_TEMP_TABLE_SUFFIX = "_triCount_tmpA";
+
+
+
+
+
+
+
+  /**
+   *
+   * @param Aorig Unweighted adjacency matrix table (rows/cols are 4-byte vertices, values ignored)
+   *              Assumed to be just the upper triangle (if not, place a filter on Aorig first).
+   * @param Eorig Unweighted incidence matrix (rows are 4-byte vertices, columns are 8-byte edges)
+   * @param Aauthorizations authorizations to scan Aorig
+   * @param intermediateDurability choices: none, log, flush, sync (default)
+   * @param specialLongList A list appended with the number of partial products seen in the multiply step. Ignored if null.
+   * @return Number of triangles
+   */
+  public long triCountAdjEdge(final String Aorig, final String Eorig,
+                       final String filterRowCol,
+                       Authorizations Aauthorizations,
+                       String intermediateDurability, List<Long> specialLongList) {
+
+    checkGiven(true, "Aorig", Aorig);
+    final TableOperations tops = connector.tableOperations();
+    Aauthorizations = Aauthorizations == null ? Authorizations.EMPTY : Aauthorizations;
+    intermediateDurability = emptyToNull(intermediateDurability);
+    Preconditions.checkArgument(intermediateDurability == null || Durability.valueOf(intermediateDurability.toUpperCase()) != Durability.DEFAULT,
+        "bad durability given: %s", intermediateDurability);
+
+    try {
+      final String Atmp = Aorig + TRICOUNT_TEMP_TABLE_SUFFIX;
+      deleteTables(Atmp);
+
+      // determine if we will relax the durability of the intermediate tables
+//      String AorigDur = null;
+      if (intermediateDurability != null) {
+        for (Map.Entry<String, String> e : tops.getProperties(Aorig)) {
+          if (e.getKey().equals(TABLE_DURABILITY)) {
+            String v = e.getValue();
+//            if (!v.equalsIgnoreCase(intermediateDurability)) {
+////              AorigDur = e.getValue();
+//            } else
+            if (v.equalsIgnoreCase(intermediateDurability))
+              intermediateDurability = null; // use the same as the existing durability; no special changes needed
+          }
+        }
+      }
+
+//      final IteratorSetting upperTriangleFilter = TriangularFilter.iteratorSetting(1, TriangularType.Upper);
+//      GraphuloUtil.applyIteratorSoft(upperTriangleFilter, tops, Aorig);
+
+      final IteratorSetting agg = new IteratorSetting(DEFAULT_COMBINER_PRIORITY, "agg", EmptyToOneIterator.class);
+
+      final Map<String,String> opt = new HashMap<>();
+      opt.put("rowMultiplyOp", UpperTriCountTrianglesAdjEdgeJoin.class.getName());
+
+
+      final long tBegin = System.currentTimeMillis();
+      final long npp = TwoTable(Aorig, Eorig, Atmp, null,
+          -1, TwoTableIterator.DOTMODE.ROW, opt, agg,
+          filterRowCol, filterRowCol, filterRowCol,
+          false, false, null, null, Collections.singletonList(new IteratorSetting(1, DebugInfoIterator.class)),
+          null, null,
+          -1, Aauthorizations, Aauthorizations);
+      log.info("npp "+npp+" A*E Multiply time: "+(System.currentTimeMillis() - tBegin)/1000.0);
+      if( specialLongList != null ) specialLongList.add(npp);
+
+
+
+      final OneAggReducer reducer = new OneAggReducer();
+      reducer.init(null, null);
+      final long tBegin2 = System.currentTimeMillis();
+
+      OneTable(Atmp, null, null, null, -1, reducer, null,
+          null, null, null, null, null, Aauthorizations);
+
+      final long triangles = reducer.getSerializableForClient();
+      log.info("AggAll time: "+(System.currentTimeMillis() - tBegin2)/1000.0);
+      log.info("Triangles: "+triangles);
+      return triangles;
+
+    } catch (AccumuloException | TableNotFoundException e) {
+      log.error("", e);
+      throw new RuntimeException(e);
+    }
+
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
   /**

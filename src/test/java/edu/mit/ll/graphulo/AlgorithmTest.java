@@ -1,6 +1,7 @@
 package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
+import edu.mit.ll.graphulo.tricount.FixedIntegerLexicoder;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.TestUtil;
@@ -224,7 +225,7 @@ public class AlgorithmTest extends AccumuloTestBase {
     conn.tableOperations().delete(tR);
   }
 
-  private final static IntegerLexicoder INTEGER_LEXICODER = new IntegerLexicoder();
+  private final static FixedIntegerLexicoder FIL = FixedIntegerLexicoder.INSTANCE;
   // works with both String 1s and byte-encoded 1s. Does not work with non-1 Stings, but these are illegal in an unweighted adjacency matrix.
   private final static Value VALUE_ONE = new Value("1".getBytes(StandardCharsets.UTF_8)); // new Value(UINTEGER_LEXICODER.encode(1));
   private final static Value VALUE_EMPTY = new Value();
@@ -256,6 +257,66 @@ public class AlgorithmTest extends AccumuloTestBase {
       Assert.assertEquals(2, triangles);
     }
     GraphuloUtil.deleteTables(conn, tA, tA+TRICOUNT_TEMP_TABLE_SUFFIX);
+  }
+
+  private byte[] bothBytes(final byte[] a, final byte[] b) {
+    final byte[] r = new byte[8];
+    System.arraycopy(a, 0, r, 0, 4);
+    System.arraycopy(b, 0, r, 4, 4);
+    return r;
+  }
+
+  @Test
+  public void testTriCountAdjEdge()  throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    final Connector conn = tester.getConnector();
+    final String tA, tE;
+    {
+      final String[] names = getUniqueNames(2);
+      tA = names[0];
+      tE = names[1];
+    }
+
+    {
+      final Map<Key, Value> input = new HashMap<>();
+      input.put(new Key(FIL.encode(2), EMPTY_BYTES, FIL.encode(1)), VALUE_EMPTY);
+      input.put(new Key(FIL.encode(3), EMPTY_BYTES, FIL.encode(1)), VALUE_EMPTY);
+      input.put(new Key(FIL.encode(4), EMPTY_BYTES, FIL.encode(1)), VALUE_EMPTY);
+      input.put(new Key(FIL.encode(3), EMPTY_BYTES, FIL.encode(2)), VALUE_EMPTY);
+      input.put(new Key(FIL.encode(4), EMPTY_BYTES, FIL.encode(3)), VALUE_EMPTY);
+//      input.putAll(GraphuloUtil.transposeMap(input));
+//      expect.putAll(input);
+      input.put(new Key(FIL.encode(2), EMPTY_BYTES, FIL.encode(5)), VALUE_EMPTY);
+//      input.put(new Key("v5", "", "v2"), VALUE_ONE);
+      SortedSet<Text> splits = new TreeSet<>();
+      splits.add(new Text(FIL.encode(2)));
+      TestUtil.createTestTable(conn, tA, splits, input);
+    }
+    {
+      final Map<Key, Value> input = new HashMap<>();
+      input.put(new Key(FIL.encode(1), EMPTY_BYTES, bothBytes(FIL.encode(1), FIL.encode(2))), VALUE_EMPTY);
+      input.put(new Key(FIL.encode(1), EMPTY_BYTES, bothBytes(FIL.encode(1), FIL.encode(3))), VALUE_EMPTY);
+      input.put(new Key(FIL.encode(1), EMPTY_BYTES, bothBytes(FIL.encode(1), FIL.encode(4))), VALUE_EMPTY);
+      input.put(new Key(FIL.encode(2), EMPTY_BYTES, bothBytes(FIL.encode(2), FIL.encode(3))), VALUE_EMPTY);
+      input.put(new Key(FIL.encode(3), EMPTY_BYTES, bothBytes(FIL.encode(3), FIL.encode(4))), VALUE_EMPTY);
+      input.put(new Key(FIL.encode(2), EMPTY_BYTES, bothBytes(FIL.encode(2), FIL.encode(5))), VALUE_EMPTY);
+
+      input.put(new Key(FIL.encode(2), EMPTY_BYTES, bothBytes(FIL.encode(1), FIL.encode(2))), VALUE_EMPTY);
+      input.put(new Key(FIL.encode(3), EMPTY_BYTES, bothBytes(FIL.encode(1), FIL.encode(3))), VALUE_EMPTY);
+      input.put(new Key(FIL.encode(4), EMPTY_BYTES, bothBytes(FIL.encode(1), FIL.encode(4))), VALUE_EMPTY);
+      input.put(new Key(FIL.encode(3), EMPTY_BYTES, bothBytes(FIL.encode(2), FIL.encode(3))), VALUE_EMPTY);
+      input.put(new Key(FIL.encode(4), EMPTY_BYTES, bothBytes(FIL.encode(3), FIL.encode(4))), VALUE_EMPTY);
+      input.put(new Key(FIL.encode(5), EMPTY_BYTES, bothBytes(FIL.encode(2), FIL.encode(5))), VALUE_EMPTY);
+      SortedSet<Text> splits = new TreeSet<>();
+      splits.add(new Text(FIL.encode(2)));
+      TestUtil.createTestTable(conn, tE, splits, input);
+    }
+    {
+      final Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+      final long triangles = graphulo.triCountAdjEdge(tA, tE, null, Authorizations.EMPTY, null, null);
+      log.info("triCountAdjEdge " + triangles + " triangles");
+      Assert.assertEquals(2, triangles);
+    }
+    GraphuloUtil.deleteTables(conn, tA, tA+TRICOUNT_TEMP_TABLE_SUFFIX, tE);
   }
 
   private byte[] encodeRowNum(int i) {

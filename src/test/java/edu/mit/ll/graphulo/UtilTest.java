@@ -1073,4 +1073,26 @@ public class UtilTest {
     }
     Assert.assertFalse(ia.hasNext());
   }
+
+
+  @Test
+  public void testReadWriteVUnsignedLong() {
+    testRWUL(-1L);
+    testRWUL(-2L);
+    for (int i = 0; i < 8; i++) {
+      testRWUL((1L << (i*8))-1);
+      testRWUL(1L << (i*8));
+      testRWUL((1L << (i*8))+1);
+      testRWUL(-(1L << (i*8))+1);
+      testRWUL(-(1L << (i*8)));
+      testRWUL(-(1L << (i*8))-1);
+    }
+  }
+
+  private void testRWUL(final long l) {
+    final long a = GraphuloUtil.readUnsignedVLong(GraphuloUtil.writeVUnsignedLong(l));
+    // String.format("%x ", l)+Arrays.toString(GraphuloUtil.writeVUnsignedLong(l))
+    Assert.assertEquals(l, a);
+  }
+
 }

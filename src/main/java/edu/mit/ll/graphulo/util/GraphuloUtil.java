@@ -61,8 +61,11 @@ public class GraphuloUtil {
   private static final Logger log = LogManager.getLogger(GraphuloUtil.class);
 
   public static final char DEFAULT_SEP_D4M_STRING = '\t';
-  private static final Text EMPTY_TEXT = new Text();
   public static final String OPT_SUFFIX = ".opt.";
+
+  public static final Text EMPTY_TEXT = new Text();
+  public static final Value EMPTY_VALUE = new Value();
+  public static final Key EMPTY_KEY = new Key();
 
   public static final Value VALUE_ONE_STRING = new Value("1".getBytes(StandardCharsets.UTF_8));
   public static final Value VALUE_ONE_VLONG = new Value(GraphuloUtil.writeVUnsignedLong(1));

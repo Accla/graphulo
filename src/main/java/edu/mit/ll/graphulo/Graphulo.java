@@ -40,6 +40,7 @@ import edu.mit.ll.graphulo.skvi.TopColPerRowIterator;
 import edu.mit.ll.graphulo.skvi.TriangularFilter;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import edu.mit.ll.graphulo.skvi.ktruss.SmartKTrussFilterIterator;
+import edu.mit.ll.graphulo.tricount.ClumpNonEmptyUnsignedVLong;
 import edu.mit.ll.graphulo.tricount.EmptyToOneIterator;
 import edu.mit.ll.graphulo.tricount.IntegerEmptyLexicoder;
 import edu.mit.ll.graphulo.tricount.OddUntransformAgg;
@@ -2893,7 +2894,11 @@ public class Graphulo {
 //      final IteratorSetting upperTriangleFilter = TriangularFilter.iteratorSetting(1, TriangularType.Upper);
 //      GraphuloUtil.applyIteratorSoft(upperTriangleFilter, tops, Aorig);
 
-      final IteratorSetting agg = new IteratorSetting(DEFAULT_COMBINER_PRIORITY, "agg", EmptyToOneIterator.class);
+      final IteratorSetting agg =
+          new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, "aggAndClump")
+          .append(new IteratorSetting(DEFAULT_COMBINER_PRIORITY, EmptyToOneIterator.class))
+          .append(new IteratorSetting(DEFAULT_COMBINER_PRIORITY, ClumpNonEmptyUnsignedVLong.class))// Nice optimization!
+          .toIteratorSetting();
 
       final Map<String,String> opt = new HashMap<>();
       opt.put("rowMultiplyOp", UpperTriCountTrianglesAdjEdgeJoin.class.getName());
@@ -2903,11 +2908,12 @@ public class Graphulo {
       final long npp = TwoTable(Aorig, Eorig, Atmp, null,
           -1, TwoTableIterator.DOTMODE.ROW, opt, agg,
           filterRowCol, filterRowCol, filterRowCol,
-          false, false, null, null, Collections.singletonList(new IteratorSetting(1, DebugInfoIterator.class)),
+          false, false, null, null, null,
           null, null,
           -1, Aauthorizations, Aauthorizations);
       log.info("npp "+npp+" A*E Multiply time: "+(System.currentTimeMillis() - tBegin)/1000.0);
       if( specialLongList != null ) specialLongList.add(npp);
+
 
 
 

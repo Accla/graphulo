@@ -2813,7 +2813,7 @@ public class Graphulo {
 
       final long tBegin = System.currentTimeMillis();
       final long npp = TwoTable(TwoTableIterator.CLONESOURCE_TABLENAME, Aorig, Atmp, null,
-          -1, TwoTableIterator.DOTMODE.ROW, opt, agg,
+          25, TwoTableIterator.DOTMODE.ROW, opt, agg,
           filterRowCol, filterRowCol, filterRowCol,
           false, false, null, null, null,
           null, null,
@@ -2906,7 +2906,7 @@ public class Graphulo {
 
       final long tBegin = System.currentTimeMillis();
       final long npp = TwoTable(Aorig, Eorig, Atmp, null,
-          -1, TwoTableIterator.DOTMODE.ROW, opt, agg,
+          25, TwoTableIterator.DOTMODE.ROW, opt, agg,
           filterRowCol, filterRowCol, filterRowCol,
           false, false, null, null, null,
           null, null,
@@ -3030,7 +3030,7 @@ public class Graphulo {
 
       final long tBegin = System.currentTimeMillis();
       final long npp = TwoTable(TwoTableIterator.CLONESOURCE_TABLENAME, Aorig, Atmp, null,
-          -1, TwoTableIterator.DOTMODE.ROW, opt, agg,
+          25, TwoTableIterator.DOTMODE.ROW, opt, agg,
           filterRowCol, filterRowCol, filterRowCol,
           false, false, null, null, null,
           null, null,

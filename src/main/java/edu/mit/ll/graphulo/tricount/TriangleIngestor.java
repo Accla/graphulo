@@ -132,6 +132,7 @@ public class TriangleIngestor {
         mutEdge.put(EMPTY_BYTES, rowcol, EMPTY_BYTES);
         mutEdge2.put(EMPTY_BYTES, rowcol, EMPTY_BYTES);
         bwEdge.addMutation(mutEdge);
+        bwEdge.addMutation(mutEdge2);
         count += 3;
 
         if (count % 200000 <= 2) {
@@ -162,8 +163,8 @@ public class TriangleIngestor {
   }
 
   private void bothBytes(final byte[] a, final byte[] b, final byte[] r) {
-    System.arraycopy(a, 0, r, 0, a.length);
-    System.arraycopy(b, 0, r, a.length, b.length);
+    System.arraycopy(a, 0, r, 0, 4);
+    System.arraycopy(b, 0, r, 4, 4);
   }
 
 //  private static final class IntegerPair {

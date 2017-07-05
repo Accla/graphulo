@@ -110,10 +110,15 @@ public class AccumuloInsert extends D4mInsertBase {
 
 		for (int i : indices) {
 			if (!mRow.equals(rowsArr[i])) {
-				bw.addMutation(m);
+				if( !D4mDbInsert.MagicInsert || m.size() > 0 )
+					bw.addMutation(m);
 				mRow = rowsArr[i];
 				m = new Mutation(transformRow(rowsArr[i]));
 			}
+
+			if (D4mDbInsert.MagicInsert && mRow.compareTo(colsArr[i]) >= 0)
+				continue;
+
 			mCol.set(transformColQ(colsArr[i]));
 			mVal.set(transformVal(valsArr[i]));
 
@@ -123,7 +128,8 @@ public class AccumuloInsert extends D4mInsertBase {
 			m.put(colFamily, mCol, colVisibility, mVal);
 		}
 
-		bw.addMutation(m);
+		if( m.size() > 0 )
+			bw.addMutation(m);
 		bw.close();
 	}
 
@@ -154,7 +160,7 @@ public class AccumuloInsert extends D4mInsertBase {
 //			final int i = Integer.parseInt(str);
 //			return LEX.encode(i);
 //		} else
-			if( D4mDbInsert.MagicInsert2 ) {
+		if( D4mDbInsert.MagicInsert2 ) {
 			final int i = Integer.parseInt(str);
 			return new byte[] {
 					(byte) (i >> 24),

@@ -2875,6 +2875,8 @@ public class Graphulo {
     try {
       final String Atmp = Aorig + TRICOUNT_TEMP_TABLE_SUFFIX;
       deleteTables(Atmp);
+      GraphuloUtil.createTables(connector, true, Atmp);
+      GraphuloUtil.copySplits(connector.tableOperations(), Aorig, Atmp);
 
       // determine if we will relax the durability of the intermediate tables
 //      String AorigDur = null;
@@ -2891,7 +2893,7 @@ public class Graphulo {
         }
       }
 
-//      final IteratorSetting upperTriangleFilter = TriangularFilter.iteratorSetting(1, TriangularType.Upper);
+//      final IteratorSetting upperTriangleFilter = TriangularFilter.iteratorSetting(1, TriangularType.Lower);
 //      GraphuloUtil.applyIteratorSoft(upperTriangleFilter, tops, Aorig);
 
       final IteratorSetting agg =

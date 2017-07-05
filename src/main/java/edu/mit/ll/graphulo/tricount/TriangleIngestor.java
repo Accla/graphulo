@@ -126,13 +126,16 @@ public class TriangleIngestor {
 
         // consider caching here to remove not insert the same entries twice
         final Mutation mutAdj = new Mutation(rowb), mutEdge = new Mutation(rowb), mutEdge2 = new Mutation(colb);
+
         mutAdj.put(EMPTY_BYTES, colb, EMPTY_BYTES); // empty family, empty value
         bwAdj.addMutation(mutAdj);
+
         bothBytes(rowb, colb, rowcol);
         mutEdge.put(EMPTY_BYTES, rowcol, EMPTY_BYTES);
         mutEdge2.put(EMPTY_BYTES, rowcol, EMPTY_BYTES);
         bwEdge.addMutation(mutEdge);
         bwEdge.addMutation(mutEdge2);
+
         count += 3;
 
         if (count % 200000 <= 2) {

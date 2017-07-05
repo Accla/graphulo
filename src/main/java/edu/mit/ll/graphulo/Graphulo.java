@@ -2774,7 +2774,6 @@ public class Graphulo {
 
     try {
       final String Atmp = Aorig + TRICOUNT_TEMP_TABLE_SUFFIX;
-      deleteTables(Atmp);
 
       // determine if we will relax the durability of the intermediate tables
 //      String AorigDur = null;
@@ -2785,18 +2784,23 @@ public class Graphulo {
 //            if (!v.equalsIgnoreCase(intermediateDurability)) {
 ////              AorigDur = e.getValue();
 //            } else
-            if (v.equalsIgnoreCase(intermediateDurability))
+            if (v.equalsIgnoreCase(intermediateDurability)) {
               intermediateDurability = null; // use the same as the existing durability; no special changes needed
+            }
           }
         }
       }
 
 
+      // Comment this if table externally for experiments
       final IteratorSetting upperTriangleFilter = TriangularFilter.iteratorSetting(1, TriangularType.Upper);
       GraphuloUtil.applyIteratorSoft(upperTriangleFilter, tops, Aorig);
+      GraphuloUtil.applyIteratorSoft(upperTriangleFilter, tops, Atmp);
 
-//      if (filterRowCol == null)
-      {
+//      deleteTables(Atmp);
+
+      // if the temp table exists, assume it was created externally
+      if (!connector.tableOperations().exists(Atmp)) {
         final Map<String, String> propsToSet = intermediateDurability == null ? null : Collections.singletonMap(TABLE_DURABILITY, intermediateDurability);
         tops.clone(Aorig, Atmp, true, propsToSet, null);
         // this copies upperTriangleFilter
@@ -2834,7 +2838,7 @@ public class Graphulo {
       log.info("Triangles: "+triangles);
       return triangles;
 
-    } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
+    } catch (Exception e) {
       log.error("", e);
       throw new RuntimeException(e);
     }
@@ -2873,9 +2877,12 @@ public class Graphulo {
 
     try {
       final String Atmp = Aorig + TRICOUNT_TEMP_TABLE_SUFFIX;
-      deleteTables(Atmp);
-      GraphuloUtil.createTables(connector, true, Atmp);
-      GraphuloUtil.copySplits(connector.tableOperations(), Aorig, Atmp);
+      // for experiment, pre-create and split temp table
+//      deleteTables(Atmp);
+      if( !connector.tableOperations().exists(Atmp) ) {
+        GraphuloUtil.createTables(connector, false, Atmp);
+        GraphuloUtil.copySplits(connector.tableOperations(), Eorig, Atmp);
+      }
 
       // determine if we will relax the durability of the intermediate tables
 //      String AorigDur = null;

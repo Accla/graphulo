@@ -8,15 +8,10 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.lexicoder.Lexicoder;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -34,8 +29,8 @@ import java.util.zip.GZIPInputStream;
 
 public class TriangleIngestor {
   private static final Logger log = LogManager.getLogger(TriangleIngestor.class);
-  public static final String ADJUU_SUFFIX = "_TgraphAdjUU";
-  public static final String EDGE_SUFFIX = "_TgraphEdge";
+//  public static final String ADJUU_SUFFIX = "_TgraphAdjUU";
+//  public static final String EDGE_SUFFIX = "_TgraphEdge";
   private static final FixedIntegerLexicoder LEX = new FixedIntegerLexicoder();
   //  private static final Value EMPTY_VALUE = new Value();
   private static final byte[] EMPTY_BYTES = new byte[0];
@@ -49,7 +44,7 @@ public class TriangleIngestor {
     this.connector = connector;
   }
 
-  public long ingestDirectory(final String directory, final String baseName) {
+  public long ingestDirectory(final String directory, final String tableAdj, final String tableEdge) {
     // call ingestFile on all pairs of files that end in "XXr.txt", "XXc.txt"
     long count = 0L;
 
@@ -71,9 +66,9 @@ public class TriangleIngestor {
       if( prefixMap.containsKey(prefix) ) {
         final File other = prefixMap.remove(prefix);
         if( name.endsWith("r.txt") )
-          count += ingestFile(file, other, baseName);
+          count += ingestFile(file, other, tableAdj, tableEdge);
         else
-          count += ingestFile(other, file, baseName);
+          count += ingestFile(other, file, tableAdj, tableEdge);
       } else {
         prefixMap.put(prefix, file);
       }
@@ -81,15 +76,13 @@ public class TriangleIngestor {
     return count;
   }
 
-  public long ingestFile(File rowFile, File colFile, final String baseName) {
+  public long ingestFile(File rowFile, File colFile, final String tableAdj, final String tableEdge) {
     final String delimiter = ",";
     long count = 0, startTime, origStartTime;
-    final Text text = new Text();
-    final String tableAdj = baseName + ADJUU_SUFFIX, tableEdge = baseName + EDGE_SUFFIX;
     final byte[] t1b = new byte[4], t2b = new byte[4], rowcol = new byte[8];
 
     final BatchWriterConfig bwc = new BatchWriterConfig()
-        .setMaxWriteThreads(25).setMaxMemory(25000000).setMaxLatency(5000, TimeUnit.MILLISECONDS);
+        .setMaxWriteThreads(25).setMaxMemory(1024000).setMaxLatency(100, TimeUnit.MILLISECONDS);
     MultiTableBatchWriter multiBatch = null;
 
     try (Scanner rowScanner = new Scanner(rowFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(rowFile)) : new FileInputStream(rowFile));
@@ -141,11 +134,11 @@ public class TriangleIngestor {
         bwEdge.addMutation(mutEdge);
         count += 3;
 
-        if (count % 200000 == 0) {
+        if (count % 200000 <= 2) {
           long stopTime = System.currentTimeMillis();
           if (startTime - stopTime > 1000*60) {
-            System.out.printf("Ingest: %9d cnt, %6d secs, %8d entries/sec%n", count, (stopTime - origStartTime)/1000,
-                Math.round(count / ((stopTime - origStartTime)/1000.0)));
+            log.info(String.format("Ingest: %9d cnt, %6d secs, %8d entries/sec on %s, %s%n", count, (stopTime - origStartTime)/1000,
+                Math.round(count / ((stopTime - origStartTime)/1000.0)), tableAdj, tableEdge));
             startTime = stopTime;
           }
         }

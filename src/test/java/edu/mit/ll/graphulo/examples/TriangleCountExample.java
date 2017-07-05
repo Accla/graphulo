@@ -53,4 +53,11 @@ public class TriangleCountExample extends AccumuloTestBase {
     final long numTriangles = graphulo.triCountAdjEdge(Atable, Etable, null, null, null, null);
     System.out.println("Count of triangles: "+numTriangles); // 118291
   }
+
+  @Test
+  public void temp() {
+    final Graphulo graphulo = new Graphulo(tester.getConnector(), tester.getPassword());
+    graphulo.OneTable("DH_pg03_20160331_TgraphEdge", null, "DH_pg03_20160331_TgraphEdgeT", null,
+        55, null, null, null, null, null, null, null, null);
+  }
 }

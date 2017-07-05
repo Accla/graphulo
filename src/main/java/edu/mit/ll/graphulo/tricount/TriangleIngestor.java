@@ -29,10 +29,7 @@ import java.util.zip.GZIPInputStream;
 
 public class TriangleIngestor {
   private static final Logger log = LogManager.getLogger(TriangleIngestor.class);
-//  public static final String ADJUU_SUFFIX = "_TgraphAdjUU";
-//  public static final String EDGE_SUFFIX = "_TgraphEdge";
   private static final FixedIntegerLexicoder LEX = new FixedIntegerLexicoder();
-  //  private static final Value EMPTY_VALUE = new Value();
   private static final byte[] EMPTY_BYTES = new byte[0];
 
   private final Connector connector;
@@ -169,24 +166,5 @@ public class TriangleIngestor {
     System.arraycopy(a, 0, r, 0, 4);
     System.arraycopy(b, 0, r, 4, 4);
   }
-
-//  private static final class IntegerPair {
-//    public final int i1, i2;
-//    public IntegerPair(int i1, int i2) {
-//      this.i1 = i1;
-//      this.i2 = i2;
-//    }
-//    @Override
-//    public boolean equals(Object o) {
-//      if (this == o) return true;
-//      if (o == null || getClass() != o.getClass()) return false;
-//      IntegerPair that = (IntegerPair) o;
-//      return i1 == that.i1 && i2 == that.i2;
-//    }
-//    @Override
-//    public int hashCode() {
-//      return 31 * i1 + i2;
-//    }
-//  }
 
 }

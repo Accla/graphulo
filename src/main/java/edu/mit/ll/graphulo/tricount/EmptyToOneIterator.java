@@ -62,13 +62,13 @@ public final class EmptyToOneIterator implements SortedKeyValueIterator<Key, Val
       topValue = EMPTY_VALUE;
 //    else if( topValue.equals(VALUE_ONE_VLONG) ) topValue = VALUE_ONE_VLONG;
 //    else topValue = new Value(topValue); // this should never occur
-    System.out.println("source "+source.getTopKey().toStringNoTime()+" to "+source.getTopValue());
+//    System.out.println("source "+source.getTopKey().toStringNoTime()+" to "+source.getTopValue());
     source.next();
 
     while( source.hasTop() && source.getTopKey().equals(topKey, PartialKey.ROW_COLFAM_COLQUAL) ) {
       if( topValue == EMPTY_VALUE && source.getTopValue().getSize() == 0 )
         topValue = VALUE_ONE_VLONG;
-      System.out.println("empty  "+source.getTopKey().toStringNoTime());
+//      System.out.println("empty  "+source.getTopKey().toStringNoTime());
       source.next();
     }
   }

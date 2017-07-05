@@ -15,7 +15,7 @@ import java.util.Map;
  *
  */
 public final class OneAggReducer extends ReducerSerializable<Long> {
-  private static final Logger log = LogManager.getLogger(OneAggReducer.class);
+//  private static final Logger log = LogManager.getLogger(OneAggReducer.class);
 
   private long triangles = 0L;
 

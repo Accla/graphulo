@@ -28,7 +28,7 @@ import static edu.mit.ll.graphulo.rowmult.CartesianRowMultiply.readRowColumnsNoV
  * only when cq < cq'.
  */
 public class UpperTriTwoJoin implements RowMultiplyOp {
-  private static final Logger log = LogManager.getLogger(UpperTriTwoJoin.class);
+//  private static final Logger log = LogManager.getLogger(UpperTriTwoJoin.class);
   public static final String MAGIC = "magic";
   private boolean magic = false;
 

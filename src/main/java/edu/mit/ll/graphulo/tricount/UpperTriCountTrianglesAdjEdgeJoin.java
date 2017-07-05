@@ -1,8 +1,5 @@
 package edu.mit.ll.graphulo.tricount;
 
-import com.google.common.collect.BoundType;
-import com.google.common.collect.ImmutableSortedMultiset;
-import com.google.common.collect.SortedMultiset;
 import edu.mit.ll.graphulo.rowmult.RowMultiplyOp;
 import edu.mit.ll.graphulo.util.PeekingIterator1;
 import edu.mit.ll.graphulo.util.SKVIRowIteratorNoValues;
@@ -11,7 +8,6 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -19,21 +15,18 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
 
 /**
  * TableMult: (k,cq,"") * (k,cq',"") = (cq,cq',"")
  * only when cq < cq' in the first four bytes.
  */
 public final class UpperTriCountTrianglesAdjEdgeJoin implements RowMultiplyOp {
-  private static final Logger log = LogManager.getLogger(UpperTriCountTrianglesAdjEdgeJoin.class);
+//  private static final Logger log = LogManager.getLogger(UpperTriCountTrianglesAdjEdgeJoin.class);
 
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
@@ -73,24 +66,24 @@ public final class UpperTriCountTrianglesAdjEdgeJoin implements RowMultiplyOp {
     final PeekingIterator1<Key> itAonce = new PeekingIterator1<>(new SKVIRowIteratorNoValues(skviA));
     final List<byte[]> BrowMap = readRowColumnsNoValuesToBytes(skviB);
 
-    final List<Key> list = new ArrayList<>();
-    final List<String> sl = new ArrayList<>(), sl2 = new ArrayList<>();
-    Key k = null;
-    while (itAonce.hasNext()) {
-      k = itAonce.next();
-      list.add(k);
-//      sl.add(Arrays.toString(k.getColumnQualifierData().toArray()));
-      sl.add(""+FixedIntegerLexicoder.INSTANCE.decode(k.getColumnQualifierData().toArray(), 0, 4));
-    }
-    for (byte[] b : BrowMap) {
-      sl2.add(FixedIntegerLexicoder.INSTANCE.decode(b,0,4)+"-"+FixedIntegerLexicoder.INSTANCE.decode(b,4,4));
-    }
-    if( k != null ) {
-      System.out.println( FixedIntegerLexicoder.INSTANCE.decode(k.getRowData().toArray(), 0, 4)+" "+sl+"  "+ sl2);
-    }
+//    final List<Key> list = new ArrayList<>();
+//    final List<String> sl = new ArrayList<>(), sl2 = new ArrayList<>();
+//    Key k = null;
+//    while (itAonce.hasNext()) {
+//      k = itAonce.next();
+//      list.add(k);
+////      sl.add(Arrays.toString(k.getColumnQualifierData().toArray()));
+//      sl.add(""+FixedIntegerLexicoder.INSTANCE.decode(k.getColumnQualifierData().toArray(), 0, 4));
+//    }
+//    for (byte[] b : BrowMap) {
+//      sl2.add(FixedIntegerLexicoder.INSTANCE.decode(b,0,4)+"-"+FixedIntegerLexicoder.INSTANCE.decode(b,4,4));
+//    }
+//    if( k != null ) {
+//      System.out.println( FixedIntegerLexicoder.INSTANCE.decode(k.getRowData().toArray(), 0, 4)+" "+sl+"  "+ sl2);
+//    }
 
-    return new UpperTriTwoIterator(new PeekingIterator1<>(list.iterator()), BrowMap);
-//    return new UpperTriTwoIterator(itAonce, BrowMap);
+//    return new UpperTriTwoIterator(new PeekingIterator1<>(list.iterator()), BrowMap);
+    return new UpperTriTwoIterator(itAonce, BrowMap);
   }
 
 

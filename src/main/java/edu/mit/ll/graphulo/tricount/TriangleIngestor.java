@@ -27,10 +27,11 @@ import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 
+import static edu.mit.ll.graphulo.util.GraphuloUtil.EMPTY_BYTES;
+
 public class TriangleIngestor {
   private static final Logger log = LogManager.getLogger(TriangleIngestor.class);
   private static final FixedIntegerLexicoder LEX = new FixedIntegerLexicoder();
-  private static final byte[] EMPTY_BYTES = new byte[0];
 
   private final Connector connector;
 

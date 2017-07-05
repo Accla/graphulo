@@ -20,6 +20,8 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import static edu.mit.ll.graphulo.util.GraphuloUtil.EMPTY_TEXT;
+
 /**
  * For working with the MTJ matrix library.
  * Used in client-side version of kTrussAdj.
@@ -135,8 +137,6 @@ public class MTJUtil {
     }
     return m;
   }
-
-  private static final Text EMPTY_TEXT = new Text();
 
   public static Map<Key, Value> matrixToMapWithLabels(Matrix orig,
                                                       final SortedMap<Integer, String> rowLabelMap,

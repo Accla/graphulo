@@ -22,6 +22,8 @@ import java.util.Map;
 import java.util.SortedSet;
 
 import static edu.mit.ll.graphulo.rowmult.CartesianRowMultiply.readRowColumnsNoValues;
+import static edu.mit.ll.graphulo.util.GraphuloUtil.EMPTY_BYTES;
+import static edu.mit.ll.graphulo.util.GraphuloUtil.EMPTY_TEXT;
 
 /**
  * TableMult: (k,cq,v) * (k,cq',v') = (cq,cq',2)
@@ -39,8 +41,6 @@ public class UpperTriTwoJoin implements RowMultiplyOp {
   }
 
 
-  private static final Text EMPTY_TEXT = new Text();
-  private static final byte[] EMPTY_BYTES = new byte[0];
   private static final TypedValueCombiner.Encoder<Integer> LEX = new UIntegerLexicoder();
   private static final byte[] ZERO_BYTE = new byte[] { 0x00 };
   private static final Value VALUE_TWO = new Value(LEX.encode(2));

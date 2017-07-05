@@ -127,6 +127,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import static edu.mit.ll.graphulo.skvi.TriangularFilter.TriangularType;
+import static edu.mit.ll.graphulo.util.GraphuloUtil.EMPTY_TEXT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
 
@@ -194,8 +195,6 @@ public class Graphulo {
     return "Graphulo: User "+connector.whoami()+" connected to "+connector.getInstance();
   }
 
-
-  private static final Text EMPTY_TEXT = new Text();
 
 
   public long TableMult(String ATtable, String Btable, String Ctable, String CTtable,

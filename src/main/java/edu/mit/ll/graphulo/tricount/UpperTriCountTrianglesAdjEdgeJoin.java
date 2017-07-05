@@ -21,6 +21,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import static edu.mit.ll.graphulo.util.GraphuloUtil.EMPTY_BYTES;
+import static edu.mit.ll.graphulo.util.GraphuloUtil.EMPTY_VALUE;
+
 /**
  * TableMult: (k,cq,"") * (k,cq',"") = (cq,cq',"")
  * only when cq < cq' in the first four bytes.
@@ -31,10 +34,6 @@ public final class UpperTriCountTrianglesAdjEdgeJoin implements RowMultiplyOp {
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
   }
-
-
-  private static final byte[] EMPTY_BYTES = new byte[0];
-  private static final Value EMPTY_VALUE = new Value();
 
   private static final class FourByteComparator implements Comparator<byte[]> {
     @Override

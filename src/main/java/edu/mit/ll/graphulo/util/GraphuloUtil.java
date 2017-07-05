@@ -66,6 +66,7 @@ public class GraphuloUtil {
   public static final Text EMPTY_TEXT = new Text();
   public static final Value EMPTY_VALUE = new Value();
   public static final Key EMPTY_KEY = new Key();
+  public static final byte[] EMPTY_BYTES = new byte[0];
 
   public static final Value VALUE_ONE_STRING = new Value("1".getBytes(StandardCharsets.UTF_8));
   public static final Value VALUE_ONE_VLONG = new Value(GraphuloUtil.writeVUnsignedLong(1));
@@ -471,9 +472,6 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
       throw new RuntimeException(e);
     }
   }
-
-
-  public static final byte[] EMPTY_BYTES = new byte[0];
 
   /**
    * Create a copy of key with all fields except the ones specified cleared.

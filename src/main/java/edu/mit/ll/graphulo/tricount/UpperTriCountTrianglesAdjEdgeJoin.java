@@ -73,24 +73,24 @@ public final class UpperTriCountTrianglesAdjEdgeJoin implements RowMultiplyOp {
     final PeekingIterator1<Key> itAonce = new PeekingIterator1<>(new SKVIRowIteratorNoValues(skviA));
     final List<byte[]> BrowMap = readRowColumnsNoValuesToBytes(skviB);
 
-//    final List<Key> list = new ArrayList<>();
-//    final List<String> sl = new ArrayList<>(), sl2 = new ArrayList<>();
-//    Key k = null;
-//    while (itAonce.hasNext()) {
-//      k = itAonce.next();
-//      list.add(k);
-////      sl.add(Arrays.toString(k.getColumnQualifierData().toArray()));
-//      sl.add(""+FixedIntegerLexicoder.INSTANCE.decode(k.getColumnQualifierData().toArray(), 0, 4));
-//    }
-//    for (byte[] b : BrowMap) {
-//      sl2.add(FixedIntegerLexicoder.INSTANCE.decode(b,0,4)+"-"+FixedIntegerLexicoder.INSTANCE.decode(b,4,4));
-//    }
-//    if( k != null ) {
-//      System.out.println( FixedIntegerLexicoder.INSTANCE.decode(k.getRowData().toArray(), 0, 4)+" "+sl+"  "+ sl2);
-//    }
+    final List<Key> list = new ArrayList<>();
+    final List<String> sl = new ArrayList<>(), sl2 = new ArrayList<>();
+    Key k = null;
+    while (itAonce.hasNext()) {
+      k = itAonce.next();
+      list.add(k);
+//      sl.add(Arrays.toString(k.getColumnQualifierData().toArray()));
+      sl.add(""+FixedIntegerLexicoder.INSTANCE.decode(k.getColumnQualifierData().toArray(), 0, 4));
+    }
+    for (byte[] b : BrowMap) {
+      sl2.add(FixedIntegerLexicoder.INSTANCE.decode(b,0,4)+"-"+FixedIntegerLexicoder.INSTANCE.decode(b,4,4));
+    }
+    if( k != null ) {
+      System.out.println( FixedIntegerLexicoder.INSTANCE.decode(k.getRowData().toArray(), 0, 4)+" "+sl+"  "+ sl2);
+    }
 
-//    return new UpperTriTwoIterator(new PeekingIterator1<>(list.iterator()), BrowMap);
-    return new UpperTriTwoIterator(itAonce, BrowMap);
+    return new UpperTriTwoIterator(new PeekingIterator1<>(list.iterator()), BrowMap);
+//    return new UpperTriTwoIterator(itAonce, BrowMap);
   }
 
 
@@ -103,19 +103,6 @@ public final class UpperTriCountTrianglesAdjEdgeJoin implements RowMultiplyOp {
     private Iterator<byte[]> itBreset;
 
     private Map.Entry<Key, Value> nextEntry;
-
-//    private byte[] getTextAfterColumn() {
-//      final byte[] bold = itAonce.peek().getRowData().toArray();
-//      final byte[] b = Arrays.copyOf(bold, bold.length);
-//      // increment by 1
-//      for (int i = 3; i >= 0; i--) {
-//        if( b[i] != 0xFF ) {
-//          b[i]++;
-//          return b;
-//        }
-//      }
-//      return b;
-//    }
 
     private Iterator<byte[]> getItBreset() {
       byte[] afterThis = itAonce.peek().getColumnQualifierData().toArray();
@@ -135,20 +122,24 @@ public final class UpperTriCountTrianglesAdjEdgeJoin implements RowMultiplyOp {
         } while ( idx < BrowMap.size() && FOUR_COMPARE.compare(afterThis, BrowMap.get(idx)) == 0 );
 
         final List<byte[]> l = BrowMap.subList(idx, BrowMap.size());
-//        final List<String> sl2 = new ArrayList<>();
-//        for (byte[] b : l) {
-//          sl2.add(FixedIntegerLexicoder.INSTANCE.decode(b,0,4)+"-"+FixedIntegerLexicoder.INSTANCE.decode(b,4,4));
+//        {
+//          final List<String> sl2 = new ArrayList<>();
+//          for (byte[] b : l) {
+//            sl2.add(FixedIntegerLexicoder.INSTANCE.decode(b, 0, 4) + "-" + FixedIntegerLexicoder.INSTANCE.decode(b, 4, 4));
+//          }
+//          System.out.println("hit: " + sl2);
 //        }
-//        System.out.println("hit: "+ sl2);
         return l.iterator();
       }
       else {
         final List<byte[]> l = BrowMap.subList(-(idx+1), BrowMap.size());
-//        final List<String> sl2 = new ArrayList<>();
-//        for (byte[] b : l) {
-//          sl2.add(FixedIntegerLexicoder.INSTANCE.decode(b,0,4)+"-"+FixedIntegerLexicoder.INSTANCE.decode(b,4,4));
+//        {
+//          final List<String> sl2 = new ArrayList<>();
+//          for (byte[] b : l) {
+//            sl2.add(FixedIntegerLexicoder.INSTANCE.decode(b, 0, 4) + "-" + FixedIntegerLexicoder.INSTANCE.decode(b, 4, 4));
+//          }
+//          System.out.println("nop: " + sl2);
 //        }
-//        System.out.println("nop: "+ sl2);
         return l.iterator();
       }
     }
@@ -189,14 +180,16 @@ public final class UpperTriCountTrianglesAdjEdgeJoin implements RowMultiplyOp {
       if (!itBreset.hasNext()) {
         eA = itAonce.next();    // advance itA
         if (itAonce.hasNext())  // STOP if no more itA
-          this.itBreset = getItBreset(); // BrowMap.tailMultiset(itAonce.peek().getRowData().toArray(), BoundType.OPEN).iterator();//  .tailSet(getTextAfterColumn()).iterator();
-        else
-          return;
+          this.itBreset = getItBreset();
       } else
         eA = itAonce.peek();
 
       final byte[] newRow = eA.getColumnQualifierData().toArray();
       final Key nk = new Key(newRow, EMPTY_BYTES, eB);
+
+//      {
+//        System.out.println("GOT: " + FixedIntegerLexicoder.INSTANCE.decode(newRow, 0, 4) + " , " + FixedIntegerLexicoder.INSTANCE.decode(eB, 0, 4) + "-" + FixedIntegerLexicoder.INSTANCE.decode(eB, 4, 4));
+//      }
 
       nextEntry = new AbstractMap.SimpleImmutableEntry<>(nk, EMPTY_VALUE); // need to copy?
     }

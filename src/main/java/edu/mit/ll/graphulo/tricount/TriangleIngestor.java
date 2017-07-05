@@ -130,7 +130,7 @@ public class TriangleIngestor {
         mutAdj.put(EMPTY_BYTES, colb, EMPTY_BYTES); // empty family, empty value
         bwAdj.addMutation(mutAdj);
 
-        bothBytes(rowb, colb, rowcol);
+        bothBytes(colb, rowb, rowcol);
         mutEdge.put(EMPTY_BYTES, rowcol, EMPTY_BYTES);
         mutEdge2.put(EMPTY_BYTES, rowcol, EMPTY_BYTES);
         bwEdge.addMutation(mutEdge);

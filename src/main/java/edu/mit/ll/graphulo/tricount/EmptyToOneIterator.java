@@ -6,7 +6,6 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 import java.io.IOException;
@@ -32,21 +31,21 @@ public final class EmptyToOneIterator implements SortedKeyValueIterator<Key, Val
 
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-    final Range seekRange = IteratorUtil.maximizeStartKeyTimeStamp(range);
+//    final Range seekRange = IteratorUtil.maximizeStartKeyTimeStamp(range);
 
-    source.seek(seekRange, columnFamilies, inclusive);
+    source.seek(range, columnFamilies, inclusive);
     findTop();
 
-    if (range.getStartKey() != null) {
-      while (hasTop() && getTopKey().equals(range.getStartKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS)
-          && getTopKey().getTimestamp() > range.getStartKey().getTimestamp()) {
-        // the value has a more recent time stamp, so pass it up
-        // log.debug("skipping "+getTopKey());
-        next();
-      }
-      while (hasTop() && range.beforeStartKey(getTopKey()))
-        next();
-    }
+//    if (range.getStartKey() != null) {
+//      while (hasTop() && getTopKey().equals(range.getStartKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS)
+//          && getTopKey().getTimestamp() > range.getStartKey().getTimestamp()) {
+//        // the value has a more recent time stamp, so pass it up
+//        // log.debug("skipping "+getTopKey());
+//        next();
+//      }
+//      while (hasTop() && range.beforeStartKey(getTopKey()))
+//        next();
+//    }
   }
 
   private Key topKey;
@@ -63,11 +62,13 @@ public final class EmptyToOneIterator implements SortedKeyValueIterator<Key, Val
       topValue = EMPTY_VALUE;
 //    else if( topValue.equals(VALUE_ONE_VLONG) ) topValue = VALUE_ONE_VLONG;
 //    else topValue = new Value(topValue); // this should never occur
+    System.out.println("source "+source.getTopKey().toStringNoTime()+" to "+source.getTopValue());
     source.next();
 
     while( source.hasTop() && source.getTopKey().equals(topKey, PartialKey.ROW_COLFAM_COLQUAL) ) {
       if( topValue == EMPTY_VALUE && source.getTopValue().getSize() == 0 )
         topValue = VALUE_ONE_VLONG;
+      System.out.println("empty  "+source.getTopKey().toStringNoTime());
       source.next();
     }
   }

@@ -2795,7 +2795,6 @@ public class Graphulo {
       // Comment this if table externally for experiments
       final IteratorSetting upperTriangleFilter = TriangularFilter.iteratorSetting(1, TriangularType.Upper);
       GraphuloUtil.applyIteratorSoft(upperTriangleFilter, tops, Aorig);
-      GraphuloUtil.applyIteratorSoft(upperTriangleFilter, tops, Atmp);
 
 //      deleteTables(Atmp);
 
@@ -2805,6 +2804,7 @@ public class Graphulo {
         tops.clone(Aorig, Atmp, true, propsToSet, null);
         // this copies upperTriangleFilter
       }
+      GraphuloUtil.applyIteratorSoft(upperTriangleFilter, tops, Atmp);
 
       final IteratorSetting agg = new IteratorSetting(DEFAULT_COMBINER_PRIORITY, "agg", IntSummingCombiner.class);
       IntSummingCombiner.setEncodingType(agg, Type.BYTE_ONE);

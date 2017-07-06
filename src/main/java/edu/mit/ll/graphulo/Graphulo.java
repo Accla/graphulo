@@ -1592,11 +1592,14 @@ public class Graphulo {
       final int limit = (int) (Math.pow(expFactor, sp)*limitBase * linearFactor);
       for (int entnum = 0; entnum < limit; entnum++) {
         if (!iterator.hasNext())
-          throw new RuntimeException("not enough entries in table to split into " + (numSplitPoints + 1) + " tablets. Stopped after " + sp + " split points and " + entnum + " entries in the last split point");
+          break;
         iterator.next();
       }
-      if (!iterator.hasNext())
-        throw new RuntimeException("not enough entries in table to split into " + (numSplitPoints + 1) + " tablets. Stopped after " + sp + " split points and " + (numEntriesPerTablet - 1) + " entries in the last split point");
+      if (!iterator.hasNext()) {
+        // this could happen due to skew
+        System.out.println("not assigning " + (numSplitPoints - sp) + " splits because there are not enough entries in the table");//throw new RuntimeException("not enough entries in table to split into " + (numSplitPoints + 1) + " tablets. Stopped after " + sp + " split points and " + (numEntriesPerTablet - 1) + " entries in the last split point");
+        break;
+      }
       final byte[] bs = iterator.next().getKey().getRow(t).copyBytes();
       sb.append(t.toString()).append(sep);
       System.out.println("split: "+Arrays.toString(bs));

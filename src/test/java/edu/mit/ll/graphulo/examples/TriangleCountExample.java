@@ -45,7 +45,7 @@ public class TriangleCountExample extends AccumuloTestBase {
     // Deletes tables if they already exist.
     final File rowFile = ExampleUtil.getDataFile(String.valueOf(SCALE) + 'A' + "r.txt");
     final File colFile = ExampleUtil.getDataFile(String.valueOf(SCALE) + 'A' + "c.txt");
-    new TriangleIngestor(conn).ingestFile(rowFile, colFile, Atable, Etable, false);
+    new TriangleIngestor(conn).ingestFile(rowFile, colFile, Atable, Etable, false, false);
 
     // Create Graphulo executor. Supply the password for your Accumulo user account.
     final Graphulo graphulo = new Graphulo(conn, tester.getPassword());

@@ -35,6 +35,7 @@ public class TriangleIngestor {
 
   private final Connector connector;
 
+  @SuppressWarnings("unused") // used in D4M
   public TriangleIngestor(final String instanceName, final String zookeepers, final String username, final String password) throws AccumuloSecurityException, AccumuloException {
     this(new ZooKeeperInstance(instanceName, zookeepers).getConnector(username, new PasswordToken(password)));
   }
@@ -42,6 +43,7 @@ public class TriangleIngestor {
     this.connector = connector;
   }
 
+  @SuppressWarnings("unused") // used in D4M
   public long ingestDirectory(final String directory, final String tableAdj, final String tableEdge) {
     // call ingestFile on all pairs of files that end in "XXr.txt", "XXc.txt"
     long count = 0L;
@@ -74,17 +76,28 @@ public class TriangleIngestor {
     return count;
   }
 
+  /**
+   *
+   * @param rowFile File with a big comma-seperated string of ints, aligned with colFile.
+   * @param colFile File with a big comma-seperated string of ints, aligned with rowFile.
+   * @param tableAdj Adjacency table to ingest into. Can be null.
+   * @param tableEdge Incidence tablw to ingest into. Can be null.
+   * @return Number of entries ingested.
+   */
   public long ingestFile(File rowFile, File colFile, final String tableAdj, final String tableEdge) {
+    if( tableAdj == null && tableEdge == null )
+      throw new IllegalArgumentException("need to specify either tableAdj or tableEdge");
+
     final String delimiter = ",";
-    long count = 0, startTime, origStartTime;
+    long count = 0, startTime;
     final byte[] t1b = new byte[4], t2b = new byte[4], rowcol = new byte[8];
 
     final BatchWriterConfig bwc = new BatchWriterConfig()
         .setMaxWriteThreads(25).setMaxMemory(1024000).setMaxLatency(100, TimeUnit.MILLISECONDS);
     MultiTableBatchWriter multiBatch = null;
 
-    try (Scanner rowScanner = new Scanner(rowFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(rowFile)) : new FileInputStream(rowFile));
-         Scanner colScanner = new Scanner(colFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(colFile)) : new FileInputStream(colFile)))
+    try (final Scanner rowScanner = new Scanner(rowFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(rowFile)) : new FileInputStream(rowFile));
+         final Scanner colScanner = new Scanner(colFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(colFile)) : new FileInputStream(colFile)))
     {
       rowScanner.useDelimiter(delimiter);
       colScanner.useDelimiter(delimiter);
@@ -92,11 +105,14 @@ public class TriangleIngestor {
       GraphuloUtil.createTables(connector, false, tableAdj, tableEdge);
 
       multiBatch = connector.createMultiTableBatchWriter(bwc);
-      final BatchWriter bwAdj = multiBatch.getBatchWriter(tableAdj);
-      final BatchWriter bwEdge = multiBatch.getBatchWriter(tableEdge);
+      final BatchWriter bwAdj, bwEdge;
+      if(tableAdj != null) bwAdj = multiBatch.getBatchWriter(tableAdj);
+      else bwAdj = null;
+      if(tableEdge != null) bwEdge = multiBatch.getBatchWriter(tableEdge);
+      else bwEdge = null;
 //      final Map<Integer,Integer> map = new HashMap<>(2500000);
 
-      origStartTime = startTime = System.currentTimeMillis();
+      final long origStartTime = startTime = System.currentTimeMillis();
 
       while (rowScanner.hasNext()) {
         if (!colScanner.hasNext()) {
@@ -121,23 +137,28 @@ public class TriangleIngestor {
             rowb = t2b; colb = t1b;
           }
         }
-
         // consider caching here to remove not insert the same entries twice
-        final Mutation mutAdj = new Mutation(rowb), mutEdge = new Mutation(rowb), mutEdge2 = new Mutation(colb);
 
-        mutAdj.put(EMPTY_BYTES, colb, EMPTY_BYTES); // empty family, empty value
-        bwAdj.addMutation(mutAdj);
+        if( tableAdj != null ) {
+          final Mutation mutAdj = new Mutation(rowb);
+          mutAdj.put(EMPTY_BYTES, colb, EMPTY_BYTES); // empty family, empty value
+          bwAdj.addMutation(mutAdj);
+          count++;
+        }
 
-        bothBytes(colb, rowb, rowcol);
-        mutEdge.put(EMPTY_BYTES, rowcol, EMPTY_BYTES);
-        mutEdge2.put(EMPTY_BYTES, rowcol, EMPTY_BYTES);
-        bwEdge.addMutation(mutEdge);
-        bwEdge.addMutation(mutEdge2);
+        if( tableEdge != null ) {
+          final Mutation mutEdge = new Mutation(rowb), mutEdge2 = new Mutation(colb);
+          bothBytes(colb, rowb, rowcol);
+          mutEdge.put(EMPTY_BYTES, rowcol, EMPTY_BYTES);
+          mutEdge2.put(EMPTY_BYTES, rowcol, EMPTY_BYTES);
+          bwEdge.addMutation(mutEdge);
+          bwEdge.addMutation(mutEdge2);
+          count += 2;
+        }
 
-        count += 3;
 
         if (count % 200000 <= 2) {
-          long stopTime = System.currentTimeMillis();
+          final long stopTime = System.currentTimeMillis();
           if (startTime - stopTime > 1000*60) {
             log.info(String.format("Ingest: %9d cnt, %6d secs, %8d entries/sec on %s, %s%n", count, (stopTime - origStartTime)/1000,
                 Math.round(count / ((stopTime - origStartTime)/1000.0)), tableAdj, tableEdge));

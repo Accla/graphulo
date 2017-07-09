@@ -26,7 +26,7 @@ public class TriangleCountExample extends AccumuloTestBase {
   public static final int SCALE = 10;
 
   @Test
-  public void exampleEdgeBFS() throws FileNotFoundException, TableNotFoundException, AccumuloSecurityException, AccumuloException {
+  public void exampleTriCount() throws FileNotFoundException, TableNotFoundException, AccumuloSecurityException, AccumuloException {
     final String Atable = "ex" + SCALE + "AAdjUULower";       // Adjacency table A.
     final String Etable = "ex" + SCALE + "AEdge";             // Incidence table A.
 
@@ -45,7 +45,7 @@ public class TriangleCountExample extends AccumuloTestBase {
     // Deletes tables if they already exist.
     final File rowFile = ExampleUtil.getDataFile(String.valueOf(SCALE) + 'A' + "r.txt");
     final File colFile = ExampleUtil.getDataFile(String.valueOf(SCALE) + 'A' + "c.txt");
-    new TriangleIngestor(conn).ingestFile(rowFile, colFile, Atable, Etable);
+    new TriangleIngestor(conn).ingestFile(rowFile, colFile, Atable, Etable, false);
 
     // Create Graphulo executor. Supply the password for your Accumulo user account.
     final Graphulo graphulo = new Graphulo(conn, tester.getPassword());

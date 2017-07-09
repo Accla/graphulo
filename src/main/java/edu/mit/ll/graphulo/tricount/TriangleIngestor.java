@@ -29,7 +29,7 @@ import java.util.zip.GZIPInputStream;
 
 import static edu.mit.ll.graphulo.util.GraphuloUtil.EMPTY_BYTES;
 
-public class TriangleIngestor {
+public final class TriangleIngestor {
   private static final Logger log = LogManager.getLogger(TriangleIngestor.class);
   private static final FixedIntegerLexicoder LEX = new FixedIntegerLexicoder();
 
@@ -44,7 +44,9 @@ public class TriangleIngestor {
   }
 
   @SuppressWarnings("unused") // used in D4M
-  public long ingestDirectory(final String directory, final String tableAdj, final String tableEdge) {
+  public long ingestDirectory(final String directory,
+                              final String tableAdj, final String tableEdge,
+                              final boolean reverse) {
     // call ingestFile on all pairs of files that end in "XXr.txt", "XXc.txt"
     long count = 0L;
 
@@ -66,9 +68,9 @@ public class TriangleIngestor {
       if( prefixMap.containsKey(prefix) ) {
         final File other = prefixMap.remove(prefix);
         if( name.endsWith("r.txt") )
-          count += ingestFile(file, other, tableAdj, tableEdge);
+          count += ingestFile(file, other, tableAdj, tableEdge, reverse);
         else
-          count += ingestFile(other, file, tableAdj, tableEdge);
+          count += ingestFile(other, file, tableAdj, tableEdge, reverse);
       } else {
         prefixMap.put(prefix, file);
       }
@@ -82,9 +84,13 @@ public class TriangleIngestor {
    * @param colFile File with a big comma-seperated string of ints, aligned with rowFile.
    * @param tableAdj Adjacency table to ingest into. Can be null.
    * @param tableEdge Incidence tablw to ingest into. Can be null.
+   * @param reverse If false, insert adjacency lower triangle and incidence with column labels in ascending order.
+   *                If true,  insert adjacency upper triangle and incidence with column labels in descending order.
    * @return Number of entries ingested.
    */
-  public long ingestFile(File rowFile, File colFile, final String tableAdj, final String tableEdge) {
+  public long ingestFile(final File rowFile, final File colFile,
+                         final String tableAdj, final String tableEdge,
+                         final boolean reverse) {
     if( tableAdj == null && tableEdge == null )
       throw new IllegalArgumentException("need to specify either tableAdj or tableEdge");
 
@@ -129,7 +135,7 @@ public class TriangleIngestor {
           LEX.encode(t1, t1b);
           LEX.encode(t2, t2b);
           final int cmp = WritableComparator.compareBytes(t1b, 0, t1b.length, t2b, 0, t2b.length);
-          if (cmp > 0) { // Lower triangle only.
+          if ((cmp > 0) ^ reverse) { // Lower triangle only, unless reversed.
 //            row = t1; col = t2;
             rowb = t1b; colb = t2b;
           } else {

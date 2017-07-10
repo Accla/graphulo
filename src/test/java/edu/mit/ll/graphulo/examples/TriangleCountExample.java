@@ -51,7 +51,7 @@ public class TriangleCountExample extends AccumuloTestBase {
     final Graphulo graphulo = new Graphulo(conn, tester.getPassword());
 
     final long numTriangles = graphulo.triCountAdjEdge(Atable, Etable, null, null, null, null);
-    System.out.println("Count of triangles: "+numTriangles); // 118291
+    log.info("Count of triangles: "+numTriangles); // 118291
   }
 
   @Test

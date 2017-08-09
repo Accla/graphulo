@@ -9,6 +9,7 @@ import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
@@ -70,7 +71,7 @@ public class SomeTest {
 
     @Ignore
     @Test
-    public void testTXE1() throws Exception {
+    public void testTXE1() throws Exception, TableExistsException, IOException {
         Assume.assumeTrue("Test requires TXE1", new File("clouddb51_pass.txt").exists());
 
         Instance instance = new ZooKeeperInstance(txe1config.get(ClientConfiguration.ClientProperty.INSTANCE_NAME), txe1config.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST));
@@ -85,7 +86,7 @@ public class SomeTest {
 
     @Ignore
     @Test
-    public void testlocal() throws Exception {
+    public void testlocal() throws Exception, TableExistsException, IOException {
         String instanceName = "Dev";
         String host = "localhost:2181";
         int timeout = 10000;
@@ -100,7 +101,7 @@ public class SomeTest {
 
     @Ignore
     @Test
-    public void testNormal() throws Exception {
+    public void testNormal() throws Exception, TableExistsException {
         Instance instance = new ZooKeeperInstance(instanceName,zookeeperHost);
         Connector conn = instance.getConnector(username, new PasswordToken(password));
         ConnectionProperties connprops = new ConnectionProperties(zookeeperHost,username,password,instanceName,null);
@@ -117,7 +118,7 @@ public class SomeTest {
     }
 
     @Test
-    public void mini() throws Exception {
+    public void mini() throws Exception, TableExistsException, IOException, InterruptedException {
 
         File tempDir = tempFolder.newFolder();
         MiniAccumuloCluster accumulo = new MiniAccumuloCluster(tempDir, "password");

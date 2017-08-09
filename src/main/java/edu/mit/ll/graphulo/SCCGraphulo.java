@@ -75,7 +75,7 @@ public class SCCGraphulo extends Graphulo {
 
     AdjBFS(tA, null, 1, tR, tAT, null, -1, null, "", true, 0, Integer.MAX_VALUE, null);
     for (int k = 1; k < rowCount; k++) {
-      if (k % 2 != 0) {
+      if (k % 2 == 1) {
         if (k != 1)
           tops.delete(tAC);
         TableMult(tAT, tA, tR, tAC, -1, MathTwoScalar.class, MathTwoScalar.optionMap(MathTwoScalar.ScalarOp.TIMES, MathTwoScalar.ScalarType.LONG, "", false), null, null, null, null, false, false, -1);

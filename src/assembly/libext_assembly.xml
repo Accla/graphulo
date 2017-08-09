@@ -8,16 +8,28 @@
     <!--<format>tar.bz2</format>-->
     <format>zip</format>
   </formats>
+
   <fileSets>
     <fileSet>
       <directory>${project.build.directory}/libext</directory>
       <outputDirectory>libext</outputDirectory>
     </fileSet>
   </fileSets>
-  <!--<dependencySets>-->
-    <!--<dependencySet>-->
-      <!--<unpack>false</unpack>-->
 
-    <!--</dependencySet>-->
-  <!--</dependencySets>-->
+<!--
+  <dependencySets>
+    <dependencySet>
+      <outputDirectory>libext</outputDirectory>
+       <includes>
+         <include>org.apache.accumulo:accumulo-core</include>
+         <include>org.apache.accumulo:accumulo-fate</include>
+         <include>org.apache.hadoop:hadoop-common</include>
+         <include>org.apache.thrift:libthrift</include>
+         <include>org.apache.zookeeper:zookeeper</include>
+         <include>commons-logging:commons-logging</include>
+       </includes>
+  
+    </dependencySet>
+  </dependencySets>
+-->
 </assembly>

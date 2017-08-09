@@ -1,4 +1,18 @@
 #!/bin/bash
+PRG=$0
+PRGDIR=`dirname $PRG`
+BASEDIR=`cd $PRGDIR; pwd`
+if [ -z $D4M_HOME ] ; then
+   D4M_HOME="$BASEDIR/../d4m_api"
+   if [ -d $D4M_HOME ] ; then
+       D4M_HOME=`cd $D4M_HOME;pwd`
+       echo "Setting D4M_HOME to $D4M_HOME"
+       export D4M_HOME
+
+       cd $BASEDIR
+   fi
+
+fi
 set -e #command fail -> script fail
 set -u #unset variable reference causes script fail
 
@@ -15,6 +29,8 @@ if [ -z ${D4M_HOME+x} ]; then
   echo "Not installing Graphulo JAR in D4M installation because D4M_HOME is not set";
 else
   cp $(echo target/graphulo-*.jar | tr ' ' '\n' | grep -v alldeps) "$D4M_HOME/lib"
+  cp -f target/graphulo-*-alldeps.jar $D4M_HOME/lib
+  cp -f target/graphulo-*-libext.zip $D4M_HOME
   unzip -ouq target/graphulo-*-libext.zip -d "$D4M_HOME"
   # Replace DBinit.m in D4M matlab_src with new version.
   mv "$D4M_HOME/DBinit.m" "$D4M_HOME/matlab_src"

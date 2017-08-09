@@ -104,7 +104,7 @@ public class D4mDbInsert extends D4mParent {
 		long end = System.currentTimeMillis();
 		double elapsed = ((double)(end-start))/1000.0;
 		log.info("INGEST time elapsed(sec) = "+elapsed);
-		System.out.println("INGEST time (sec) = "+elapsed);
+		//System.out.println("INGEST time (sec) = "+elapsed);
 
 		//
 		//doProcessing();

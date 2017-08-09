@@ -24,7 +24,7 @@ public class AccumuloCombiner {
 		MAX_DECIMAL(BigDecimalCombiner.BigDecimalMaxCombiner.class, 11),
 		MIN_DECIMAL(BigDecimalCombiner.BigDecimalMinCombiner.class, 12);
 
-		private Class<? extends Combiner> cl;
+		public Class<? extends Combiner> cl;
 		private int combinerPriority;
 
 		static final String PREFIX = "CombiningType_";

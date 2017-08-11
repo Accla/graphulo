@@ -735,7 +735,7 @@ public class Graphulo {
         if (useRWI) {
 //          log.debug(entry.getKey() + " -> " + entry.getValue() + " AS " + Key.toPrintableString(entry.getValue().get(), 0, entry.getValue().get().length, 40) + " RAW "+ Arrays.toString(entry.getValue().get()));
           thisEntries = RemoteWriteIterator.decodeValue(entry.getValue(), reducer);
-          log.debug(entry.getKey() + " -> " + thisEntries + " entries processed");
+          log.debug(entry.getKey().toStringNoTime() + " -> " + thisEntries + " entries processed");
           numEntries += thisEntries;
         } else {
           log.debug(entry.getKey() + " -> " + entry.getValue());
@@ -952,7 +952,7 @@ public class Graphulo {
 //          log.debug(entry.getKey() + " -> " + entry.getValue() + " AS " + Key.toPrintableString(entry.getValue().get(), 0, entry.getValue().get().length, 40) + " RAW "+ Arrays.toString(entry.getValue().get()));
           // mutates reducer if not null:
           thisEntries = RemoteWriteIterator.decodeValue(entry.getValue(), reducer);
-          log.debug(entry.getKey() + " -> " + thisEntries + " entries processed");
+          log.debug(entry.getKey().toStringNoTime() + " -> " + thisEntries + " entries processed");
           numEntries += thisEntries;
         } else {
 //          log.debug(entry.getKey() + " -> " + entry.getValue());

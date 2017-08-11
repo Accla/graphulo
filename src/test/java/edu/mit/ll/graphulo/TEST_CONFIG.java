@@ -75,21 +75,6 @@ public class TEST_CONFIG {
       }
       AccumuloTester = new RealAccumuloTester(instance, instance+".cloud.llgrid.txe1.mit.edu:2181", "AccumuloUser", token);
 
-    } else if (s.startsWith("txg-")) {
-      String instance  = s.substring(4);
-      File file = new File("/home/gridsan/groups/databases/"+instance+"/accumulo_user_password.txt");
-      PasswordToken token;
-      try (BufferedReader is = new BufferedReader(new FileReader(file))) {
-        token = new PasswordToken(is.readLine());
-      } catch (FileNotFoundException e) {
-        log.error("Cannot find accumulo_user_password.txt for instance "+instance, e);
-        throw new RuntimeException(e);
-      } catch (IOException e) {
-        log.error("Problem reading accumulo_user_password.txt for instance " + instance, e);
-        throw new RuntimeException(e);
-      }
-      AccumuloTester = new RealAccumuloTester(instance, instance+".cloud.llgrid.ll.mit.edu:2181", "AccumuloUser", token);
-
     } else {
       switch (s) {
         case "local":

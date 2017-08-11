@@ -1,18 +1,4 @@
 #!/bin/bash
-PRG=$0
-PRGDIR=`dirname $PRG`
-BASEDIR=`cd $PRGDIR; pwd`
-if [ -z $D4M_HOME ] ; then
-   D4M_HOME="$BASEDIR/../d4m_api"
-   if [ -d $D4M_HOME ] ; then
-       D4M_HOME=`cd $D4M_HOME;pwd`
-       echo "Setting D4M_HOME to $D4M_HOME"
-       export D4M_HOME
-
-       cd $BASEDIR
-   fi
-
-fi
 set -e #command fail -> script fail
 set -u #unset variable reference causes script fail
 

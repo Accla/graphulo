@@ -62,6 +62,7 @@ tailMiniServerLogs.sh Similar to above.
 deploy.sh             Script to deploy a graphulo build to Accumulo and Matlab D4M.
 README.md             This file.
 README-D4M.md         Readme for d4m_api_java, also included in this distribution.
+example.conf          Example configuration file for testing.
 
    -Below files only in git repository-
 .gitignore            Files and folders to exclude from git.
@@ -77,7 +78,7 @@ shippable.yml         Enables continuous integration testing.
 
 Prerequisite: Install [Maven](https://maven.apache.org/download.cgi).
 
-Run `mvn package -DskipTests=true` to compile and build graphulo.
+Run `mvn package -DskipTests` to compile and build graphulo.
 This creates three primary Graphulo artifacts inside the `target/` sub-directory:
 
 1. `graphulo-${version}.jar`         Graphulo binaries, enough for client usage.
@@ -89,9 +90,20 @@ so that the Accumulo instance has everything it could possibly need to instantia
 3. `graphulo-${version}-libext.zip`  ZIP of the JARs of all dependencies.
 Unzip this in a D4M installation directory to make Graphulo available in D4M.  
 
-The maven script will build everything on Unix-like systems (including Mac).
+The maven script will build everything on Unix-like systems (including Mac),
+as long as the *zip* utility is installed.
 On Windows systems, `DBinit.m` may not be built (used in D4M installation). 
 See the message in the build after running `mvn package`.
+
+#### Other Build Options
+
+Run `mvn package -DskipTests -DNoDoAll` to not build the alldeps jar, libext zip, and javadoc.
+This build will be much faster than normal builds.
+
+Run `mvn package -DskipTests -DBundleAll` to create a jar that includes the Accumulo dependencies 
+alongside all other dependencies. This should not be used in an Accumulo installation because
+the Accumulo classes will conflict with the jars in the Accumulo installation.
+It is useful for running standalone programs.
 
 ### Test
 Tests only run on Unix-like systems.
@@ -107,15 +119,28 @@ See TEST_CONFIG.java for changing connection parameters, such as testing on a re
 * Test results are saved in the `shippable/testresults` folder.
 * Run `mvn clean` to delete output from previously run tests.
 
+
+### Develop
+If you're interested in using an IDE for development, [IntelliJ][] is a good choice.
+However, IntelliJ's profiler listens by default on port 10001, which conflicts with Accumulo's
+[default master replication service port](https://accumulo.apache.org/1.7/accumulo_user_manual.html#_network).
+You can fix this by manually setting the port in the `bin/idea.sh` file in your IntelliJ installation
+according to the [instructions posted here](https://stackoverflow.com/questions/13345986/intellij-idea-using-10001-port).
+Otherwise if you don't fix it, you may not be able to run IntelliJ and Accumulo concurrently.
+You could also change Accumulo's ports from their default.
+
+
 #### Testing on Standalone Accumulo via a configuration file
 Another way to specify an Accumulo instance for running tests on, 
 if not through the shortcut keywords defined in TEST_CONFIG.java,
-is by passing `-DTEST_CONFIG=filepath` to `mvn test`. The file specified in the path should look like this template:
+is by passing `-DTEST_CONFIG=filepath` to `mvn test`.
+The file specified in the path should look like this template
+(it is best to choose a user with all system permissions like root):
 
-    accumulo.it.cluster.standalone.admin.principal=username  #ideally user has all System permissions
+    accumulo.it.cluster.standalone.admin.principal=username
     accumulo.it.cluster.standalone.admin.password=password
     accumulo.it.cluster.standalone.zookeepers=localhost:2181
-    accumulo.it.cluster.standalone.instance.name=instance 
+    accumulo.it.cluster.standalone.instance.name=instance
 
 The default filepath is `./GraphuloTest.conf`. If this file exists and has the correct properties inside, 
 then it is loaded and used instead of MiniAccumulo if no TEST_CONFIG is specified.
@@ -131,7 +156,7 @@ The classes in [`src/test/java/edu/mit/ll/graphulo/examples/`](src/test/java/edu
 contain simple, well-commented examples of how to use Graphulo.
 To run an example, use the command `mvn test -Dtest=TESTNAME`, replacing `TESTNAME` with the name of the test.
 To run every example, use the command `mvn test -Dtest=*Example`.
-View example output with `./post-test.bash`, or inspect the `shippable/testreusults/` directory.
+View example output with `./post-test.bash`, or inspect the `shippable/testresults/` directory.
 
 Examples run inside [MiniAccumulo][] by default. To run an example in a local Accumulo instance,
 add the option `-DTEST_CONFIG=local` to the Maven command.
@@ -325,7 +350,7 @@ MultiplyOp, EWiseOp, ApplyOp or more general SKVI as applicable.
 ### Debugging
 Before debugging a problem, consider 
 
-1. checking the Accumulo monitor, running by default on <http://localhost:50095/>;
+1. checking the Accumulo monitor, running by default on <http://localhost:9995/> (as of Accumulo 1.8);
 2. printf or log4j debugging;
 3. debugging by deletion, i.e., if removing a piece of code solves your problem, 
 then you know where the problem is;
@@ -335,13 +360,13 @@ which log information about every call from the iterator above it at the `DEBUG`
 Debuggers can be extraordinarily helpful once running but challenging to set up.
 There are two methods to use a debugger: 
 
-1. starting a "debug server" in your IDE
-and having a Java application connect to it at startup, or 
-2. having a Java application start a "debug server" 
+1. start a "debug server" in your IDE
+and have a Java application connect to it at startup, or 
+2. have a Java application start a "debug server" 
 and listen for you to make a connection from your IDE.
  
 #### Debugging Standalone Accumulo
-I tend to use method (1) for standalone Accumulo, not for any particular reason.
+I tend to use method (1) for standalone Accumulo.
 Run the following before launching Accumulo via its start scripts or via `accumulo tserver &`:
 
 ```bash
@@ -353,15 +378,16 @@ which you should configure to listen on port 5005 (of 127.0.0.1).
 
 You must debug quickly in this mode.  If you idle too long without making a debug step,
 then the Accumulo tablet server will lose its Zookeeper lock and kill itself.
+You can increase the Zookeeper timeout in Accumulo's site config file.
 
 #### Debugging MiniAccumulo
 Set `-DTEST_CONFIG=miniDebug` for any test using MiniAccumulo.
-The code will print to `System.out` the ports that MiniAccumulo randomly chooses to listen on 
+The code will print the ports that MiniAccumulo randomly chooses to listen on 
 for each Accumulo process after starting MiniAccumulo.
 You have 10 seconds to connect to one of the ports (probably the TABLET_SERVER port)
 before the test continues executing.
 I recommend using `tail -f shippable/testresults/edu.mit.ll.graphulo.TESTNAME-output.txt`
-to see the ports as they are printed.  Replace `TESTNAME` with the name of the test you are runnning.
+to see the ports as they are printed.  Replace `TESTNAME` with the name of the test you are running.
 
 For a bit more insight, see the `before()` method of [MiniAccumuloTester][].
 

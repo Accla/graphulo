@@ -19,5 +19,6 @@ while read -u 10 p; do
 		echo "$p" >> "$d"
 	fi		
 done 10<"$c"
+command -v zip >/dev/null 2>&1 || { echo >&2 "zip is not installed. Cannot place DBinit.m inside the libext zip file."; exit 1; }
 zip -g -j "$e" "$d"
 echo "${4##*/} built successfully and placed inside $e"

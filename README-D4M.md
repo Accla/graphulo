@@ -8,8 +8,6 @@ the storage and retrieval of associative arrays into a database.
 * Matlab (or GNU Octave 3.2.2+ with Java package 1.2.6+)
 * Accumulo 1.6.0+
 
-
-
 ### Building
 [![Build Status](https://api.shippable.com/projects/54f27f245ab6cc13528fd44d/badge?branchName=master)](https://app.shippable.com/projects/54f27f245ab6cc13528fd44d/builds/latest)
 [![Build Status](https://travis-ci.org/Accla/d4m_api_java.svg)](https://travis-ci.org/Accla/d4m_api_java)

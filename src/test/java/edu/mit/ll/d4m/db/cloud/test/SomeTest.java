@@ -9,7 +9,6 @@ import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
@@ -71,7 +70,7 @@ public class SomeTest {
 
     @Ignore
     @Test
-    public void testTXE1() throws Exception, TableExistsException, IOException {
+    public void testTXE1() throws Exception {
         Assume.assumeTrue("Test requires TXE1", new File("clouddb51_pass.txt").exists());
 
         Instance instance = new ZooKeeperInstance(txe1config.get(ClientConfiguration.ClientProperty.INSTANCE_NAME), txe1config.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST));
@@ -86,7 +85,7 @@ public class SomeTest {
 
     @Ignore
     @Test
-    public void testlocal() throws Exception, TableExistsException, IOException {
+    public void testlocal() throws Exception {
         String instanceName = "Dev";
         String host = "localhost:2181";
         int timeout = 10000;
@@ -101,7 +100,7 @@ public class SomeTest {
 
     @Ignore
     @Test
-    public void testNormal() throws Exception, TableExistsException {
+    public void testNormal() throws Exception {
         Instance instance = new ZooKeeperInstance(instanceName,zookeeperHost);
         Connector conn = instance.getConnector(username, new PasswordToken(password));
         ConnectionProperties connprops = new ConnectionProperties(zookeeperHost,username,password,instanceName,null);

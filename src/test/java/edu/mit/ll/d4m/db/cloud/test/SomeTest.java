@@ -117,7 +117,7 @@ public class SomeTest {
     }
 
     @Test
-    public void mini() throws Exception, TableExistsException, IOException, InterruptedException {
+    public void mini() throws Exception {
 
         File tempDir = tempFolder.newFolder();
         MiniAccumuloCluster accumulo = new MiniAccumuloCluster(tempDir, "password");

@@ -17,6 +17,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 
+import static edu.mit.ll.graphulo.util.GraphuloUtil.EMPTY_TEXT;
+
 /**
  * For every entry passed in, emits an entry with the same row,
  * empty column family, and column qualifier set to the row.
@@ -33,8 +35,6 @@ public class RowToDiagonalApply implements ApplyOp {
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
   }
-
-  private static final Text EMPTY_TEXT = new Text();
 
   @Override
   public Iterator<? extends Map.Entry<Key, Value>> apply(Key k, Value v) {

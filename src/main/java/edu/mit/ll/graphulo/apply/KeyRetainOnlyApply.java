@@ -3,6 +3,7 @@ package edu.mit.ll.graphulo.apply;
 import com.google.common.collect.Iterators;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.lexicoder.IntegerLexicoder;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -18,6 +19,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 
+import static java.lang.Boolean.TRUE;
+
 /**
  * Only retain the part of the Key given as a PartialKey option.
  * If null, then reduces the Key to the seek start Key (which is the all empty fields Key if seek range starts at -inf).
@@ -32,7 +35,9 @@ public class KeyRetainOnlyApply implements ApplyOp {
   public static IteratorSetting iteratorSetting(int priority, PartialKey pk) {
     IteratorSetting itset = new IteratorSetting(priority, ApplyIterator.class);
     itset.addOption(ApplyIterator.APPLYOP, KeyRetainOnlyApply.class.getName());
-    if (pk != null)
+    if( pk == null )
+      itset.addOption(ApplyIterator.IGNORE_SEEK_EXCLUSIVE_START, TRUE.toString());
+    else
       itset.addOption(ApplyIterator.APPLYOP+GraphuloUtil.OPT_SUFFIX+PARTIAL_KEY, pk.name());
     return itset;
   }
@@ -61,9 +66,10 @@ public class KeyRetainOnlyApply implements ApplyOp {
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
     parseOptions(options);
   }
-
+//  private final static IntegerLexicoder INTEGER_LEXICODER = new IntegerLexicoder();
   @Override
   public Iterator<? extends Map.Entry<Key, Value>> apply(Key k, Value v) {
+//    log.info("keyretainonlyapply see "+k.toStringNoTime()+" -> "+INTEGER_LEXICODER.decode(v.get()));
     Key knew;
     if (pk == null)
       knew = seekStartKey;
@@ -80,6 +86,6 @@ public class KeyRetainOnlyApply implements ApplyOp {
     if (range.isInfiniteStartKey())
       seekStartKey = new Key();
     else
-      seekStartKey = range.isStartKeyInclusive() ? range.getStartKey() : range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL);
+      seekStartKey = range.isStartKeyInclusive() ? range.getStartKey() : range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL); // problem
   }
 }

@@ -15,6 +15,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -22,7 +23,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 
 public class CartesianRowMultiply implements RowMultiplyOp {
@@ -73,6 +76,24 @@ public class CartesianRowMultiply implements RowMultiplyOp {
     SortedMap<Text, Value> map = new TreeMap<>();
     do {
       map.put(skvi.getTopKey().getColumnQualifier(), new Value(skvi.getTopValue()));
+//      watch.start(watchtype);
+//      try {
+      skvi.next();
+//      } finally {
+//        watch.stop(watchtype);
+//      }
+    } while (skvi.hasTop() && skvi.getTopKey().getRow(curRow).equals(thisRow));
+    return map;
+  }
+
+  public static SortedSet<Text> readRowColumnsNoValues(SortedKeyValueIterator<Key, Value> skvi) throws IOException {
+    if (!skvi.hasTop())
+      throw new IllegalStateException(skvi + " should hasTop()");
+    final Text thisRow = skvi.getTopKey().getRow();
+    Text curRow = new Text(thisRow);
+    SortedSet<Text> map = new TreeSet<>();
+    do {
+      map.add(skvi.getTopKey().getColumnQualifier());
 //      watch.start(watchtype);
 //      try {
       skvi.next();

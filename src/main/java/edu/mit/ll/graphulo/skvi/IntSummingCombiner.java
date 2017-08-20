@@ -7,13 +7,14 @@ import java.util.Iterator;
 /**
  * A Combiner that interprets Values as Longs and returns their sum.
  */
-public class DoubleSummingCombiner extends DoubleCombiner {
+public class IntSummingCombiner extends IntCombiner {
   @Override
-  public Double typedReduce(Key key, Iterator<Double> iter) {
-    double sum = 0;
+  public Integer typedReduce(Key key, Iterator<Integer> iter) {
+    int sum = 0;
     while (iter.hasNext()) {
       sum = sum + iter.next();
     }
+//    System.out.println("int sum to "+sum+" on key "+key.toStringNoTime());
     return sum;
   }
 
@@ -21,7 +22,7 @@ public class DoubleSummingCombiner extends DoubleCombiner {
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
     io.setName("sum");
-    io.setDescription("DoubleSummingCombiner interprets Values as Doubles and adds them together.");
+    io.setDescription("IntegerSummingCombiner interprets Values as Integers and adds them together.");
     return io;
   }
 }

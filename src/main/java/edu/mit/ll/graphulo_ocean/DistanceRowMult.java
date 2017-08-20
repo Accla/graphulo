@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.SortedMap;
 
 import static edu.mit.ll.graphulo.rowmult.CartesianRowMultiply.readRowColumns;
+import static edu.mit.ll.graphulo.util.GraphuloUtil.EMPTY_TEXT;
 
 /**
  * Bray-Curtis index.
@@ -73,7 +74,6 @@ public class DistanceRowMult implements RowMultiplyOp {
     scanDegreeTable();
   }
 
-  private static final Text EMPTY_TEXT = new Text();
   private static final TypedValueCombiner.Encoder<Long> LEX = new LongLexicoder();
   private static final TypedValueCombiner.Encoder<Double> LEXDOUBLE = new DoubleLexicoderTemp(); // attempt 1.6 compat
   private static final byte[] ZERO_BYTE = new byte[] { 0x00 };

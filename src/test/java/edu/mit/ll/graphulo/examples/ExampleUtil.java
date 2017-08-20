@@ -23,7 +23,7 @@ public class ExampleUtil {
     URL url = Thread.currentThread().getContextClassLoader().getResource("data/"+name);
     if (url == null)
       url = Thread.currentThread().getContextClassLoader().getResource("data/"+name+".gz");
-    Assert.assertNotNull(url);
+    Assert.assertNotNull("Cannot find file "+name, url);
     return new File(url.getPath());
   }
 

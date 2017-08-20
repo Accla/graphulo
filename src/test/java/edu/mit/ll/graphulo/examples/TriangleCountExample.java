@@ -23,7 +23,7 @@ public class TriangleCountExample extends AccumuloTestBase {
   private static final Logger log = LogManager.getLogger(TriangleCountExample.class);
 
   /** Corresponds to saved files in the test/java/resources/data folder. */
-  public static final int SCALE = 10;
+  private static final int SCALE = 10;
 
   @Test
   public void exampleTriCount() throws FileNotFoundException, TableNotFoundException, AccumuloSecurityException, AccumuloException {
@@ -54,10 +54,10 @@ public class TriangleCountExample extends AccumuloTestBase {
     log.info("Count of triangles: "+numTriangles); // 118291
   }
 
-  @Test
-  public void temp() {
-    final Graphulo graphulo = new Graphulo(tester.getConnector(), tester.getPassword());
-    graphulo.OneTable("DH_pg03_20160331_TgraphEdge", null, "DH_pg03_20160331_TgraphEdgeT", null,
-        55, null, null, null, null, null, null, null, null);
-  }
+//  @Test
+//  public void temp() {
+//    final Graphulo graphulo = new Graphulo(tester.getConnector(), tester.getPassword());
+//    graphulo.OneTable("DH_pg03_20160331_TgraphEdge", null, "DH_pg03_20160331_TgraphEdgeT", null,
+//        55, null, null, null, null, null, null, null, null);
+//  }
 }

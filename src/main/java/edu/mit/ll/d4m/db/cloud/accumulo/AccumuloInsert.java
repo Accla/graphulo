@@ -1,6 +1,3 @@
-/**
- *
- */
 package edu.mit.ll.d4m.db.cloud.accumulo;
 
 import edu.mit.ll.d4m.db.cloud.D4mDbInsert;
@@ -33,8 +30,7 @@ public class AccumuloInsert extends D4mInsertBase {
 	}
 
 
-	public AccumuloInsert(String instanceName, String hostName,
-												String tableName, String username, String password) {
+	public AccumuloInsert(String instanceName, String hostName, String tableName, String username, String password) {
 		super(instanceName, hostName, tableName, username, password);
 
 	}

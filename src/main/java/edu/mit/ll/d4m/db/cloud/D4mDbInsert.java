@@ -15,23 +15,23 @@ public class D4mDbInsert extends D4mParent {
 	private static final Logger log = Logger.getLogger(D4mDbInsert.class);
 
 	// used to control special behavior in AccumuloInsert
-  public static boolean MagicInsert = false; // set vals to empty; UIntegerLexicode
-  @SuppressWarnings("unused")
-  public static void setMagicInsert(boolean magicInsert) {
-  	MagicInsert = magicInsert;
+	private static boolean IntEncodeValueAndDropEmpty = false; // set vals to empty; UIntegerLexicode
+	@SuppressWarnings("unused")
+	public static void setIntEncodeValueAndDropEmpty(boolean intEncodeValueAndDropEmpty) {
+		IntEncodeValueAndDropEmpty = intEncodeValueAndDropEmpty;
 	}
 	@SuppressWarnings("unused")
-	public static boolean isMagicInsert() {
-		return MagicInsert;
+	public static boolean isIntEncodeValueAndDropEmpty() {
+		return IntEncodeValueAndDropEmpty;
 	}
-	public static boolean MagicInsert2 = false; // prepend shard byte to Row; set vals to empty; 4 bytes integer encode
-  @SuppressWarnings("unused")
-  public static void setMagicInsert2(boolean magicInsert2) {
-  	MagicInsert2 = magicInsert2;
+	private static boolean IntEncodeKeyAndPrependLastByteRev = false; // prepend shard byte to Row; set vals to empty; 4 bytes integer encode
+	@SuppressWarnings("unused")
+	public static void setIntEncodeKeyAndPrependLastByteRev(boolean intEncodeKeyAndPrependLastByteRev) {
+		IntEncodeKeyAndPrependLastByteRev = intEncodeKeyAndPrependLastByteRev;
 	}
 	@SuppressWarnings("unused")
-	public static boolean isMagicInsert2() {
-		return MagicInsert2;
+	public static boolean isIntEncodeKeyAndPrependLastByteRev() {
+		return IntEncodeKeyAndPrependLastByteRev;
 	}
 
 	private String tableName = "";
@@ -105,7 +105,7 @@ public class D4mDbInsert extends D4mParent {
 		acc.doProcessing(visibility, family, columnQualifier);
 		*/
 	}
-	
+
 
 	public void doProcessing(String rows, String cols, String vals, String family, String visibility) throws Exception {
 

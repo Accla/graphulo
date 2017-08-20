@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package edu.mit.ll.d4m.db.cloud.accumulo;
 
@@ -34,7 +34,7 @@ public class AccumuloInsert extends D4mInsertBase {
 
 
 	public AccumuloInsert(String instanceName, String hostName,
-			String tableName, String username, String password) {
+												String tableName, String username, String password) {
 		super(instanceName, hostName, tableName, username, password);
 
 	}
@@ -56,12 +56,12 @@ public class AccumuloInsert extends D4mInsertBase {
 			makeAndAddMutations();
 		} catch (MutationsRejectedException | TableNotFoundException e) {
 			log.error(e);
-            throw e;
+			throw e;
 		}
 
-  }
+	}
 
-  private static class RowIndex implements Comparator<Integer> {
+	private static class RowIndex implements Comparator<Integer> {
 		private final String[] array;
 
 		public RowIndex(String[] array) {
@@ -110,13 +110,13 @@ public class AccumuloInsert extends D4mInsertBase {
 
 		for (int i : indices) {
 			if (!mRow.equals(rowsArr[i])) {
-				if( !D4mDbInsert.MagicInsert || m.size() > 0 )
+				if( !D4mDbInsert.isIntEncodeValueAndDropEmpty() || m.size() > 0 )
 					bw.addMutation(m);
 				mRow = rowsArr[i];
 				m = new Mutation(transformRow(rowsArr[i]));
 			}
 
-			if (D4mDbInsert.MagicInsert && mRow.compareTo(colsArr[i]) >= 0)
+			if (D4mDbInsert.isIntEncodeValueAndDropEmpty() && mRow.compareTo(colsArr[i]) >= 0)
 				continue;
 
 			mCol.set(transformColQ(colsArr[i]));
@@ -136,12 +136,7 @@ public class AccumuloInsert extends D4mInsertBase {
 	private static final Lexicoder<Integer> LEX = new UIntegerLexicoder();
 
 	private static byte[] transformRow(final String str) {
-//		if (D4mDbInsert.MagicInsert) {
-//			final int i = Integer.parseInt(str);
-//			return LEX.encode(i);
-//		}
-//		else
-			if (D4mDbInsert.MagicInsert2) {
+		if (D4mDbInsert.isIntEncodeKeyAndPrependLastByteRev()) {
 			// parse String as int
 			// first byte is the last byte of the int, reversed
 			final int i = Integer.parseInt(str);
@@ -156,11 +151,7 @@ public class AccumuloInsert extends D4mInsertBase {
 			return str.getBytes(StandardCharsets.UTF_8);
 	}
 	private static byte[] transformColQ(final String str) {
-//		if (D4mDbInsert.MagicInsert) {
-//			final int i = Integer.parseInt(str);
-//			return LEX.encode(i);
-//		} else
-		if( D4mDbInsert.MagicInsert2 ) {
+		if( D4mDbInsert.isIntEncodeKeyAndPrependLastByteRev()) {
 			final int i = Integer.parseInt(str);
 			return new byte[] {
 					(byte) (i >> 24),
@@ -172,7 +163,7 @@ public class AccumuloInsert extends D4mInsertBase {
 			return str.getBytes(StandardCharsets.UTF_8);
 	}
 	private static byte[] transformVal(final String str) {
-		if( D4mDbInsert.MagicInsert || D4mDbInsert.MagicInsert2 )
+		if( D4mDbInsert.isIntEncodeValueAndDropEmpty() || D4mDbInsert.isIntEncodeKeyAndPrependLastByteRev())
 			return str.equals("1") ? EMPTY_BYTES : LEX.encode(Integer.parseInt(str));
 		else
 			return str.getBytes(StandardCharsets.UTF_8);

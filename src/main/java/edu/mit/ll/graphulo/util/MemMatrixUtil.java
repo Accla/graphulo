@@ -19,6 +19,8 @@ import java.util.Random;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import static edu.mit.ll.graphulo.util.GraphuloUtil.EMPTY_TEXT;
+
 /**
  * Invert a matrix.
  */
@@ -61,8 +63,6 @@ public class MemMatrixUtil {
     }
     return matrix;
   }
-
-  private static final Text EMPTY_TEXT = new Text();
 
   public static SortedMap<Key,Value> matrixToMap(final SortedMap<Key,Value> map, RealMatrix matrix) {
     matrix.walkInOptimizedOrder(new DefaultRealMatrixPreservingVisitor() {

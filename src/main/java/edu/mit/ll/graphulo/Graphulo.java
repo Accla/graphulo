@@ -17,15 +17,20 @@ import edu.mit.ll.graphulo.rowmult.EdgeBFSMultiply;
 import edu.mit.ll.graphulo.rowmult.LineRowMultiply;
 import edu.mit.ll.graphulo.rowmult.MultiplyOp;
 import edu.mit.ll.graphulo.rowmult.SelectorRowMultiply;
+import edu.mit.ll.graphulo.rowmult.UpperTriTwoJoin;
 import edu.mit.ll.graphulo.simplemult.ConstantTwoScalar;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar.ScalarOp;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar.ScalarType;
 import edu.mit.ll.graphulo.skvi.CountAllIterator;
+import edu.mit.ll.graphulo.skvi.DebugInfoIterator;
+import edu.mit.ll.graphulo.skvi.IntCombiner.Type;
+import edu.mit.ll.graphulo.skvi.IntSummingCombiner;
 import edu.mit.ll.graphulo.skvi.InverseMatrixIterator;
 import edu.mit.ll.graphulo.skvi.JaccardMultiplyIterator;
 import edu.mit.ll.graphulo.skvi.LruCacheIterator;
 import edu.mit.ll.graphulo.skvi.MinMaxFilter;
+import edu.mit.ll.graphulo.skvi.OddDivideIntSummingCombiner;
 import edu.mit.ll.graphulo.skvi.RemoteSourceIterator;
 import edu.mit.ll.graphulo.skvi.RemoteWriteIterator;
 import edu.mit.ll.graphulo.skvi.SamplingFilter;
@@ -35,6 +40,14 @@ import edu.mit.ll.graphulo.skvi.TopColPerRowIterator;
 import edu.mit.ll.graphulo.skvi.TriangularFilter;
 import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import edu.mit.ll.graphulo.skvi.ktruss.SmartKTrussFilterIterator;
+import edu.mit.ll.graphulo.tricount.ClumpNonEmptyUnsignedVLong;
+import edu.mit.ll.graphulo.tricount.EmptyToOneIterator;
+import edu.mit.ll.graphulo.tricount.IntegerEmptyLexicoder;
+import edu.mit.ll.graphulo.tricount.OddUntransformAgg;
+import edu.mit.ll.graphulo.tricount.OneAggReducer;
+import edu.mit.ll.graphulo.tricount.PowerLawDegreeTriangleApply;
+import edu.mit.ll.graphulo.tricount.TriangularFilter_TriCountMagic;
+import edu.mit.ll.graphulo.tricount.UpperTriCountTrianglesAdjEdgeJoin;
 import edu.mit.ll.graphulo.util.DebugUtil;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.MTJUtil;
@@ -61,6 +74,8 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.lexicoder.Lexicoder;
+import org.apache.accumulo.core.client.lexicoder.UIntegerLexicoder;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -92,9 +107,27 @@ import org.apache.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.PriorityQueue;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import static edu.mit.ll.graphulo.skvi.TriangularFilter.TriangularType;
+import static edu.mit.ll.graphulo.util.GraphuloUtil.EMPTY_TEXT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
 
@@ -114,9 +147,11 @@ public class Graphulo {
             MathTwoScalar.combinerSetting(6, null, ScalarOp.PLUS, ScalarType.LONG, false);
   public static final IteratorSetting PLUS_ITERATOR_DOUBLE =
       MathTwoScalar.combinerSetting(6, null, ScalarOp.PLUS, ScalarType.DOUBLE, false);
+  public static final Lexicoder<Integer> UINTEGER_LEXICODER = new UIntegerLexicoder();
+  public static final IntegerEmptyLexicoder INTEGER_EMPTY_LEXICODER = new IntegerEmptyLexicoder();
 
-  protected Connector connector;
-  protected AuthenticationToken authenticationToken;
+  protected final Connector connector;
+  protected final AuthenticationToken authenticationToken;
 
   public Graphulo(@Nonnull Connector connector, @Nonnull AuthenticationToken password) {
     this.connector = connector;
@@ -146,7 +181,7 @@ public class Graphulo {
     try {
       connector.tableOperations().testClassLoad(MetadataTable.NAME, RemoteWriteIterator.class.getName(), SortedKeyValueIterator.class.getName());
     } catch (AccumuloException | AccumuloSecurityException e) {
-      log.error("Problem loading a Graphulo class in Accumulo. Did you install the Graphulo JAR in the Accumulo server?", e);
+      log.error("Problem loading a Graphulo class in Accumulo. Did you install the Graphulo JAR in the Accumulo server under $ACCUMULO_HOME/lib/ext?", e);
       throw new RuntimeException(e);
     } catch (TableNotFoundException e) {
       log.error("No metadata table?", e);
@@ -160,8 +195,6 @@ public class Graphulo {
     return "Graphulo: User "+connector.whoami()+" connected to "+connector.getInstance();
   }
 
-
-  private static final Text EMPTY_TEXT = new Text();
 
 
   public long TableMult(String ATtable, String Btable, String Ctable, String CTtable,
@@ -1511,7 +1544,31 @@ public class Graphulo {
    * @param numEntriesPerTablet desired #entries per tablet = (total #entries in table) / (#desired tablets)
    * @return String with the split points with a newline separator, e.g. "ca\nf\nq\n"
    */
+  @SuppressWarnings("unused")
   public String findEvenSplits(String table, int numSplitPoints, int numEntriesPerTablet) {
+    return findEvenSplits(table, numSplitPoints, numEntriesPerTablet, 1.0, 1.0);
+  }
+
+  /**
+   * Usage with Matlab D4M:
+   * <pre>
+   * desiredNumTablets = ...;
+   * numEntries = nnz(T);
+   * G = DBaddJavaOps('edu.mit.ll.graphulo.MatlabGraphulo','instance','localhost:2181','root','secret');
+   * splitPoints = G.findEvenSplits(getName(T), desiredNumTablets-1, numEntries / desiredNumTablets);
+   * putSplits(T, splitPoints);
+   * % Verify:
+   * [splits,entriesPerSplit] = getSplits(T);
+   * </pre>
+   *
+   * @param numSplitPoints      # of desired tablets = numSplitPoints+1
+   * @param numEntriesPerTablet desired #entries per tablet = (total #entries in table) / (#desired tablets)
+   * @param linearFactor All splits except the last will have this factor fewer entries. The last will have more entries. You could use factor 0.8. Factor 1.0 does nothing.
+   * @param expFactor Exponentially vary the number of entries, starting with fewer at first and more later (assuming factor > 1.0). Factor 1.0 does nothing.
+   * @return String with the split points with a newline separator, e.g. "ca\nf\nq\n"
+   */
+  @SuppressWarnings("unused")
+  public String findEvenSplits(String table, int numSplitPoints, int numEntriesPerTablet, double linearFactor, double expFactor) {
     if (numSplitPoints < 0)
       throw new IllegalArgumentException("numSplitPoints: " + numSplitPoints);
     if (numSplitPoints == 0)
@@ -1524,22 +1581,61 @@ public class Graphulo {
       log.error("Table does not exist: " + table, e);
       throw new RuntimeException(e);
     }
-    char sep = '\n';
+    final char sep = '\n';
     StringBuilder sb = new StringBuilder();
     Iterator<Map.Entry<Key, Value>> iterator = scan.iterator();
+    Text t = new Text();
+
+    // (sum r^i * y, i=0 to n-1) = n*x, solve for y
+    final double limitBase = expFactor == 1.0 ? numEntriesPerTablet : numSplitPoints*(expFactor-1)*numEntriesPerTablet / (Math.pow(expFactor, numSplitPoints)-1);
     for (int sp = 0; sp < numSplitPoints; sp++) {
-      for (int entnum = 0; entnum < numEntriesPerTablet - 1; entnum++) {
+      final int limit = (int) (Math.pow(expFactor, sp)*limitBase * linearFactor);
+      for (int entnum = 0; entnum < limit; entnum++) {
         if (!iterator.hasNext())
-          throw new RuntimeException("not enough entries in table to split into " + (numSplitPoints + 1) + " tablets. Stopped after " + sp + " split points and " + entnum + " entries in the last split point");
+          break;
         iterator.next();
       }
-      if (!iterator.hasNext())
-        throw new RuntimeException("not enough entries in table to split into " + (numSplitPoints + 1) + " tablets. Stopped after " + sp + " split points and " + (numEntriesPerTablet - 1) + " entries in the last split point");
-      sb.append(iterator.next().getKey().getRow().toString())
-          .append(sep);
+      if (!iterator.hasNext()) {
+        // this could happen due to skew
+        System.out.println("not assigning " + (numSplitPoints - sp) + " splits because there are not enough entries in the table");//throw new RuntimeException("not enough entries in table to split into " + (numSplitPoints + 1) + " tablets. Stopped after " + sp + " split points and " + (numEntriesPerTablet - 1) + " entries in the last split point");
+        break;
+      }
+      final byte[] bs = iterator.next().getKey().getRow(t).copyBytes();
+      sb.append(t.toString()).append(sep);
+      System.out.println("split: "+Arrays.toString(bs));
+      iterator.next();
     }
     scan.close();
     return sb.toString();
+  }
+
+
+  /**
+   * Set uniformly spaced splits across the bytes.
+   * Max 255.
+   *
+   * @param numSplitPoints      # of desired tablets = numSplitPoints+1
+   * @return String with the split points with a newline separator, e.g. "ca\nf\nq\n"
+   */
+  @SuppressWarnings("unused")
+  public String setUniformSplits(String table, int numSplitPoints) throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    if (numSplitPoints < 0)
+      throw new IllegalArgumentException("numSplitPoints: " + numSplitPoints);
+    if (numSplitPoints == 0)
+      return "";
+    if (numSplitPoints > 255)
+      throw new IllegalArgumentException("too many splits for numSplitPoints: " + numSplitPoints);
+
+    SortedSet<Text> set = new TreeSet<>();
+    final int mul = 256 / (numSplitPoints+1);
+    for (int i = 1; i <= numSplitPoints; i++) {
+      final int pt = i*mul;
+      set.add(new Text(new byte[]{(byte)(pt & 0xFF)}));
+    }
+
+    connector.tableOperations().addSplits(table, set);
+
+    return set.toString();
   }
 
 
@@ -2535,6 +2631,460 @@ public class Graphulo {
       throw new RuntimeException(e);
     }
   }
+
+  public static final String PROP_TOTAL = "table.custom.total";
+
+  public void setDegreeTableTotal(final String degreeTable, final long total) {
+    try {
+      connector.tableOperations().setProperty(degreeTable, PROP_TOTAL, Long.toString(total));
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      log.error("problem setting table property "+PROP_TOTAL+" on table "+degreeTable+" to "+total, e);
+    }
+  }
+
+  public long getDegreeTableTotal(final String degreeTable) {
+    try {
+      final Iterable<Entry<String, String>> props = connector.tableOperations().getProperties(degreeTable);
+      for (Entry<String, String> prop : props) {
+        if( prop.getKey().equals(PROP_TOTAL) )
+          return Long.parseLong(prop.getValue());
+      }
+    } catch (TableNotFoundException | AccumuloException e) {
+      log.error("problem getting table properties for table "+degreeTable, e);
+    }
+    log.info("re-computing degree table total for "+degreeTable);
+    // assume prop has not been computed
+    final long total = sumAllPowerLawTriangle(degreeTable);
+    setDegreeTableTotal(degreeTable, total);
+    return total;
+  }
+
+  public long sumAllPowerLawTriangle(final String table) {
+    Objects.requireNonNull(table);
+
+    final BatchScanner bs;
+    try {
+      bs = connector.createBatchScanner(table, Authorizations.EMPTY, 50); // todo: 50 threads is arbitrary
+    } catch (TableNotFoundException e) {
+      log.error("table "+table+" does not exist", e);
+      throw new RuntimeException(e);
+    }
+
+    bs.setRanges(Collections.singleton(new Range()));
+    bs.addScanIterator(KeyRetainOnlyApply.iteratorSetting(28, null));
+    bs.addScanIterator(PowerLawDegreeTriangleApply.iteratorSetting(29));
+    final IteratorSetting itset = new IteratorSetting(30, "sumAllPowerLawTriangle", IntSummingCombiner.class);
+    IntSummingCombiner.setEncodingType(itset, Type.BYTE);
+    IntSummingCombiner.setCombineAllColumns(itset, true);
+    bs.addScanIterator(itset);
+
+    long cnt = 0L;
+    try {
+      for (Map.Entry<Key, Value> entry : bs) {
+        cnt += UINTEGER_LEXICODER.decode(entry.getValue().get());
+      }
+    } finally {
+      bs.close();
+    }
+    log.info("sumAllPowerLawTriangle: "+cnt);
+    return cnt;
+  }
+
+  public void setUIntegerLexicoder(final String table) {
+    final IteratorSetting itset = new IteratorSetting(1, "degreeSums", IntSummingCombiner.class);
+    IntSummingCombiner.setEncodingType(itset, Type.BYTE_ONE);
+    IntSummingCombiner.setCombineAllColumns(itset, true);
+    GraphuloUtil.applyIteratorSoft(itset, connector.tableOperations(), table);
+  }
+
+
+  public void setPowerLawTriangleSplits(final String degreeTable, final int numSplitPoints, final String mainTable) {
+    if (numSplitPoints < 0)
+      throw new IllegalArgumentException("numSplitPoints: " + numSplitPoints);
+    if (numSplitPoints == 0)
+      return;
+
+    final long tableNnz = getDegreeTableTotal(degreeTable);
+    final long threshold = tableNnz / (numSplitPoints+1);
+
+    final Scanner scan;
+    try {
+      scan = connector.createScanner(degreeTable, Authorizations.EMPTY);
+    } catch (TableNotFoundException e) {
+      log.error("Table does not exist: " + degreeTable, e);
+      throw new RuntimeException(e);
+    }
+    final SortedSet<Text> set = new TreeSet<>();
+    final Iterator<Map.Entry<Key, Value>> iterator = scan.iterator();
+    long cnt = 0L;
+    int splitsAdded = 0;
+
+    while (iterator.hasNext() && splitsAdded < numSplitPoints) {
+      final Entry<Key, Value> next = iterator.next();
+      final long thisCnt = UINTEGER_LEXICODER.decode(next.getValue().get());
+      cnt += thisCnt*(thisCnt-1)/2;
+      if( cnt >= threshold ) {
+        set.add(next.getKey().getRow());
+        splitsAdded++;
+        cnt = 0L;
+      }
+    }
+    scan.close();
+
+    try {
+      connector.tableOperations().addSplits(mainTable, set);
+    } catch (AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
+      log.error("cannot set splits "+set+" on main table "+mainTable, e);
+    }
+  }
+
+
+  /**
+   *
+   * @param Aorig Unweighted adjacency matrix table
+   * @param filterRowCol could be more efficient, at the moment. Need to push filter into Atmp.
+   * @param Aauthorizations authorizations to scan Aorig
+   * @param intermediateDurability choices: none, log, flush, sync (default)
+   * @return Number of triangles
+   */
+  public long triCount(final String Aorig,
+                      final String filterRowCol,
+                      Authorizations Aauthorizations,
+                      String intermediateDurability) {
+    return triCount(Aorig, filterRowCol, Aauthorizations, intermediateDurability, null);
+  }
+
+  /**
+   *
+   * @param Aorig Unweighted adjacency matrix table
+   * @param filterRowCol could be more efficient, at the moment. Need to push filter into Atmp.
+   * @param Aauthorizations authorizations to scan Aorig
+   * @param intermediateDurability choices: none, log, flush, sync (default)
+   * @param specialLongList A list appended with the number of partial products seen in the multiply step. Ignored if null.
+   * @return Number of triangles
+   */
+  public long triCount(final String Aorig,
+                      final String filterRowCol,
+                      Authorizations Aauthorizations,
+                      String intermediateDurability, List<Long> specialLongList) {
+
+    checkGiven(true, "Aorig", Aorig);
+    final TableOperations tops = connector.tableOperations();
+    Aauthorizations = Aauthorizations == null ? Authorizations.EMPTY : Aauthorizations;
+    intermediateDurability = emptyToNull(intermediateDurability);
+    Preconditions.checkArgument(intermediateDurability == null || Durability.valueOf(intermediateDurability.toUpperCase()) != Durability.DEFAULT,
+        "bad durability given: %s", intermediateDurability);
+
+    try {
+      final String Atmp = Aorig + TRICOUNT_TEMP_TABLE_SUFFIX;
+
+      // determine if we will relax the durability of the intermediate tables
+//      String AorigDur = null;
+      if (intermediateDurability != null) {
+        for (Map.Entry<String, String> e : tops.getProperties(Aorig)) {
+          if (e.getKey().equals(TABLE_DURABILITY)) {
+            String v = e.getValue();
+//            if (!v.equalsIgnoreCase(intermediateDurability)) {
+////              AorigDur = e.getValue();
+//            } else
+            if (v.equalsIgnoreCase(intermediateDurability)) {
+              intermediateDurability = null; // use the same as the existing durability; no special changes needed
+            }
+          }
+        }
+      }
+
+
+      // Comment this if table externally for experiments
+      final IteratorSetting upperTriangleFilter = TriangularFilter.iteratorSetting(1, TriangularType.Upper);
+      GraphuloUtil.applyIteratorSoft(upperTriangleFilter, tops, Aorig);
+
+//      deleteTables(Atmp);
+
+      // if the temp table exists, assume it was created externally
+      if (!connector.tableOperations().exists(Atmp)) {
+        final Map<String, String> propsToSet = intermediateDurability == null ? null : Collections.singletonMap(TABLE_DURABILITY, intermediateDurability);
+        tops.clone(Aorig, Atmp, true, propsToSet, null);
+        // this copies upperTriangleFilter
+      }
+      GraphuloUtil.applyIteratorSoft(upperTriangleFilter, tops, Atmp);
+
+      final IteratorSetting agg = new IteratorSetting(DEFAULT_COMBINER_PRIORITY, "agg", IntSummingCombiner.class);
+      IntSummingCombiner.setEncodingType(agg, Type.BYTE_ONE);
+      IntSummingCombiner.setCombineAllColumns(agg, true);
+
+      final Map<String,String> opt = new HashMap<>();
+      opt.put("rowMultiplyOp", UpperTriTwoJoin.class.getName());
+
+
+      final long tBegin = System.currentTimeMillis();
+      final long npp = TwoTable(TwoTableIterator.CLONESOURCE_TABLENAME, Aorig, Atmp, null,
+          25, TwoTableIterator.DOTMODE.ROW, opt, agg,
+          filterRowCol, filterRowCol, filterRowCol,
+          false, false, null, null, null,
+          null, null,
+          -1, Aauthorizations, Aauthorizations);
+      log.info("npp "+npp+" Self-multiply time: "+(System.currentTimeMillis() - tBegin)/1000.0);
+      if( specialLongList != null ) specialLongList.add(npp);
+
+
+
+      final OddUntransformAgg reducer = new OddUntransformAgg();
+      reducer.init(null, null);
+      final long tBegin2 = System.currentTimeMillis();
+
+      OneTable(Atmp, null, null, null, -1, reducer, null,
+          null, null, null, null, null, Aauthorizations);
+
+      final long triangles = reducer.getSerializableForClient();
+      log.info("AggAll time: "+(System.currentTimeMillis() - tBegin2)/1000.0);
+      log.info("Triangles: "+triangles);
+      return triangles;
+
+    } catch (Exception e) {
+      log.error("", e);
+      throw new RuntimeException(e);
+    }
+
+  }
+
+  public static final String TRICOUNT_TEMP_TABLE_SUFFIX = "_triCount_tmpA";
+
+
+
+
+
+
+
+  /**
+   *
+   * @param Aorig Unweighted adjacency matrix table (rows/cols are 4-byte vertices, values ignored)
+   *              Assumed to be just the upper triangle (if not, place a filter on Aorig first).
+   * @param Eorig Unweighted incidence matrix (rows are 4-byte vertices, columns are 8-byte edges)
+   * @param Aauthorizations authorizations to scan Aorig
+   * @param intermediateDurability choices: none, log, flush, sync (default)
+   * @param specialLongList A list appended with the number of partial products seen in the multiply step. Ignored if null.
+   * @return Number of triangles
+   */
+  public long triCountAdjEdge(final String Aorig, final String Eorig,
+                       final String filterRowCol,
+                       Authorizations Aauthorizations,
+                       String intermediateDurability, List<Long> specialLongList) {
+
+    checkGiven(true, "Aorig", Aorig);
+    final TableOperations tops = connector.tableOperations();
+    Aauthorizations = Aauthorizations == null ? Authorizations.EMPTY : Aauthorizations;
+    intermediateDurability = emptyToNull(intermediateDurability);
+    Preconditions.checkArgument(intermediateDurability == null || Durability.valueOf(intermediateDurability.toUpperCase()) != Durability.DEFAULT,
+        "bad durability given: %s", intermediateDurability);
+
+    try {
+      final String Atmp = Aorig + TRICOUNT_TEMP_TABLE_SUFFIX;
+      // for experiment, pre-create and split temp table
+//      deleteTables(Atmp);
+      if( !connector.tableOperations().exists(Atmp) ) {
+        GraphuloUtil.createTables(connector, false, Atmp);
+        GraphuloUtil.copySplits(connector.tableOperations(), Eorig, Atmp);
+      }
+
+      // determine if we will relax the durability of the intermediate tables
+//      String AorigDur = null;
+      if (intermediateDurability != null) {
+        for (Map.Entry<String, String> e : tops.getProperties(Aorig)) {
+          if (e.getKey().equals(TABLE_DURABILITY)) {
+            String v = e.getValue();
+//            if (!v.equalsIgnoreCase(intermediateDurability)) {
+////              AorigDur = e.getValue();
+//            } else
+            if (v.equalsIgnoreCase(intermediateDurability))
+              intermediateDurability = null; // use the same as the existing durability; no special changes needed
+          }
+        }
+      }
+
+//      final IteratorSetting upperTriangleFilter = TriangularFilter.iteratorSetting(1, TriangularType.Lower);
+//      GraphuloUtil.applyIteratorSoft(upperTriangleFilter, tops, Aorig);
+
+      final IteratorSetting agg =
+          new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, "aggAndClump")
+          .append(new IteratorSetting(DEFAULT_COMBINER_PRIORITY, EmptyToOneIterator.class))
+          .append(new IteratorSetting(DEFAULT_COMBINER_PRIORITY, ClumpNonEmptyUnsignedVLong.class))// Nice optimization!
+          .toIteratorSetting();
+
+      final Map<String,String> opt = new HashMap<>();
+      opt.put("rowMultiplyOp", UpperTriCountTrianglesAdjEdgeJoin.class.getName());
+
+
+      final long tBegin = System.currentTimeMillis();
+      final long npp = TwoTable(Aorig, Eorig, Atmp, null,
+          25, TwoTableIterator.DOTMODE.ROW, opt, agg,
+          filterRowCol, filterRowCol, filterRowCol,
+          false, false, null, null, null,
+          null, null,
+          -1, Aauthorizations, Aauthorizations);
+      log.info("npp "+npp+" A*E Multiply time: "+(System.currentTimeMillis() - tBegin)/1000.0);
+      if( specialLongList != null ) specialLongList.add(npp);
+
+
+
+
+      final OneAggReducer reducer = new OneAggReducer();
+      reducer.init(null, null);
+      final long tBegin2 = System.currentTimeMillis();
+
+      OneTable(Atmp, null, null, null, -1, reducer, null,
+          null, null, null, null, null, Aauthorizations);
+
+      final long triangles = reducer.getSerializableForClient();
+      log.info("AggAll time: "+(System.currentTimeMillis() - tBegin2)/1000.0);
+      log.info("Triangles: "+triangles);
+      return triangles;
+
+    } catch (AccumuloException | TableNotFoundException e) {
+      log.error("", e);
+      throw new RuntimeException(e);
+    }
+
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  /**
+   * Uses special byte on row to scatter entries.
+   * @param Aorig Unweighted adjacency matrix table
+   * @param filterRowCol could be more efficient, at the moment. Need to push filter into Atmp.
+   * @param Aauthorizations authorizations to scan Aorig
+   * @param intermediateDurability choices: none, log, flush, sync (default)
+   * @return Number of triangles
+   */
+  public int triCountMagic2(final String Aorig,
+                            final String filterRowCol,
+                            Authorizations Aauthorizations,
+                            String intermediateDurability) {
+    return triCountMagic2(Aorig, filterRowCol, Aauthorizations, intermediateDurability, null);
+  }
+
+  /**
+   * Uses special byte on row to scatter entries.
+   * @param Aorig Unweighted adjacency matrix table
+   * @param filterRowCol could be more efficient, at the moment. Need to push filter into Atmp.
+   * @param Aauthorizations authorizations to scan Aorig
+   * @param intermediateDurability choices: none, log, flush, sync (default)
+   * @param specialLongList A list appended with the number of partial products seen in the multiply step. Ignored if null.
+   * @return Number of triangles
+   */
+  public int triCountMagic2(final String Aorig,
+                            final String filterRowCol,
+                            Authorizations Aauthorizations,
+                            String intermediateDurability, List<Long> specialLongList) {
+
+    checkGiven(true, "Aorig", Aorig);
+    final TableOperations tops = connector.tableOperations();
+    Aauthorizations = Aauthorizations == null ? Authorizations.EMPTY : Aauthorizations;
+    intermediateDurability = emptyToNull(intermediateDurability);
+    Preconditions.checkArgument(intermediateDurability == null || Durability.valueOf(intermediateDurability.toUpperCase()) != Durability.DEFAULT,
+        "bad durability given: %s", intermediateDurability);
+
+    try {
+      final String Atmp = Aorig + TRICOUNT_TEMP_TABLE_SUFFIX;
+      deleteTables(Atmp);
+
+      // determine if we will relax the durability of the intermediate tables
+//      String AorigDur = null;
+      if (intermediateDurability != null) {
+        for (Map.Entry<String, String> e : tops.getProperties(Aorig)) {
+          if (e.getKey().equals(TABLE_DURABILITY)) {
+            if (e.getValue().equalsIgnoreCase(intermediateDurability))
+              intermediateDurability = null; // use the same as the existing durability; no special changes needed
+          }
+        }
+      }
+
+
+      final IteratorSetting upperTriangleFilter = TriangularFilter_TriCountMagic.iteratorSetting(1, TriangularFilter_TriCountMagic.TriangularType.Upper);
+      GraphuloUtil.applyIteratorSoft(upperTriangleFilter, tops, Aorig);
+
+//      if (filterRowCol == null)
+      {
+        final Map<String, String> propsToSet = intermediateDurability == null ? null : Collections.singletonMap(TABLE_DURABILITY, intermediateDurability);
+        tops.clone(Aorig, Atmp, true, propsToSet, null);
+        // this copies upperTriangleFilter
+      }
+
+      final IteratorSetting agg = new IteratorSetting(DEFAULT_COMBINER_PRIORITY, "agg", IntSummingCombiner.class);
+      IntSummingCombiner.setEncodingType(agg, Type.BYTE_EMPTY);
+      IntSummingCombiner.setCombineAllColumns(agg, true);
+
+//      final IteratorSetting filterAndAgg = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY, "filterAndAgg")
+////          .append(upperTriangleFilter)
+//          .append(agg)
+//          .toIteratorSetting();
+
+      final Map<String,String> opt = new HashMap<>();
+      opt.put("rowMultiplyOp", UpperTriTwoJoin.class.getName());
+      opt.put("rowMultiplyOp.opt."+UpperTriTwoJoin.MAGIC, Boolean.TRUE.toString());
+
+
+      final long tBegin = System.currentTimeMillis();
+      final long npp = TwoTable(TwoTableIterator.CLONESOURCE_TABLENAME, Aorig, Atmp, null,
+          25, TwoTableIterator.DOTMODE.ROW, opt, agg,
+          filterRowCol, filterRowCol, filterRowCol,
+          false, false, null, null, null,
+          null, null,
+          -1, Aauthorizations, Aauthorizations);
+      log.info("npp "+npp+" Self-multiply time: "+(System.currentTimeMillis() - tBegin)/1000.0);
+      if( specialLongList != null ) specialLongList.add(npp);
+
+
+      final IteratorSetting aggAll = new IteratorSetting(1, OddDivideIntSummingCombiner.class);
+      OddDivideIntSummingCombiner.setEncodingType(aggAll, Type.BYTE_EMPTY);
+      OddDivideIntSummingCombiner.setCombineAllColumns(aggAll, true);
+
+      // Iterator that filters away values less than an amount
+      final IteratorSetting filterAndReduce = new DynamicIteratorSetting(DEFAULT_COMBINER_PRIORITY + 1, "filterAndReduce",
+          EnumSet.of(DynamicIteratorSetting.MyIteratorScope.SCAN))
+          .append(KeyRetainOnlyApply.iteratorSetting(1, null)) // reduce entries to seek start key; requires final summing at client
+          .append(aggAll)
+          .toIteratorSetting();
+
+      int triangles = 0;
+      final long tBegin2 = System.currentTimeMillis();
+      try (final BatchScanner bs = connector.createBatchScanner(Atmp, Aauthorizations, 50)) {
+        bs.setRanges(Collections.singleton(new Range()));
+        bs.addScanIterator(filterAndReduce);
+        for (Entry<Key, Value> e : bs) {
+          final int tri = INTEGER_EMPTY_LEXICODER.decode(e.getValue().get());
+          log.info("received: "+tri);
+          triangles += tri;
+        }
+      }
+      log.info("AggAll time: "+(System.currentTimeMillis() - tBegin2)/1000.0);
+      log.info("Triangles: "+triangles);
+      return triangles;
+
+    } catch (AccumuloException | AccumuloSecurityException | TableExistsException | TableNotFoundException e) {
+      log.error("", e);
+      throw new RuntimeException(e);
+    }
+
+  }
+
+
+
 
   /**
    * This version pulls the adjacency table into client memory.

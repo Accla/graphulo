@@ -396,7 +396,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
   @Override
   protected void finalize() throws Throwable {
     super.finalize();
-    log.info("finalize() RemoteWriteIterator " + tableName);
+    if( log.isDebugEnabled() )
+      log.debug("finalize() RemoteWriteIterator " + tableName);
 //    System.out.println("finalize() RemoteWriteIterator " + tableName);
     if (writerAll != null)
       writerAll.close();
@@ -410,7 +411,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
 
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-    log.debug("RemoteWrite on table " + tableName + " / "+tableNameTranspose+" seek(): " + range);
+    if( log.isDebugEnabled() )
+      log.debug("RemoteWrite on table " + tableName + " / "+tableNameTranspose+" seek(): " + range);
     //System.out.println("RW passed seek " + range + "(thread " + Thread.currentThread().getName() + ")");
 //    if (Trace.isTracing()) {
 //
@@ -472,7 +474,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
                 new Text(Strings.padStart(Integer.toString(numRowRangesIterated), rowRangesSizeWidth, '0').getBytes(UTF_8)));
           }
 //          System.out.println(thisInst+" changing lastSafeKey to: "+lastSafeKey);
-          log.debug("RemoteWrite actual seek " + thisTargetRange);// + "(thread " + Thread.currentThread().getName() + ")");
+          if( log.isDebugEnabled() )
+            log.debug("RemoteWrite actual seek " + thisTargetRange);// + "(thread " + Thread.currentThread().getName() + ")");
           // We could use the 10x next() heuristic here...
 //          if (!initialSeek)
 //          seekNextHeuristic(thisTargetRange);

@@ -55,7 +55,7 @@ public class CountAllIterator implements SortedKeyValueIterator<Key,Value> {
    * Example given is summing the Values of parent entries, interpreted as Longs.
    */
   private long countAll() throws IOException {
-    long cnt = 0l;
+    long cnt = 0L;
     while (source.hasTop()) {
       cnt++;
       source.next();

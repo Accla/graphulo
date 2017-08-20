@@ -1,6 +1,10 @@
 package edu.mit.ll.graphulo.skvi;
 
+import edu.mit.ll.graphulo.tricount.IntegerEmptyLexicoder;
+import edu.mit.ll.graphulo.util.IntegerOneLexicoder;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.lexicoder.IntegerLexicoder;
+import org.apache.accumulo.core.client.lexicoder.UIntegerLexicoder;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -23,20 +27,37 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * A required option for this Combiner is "type" which indicates which type of Encoder to use to encode and decode Longs into Values. Supported types are
  * VARNUM, LONG, and STRING which indicate the VarNumEncoder, LongEncoder, and StringEncoder respectively.
  */
-public abstract class DoubleCombiner extends TypedValueCombiner<Double> {
-  public static final Encoder<Double> BYTE_ENCODER = new DoubleLexicoderTemp(); // attempt 1.6 compat
-  public static final Encoder<Double> STRING_ENCODER = new StringEncoder();
+public abstract class IntCombiner extends TypedValueCombiner<Integer> {
+  public static final Encoder<Integer> BYTE_ENCODER = new IntegerLexicoder(); // attempt 1.6 compat
+  public static final Encoder<Integer> UBYTE_ENCODER = new UIntegerLexicoder(); // attempt 1.6 compat
+  public static final Encoder<Integer> BYTE_ONE_ENCODER = new IntegerOneLexicoder(); // attempt 1.6 compat
+  public static final Encoder<Integer> BYTE_EMPTY_ENCODER = new IntegerEmptyLexicoder(); // attempt 1.6 compat
+  public static final Encoder<Integer> STRING_ENCODER = new StringEncoder();
 
   protected static final String TYPE = "type";
   protected static final String CLASS_PREFIX = "class:";
 
   public enum Type {
     /**
-     * indicates a variable-length encoding of a Long using {@link org.apache.accumulo.core.client.lexicoder.DoubleLexicoder}
+     * indicates a variable-length encoding of an Integer using {@link org.apache.accumulo.core.client.lexicoder.IntegerLexicoder}
      */
     BYTE,
     /**
-     * indicates a string representation of a Long using {@link DoubleCombiner.StringEncoder}
+     * indicates a variable-length encoding of an Integer using {@link org.apache.accumulo.core.client.lexicoder.IntegerLexicoder}
+     */
+    UBYTE,
+    /**
+     * indicates a variable-length encoding of an Integer using {@link org.apache.accumulo.core.client.lexicoder.IntegerLexicoder}
+     * except that it checks for the presence of "1" and treats empty values as 1.
+     */
+    BYTE_ONE,
+    /**
+     * indicates a variable-length encoding of an Integer using {@link org.apache.accumulo.core.client.lexicoder.IntegerLexicoder}
+     * except that it treats empty values as "1".
+     */
+    BYTE_EMPTY,
+    /**
+     * indicates a string representation of an Integer using {@link IntCombiner.StringEncoder}
      */
     STRING
   }
@@ -53,11 +74,20 @@ public abstract class DoubleCombiner extends TypedValueCombiner<Double> {
       throw new IllegalArgumentException("no type specified");
     if (type.startsWith(CLASS_PREFIX)) {
       setEncoder(type.substring(CLASS_PREFIX.length()));
-      testEncoder(42.1);
+      testEncoder(42);
     } else {
       switch (Type.valueOf(type)) {
         case BYTE:
           setEncoder(BYTE_ENCODER);
+          return;
+        case UBYTE:
+          setEncoder(UBYTE_ENCODER);
+          return;
+        case BYTE_ONE:
+          setEncoder(BYTE_ONE_ENCODER);
+          return;
+        case BYTE_EMPTY:
+          setEncoder(BYTE_EMPTY_ENCODER);
           return;
         case STRING:
           setEncoder(STRING_ENCODER);
@@ -71,8 +101,8 @@ public abstract class DoubleCombiner extends TypedValueCombiner<Double> {
   @Override
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
-    io.setName("DoubleCombiner");
-    io.setDescription("DoubleCombiner interprets Values as Doubles in byte-wise or string encoding before combining");
+    io.setName("IntegerCombiner");
+    io.setDescription("IntegerCombiner interprets Values as Integers in byte-wise or string encoding before combining");
     io.addNamedOption(TYPE, "<BYTE|STRING|fullClassName>");
     return io;
   }
@@ -93,21 +123,21 @@ public abstract class DoubleCombiner extends TypedValueCombiner<Double> {
   /**
    * An Encoder that uses a String representation of Longs. It uses Long.toString and Long.parseLong for encoding and decoding.
    */
-  public static class StringEncoder implements Encoder<Double> { // 1.6 compat
+  public static class StringEncoder implements Encoder<Integer> { // 1.6 compat
     @Override
-    public byte[] encode(Double v) {
-      return Double.toString(v).getBytes(UTF_8);
+    public byte[] encode(Integer v) {
+      return Integer.toString(v).getBytes(UTF_8);
     }
 
     @Override
-    public Double decode(byte[] b) {
+    public Integer decode(byte[] b) {
       // This concrete implementation is provided for binary compatibility with 1.6; it can be removed in 2.0. See ACCUMULO-3789.
       return decodeUnchecked(b, 0, b.length);
     }
 
-    protected Double decodeUnchecked(byte[] b, int offset, int len) {
+    protected Integer decodeUnchecked(byte[] b, int offset, int len) {
       try {
-        return Double.parseDouble(new String(b, offset, len, UTF_8));
+        return Integer.parseInt(new String(b, offset, len, UTF_8));
       } catch (NumberFormatException nfe) {
         throw new ValueFormatException(nfe);
       }
@@ -122,7 +152,7 @@ public abstract class DoubleCombiner extends TypedValueCombiner<Double> {
    * @param type
    *          LongCombiner.Type specifying the encoding type.
    */
-  public static void setEncodingType(IteratorSetting is, DoubleCombiner.Type type) {
+  public static void setEncodingType(IteratorSetting is, IntCombiner.Type type) {
     is.addOption(TYPE, type.toString());
   }
 
@@ -134,7 +164,7 @@ public abstract class DoubleCombiner extends TypedValueCombiner<Double> {
    * @param encoderClass
    *          {@code Class<? extends Encoder<Long>>} specifying the encoding type.
    */
-  public static void setEncodingType(IteratorSetting is, Class<? extends Encoder<Double>> encoderClass) {
+  public static void setEncodingType(IteratorSetting is, Class<? extends Encoder<Integer>> encoderClass) {
     is.addOption(TYPE, CLASS_PREFIX + encoderClass.getName());
   }
 

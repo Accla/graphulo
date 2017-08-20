@@ -57,7 +57,7 @@ public class TwoTableIterator implements SaveStateIterator {
   private static final Logger log = LogManager.getLogger(TwoTableIterator.class);
 
   private RowMultiplyOp rowMultiplyOp = null;
-  private Map<String, String> rowMultiplyOpOptions = new HashMap<>();
+  private final Map<String, String> rowMultiplyOpOptions = new HashMap<>();
   private DOTMODE dotmode;
   private boolean emitNoMatchA = false, emitNoMatchB = false;
 //  private MultiplyOp multiplyOp = null;

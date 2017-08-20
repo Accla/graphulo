@@ -7,6 +7,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -103,6 +104,12 @@ public class MatlabGraphulo extends Graphulo {
 //    } catch (TableNotFoundException e) {
 //      log.error("", e);
 //    }
+  }
+
+  public void CloneTable(String t1, String t2, boolean logDur)throws TableExistsException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    System.out.println("Clone " + t1 + " to "+t2);
+    Map<String,String> propsToSet = logDur ? Collections.singletonMap("table.durability", "log") : null;
+    connector.tableOperations().clone(t1, t2, true, propsToSet, null);
   }
 
   /** Flush a table, writing entries in memory to disk. */

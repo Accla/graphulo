@@ -13,6 +13,27 @@ import edu.mit.ll.cloud.connection.ConnectionProperties;
 public class D4mDbInsert extends D4mParent {
 
 	private static final Logger log = Logger.getLogger(D4mDbInsert.class);
+
+	// used to control special behavior in AccumuloInsert
+	private static boolean IntEncodeValueAndDropEmpty = false; // set vals to empty; UIntegerLexicode
+	@SuppressWarnings("unused")
+	public static void setIntEncodeValueAndDropEmpty(boolean intEncodeValueAndDropEmpty) {
+		IntEncodeValueAndDropEmpty = intEncodeValueAndDropEmpty;
+	}
+	@SuppressWarnings("unused")
+	public static boolean isIntEncodeValueAndDropEmpty() {
+		return IntEncodeValueAndDropEmpty;
+	}
+	private static boolean IntEncodeKeyAndPrependLastByteRev = false; // prepend shard byte to Row; set vals to empty; 4 bytes integer encode
+	@SuppressWarnings("unused")
+	public static void setIntEncodeKeyAndPrependLastByteRev(boolean intEncodeKeyAndPrependLastByteRev) {
+		IntEncodeKeyAndPrependLastByteRev = intEncodeKeyAndPrependLastByteRev;
+	}
+	@SuppressWarnings("unused")
+	public static boolean isIntEncodeKeyAndPrependLastByteRev() {
+		return IntEncodeKeyAndPrependLastByteRev;
+	}
+
 	private String tableName = "";
 	private String rows = "";
 	private String cols = "";
@@ -84,7 +105,7 @@ public class D4mDbInsert extends D4mParent {
 		acc.doProcessing(visibility, family, columnQualifier);
 		*/
 	}
-	
+
 
 	public void doProcessing(String rows, String cols, String vals, String family, String visibility) throws Exception {
 

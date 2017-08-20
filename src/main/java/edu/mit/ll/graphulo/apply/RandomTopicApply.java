@@ -20,6 +20,8 @@ import java.util.Random;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import static edu.mit.ll.graphulo.util.GraphuloUtil.EMPTY_TEXT;
+
 /**
  * For every entry passed in, emits <tt>knum</tt> entries,
  * each with the same row and with column qualifiers 1, 2, 3, ..., knum.
@@ -60,7 +62,6 @@ public class RandomTopicApply implements ApplyOp {
     parseOptions(options);
   }
 
-  private static final Text EMPTY_TEXT = new Text();
   private static final Random rand = new Random();
 
   @Override

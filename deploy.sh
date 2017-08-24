@@ -15,7 +15,6 @@ if [ -z ${D4M_HOME+x} ]; then
   echo "Not installing Graphulo JAR in D4M installation because D4M_HOME is not set";
 else
   cp $(echo target/graphulo-*.jar | tr ' ' '\n' | grep -v alldeps) "$D4M_HOME/lib"
-  cp -f target/graphulo-*-alldeps.jar $D4M_HOME/lib
   cp -f target/graphulo-*-libext.zip $D4M_HOME
   unzip -ouq target/graphulo-*-libext.zip -d "$D4M_HOME"
   # Replace DBinit.m in D4M matlab_src with new version.

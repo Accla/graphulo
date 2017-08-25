@@ -33,13 +33,13 @@
     </developer>
   </developers>
 
-  <repositories>
-    <repository>
-      <id>Apache-maven2</id>
-      <name>Apache Maven2 Repository</name>
-      <url>http://repo.maven.apache.org/maven2/</url>
-    </repository>
-  </repositories>
+  <!--<repositories>-->
+    <!--<repository>-->
+      <!--<id>Apache-maven2</id>-->
+      <!--<name>Apache Maven2 Repository</name>-->
+      <!--<url>http://repo.maven.apache.org/maven2/</url>-->
+    <!--</repository>-->
+  <!--</repositories>-->
 
   <properties>
     <DBinit.path.libextFolder>libext/</DBinit.path.libextFolder>
@@ -411,7 +411,7 @@
                       <exclude>com.thoughtworks.paranamer:paranamer</exclude>
                       <exclude>com.google.code.findbugs:jsr305*</exclude>
                       <exclude>com.google.protobuf:protobuf-java</exclude>
-                      <exclude>commons-el:commons-el</exclude>
+                      <!--<exclude>commons-el:commons-el</exclude>-->
                       <exclude>commons-beanutils:commons-beanutils*</exclude>
                       <exclude>commons-net:commons-net</exclude>
                       <exclude>commons-httpclient:commons-httpclient</exclude>
@@ -421,9 +421,9 @@
                       <exclude>javax.xml.bind:jaxb-api</exclude>
                       <exclude>javax.servlet:servlet-api</exclude>
                       <exclude>javax.servlet.jsp:jsp-api</exclude>
-                      <exclude>tomcat:*</exclude>
+                      <!--<exclude>tomcat:*</exclude>-->
                       <exclude>org.apache.commons:commons-compress</exclude>
-                      <exclude>org.apache.maven.scm:*</exclude>
+                      <!--<exclude>org.apache.maven.scm:*</exclude>-->
                       <exclude>asm:asm</exclude>
                       <exclude>org.apache.httpcomponents:*</exclude>
                       <exclude>org.apache.avro:avro</exclude>
@@ -431,8 +431,8 @@
                       <exclude>org.codehaus.plexus:plexus-utils</exclude>
                       <exclude>org.mortbay.jetty:*</exclude>
                       <exclude>org.apache.commons:commons-vfs2</exclude>
-                      <exclude>org.apache.commons:commons-math</exclude>
-                      <exclude>regexp:regexp</exclude>
+                      <!--<exclude>org.apache.commons:commons-math</exclude>-->
+                      <!--<exclude>regexp:regexp</exclude>-->
                       <exclude>com.beust:jcommander</exclude>
                       <exclude>org.xerial.snappy:snappy-java</exclude>
                       <exclude>com.sun.xml.bind:jaxb-impl</exclude>

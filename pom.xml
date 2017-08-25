@@ -6,6 +6,7 @@
   <artifactId>graphulo</artifactId>
   <version>3.0.0</version>
   <packaging>jar</packaging>
+  <name>Graphulo</name>
   <description>
     Graphulo: Accumulo library of matrix math primitives and graph algorithms.
   </description>
@@ -21,7 +22,6 @@
     <developerConnection>scm:git:git@github.com:Accla/graphulo.git</developerConnection>
     <tag>HEAD</tag>
   </scm>
-
   <developers>
     <developer>
       <id>dhutchis</id>
@@ -41,8 +41,6 @@
     </repository>
   </repositories>
 
-
-
   <properties>
     <DBinit.path.libextFolder>libext/</DBinit.path.libextFolder>
     <DBinit.path.mpath>${basedir}/src/assembly/build_DBinit/build_DBinit.m</DBinit.path.mpath>
@@ -53,7 +51,6 @@
     <accumulo.version>1.8.1</accumulo.version>
     <accumulo.version.majorminor>1.8</accumulo.version.majorminor>
     <thrift.version>0.9.3</thrift.version>
-    <!-- ZooKeeper version -->
     <zookeeper.version>3.4.6</zookeeper.version>
     <hadoop.version>2.7.2</hadoop.version>
     <htrace.version>3.1.0-incubating</htrace.version>
@@ -69,7 +66,6 @@
     <collections4.version>4.1</collections4.version>
     <log4j.version>1.2.17</log4j.version>
     <guava.version>14.0.1</guava.version>
-
     <!--<accumulo.VERSION.1.7>  </accumulo.VERSION.1.7>-->
     <!--<accumulo.VERSION.1.6>//</accumulo.VERSION.1.6>-->
   </properties>
@@ -108,24 +104,23 @@
     <plugins>
 
       <!--<plugin>-->
-      <!--<groupId>org.codehaus.mojo</groupId>-->
-      <!--<artifactId>templating-maven-plugin</artifactId>-->
-      <!--<version>1.0-alpha-3</version>-->
-      <!--<executions>-->
-      <!--<execution>-->
-      <!--<id>filter-src</id>-->
-      <!--<phase>generate-sources</phase>-->
-      <!--<goals>-->
-      <!--<goal>filter-sources</goal>-->
-      <!--</goals>-->
-      <!--<configuration>-->
-      <!--<sourceDirectory>${basedir}/src/main/java-templates</sourceDirectory> &lt;!&ndash; Defaults &ndash;&gt;-->
-      <!--<outputDirectory>${project.build.directory}/generated-sources/java-templates</outputDirectory>-->
-      <!--</configuration>-->
-      <!--</execution>-->
-      <!--</executions>-->
+        <!--<groupId>org.codehaus.mojo</groupId>-->
+        <!--<artifactId>templating-maven-plugin</artifactId>-->
+        <!--<version>1.0-alpha-3</version>-->
+        <!--<executions>-->
+          <!--<execution>-->
+            <!--<id>filter-src</id>-->
+            <!--<phase>generate-sources</phase>-->
+            <!--<goals>-->
+              <!--<goal>filter-sources</goal>-->
+            <!--</goals>-->
+            <!--<configuration>-->
+              <!--<sourceDirectory>${basedir}/src/main/java-templates</sourceDirectory> &lt;!&ndash; Defaults &ndash;&gt;-->
+              <!--<outputDirectory>${project.build.directory}/generated-sources/java-templates</outputDirectory>-->
+            <!--</configuration>-->
+          <!--</execution>-->
+        <!--</executions>-->
       <!--</plugin>-->
-
 
       <!-- FindBugs at verify lifecycle phase. Generate XML and HTML report. -->
       <plugin>
@@ -151,6 +146,7 @@
           </execution>
         </executions>
       </plugin>
+
 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -199,29 +195,10 @@
           </filesets>
         </configuration>
       </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.10.3</version>
-        <configuration>
-          <links>
-            <link>https://accumulo.apache.org/${accumulo.version.majorminor}/apidocs</link>
-          </links>
-          <detectLinks>true</detectLinks>
-        </configuration>
-        <executions>
-          <execution>
-            <id>gen-javadoc</id>
-            <phase>install</phase>
-            <goals>
-              <goal>javadoc</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
   </build>
+
+
 
   <profiles>
     <!--Create the libext and alldeps jars-->
@@ -237,9 +214,9 @@
       <build>
         <plugins>
           <!-- Copy all original dependency JARs (including recursive dependencies) into target/libext
-                 Note that the original JARs will have overlapping code, e.g.,
-                 explicit deps accumulo-core and hadoop-hdfs may have a transitive dep commons-math. The commons-math dep is stored twice.
-                 To store the dep once, use the build-single method. -->
+             Note that the original JARs will have overlapping code, e.g.,
+             explicit deps accumulo-core and hadoop-hdfs may have a transitive dep commons-math. The commons-math dep is stored twice.
+             To store the dep once, use the build-single method. -->
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-dependency-plugin</artifactId>
@@ -250,11 +227,12 @@
                 <phase>package</phase>
                 <goals>
                   <goal>copy</goal>
-                  <!--              <goal>copy-dependencies</goal>  -->
+                  <!--<goal>copy-dependencies</goal>-->
                 </goals>
                 <configuration>
                   <outputDirectory>${project.build.directory}/libext</outputDirectory>
                   <!--<type>jar</type>-->
+                  <!--<includeScope>runtime</includeScope>-->
                   <!-- Don't include the test scope - we don't need those classes for dependencies. -->
                   <!--<includeScope>compile</includeScope> Only adds the dep jdk-tools.jar, which has useless stuff provided by any jdk installation. -->
                   <artifactItems>
@@ -367,12 +345,12 @@
                       <artifactId>mtj</artifactId>
                       <version>1.0.4</version>
                     </artifactItem>
-
                   </artifactItems>
                 </configuration>
               </execution>
             </executions>
           </plugin>
+
           <plugin> <!-- Create a super-JAR out of the JARs for every dependency in target/libext -->
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-assembly-plugin</artifactId>
@@ -416,6 +394,7 @@
             <version>2.4.1</version>
             <executions>
               <execution>
+                <id>alldeps</id>
                 <phase>package</phase>
                 <goals>
                   <goal>shade</goal>
@@ -424,7 +403,6 @@
                   <shadedArtifactAttached>true</shadedArtifactAttached>
                   <shadedClassifierName>alldeps</shadedClassifierName>
                   <minimizeJar>true</minimizeJar>
-
                   <artifactSet>
                     <excludes>
                       <exclude>org.apache.accumulo:*</exclude>
@@ -442,7 +420,6 @@
                       <exclude>io.netty:netty</exclude>
                       <exclude>javax.xml.bind:jaxb-api</exclude>
                       <exclude>javax.servlet:servlet-api</exclude>
-                      <!--<exclude>javax.servlet:javax.servlet-api</exclude>-->
                       <exclude>javax.servlet.jsp:jsp-api</exclude>
                       <exclude>tomcat:*</exclude>
                       <exclude>org.apache.commons:commons-compress</exclude>
@@ -465,17 +442,9 @@
                       <exclude>org.codehaus.jackson:jackson*</exclude>
                     </excludes>
                   </artifactSet>
-
                   <filters>
-                    <!--<filter>-->
-                      <!--<artifact>javax.servlet:javax.servlet-api</artifact>-->
-                      <!--<excludes>-->
-                        <!--<exclude>javax/servlet/*.properties</exclude>-->
-                        <!--<exclude>javax/servlet/http/*.properties</exclude>-->
-                        <!--<exclude>javax/servlet/**</exclude>-->
-                      <!--</excludes>-->
-                    <!--</filter>-->
                     <filter>
+
                       <artifact>javax.servlet:servlet-api</artifact>
                       <excludes>
                         <exclude>javax/servlet/**</exclude>
@@ -504,12 +473,6 @@
                         <exclude>META-INF/maven/**</exclude>
                       </excludes>
                     </filter>
-                    <!--<filter>-->
-                      <!--<artifact>com.google.common:*</artifact>-->
-                      <!--<excludes>-->
-                        <!--<exclude>com/google/common/**</exclude>-->
-                      <!--</excludes>-->
-                    <!--</filter>-->
                     <filter>
                       <artifact>org.apache.commons:commons-math3</artifact>
                       <includes>
@@ -532,14 +495,10 @@
                       <!--</excludes>-->
                     </filter>
                   </filters>
-
-
-
                 </configuration>
               </execution>
             </executions>
           </plugin>
-
 
           <!-- Ensure this is the last step before the linux-specific profile for the message to be seen by non-linux users. -->
           <plugin>
@@ -562,8 +521,6 @@
               </execution>
             </executions>
           </plugin>
-
-
 
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
@@ -589,6 +546,7 @@
         </plugins>
       </build>
     </profile>
+
 
     <!-- This profile stops javadoc from complaining on mvn install. -->
     <profile>
@@ -670,7 +628,7 @@
                   <minimizeJar>true</minimizeJar>
                   <artifactSet>
                     <!--<excludes>-->
-                    <!--<exclude>org.apache.accumulo:*</exclude>-->
+                      <!--<exclude>org.apache.accumulo:*</exclude>-->
                     <!--</excludes>-->
                   </artifactSet>
                   <filters>
@@ -694,7 +652,6 @@
               </execution>
             </executions>
           </plugin>
-
         </plugins>
       </build>
     </profile>

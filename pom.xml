@@ -33,14 +33,6 @@
     </developer>
   </developers>
 
-  <!--<repositories>-->
-    <!--<repository>-->
-      <!--<id>Apache-maven2</id>-->
-      <!--<name>Apache Maven2 Repository</name>-->
-      <!--<url>http://repo.maven.apache.org/maven2/</url>-->
-    <!--</repository>-->
-  <!--</repositories>-->
-
   <properties>
     <DBinit.path.libextFolder>libext/</DBinit.path.libextFolder>
     <DBinit.path.mpath>${basedir}/src/assembly/build_DBinit/build_DBinit.m</DBinit.path.mpath>

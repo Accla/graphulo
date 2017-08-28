@@ -770,13 +770,6 @@
       <version>1.0.4</version>
     </dependency>
 
-    <!--<dependency>-->
-    <!--<groupId>org.apache.accumulo</groupId>-->
-    <!--<artifactId>accumulo-tracer</artifactId>-->
-    <!--<version>${accumulo.version}</version>-->
-    <!--<scope>runtime</scope>-->
-    <!--</dependency>-->
-
   </dependencies>
 
 </project>

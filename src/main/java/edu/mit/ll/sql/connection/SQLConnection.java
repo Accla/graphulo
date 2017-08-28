@@ -126,7 +126,7 @@ public class SQLConnection {
 	 * @param sql:SQL statement to be sent to the database, typically a static SQL SELECT statement
 	 * @return String:String that contains the data produced by the given query; never null
 	 */
-	public String exectueQuery_String(String sql)  {
+	public String executeQuery_String(String sql)  {
         StringBuilder sb = new StringBuilder();
 		try{
 	        ResultSet rs = executeQuery(sql);
@@ -173,7 +173,7 @@ public class SQLConnection {
 	 * @param sql: an SQL INSERT, UPDATE or DELETE statement or an SQL statement that returns nothing
 	 * @return int: either the row count for INSERT, UPDATE or DELETE statements, or 0 for SQL statements that return nothing -1 for error
 	 */
-	public int exectueUpdate_int(String sql)  {
+	public int executeUpdate_int(String sql)  {
 
 		int retval = -1;
 		try{
@@ -199,7 +199,7 @@ public class SQLConnection {
 	 * @return
 	 * @throws SQLException
 	 */
-	public Object exectue(String sql) throws SQLException {
+	public Object execute(String sql) throws SQLException {
 		if (statement != null) {
 			statement.close();
 		}

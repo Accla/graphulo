@@ -69,6 +69,7 @@ public class GraphuloUtil {
   public static final byte[] EMPTY_BYTES = new byte[0];
 
   public static final Value VALUE_ONE_STRING = new Value("1".getBytes(StandardCharsets.UTF_8));
+  public static final byte[] VALUE_ONE_STRING_BYTES = "1".getBytes(StandardCharsets.UTF_8);
   public static final Value VALUE_ONE_VLONG = new Value(GraphuloUtil.writeVUnsignedLong(1));
 
   private GraphuloUtil() {

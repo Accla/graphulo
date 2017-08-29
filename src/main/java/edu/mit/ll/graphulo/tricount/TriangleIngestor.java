@@ -6,12 +6,15 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.iterators.LongCombiner.Type;
+import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -29,12 +32,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 
 import static edu.mit.ll.graphulo.util.GraphuloUtil.EMPTY_BYTES;
+import static edu.mit.ll.graphulo.util.GraphuloUtil.VALUE_ONE_STRING_BYTES;
 
 public final class TriangleIngestor {
   private static final Logger log = LogManager.getLogger(TriangleIngestor.class);
   private static final FixedIntegerLexicoder LEX = new FixedIntegerLexicoder();
+  private static final byte[] DEG_BYTES = "deg".getBytes(StandardCharsets.UTF_8);
 
   private final Connector connector;
+  private String countDegree = null;
+  public void doCountDegree(String countDegree) {
+    this.countDegree = countDegree;
+  }
 
   @SuppressWarnings("unused") // used in D4M
   public TriangleIngestor(final String instanceName, final String zookeepers, final String username, final String password) throws AccumuloSecurityException, AccumuloException {
@@ -163,6 +172,11 @@ public final class TriangleIngestor {
     }
   }
 
+  public long ingestCombinedFile(final String file,
+                                 final String tableAdj, final String tableEdge,
+                                 final boolean reverse, final boolean stringRowCols) {
+    return ingestCombinedFile(new File(file), tableAdj, tableEdge, reverse, stringRowCols);
+  }
 
   public long ingestCombinedFile(final File file,
                                  final String tableAdj, final String tableEdge,
@@ -170,6 +184,12 @@ public final class TriangleIngestor {
     try( GetRowCol getRowCol = new CombinedFile(file) ) {
       return ingestFile(getRowCol, tableAdj, tableEdge, reverse, stringRowCols);
     }
+  }
+
+  public long ingestFile(final String rowFile, final String colFile,
+                         final String tableAdj, final String tableEdge,
+                         final boolean reverse, final boolean stringRowCols) {
+    return ingestFile(new File(rowFile), new File(colFile), tableAdj, tableEdge, reverse, stringRowCols);
   }
 
   /**
@@ -194,8 +214,8 @@ public final class TriangleIngestor {
   private long ingestFile(final GetRowCol getRowCol,
                           final String tableAdj, final String tableEdge,
                           final boolean reverse, final boolean stringRowCols) {
-    if( tableAdj == null && tableEdge == null )
-      throw new IllegalArgumentException("need to specify either tableAdj or tableEdge");
+    if( tableAdj == null && tableEdge == null && countDegree == null )
+      throw new IllegalArgumentException("need to specify either tableAdj or tableEdge or countDegree");
 
     long count = 0, startTime;
     byte[] t1b = new byte[4], t2b = new byte[4], rowcol = new byte[8];
@@ -205,14 +225,24 @@ public final class TriangleIngestor {
     MultiTableBatchWriter multiBatch = null;
 
     try {
-      GraphuloUtil.createTables(connector, false, tableAdj, tableEdge);
+      GraphuloUtil.createTables(connector, false, tableAdj, tableEdge, countDegree);
+      if( countDegree != null ) {
+        if( !stringRowCols )
+          throw new IllegalArgumentException("countDegrees must use string encoding");
+        IteratorSetting is = new IteratorSetting(1, SummingCombiner.class);
+        SummingCombiner.setCombineAllColumns(is, true);
+        SummingCombiner.setEncodingType(is, Type.STRING);
+        GraphuloUtil.applyIteratorSoft(is, connector.tableOperations(), countDegree);
+      }
 
       multiBatch = connector.createMultiTableBatchWriter(bwc);
-      final BatchWriter bwAdj, bwEdge;
+      final BatchWriter bwAdj, bwEdge, bwDeg;
       if(tableAdj != null) bwAdj = multiBatch.getBatchWriter(tableAdj);
       else bwAdj = null;
       if(tableEdge != null) bwEdge = multiBatch.getBatchWriter(tableEdge);
       else bwEdge = null;
+      if(countDegree != null) bwDeg = multiBatch.getBatchWriter(countDegree);
+      else bwDeg = null;
 //      final Map<Integer,Integer> map = new HashMap<>(2500000);
 
       final long origStartTime = startTime = System.currentTimeMillis();
@@ -256,6 +286,15 @@ public final class TriangleIngestor {
           mutEdge2.put(EMPTY_BYTES, rowcol, EMPTY_BYTES);
           bwEdge.addMutation(mutEdge);
           bwEdge.addMutation(mutEdge2);
+          count += 2;
+        }
+
+        if( countDegree != null ) {
+          final Mutation m1 = new Mutation(rowb), m2 = new Mutation(colb);
+          m1.put(EMPTY_BYTES, DEG_BYTES, VALUE_ONE_STRING_BYTES);
+          m2.put(EMPTY_BYTES, DEG_BYTES, VALUE_ONE_STRING_BYTES);
+          bwDeg.addMutation(m1);
+          bwDeg.addMutation(m2);
           count += 2;
         }
 

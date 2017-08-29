@@ -78,6 +78,59 @@ public final class TriangleIngestor {
     }
     return count;
   }
+  
+  private interface GetRowCol extends AutoCloseable {
+//    boolean init();
+    /** @return null when no more values */
+    int[] next(int[] prev);
+    @Override void close();
+  }
+  
+  private class RowColFiles implements GetRowCol {
+//    final File rowFile, colFile;
+    final Scanner rowScanner, colScanner;
+
+    RowColFiles(final File rowFile, final File colFile) {
+//      this.rowFile = rowFile;
+//      this.colFile = colFile;
+      try {
+        rowScanner = new Scanner(rowFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(rowFile)) : new FileInputStream(rowFile));
+        colScanner = new Scanner(colFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(colFile)) : new FileInputStream(colFile));
+      } catch (IOException e) {
+        log.error("problem opening scan on files "+rowFile+" and "+colFile, e);
+        throw new RuntimeException(e);
+      }
+      rowScanner.useDelimiter(",");
+      colScanner.useDelimiter(",");
+    }
+    
+    @Override
+    public int[] next(int[] prev) {
+      if( rowScanner.hasNext() ){
+        if( !colScanner.hasNext() )
+          errorNotAligned();
+        prev = prev == null ? new int[2] : prev;
+        prev[0] = rowScanner.nextInt();
+        prev[1] = colScanner.nextInt();
+        return prev;
+      }
+      if( colScanner.hasNext() )
+        errorNotAligned();
+      return null;
+    }
+
+    private void errorNotAligned() {
+      throw new IllegalArgumentException("row, col files do not have the same number of elements. " +
+          " rowScanner.hasNext()=" + rowScanner.hasNext() +
+          " colScanner.hasNext()=" + colScanner.hasNext());
+    }
+
+    @Override
+    public void close() {
+      rowScanner.close();
+      colScanner.close();
+    }
+  }
 
   /**
    *
@@ -93,23 +146,25 @@ public final class TriangleIngestor {
   public long ingestFile(final File rowFile, final File colFile,
                          final String tableAdj, final String tableEdge,
                          final boolean reverse, final boolean stringRowCols) {
+    try( GetRowCol getRowCol = new RowColFiles(rowFile, colFile) ) {
+      return ingestFile(getRowCol, tableAdj, tableEdge, reverse, stringRowCols);
+    }
+  }
+
+  private long ingestFile(final GetRowCol getRowCol,
+                          final String tableAdj, final String tableEdge,
+                          final boolean reverse, final boolean stringRowCols) {
     if( tableAdj == null && tableEdge == null )
       throw new IllegalArgumentException("need to specify either tableAdj or tableEdge");
 
-    final String delimiter = ",";
     long count = 0, startTime;
-     byte[] t1b = new byte[4], t2b = new byte[4], rowcol = new byte[8];
+    byte[] t1b = new byte[4], t2b = new byte[4], rowcol = new byte[8];
 
     final BatchWriterConfig bwc = new BatchWriterConfig()
         .setMaxWriteThreads(25).setMaxMemory(1024000).setMaxLatency(100, TimeUnit.MILLISECONDS);
     MultiTableBatchWriter multiBatch = null;
 
-    try (final Scanner rowScanner = new Scanner(rowFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(rowFile)) : new FileInputStream(rowFile));
-         final Scanner colScanner = new Scanner(colFile.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(colFile)) : new FileInputStream(colFile)))
-    {
-      rowScanner.useDelimiter(delimiter);
-      colScanner.useDelimiter(delimiter);
-
+    try {
       GraphuloUtil.createTables(connector, false, tableAdj, tableEdge);
 
       multiBatch = connector.createMultiTableBatchWriter(bwc);
@@ -121,25 +176,20 @@ public final class TriangleIngestor {
 //      final Map<Integer,Integer> map = new HashMap<>(2500000);
 
       final long origStartTime = startTime = System.currentTimeMillis();
+      int[] prev = new int[2];
 
-      while (rowScanner.hasNext()) {
-        if (!colScanner.hasNext()) {
-          throw new IllegalArgumentException("row, col files do not have the same number of elements. " +
-              " rowScanner.hasNext()=" + rowScanner.hasNext() +
-              " colScanner.hasNext()=" + colScanner.hasNext());
-        }
+     while( (prev = getRowCol.next(prev)) != null ) {
 //        final int row, col;
         final byte[] rowb, colb;
         {
-          final int t1 = rowScanner.nextInt(), t2 = colScanner.nextInt();
-          if( t1 == t2 ) // No Diag.
+          if( prev[0] == prev[1] ) // No Diag.
             continue;
           if( stringRowCols ) {
-            t1b = Integer.toString(t1).getBytes(StandardCharsets.UTF_8);
-            t2b = Integer.toString(t2).getBytes(StandardCharsets.UTF_8);
+            t1b = Integer.toString(prev[0]).getBytes(StandardCharsets.UTF_8);
+            t2b = Integer.toString(prev[1]).getBytes(StandardCharsets.UTF_8);
           } else {
-            LEX.encode(t1, t1b);
-            LEX.encode(t2, t2b);
+            LEX.encode(prev[0], t1b);
+            LEX.encode(prev[1], t2b);
           }
           final int cmp = WritableComparator.compareBytes(t1b, 0, t1b.length, t2b, 0, t2b.length);
           if ((cmp > 0) ^ reverse) { // Lower triangle only, unless reversed.
@@ -169,7 +219,6 @@ public final class TriangleIngestor {
           count += 2;
         }
 
-
         if (count % 200000 <= 2) {
           final long stopTime = System.currentTimeMillis();
           if (startTime - stopTime > 1000*60) {
@@ -180,11 +229,8 @@ public final class TriangleIngestor {
         }
       }
 
-    } catch(IOException | AccumuloSecurityException | AccumuloException e){
+    } catch(TableNotFoundException | AccumuloSecurityException | AccumuloException e){
       log.warn("", e);
-      throw new RuntimeException(e);
-    } catch(TableNotFoundException e){
-      log.error("crazy", e);
       throw new RuntimeException(e);
     } finally {
       if (multiBatch != null)

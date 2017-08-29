@@ -132,6 +132,46 @@ public final class TriangleIngestor {
     }
   }
 
+  private class CombinedFile implements GetRowCol {
+    //    final File file;
+    final Scanner scanner;
+
+    CombinedFile(final File file) {
+//      this.file = file;
+      try {
+        scanner = new Scanner(file.getName().endsWith(".gz") ? new GZIPInputStream(new FileInputStream(file)) : new FileInputStream(file));
+      } catch (IOException e) {
+        log.error("problem opening scan on file "+file, e);
+        throw new RuntimeException(e);
+      }
+    }
+
+    @Override
+    public int[] next(int[] prev) {
+      if( scanner.hasNext() ){
+        prev = prev == null ? new int[2] : prev;
+        prev[0] = scanner.nextInt();
+        prev[1] = scanner.nextInt();
+        return prev;
+      }
+      return null;
+    }
+
+    @Override
+    public void close() {
+      scanner.close();
+    }
+  }
+
+
+  public long ingestCombinedFile(final File file,
+                                 final String tableAdj, final String tableEdge,
+                                 final boolean reverse, final boolean stringRowCols) {
+    try( GetRowCol getRowCol = new CombinedFile(file) ) {
+      return ingestFile(getRowCol, tableAdj, tableEdge, reverse, stringRowCols);
+    }
+  }
+
   /**
    *
    * @param rowFile File with a big comma-seperated string of ints, aligned with colFile.

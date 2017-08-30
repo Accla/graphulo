@@ -24,6 +24,7 @@ import java.io.FileInputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -38,9 +39,12 @@ public final class TriangleIngestor {
   private static final Logger log = LogManager.getLogger(TriangleIngestor.class);
   private static final FixedIntegerLexicoder LEX = new FixedIntegerLexicoder();
   private static final byte[] DEG_BYTES = "deg".getBytes(StandardCharsets.UTF_8);
+  private static final byte[] IN_DEG_BYTES = "indeg".getBytes(StandardCharsets.UTF_8);
+  private static final byte[] OUT_DEG_BYTES = "outdeg".getBytes(StandardCharsets.UTF_8);
 
   private final Connector connector;
   private String countDegree = null;
+  @SuppressWarnings("unused")
   public void doCountDegree(String countDegree) {
     this.countDegree = countDegree;
   }
@@ -247,6 +251,9 @@ public final class TriangleIngestor {
 
       final long origStartTime = startTime = System.currentTimeMillis();
       int[] prev = new int[2];
+      byte[] pa = new byte[0], pe1 = new byte[0], pe2 = new byte[0], pd1 = new byte[0], pd2 = new byte[0];
+      int pal = 0, pe1l = 0, pe2l = 0, pd1l = 0, pd2l = 0;
+      Mutation ma = new Mutation(), me1 = new Mutation(), me2 = new Mutation(), md1 = new Mutation(), md2 = new Mutation();
 
      while( (prev = getRowCol.next(prev)) != null ) {
 //        final int row, col;
@@ -273,32 +280,61 @@ public final class TriangleIngestor {
         // consider caching here to remove not insert the same entries twice
 
         if( tableAdj != null ) {
-          final Mutation mutAdj = new Mutation(rowb);
-          mutAdj.put(EMPTY_BYTES, colb, EMPTY_BYTES); // empty family, empty value
-          bwAdj.addMutation(mutAdj);
+          // try to reuse the previous mutation for increased insert efficiency
+          if (pal != rowb.length || WritableComparator.compareBytes(pa, 0, rowb.length, rowb, 0, rowb.length) != 0) {
+            if( ma.size() > 0 )
+              bwAdj.addMutation(ma);
+            ma = new Mutation(rowb, 0, rowb.length);
+            if( pa.length < rowb.length ) pa = Arrays.copyOf(rowb, rowb.length);
+            else System.arraycopy(rowb, 0, pa, 0, rowb.length);
+            pal = rowb.length;
+          }
+          ma.put(EMPTY_BYTES, colb, EMPTY_BYTES); // empty family, empty value
           count++;
         }
 
         if( tableEdge != null ) {
-          final Mutation mutEdge = new Mutation(rowb), mutEdge2 = new Mutation(colb);
+          if( pe1l != rowb.length || WritableComparator.compareBytes(pe1, 0, rowb.length, rowb, 0, rowb.length) != 0) {
+            if( me1.size() > 0 ) bwEdge.addMutation(me1);
+            me1 = new Mutation(rowb);
+            if( pe1.length < rowb.length ) pe1 = Arrays.copyOf(rowb, rowb.length);
+            else System.arraycopy(rowb, 0, pe1, 0, rowb.length);
+            pe1l = rowb.length;
+          }
+          if( pe2l != colb.length || WritableComparator.compareBytes(pe2, 0, colb.length, colb, 0, colb.length) != 0) {
+            if( me2.size() > 0 ) bwEdge.addMutation(me2);
+            me2 = new Mutation(colb);
+            if( pe2.length < colb.length ) pe2 = Arrays.copyOf(colb, colb.length);
+            else System.arraycopy(colb, 0, pe2, 0, colb.length);
+            pe2l = colb.length;
+          }
           bothBytes(colb, rowb, rowcol);
-          mutEdge.put(EMPTY_BYTES, rowcol, EMPTY_BYTES);
-          mutEdge2.put(EMPTY_BYTES, rowcol, EMPTY_BYTES);
-          bwEdge.addMutation(mutEdge);
-          bwEdge.addMutation(mutEdge2);
+          me1.put(EMPTY_BYTES, rowcol, EMPTY_BYTES);
+          me2.put(EMPTY_BYTES, rowcol, EMPTY_BYTES);
           count += 2;
         }
 
         if( countDegree != null ) {
-          final Mutation m1 = new Mutation(rowb), m2 = new Mutation(colb);
-          m1.put(EMPTY_BYTES, DEG_BYTES, VALUE_ONE_STRING_BYTES);
-          m2.put(EMPTY_BYTES, DEG_BYTES, VALUE_ONE_STRING_BYTES);
-          bwDeg.addMutation(m1);
-          bwDeg.addMutation(m2);
+          if( pd1l != rowb.length || WritableComparator.compareBytes(pd1, 0, rowb.length, rowb, 0, rowb.length) != 0) {
+            if( md1.size() > 0 ) bwDeg.addMutation(md1);
+            md1 = new Mutation(rowb);
+            if( pd1.length < rowb.length ) pd1 = Arrays.copyOf(rowb, rowb.length);
+            else System.arraycopy(rowb, 0, pd1, 0, rowb.length);
+            pd1l = rowb.length;
+          }
+          if( pd2l != colb.length || WritableComparator.compareBytes(pd2, 0, colb.length, colb, 0, colb.length) != 0) {
+            if( md2.size() > 0 ) bwDeg.addMutation(md2);
+            md2 = new Mutation(colb);
+            if( pd2.length < colb.length ) pd2 = Arrays.copyOf(colb, colb.length);
+            else System.arraycopy(colb, 0, pd2, 0, colb.length);
+            pd2l = colb.length;
+          }
+          md1.put(EMPTY_BYTES, DEG_BYTES, VALUE_ONE_STRING_BYTES);
+          md2.put(EMPTY_BYTES, DEG_BYTES, VALUE_ONE_STRING_BYTES);
           count += 2;
         }
 
-        if (count % 200000 <= 2) {
+        if (count % 100000 <= 1) {
           final long stopTime = System.currentTimeMillis();
           if (startTime - stopTime > 1000*60) {
             log.info(String.format("Ingest: %9d cnt, %6d secs, %8d entries/sec on %s, %s%n", count, (stopTime - origStartTime)/1000,
@@ -307,6 +343,17 @@ public final class TriangleIngestor {
           }
         }
       }
+
+      if( ma.size() > 0 )
+        bwAdj.addMutation(ma);
+      if( me1.size() > 0 )
+        bwEdge.addMutation(me1);
+      if( me2.size() > 0 )
+        bwEdge.addMutation(me2);
+      if( md1.size() > 0 )
+        bwDeg.addMutation(md1);
+      if( md2.size() > 0 )
+        bwDeg.addMutation(md2);
 
     } catch(TableNotFoundException | AccumuloSecurityException | AccumuloException e){
       log.warn("", e);

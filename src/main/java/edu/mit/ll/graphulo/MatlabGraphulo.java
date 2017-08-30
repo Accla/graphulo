@@ -1,6 +1,7 @@
 package edu.mit.ll.graphulo;
 
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
+import edu.mit.ll.graphulo.simplemult.MathTwoScalar.ScalarType;
 import edu.mit.ll.graphulo.skvi.LruCacheIterator;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -15,6 +16,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.xml.DOMConfigurator;
@@ -183,6 +186,24 @@ public class MatlabGraphulo extends Graphulo {
 //    } catch (AccumuloException | AccumuloSecurityException e) {
 //      log.error("problem setting table :: key :: value ==> "+table+" :: "+key+" :: "+value, e);
 //    }
+  }
+
+  /**
+   * MATLAB/Octave-friendly bridge to {@link Graphulo#SingleBFS}.
+   * @param edgeSep String version of a char. Pass a length-1 string. Used to workaround Octave which does not understand char.
+   * @param degSumType String version of ScalarType. Choices: LONG, DOUBLE, BIGDECIMAL, LONG_OR_DOUBLE, LEX_LONG.
+   */
+  public String SingleBFS(String Stable, String edgeColumn, String edgeSep,
+                          String v0, int k, String Rtable, String SDegtable, String degColumn,
+                          boolean copyOutDegrees, boolean computeInDegrees,
+                          String degSumType, ColumnVisibility newVisibility,
+                          int minDegree, int maxDegree, IteratorSetting plusOp,
+                          boolean outputUnion, Authorizations Sauthorizations, MutableLong numEntriesWritten) {
+    if( edgeSep == null || edgeSep.length() != 1 )
+      throw new IllegalArgumentException("edgeSep should be a single character but given "+edgeSep);
+    ScalarType dst = degSumType != null && !degSumType.isEmpty() ? ScalarType.valueOf(degSumType) : null;
+    return SingleBFS(Stable, edgeColumn, edgeSep.charAt(0), v0, k, Rtable, SDegtable, degColumn, copyOutDegrees, computeInDegrees,
+        dst, newVisibility, minDegree, maxDegree, plusOp, outputUnion, Sauthorizations, numEntriesWritten);
   }
 
 }

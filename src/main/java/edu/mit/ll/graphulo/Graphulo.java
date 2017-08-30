@@ -23,7 +23,6 @@ import edu.mit.ll.graphulo.simplemult.MathTwoScalar;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar.ScalarOp;
 import edu.mit.ll.graphulo.simplemult.MathTwoScalar.ScalarType;
 import edu.mit.ll.graphulo.skvi.CountAllIterator;
-import edu.mit.ll.graphulo.skvi.DebugInfoIterator;
 import edu.mit.ll.graphulo.skvi.IntCombiner.Type;
 import edu.mit.ll.graphulo.skvi.IntSummingCombiner;
 import edu.mit.ll.graphulo.skvi.InverseMatrixIterator;

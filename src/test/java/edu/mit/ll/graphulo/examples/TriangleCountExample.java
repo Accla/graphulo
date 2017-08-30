@@ -10,6 +10,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
@@ -27,8 +28,9 @@ public class TriangleCountExample extends AccumuloTestBase {
 
   @Test
   public void exampleTriCount() throws FileNotFoundException, TableNotFoundException, AccumuloSecurityException, AccumuloException {
-    final String Atable = "ex" + SCALE + "AAdjUULower";       // Adjacency table A.
-    final String Etable = "ex" + SCALE + "AEdge";             // Incidence table A.
+    final String Etable = "ex" + SCALE + "AEdge";                  // Incidence table A.
+    final String AtableLower = "ex" + SCALE + "AAdjUULower";       // Adjacency table A (lower triangle).
+    final String AtableUpper = "ex" + SCALE + "AAdjUUUpper";       // Adjacency table A (upper triangle).
 
     // In your code, you would connect to an Accumulo instance by writing something similar to:
 //    ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance("instance").withZkHosts("localhost:2181").withZkTimeout(5000);
@@ -39,19 +41,61 @@ public class TriangleCountExample extends AccumuloTestBase {
     final Connector conn = tester.getConnector();
 
     // Delete result table if it exists, so that we don't sum in previous runs with our results.
-    GraphuloUtil.deleteTables(conn, Atable, Etable, Atable + Graphulo.TRICOUNT_TEMP_TABLE_SUFFIX);
+    GraphuloUtil.deleteTables(conn, Etable,
+        AtableLower, AtableLower + Graphulo.TRICOUNT_TEMP_TABLE_SUFFIX,
+        AtableUpper, AtableUpper + Graphulo.TRICOUNT_TEMP_TABLE_SUFFIX);
 
     // Insert data from the file test/resources/data/10Ar.txt and 10Ac.txt into Accumulo.
     // Deletes tables if they already exist.
-    final File rowFile = ExampleUtil.getDataFile(String.valueOf(SCALE) + 'A' + "r.txt");
-    final File colFile = ExampleUtil.getDataFile(String.valueOf(SCALE) + 'A' + "c.txt");
-    new TriangleIngestor(conn).ingestFile(rowFile, colFile, Atable, Etable, false, false);
+    final File rowFile = ExampleUtil.getDataFile(String.valueOf(SCALE) + "Ar.txt");
+    final File colFile = ExampleUtil.getDataFile(String.valueOf(SCALE) + "Ac.txt");
+    final TriangleIngestor ti = new TriangleIngestor(conn);
+    ti.ingestFile(rowFile, colFile, AtableLower, Etable, false, false);
 
     // Create Graphulo executor. Supply the password for your Accumulo user account.
     final Graphulo graphulo = new Graphulo(conn, tester.getPassword());
 
-    final long numTriangles = graphulo.triCountAdjEdge(Atable, Etable, null, null, null, null);
-    log.info("Count of triangles: "+numTriangles); // 118291
+    // Count triangles with the Adjaceny+Edge table algorithm
+    final long numTrianglesAdjEdge = graphulo.triCountAdjEdge(AtableLower, Etable, null, null, null, null);
+    log.info("Count of triangles from AdjEdge algorithm: "+numTrianglesAdjEdge);
+
+
+    // Count triangles with the Adjaceny-only table algorithm
+    ti.ingestFile(rowFile, colFile, AtableUpper, null, true, true);
+    final long numTrianglesAdj = graphulo.triCount(AtableUpper, null, null, null);
+    log.info("Count of triangles from Adj algorithm: "+numTrianglesAdj);
+
+    Assert.assertEquals("The two triangle counting algorithms should produce the same triangle count",
+        numTrianglesAdj, numTrianglesAdjEdge);
+  }
+
+  /**
+   * This tests the same algorithm when the input file is "combined";
+   * each line takes the form of
+   * `row_num col_num`.
+   */
+  @Test
+  public void exampleTriCount_CombinedFile() throws FileNotFoundException, TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    final String Etable = "ex" + SCALE + "AEdge2";                 // Incidence table A.
+    final String AtableLower = "ex" + SCALE + "AAdjUULower2";       // Adjacency table A (lower triangle).
+    final String AtableUpper = "ex" + SCALE + "AAdjUUUpper2";       // Adjacency table A (upper triangle).
+    final Connector conn = tester.getConnector();
+    GraphuloUtil.deleteTables(conn, Etable,
+        AtableLower, AtableLower + Graphulo.TRICOUNT_TEMP_TABLE_SUFFIX,
+        AtableUpper, AtableUpper + Graphulo.TRICOUNT_TEMP_TABLE_SUFFIX);
+    final Graphulo graphulo = new Graphulo(conn, tester.getPassword());
+    final File file = ExampleUtil.getDataFile("example_arcs");
+    final TriangleIngestor ti = new TriangleIngestor(conn);
+
+    ti.ingestCombinedFile(file, AtableLower, Etable, false, false);
+    final long numTrianglesAdjEdge = graphulo.triCountAdjEdge(AtableLower, Etable, null, null, null, null);
+    log.info("Count of triangles from AdjEdge algorithm: "+numTrianglesAdjEdge);
+    Assert.assertEquals(32, numTrianglesAdjEdge);
+
+    ti.ingestCombinedFile(file, AtableUpper, null, true, true);
+    final long numTrianglesAdj = graphulo.triCount(AtableUpper, null, null, null);
+    log.info("Count of triangles from Adj algorithm: "+numTrianglesAdj);
+    Assert.assertEquals(32, numTrianglesAdj);
   }
 
 //  @Test

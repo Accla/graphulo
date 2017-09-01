@@ -42,24 +42,10 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <accumulo.version>1.8.1</accumulo.version>
     <accumulo.version.majorminor>1.8</accumulo.version.majorminor>
-    <thrift.version>0.9.3</thrift.version>
-    <zookeeper.version>3.4.6</zookeeper.version>
     <hadoop.version>2.7.2</hadoop.version>
     <htrace.version>3.1.0-incubating</htrace.version>
-    <slf4j.version>1.7.10</slf4j.version>
     <json.version>chargebee-1.0</json.version>
-    <math3.version>3.6.1</math3.version>
-    <codec.version>1.7</codec.version>
-    <configuration.version>1.6</configuration.version>
-    <lang3.version>3.1</lang3.version>
-    <commons.collections.version>3.2.2</commons.collections.version>
-    <commons.lang.version>2.4</commons.lang.version>
-    <commons.logging.version>1.1.1</commons.logging.version>
     <collections4.version>4.1</collections4.version>
-    <log4j.version>1.2.17</log4j.version>
-    <guava.version>14.0.1</guava.version>
-    <!--<accumulo.VERSION.1.7>  </accumulo.VERSION.1.7>-->
-    <!--<accumulo.VERSION.1.6>//</accumulo.VERSION.1.6>-->
   </properties>
 
 
@@ -218,126 +204,14 @@
                 <id>copy-dependencies</id>
                 <phase>package</phase>
                 <goals>
-                  <goal>copy</goal>
-                  <!--<goal>copy-dependencies</goal>-->
+                  <goal>copy-dependencies</goal>
                 </goals>
                 <configuration>
                   <outputDirectory>${project.build.directory}/libext</outputDirectory>
-                  <!--<type>jar</type>-->
-                  <!--<includeScope>runtime</includeScope>-->
+                  <type>jar</type>
+                  <includeScope>runtime</includeScope>
                   <!-- Don't include the test scope - we don't need those classes for dependencies. -->
                   <!--<includeScope>compile</includeScope> Only adds the dep jdk-tools.jar, which has useless stuff provided by any jdk installation. -->
-                  <artifactItems>
-                    <artifactItem>
-                      <groupId>org.apache.accumulo</groupId>
-                      <artifactId>accumulo-core</artifactId>
-                      <version>${accumulo.version}</version>
-                      <outputDirectory>${project.build.directory}/libext</outputDirectory>
-                    </artifactItem>
-                    <artifactItem>
-                      <groupId>org.apache.accumulo</groupId>
-                      <artifactId>accumulo-fate</artifactId>
-                      <version>${accumulo.version}</version>
-                      <outputDirectory>${project.build.directory}/libext</outputDirectory>
-                    </artifactItem>
-                    <artifactItem>
-                      <groupId>org.apache.thrift</groupId>
-                      <artifactId>libthrift</artifactId>
-                      <version>${thrift.version}</version>
-                      <outputDirectory>${project.build.directory}/libext</outputDirectory>
-                    </artifactItem>
-                    <artifactItem>
-                      <groupId>org.apache.hadoop</groupId>
-                      <artifactId>hadoop-common</artifactId>
-                      <version>${hadoop.version}</version>
-                      <outputDirectory>${project.build.directory}/libext</outputDirectory>
-                    </artifactItem>
-                    <artifactItem>
-                      <groupId>org.apache.zookeeper</groupId>
-                      <artifactId>zookeeper</artifactId>
-                      <version>${zookeeper.version}</version>
-                    </artifactItem>
-                    <artifactItem>
-                      <groupId>org.json</groupId>
-                      <artifactId>org.json</artifactId>
-                      <version>${json.version}</version>
-                    </artifactItem>
-                    <artifactItem>
-                      <groupId>org.slf4j</groupId>
-                      <artifactId>slf4j-api</artifactId>
-                      <version>${slf4j.version}</version>
-                    </artifactItem>
-                    <artifactItem>
-                      <groupId>org.slf4j</groupId>
-                      <artifactId>slf4j-log4j12</artifactId>
-                      <version>${slf4j.version}</version>
-                    </artifactItem>
-                    <artifactItem>
-                      <groupId>org.apache.htrace</groupId>
-                      <artifactId>htrace-core</artifactId>
-                      <version>${htrace.version}</version>
-                    </artifactItem>
-                    <artifactItem>
-                      <groupId>org.apache.htrace</groupId>
-                      <artifactId>htrace-zipkin</artifactId>
-                      <version>${htrace.version}</version>
-                    </artifactItem>
-                    <artifactItem>
-                      <groupId>org.apache.commons</groupId>
-                      <artifactId>commons-math3</artifactId>
-                      <version>${math3.version}</version>
-                    </artifactItem>
-                    <artifactItem>
-                      <groupId>commons-codec</groupId>
-                      <artifactId>commons-codec</artifactId>
-                      <version>${codec.version}</version>
-                    </artifactItem>
-                    <artifactItem>
-                      <groupId>org.apache.commons</groupId>
-                      <artifactId>commons-collections4</artifactId>
-                      <version>${collections4.version}</version>
-                    </artifactItem>
-                    <artifactItem>
-                      <groupId>org.apache.commons</groupId>
-                      <artifactId>commons-lang3</artifactId>
-                      <version>${lang3.version}</version>
-                    </artifactItem>
-                    <artifactItem>
-                      <groupId>commons-collections</groupId>
-                      <artifactId>commons-collections</artifactId>
-                      <version>${commons.collections.version}</version>
-                    </artifactItem>
-                    <artifactItem>
-                      <groupId>commons-configuration</groupId>
-                      <artifactId>commons-configuration</artifactId>
-                      <version>${configuration.version}</version>
-                    </artifactItem>
-                    <artifactItem>
-                      <groupId>commons-lang</groupId>
-                      <artifactId>commons-lang</artifactId>
-                      <version>${commons.lang.version}</version>
-                    </artifactItem>
-                    <artifactItem>
-                      <groupId>commons-logging</groupId>
-                      <artifactId>commons-logging</artifactId>
-                      <version>${commons.logging.version}</version>
-                    </artifactItem>
-                    <artifactItem>
-                      <groupId>log4j</groupId>
-                      <artifactId>log4j</artifactId>
-                      <version>${log4j.version}</version>
-                    </artifactItem>
-                    <artifactItem>
-                      <groupId>com.google.guava</groupId>
-                      <artifactId>guava</artifactId>
-                      <version>${guava.version}</version>
-                    </artifactItem>
-                    <artifactItem>
-                      <groupId>com.googlecode.matrix-toolkits-java</groupId>
-                      <artifactId>mtj</artifactId>
-                      <version>1.0.4</version>
-                    </artifactItem>
-                  </artifactItems>
                 </configuration>
               </execution>
             </executions>
@@ -403,7 +277,6 @@
                       <exclude>com.thoughtworks.paranamer:paranamer</exclude>
                       <exclude>com.google.code.findbugs:jsr305*</exclude>
                       <exclude>com.google.protobuf:protobuf-java</exclude>
-                      <!--<exclude>commons-el:commons-el</exclude>-->
                       <exclude>commons-beanutils:commons-beanutils*</exclude>
                       <exclude>commons-net:commons-net</exclude>
                       <exclude>commons-httpclient:commons-httpclient</exclude>
@@ -413,9 +286,7 @@
                       <exclude>javax.xml.bind:jaxb-api</exclude>
                       <exclude>javax.servlet:servlet-api</exclude>
                       <exclude>javax.servlet.jsp:jsp-api</exclude>
-                      <!--<exclude>tomcat:*</exclude>-->
                       <exclude>org.apache.commons:commons-compress</exclude>
-                      <!--<exclude>org.apache.maven.scm:*</exclude>-->
                       <exclude>asm:asm</exclude>
                       <exclude>org.apache.httpcomponents:*</exclude>
                       <exclude>org.apache.avro:avro</exclude>
@@ -423,8 +294,6 @@
                       <exclude>org.codehaus.plexus:plexus-utils</exclude>
                       <exclude>org.mortbay.jetty:*</exclude>
                       <exclude>org.apache.commons:commons-vfs2</exclude>
-                      <!--<exclude>org.apache.commons:commons-math</exclude>-->
-                      <!--<exclude>regexp:regexp</exclude>-->
                       <exclude>com.beust:jcommander</exclude>
                       <exclude>org.xerial.snappy:snappy-java</exclude>
                       <exclude>com.sun.xml.bind:jaxb-impl</exclude>
@@ -655,77 +524,36 @@
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-core</artifactId>
       <version>${accumulo.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.apache.accumulo</groupId>
-          <artifactId>accumulo-gc</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.accumulo</groupId>
-          <artifactId>accumulo-master</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.accumulo</groupId>
-          <artifactId>accumulo-monitor</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>commons-httpclient</groupId>
-          <artifactId>commons-httpclient</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>commons-lang</groupId>
-          <artifactId>commons-lang</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>javax.servlet</groupId>
-          <artifactId>javax.servlet-api</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>javax.ws.rs</groupId>
-          <artifactId>jsr311-api</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>jline</groupId>
-          <artifactId>jline</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>commons-lang</groupId>
-          <artifactId>commons-lang</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.commons</groupId>
-          <artifactId>commons-vfs2</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>commons-io</groupId>
-          <artifactId>commons-io</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
+
     <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-common</artifactId>
       <version>${hadoop.version}</version>
       <scope>compile</scope>
     </dependency>
+
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>4.12</version>
       <scope>test</scope>
     </dependency>
+
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-minicluster</artifactId>
       <version>${accumulo.version}</version>
       <scope>test</scope>
     </dependency>
+
     <!-- Replaces Accumulo dependency on Apache Commons 3.2, which does not use Java Generics. -->
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-collections4</artifactId>
       <version>${collections4.version}</version>
     </dependency>
+
     <!-- Used by some JSON functions in D4M Matlab. -->
     <dependency>
       <groupId>org.json</groupId>
@@ -743,26 +571,6 @@
       <scope>runtime</scope>
       <optional>true</optional>
     </dependency>
-    <!--<dependency>-->
-      <!--<groupId>commons-codec</groupId>-->
-      <!--<artifactId>commons-codec</artifactId>-->
-      <!--<version>1.7</version>-->
-    <!--</dependency>-->
-
-    <!--<dependency>-->
-    <!--<groupId>org.apache.htrace</groupId>-->
-    <!--<artifactId>htrace-core</artifactId>-->
-    <!--<version>3.1.0-incubating</version>-->
-    <!--<scope>runtime</scope>-->
-    <!--</dependency>-->
-
-    <!-- Accumulo server-side dependencies-->
-    <!--<dependency>-->
-    <!--<groupId>org.apache.commons</groupId>-->
-    <!--<artifactId>commons-math3</artifactId>-->
-    <!--<version>3.1.1</version>-->
-    <!--<scope>runtime</scope>-->
-    <!--</dependency>-->
 
     <dependency>
       <groupId>com.googlecode.matrix-toolkits-java</groupId>

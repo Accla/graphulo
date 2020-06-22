@@ -24,9 +24,9 @@ import org.apache.log4j.Logger;
  */
 public class D4mDbQuerySql {
     private static final Logger log = Logger.getLogger(D4mDbQuerySql.class);
-    private String rows = null;
-    private String cols = null;
-    private String vals = null;
+    private String rows = new String();
+    private String cols = new String();
+    private String vals = new String();
     private Connection conn=null;
 
     /*
@@ -46,10 +46,10 @@ public class D4mDbQuerySql {
 
     }
 
-    public void executeQuery(Connection conn, String sqlQuery) {
+    public void executeQuery( String sqlQuery) {
         Statement st;
         try {
-            st = conn.createStatement();
+            st = this.conn.createStatement();
             ResultSet rs = st.executeQuery(sqlQuery);
             extractRowsColumnsValues(rs);
         } catch (SQLException e) {

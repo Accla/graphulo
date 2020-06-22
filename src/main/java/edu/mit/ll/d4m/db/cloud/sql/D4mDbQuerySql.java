@@ -70,7 +70,7 @@ public class D4mDbQuerySql {
             for(int i = 0; i < colCount; i++) {
                 String c = rsmd.getColumnName(i);
                 String v = rs.getString(i);
-                if(v == null) {
+                if(v == null || v.isEmpty()) {
                     sbVals.append("NULL");
                 } else {
                     sbVals.append( v.replace("\n", ""));

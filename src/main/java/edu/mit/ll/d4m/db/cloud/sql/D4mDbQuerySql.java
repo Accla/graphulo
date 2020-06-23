@@ -69,7 +69,7 @@ public class D4mDbQuerySql extends D4mParent {
             ResultSetMetaData rsmd = rs.getMetaData();
             int colCount= rsmd.getColumnCount();
             rowCount = rs.getRow();
-            for(int i = 0; i < colCount; i++) {
+            for(int i = 1; i <= colCount; i++) {
                 String c = rsmd.getColumnName(i);
                 String v = rs.getString(i);
                 log.info("ROW_COUNT="+rowCount+", COLUMN_NAME="+c+", VALUE=" + v);

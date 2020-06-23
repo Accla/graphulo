@@ -64,15 +64,15 @@ public class D4mDbQuerySql extends D4mParent {
         StringBuffer sbVals= new StringBuffer();
         StringBuffer sbCols= new StringBuffer();
         StringBuffer sbRows= new StringBuffer();
-        ResultSetMetaData rsmd = rs.getMetaData();
-        int colCount= rsmd.getColumnCount();
         int rowCount=1;
         while(rs.next()) {
+            ResultSetMetaData rsmd = rs.getMetaData();
+            int colCount= rsmd.getColumnCount();
             rowCount = rs.getRow();
             for(int i = 0; i < colCount; i++) {
                 String c = rsmd.getColumnName(i);
                 String v = rs.getString(i);
-                log.info("COLUMN_NAME="+c+", VALUE=" + v);
+                log.info("ROW_COUNT="+rowCount+", COLUMN_NAME="+c+", VALUE=" + v);
                 if(v == null || v.isEmpty()) {
                     sbVals.append("NULL");
                 } else {

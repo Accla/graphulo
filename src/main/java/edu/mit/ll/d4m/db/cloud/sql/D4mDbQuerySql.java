@@ -11,6 +11,8 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import org.apache.log4j.Logger;
 
+import edu.mit.ll.d4m.db.cloud.D4mParent;
+
 /**
  * Class to execute a SQL query and hold results as string [row, column, value]
  *  
@@ -22,7 +24,7 @@ import org.apache.log4j.Logger;
  * @author CHV8091
  *
  */
-public class D4mDbQuerySql {
+public class D4mDbQuerySql extends D4mParent {
     private static final Logger log = Logger.getLogger(D4mDbQuerySql.class);
     private String rows = new String();
     private String cols = new String();
@@ -42,7 +44,7 @@ public class D4mDbQuerySql {
 
     }
     public D4mDbQuerySql() {
-
+        super();
 
     }
 
@@ -70,6 +72,7 @@ public class D4mDbQuerySql {
             for(int i = 0; i < colCount; i++) {
                 String c = rsmd.getColumnName(i);
                 String v = rs.getString(i);
+                log.info("COLUMN_NAME="+c+", VALUE=" + v);
                 if(v == null || v.isEmpty()) {
                     sbVals.append("NULL");
                 } else {
@@ -110,6 +113,13 @@ public class D4mDbQuerySql {
         this.cols = cols;
     }
 
+    public void close() {
+        try {
+            this.conn.close();
+        } catch (SQLException e) {
+            log.warn(" SQL exception.",e);
+        }
+    }
 
 }
 

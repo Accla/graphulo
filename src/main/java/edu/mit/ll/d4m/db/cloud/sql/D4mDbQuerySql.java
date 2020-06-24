@@ -26,9 +26,9 @@ import edu.mit.ll.d4m.db.cloud.D4mParent;
  */
 public class D4mDbQuerySql extends D4mParent {
     private static final Logger log = Logger.getLogger(D4mDbQuerySql.class);
-    private String rows = new String();
-    private String cols = new String();
-    private String vals = new String();
+    private String rows = new String("");
+    private String cols = new String("");
+    private String vals = new String("");
     private Connection conn=null;
 
     /*
@@ -61,9 +61,9 @@ public class D4mDbQuerySql extends D4mParent {
     }
     
     private void extractRowsColumnsValues(ResultSet rs) throws SQLException {
-        StringBuffer sbVals= new StringBuffer();
-        StringBuffer sbCols= new StringBuffer();
-        StringBuffer sbRows= new StringBuffer();
+        StringBuffer sbVals= new StringBuffer("");
+        StringBuffer sbCols= new StringBuffer("");
+        StringBuffer sbRows= new StringBuffer("");
         int rowCount=1;
         while(rs.next()) {
             ResultSetMetaData rsmd = rs.getMetaData();

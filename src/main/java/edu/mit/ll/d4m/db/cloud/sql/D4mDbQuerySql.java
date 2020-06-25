@@ -30,6 +30,7 @@ public class D4mDbQuerySql extends D4mParent {
     private String cols = new String("");
     private String vals = new String("");
     private Connection conn=null;
+    private int recordCount=0;
 
     /*
      * Make DB connection
@@ -49,6 +50,7 @@ public class D4mDbQuerySql extends D4mParent {
     }
 
     public void executeQuery( String sqlQuery) {
+        this.recordCount=0;
         Statement st;
         try {
             st = this.conn.createStatement();
@@ -72,7 +74,8 @@ public class D4mDbQuerySql extends D4mParent {
             for(int i = 1; i <= colCount; i++) {
                 String c = rsmd.getColumnName(i);
                 String v = rs.getString(i);
-                log.info("ROW_COUNT="+rowCount+", COLUMN_NAME="+c+", VALUE=" + v);
+
+                log.debug("ROW_COUNT="+rowCount+", COLUMN_NAME="+c+", VALUE=" + v);
                 if(v == null || v.isEmpty()) {
                     sbVals.append("NULL");
                 } else {
@@ -82,6 +85,7 @@ public class D4mDbQuerySql extends D4mParent {
                 sbCols.append(c).append("\n");
                 sbRows.append(Integer.toString(rowCount));
             }
+            this.recordCount++;
         }
 
         vals = sbVals.toString();
@@ -120,6 +124,12 @@ public class D4mDbQuerySql extends D4mParent {
             log.warn(" SQL exception.",e);
         }
     }
+        public int getRecordCount() {
+            return recordCount;
+        }
+        public void setRecordCount(int recordCount) {
+            this.recordCount = recordCount;
+        }
 
 }
 

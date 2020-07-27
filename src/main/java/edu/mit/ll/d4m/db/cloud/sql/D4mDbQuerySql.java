@@ -51,6 +51,9 @@ public class D4mDbQuerySql extends D4mParent {
 
     public void executeQuery( String sqlQuery) {
         this.recordCount=0;
+        this.rows = "";
+        this.cols = "";
+        this.vals = "";
         Statement st;
         try {
             st = this.conn.createStatement();
@@ -83,7 +86,7 @@ public class D4mDbQuerySql extends D4mParent {
                 }
                 sbVals.append("\n");  
                 sbCols.append(c).append("\n");
-                sbRows.append(Integer.toString(rowCount));
+                sbRows.append(Integer.toString(rowCount)).append("\n");
             }
             this.recordCount++;
         }

@@ -585,7 +585,7 @@
     <dependency>
        <groupId>org.postgresql</groupId>
        <artifactId>postgresql</artifactId>
-       <version>42.2.10</version>
+       <version>42.4.1</version>
     </dependency>
     <!-- MySQL connector jar -->
     <!-- https://mvnrepository.com/artifact/mysql/mysql-connector-java -->

@@ -4,7 +4,7 @@
 
   <groupId>edu.mit.ll</groupId>
   <artifactId>graphulo</artifactId>
-  <version>3.1.2</version>
+  <version>3.2.0</version>
   <packaging>jar</packaging>
   <name>Graphulo</name>
   <description>
@@ -40,8 +40,8 @@
     <DBinit.path.libextZip>graphulo-${project.version}-libext</DBinit.path.libextZip>
     <test>TEST_CONFIG</test>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <accumulo.version>1.8.1</accumulo.version>
-    <accumulo.version.majorminor>1.8</accumulo.version.majorminor>
+    <accumulo.version>1.10.1</accumulo.version>
+    <accumulo.version.majorminor>1.10</accumulo.version.majorminor>
     <hadoop.version>2.7.2</hadoop.version>
     <htrace.version>3.1.0-incubating</htrace.version>
     <json.version>chargebee-1.0</json.version>

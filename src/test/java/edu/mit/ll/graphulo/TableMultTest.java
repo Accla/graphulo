@@ -116,7 +116,7 @@ public class TableMultTest extends AccumuloTestBase {
       }
       scanner.close();
       Assert.assertEquals(expectT, actualT);
-    }
+    } 
 
     conn.tableOperations().delete(tAT);
     conn.tableOperations().delete(tB);

@@ -37,8 +37,6 @@
     	<!-- Root logger referring to console appender -->
         <Root level="warn" additivity="false">
             <AppenderRef ref="console" />
-        </Root>
-        <Root level="warn" additivity="false">
             <appender-ref ref="fileLogger" />
         </Root>
     </Loggers>

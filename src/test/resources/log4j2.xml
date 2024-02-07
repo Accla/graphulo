@@ -14,7 +14,7 @@
         </Console>
 
         <RollingFile name="fileLogger"
-                     fileName="${basePath}/d4m.log"
+                     fileName="${basePath}/d4m-test.log"
                      filePattern="${basePath}/app-%d{yyyy-MM-dd}.log">
             <PatternLayout>
                 <pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %c{1} - %msg%n</pattern>
@@ -37,8 +37,6 @@
     	<!-- Root logger referring to console appender -->
         <Root level="debug" additivity="false">
             <AppenderRef ref="console" />
-        </Root>
-        <Root level="warn" additivity="false">
             <appender-ref ref="fileLogger" />
         </Root>
     </Loggers>

@@ -293,7 +293,9 @@
                       <exclude>org.apache.hadoop:*</exclude>
                       <exclude>org.apache.zookeeper:*</exclude>
                       <exclude>com.thoughtworks.paranamer:paranamer</exclude>
+                      <exclude>com.google.guava:guava</exclude>
                       <exclude>com.google.code.findbugs:jsr305*</exclude>
+                      <exclude>com.google.code.gson:gson*</exclude>
                       <exclude>com.google.protobuf:protobuf-java</exclude>
                       <exclude>commons-beanutils:commons-beanutils*</exclude>
                       <exclude>commons-net:commons-net</exclude>
@@ -564,6 +566,7 @@
     </dependency>
     -->
 
+<!--
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-core</artifactId>
@@ -577,6 +580,19 @@
           <groupId>com.google.guava</groupId>
           <artifactId>guava</artifactId>
         </exclusion>
+      </exclusions>
+    </dependency>
+-->
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-core</artifactId>
+      <version>${accumulo.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>log4j</groupId>
+          <artifactId>log4j</artifactId>
+        </exclusion>
+        
       </exclusions>
     </dependency>
 

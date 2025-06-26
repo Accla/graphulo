@@ -73,7 +73,7 @@ public class InjectTest extends AccumuloTestBase {
       actual.put(k, v);
     }
     Assert.assertEquals(expect, actual);
-
+    scan.close();
     // delete test data
     conn.tableOperations().delete(tableName);
   }
@@ -117,7 +117,7 @@ public class InjectTest extends AccumuloTestBase {
       actual.put(k, v);
     }
     Assert.assertEquals(expect, actual);
-
+    scan.close();
     // delete test data
     conn.tableOperations().delete(tableName);
   }
@@ -158,7 +158,7 @@ public class InjectTest extends AccumuloTestBase {
       actual.put(k, v);
     }
     Assert.assertEquals(expect, actual);
-
+    scan.close();
     // delete test data
     conn.tableOperations().delete(tableName);
   }
@@ -207,7 +207,7 @@ public class InjectTest extends AccumuloTestBase {
     }
     //TestUtil.assertEqualEntriesRowColFColQ(expect, actual);
     Assert.assertEquals(expect, actual);
-
+    scan.close();
     // delete test data
     conn.tableOperations().delete(tableName);
   }
@@ -274,7 +274,7 @@ public class InjectTest extends AccumuloTestBase {
       actual.put(k, v);
     }
     Assert.assertEquals(expect, actual);
-
+    scan.close();
     // delete test data
     conn.tableOperations().delete(tableName);
   }
@@ -326,7 +326,7 @@ public class InjectTest extends AccumuloTestBase {
       actual.put(k, v);
     }
     Assert.assertEquals(expect, actual);
-
+    scan.close();
     // delete test data
     conn.tableOperations().delete(tableName);
   }

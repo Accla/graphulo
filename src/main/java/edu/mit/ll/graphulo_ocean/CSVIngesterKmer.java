@@ -363,7 +363,7 @@ public abstract class CSVIngesterKmer<T> {
 
 
   public long ingestFile(File file, int everyXLines, int startOffset) throws IOException {
-    Preconditions.checkArgument(everyXLines >= 1 && startOffset >= 0, "bad params ", everyXLines, startOffset);
+    Preconditions.checkArgument(everyXLines >= 1 && startOffset >= 0, "bad params "+ Integer.toString(everyXLines) + " "+Integer.toString(startOffset));
 
     String sampleid0 = file.getName();
     if (sampleid0.endsWith(".csv"))

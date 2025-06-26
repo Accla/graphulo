@@ -43,7 +43,7 @@ public class CacheIterator implements SortedKeyValueIterator<Key,Value> {
     else
       Combiner.setColumns(itset, columns);
     itset.addOption(COMBINER, combiner.getName());
-    Preconditions.checkArgument(capacity > 0, "To use the LruCacheIterator, specify a positive capacity instead of "+capacity);
+    Preconditions.checkArgument(capacity > 0, "To use the LruCacheIterator, specify a positive capacity instead of "+ Integer.toString(capacity));
     itset.addOption(CAPACITY, Integer.toString(capacity));
     if (combinerOpts != null)
       for (Map.Entry<String, String> entry : combinerOpts.entrySet())

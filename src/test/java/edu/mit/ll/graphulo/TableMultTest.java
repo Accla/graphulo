@@ -6,6 +6,7 @@ import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.TestUtil;
+import edu.mit.ll.graphulo.util.DebugUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -102,6 +103,7 @@ public class TableMultTest extends AccumuloTestBase {
     {
       SortedMap<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
       for (Map.Entry<Key, Value> entry : scanner) {
+        log.debug("TEST1_ACTUAL="+entry.getKey()+","+ entry.getValue());
         actual.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
@@ -112,6 +114,7 @@ public class TableMultTest extends AccumuloTestBase {
     {
       SortedMap<Key, Value> actualT = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
       for (Map.Entry<Key, Value> entry : scanner) {
+        log.debug("TEST1_ACTUALT="+entry.getKey()+","+ entry.getValue());
         actualT.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
@@ -691,6 +694,7 @@ public class TableMultTest extends AccumuloTestBase {
     {
       SortedMap<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
       for (Map.Entry<Key, Value> entry : scanner) {
+          log.debug("TEST_CLONE_MULTIPLY_ACTUAL="+entry.getKey()+","+ entry.getValue());
         actual.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
@@ -702,6 +706,7 @@ public class TableMultTest extends AccumuloTestBase {
     {
       SortedMap<Key, Value> actualT = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
       for (Map.Entry<Key, Value> entry : scanner) {
+        log.debug("TEST_CLONE_MULTIPLY_ACTUALT="+entry.getKey()+","+ entry.getValue());
         actualT.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
@@ -766,7 +771,7 @@ public class TableMultTest extends AccumuloTestBase {
         actual.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
-//      DebugUtil.printMapFull(actual.entrySet().iterator(), 5);
+      //DebugUtil.printMapFull(actual.entrySet().iterator(), 5);
       Assert.assertEquals(expect, actual);
     }
 

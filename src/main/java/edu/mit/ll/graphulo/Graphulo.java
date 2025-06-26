@@ -1099,7 +1099,7 @@ public class Graphulo {
     ADegtable = emptyToNull(ADegtable);
     Rtable = emptyToNull(Rtable);
     RTtable = emptyToNull(RTtable);
-    Preconditions.checkArgument(maxDegree >= minDegree, "maxDegree=%s should be >= minDegree=%s", maxDegree, minDegree);
+    Preconditions.checkArgument(maxDegree >= minDegree, "maxDegree=%s"+maxDegree+ " should be >= minDegree="+ minDegree);
     if (AScanIteratorPriority <= 0)
       AScanIteratorPriority = 4; // default priority
     if (Aauthorizations == null) Aauthorizations = Authorizations.EMPTY;
@@ -1374,8 +1374,8 @@ public class Graphulo {
         for (int j = i+1; j < eps.length; j++)
           Preconditions.checkArgument(!eps[i].startsWith(eps[j]) && !eps[j].startsWith(eps[i]),
               "No end prefix should can be a prefix of another. Reason is that these endPrefixes conflict; " +
-                  "no way to tell what node comes after the shorter end prefix. Two conflicting end prefixes: %s %s",
-              eps[i], eps[j]);
+                  "no way to tell what node comes after the shorter end prefix. Two conflicting end prefixes: " +
+              eps[i] +" "+ eps[j]);
       }
     }
 
@@ -2111,8 +2111,8 @@ public class Graphulo {
                         Authorizations Aauthorizations, String RNewVisibility,
                         int maxiter) {
     checkGiven(true, "Aorig", Aorig);
-    Preconditions.checkArgument(maxiter > 0, "bad maxiter %s", maxiter);
-    Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
+    Preconditions.checkArgument(maxiter > 0, "bad maxiter " + Integer.toString(maxiter));
+    Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=" + Rfinal);
     TableOperations tops = connector.tableOperations();
     boolean RfinalExists = tops.exists(Rfinal);
 
@@ -2297,7 +2297,7 @@ public class Graphulo {
                               long upperBoundOnDim, int maxiter,
                               List<Long> specialLongList) {
     checkGiven(true, "Aorig", Aorig);
-    Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
+    Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=" + Rfinal);
     TableOperations tops = connector.tableOperations();
     boolean RfinalExists = tops.exists(Rfinal);
     if (RfinalExists)
@@ -2306,7 +2306,7 @@ public class Graphulo {
       upperBoundOnDim = 1L << 32;
     if (upperBoundOnDim >= Long.MAX_VALUE/2)
       log.warn("Upper bound may be too large: "+upperBoundOnDim);
-    Preconditions.checkArgument(maxiter > 0, "bad maxiter %s", maxiter);
+    Preconditions.checkArgument(maxiter > 0, "bad maxiter " + Integer.toString(maxiter));
 
     try {
       if (k <= 2) {               // trivial case: every graph is a 2-truss
@@ -2494,15 +2494,15 @@ public class Graphulo {
                               int maxiter,
                               List<Long> specialLongList, String intermediateDurability) {
     checkGiven(true, "Aorig", Aorig);
-    Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
+    Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=" + Rfinal);
     TableOperations tops = connector.tableOperations();
     boolean RfinalExists = tops.exists(Rfinal);
     if (RfinalExists)
       log.warn("Fused version of kTruss may not work when the result table already exists due to iterator conflicts");
-    Preconditions.checkArgument(maxiter > 0, "bad maxiter %s", maxiter);
+    Preconditions.checkArgument(maxiter > 0, "bad maxiter " + Integer.toString(maxiter));
     intermediateDurability = emptyToNull(intermediateDurability);
     Preconditions.checkArgument(intermediateDurability == null || Durability.valueOf(intermediateDurability.toUpperCase()) != Durability.DEFAULT,
-        "bad durability given: %s", intermediateDurability);
+        "bad durability given: "+ intermediateDurability);
 
     try {
       if (k <= 2) {               // trivial case: every graph is a 2-truss
@@ -2773,7 +2773,7 @@ public class Graphulo {
     Aauthorizations = Aauthorizations == null ? Authorizations.EMPTY : Aauthorizations;
     intermediateDurability = emptyToNull(intermediateDurability);
     Preconditions.checkArgument(intermediateDurability == null || Durability.valueOf(intermediateDurability.toUpperCase()) != Durability.DEFAULT,
-        "bad durability given: %s", intermediateDurability);
+        "bad durability given: "+ intermediateDurability);
 
     try {
       final String Atmp = Aorig + TRICOUNT_TEMP_TABLE_SUFFIX;
@@ -2876,7 +2876,7 @@ public class Graphulo {
     Aauthorizations = Aauthorizations == null ? Authorizations.EMPTY : Aauthorizations;
     intermediateDurability = emptyToNull(intermediateDurability);
     Preconditions.checkArgument(intermediateDurability == null || Durability.valueOf(intermediateDurability.toUpperCase()) != Durability.DEFAULT,
-        "bad durability given: %s", intermediateDurability);
+        "bad durability given: "+ intermediateDurability);
 
     try {
       final String Atmp = Aorig + TRICOUNT_TEMP_TABLE_SUFFIX;
@@ -2997,7 +2997,7 @@ public class Graphulo {
     Aauthorizations = Aauthorizations == null ? Authorizations.EMPTY : Aauthorizations;
     intermediateDurability = emptyToNull(intermediateDurability);
     Preconditions.checkArgument(intermediateDurability == null || Durability.valueOf(intermediateDurability.toUpperCase()) != Durability.DEFAULT,
-        "bad durability given: %s", intermediateDurability);
+        "bad durability given: "+ intermediateDurability);
 
     try {
       final String Atmp = Aorig + TRICOUNT_TEMP_TABLE_SUFFIX;
@@ -3120,10 +3120,10 @@ public class Graphulo {
       System.setProperty("com.github.fommil.netlib.BLAS", "com.github.fommil.netlib.F2jBLAS");
     }
     checkGiven(true, "Aorig", Aorig);
-    Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
+    Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=" + Rfinal);
     TableOperations tops = connector.tableOperations();
     boolean RfinalExists = tops.exists(Rfinal);
-    Preconditions.checkArgument(maxiter > 0, "bad maxiter %s", maxiter);
+    Preconditions.checkArgument(maxiter > 0, "bad maxiter "+ Integer.toString(maxiter));
 
     if (k <= 2) {               // trivial case: every graph is a 2-truss
       if (RfinalExists || filterRowCol != null)
@@ -3253,7 +3253,7 @@ public class Graphulo {
     RTfinal = emptyToNull(RTfinal);
     ETorig = emptyToNull(ETorig);
     edgeFilter = emptyToNull(edgeFilter);
-    Preconditions.checkArgument(Rfinal != null || RTfinal != null, "One Output table must be given or operation is useless: Rfinal=%s; RTfinal=%s", Rfinal, RTfinal);
+    Preconditions.checkArgument(Rfinal != null || RTfinal != null, "One Output table must be given or operation is useless: Rfinal="+ Rfinal +"; RTfinal="+  RTfinal);
     TableOperations tops = connector.tableOperations();
     boolean RfinalExists = Rfinal != null && tops.exists(Rfinal),
         RTfinalExists = RTfinal != null && tops.exists(RTfinal);
@@ -3396,7 +3396,7 @@ public class Graphulo {
   public long Jaccard(String Aorig, String ADeg, String Rfinal,
                       String filterRowCol, Authorizations Aauthorizations, String RNewVisibility) {
     checkGiven(true, "Aorig, ADeg", Aorig, ADeg);
-    Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
+    Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=" + Rfinal);
 //    TableOperations tops = connector.tableOperations();
 //    Preconditions.checkArgument(!tops.exists(Rfinal), "Output Jaccard table must not exist: Rfinal=%s", Rfinal); // this could be relaxed, at the possibility of peril
     // ^^^ I have relaxed this condition to allow pre-creating result table. Make sure it is a fresh table with no iterators on it.
@@ -3455,7 +3455,7 @@ public class Graphulo {
   public long Jaccard_Client(String Aorig, String Rfinal,
                       String filterRowCol, Authorizations Aauthorizations, String RNewVisibility) {
     checkGiven(true, "Aorig", Aorig);
-    Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal=%s", Rfinal);
+    Preconditions.checkArgument(Rfinal != null && !Rfinal.isEmpty(), "Output table must be given or operation is useless: Rfinal="+ Rfinal);
 //    Preconditions.checkArgument(!tops.exists(Rfinal), "Output Jaccard table must not exist: Rfinal=%s", Rfinal); // this could be relaxed, at the possibility of peril
     // ^^^ I have relaxed this condition to allow pre-creating result table. Make sure it is a fresh table with no iterators on it.
     TableOperations tops = connector.tableOperations();
@@ -3559,7 +3559,7 @@ public class Graphulo {
   public long generateDegreeTable(String table, String Degtable, boolean countColumns, String colq) {
     checkGiven(true, "table", table);
     if (colq == null) colq = "";
-    Preconditions.checkArgument(Degtable != null && !Degtable.isEmpty(), "Output table must be given: Degtable=%s", Degtable);
+    Preconditions.checkArgument(Degtable != null && !Degtable.isEmpty(), "Output table must be given: Degtable="+ Degtable);
     TableOperations tops = connector.tableOperations();
     BatchScanner bs;
     try {
@@ -3682,9 +3682,9 @@ public class Graphulo {
     for (int i = 0; i < args.length; i++) {
       String arg = args[i];
       Preconditions.checkArgument(arg != null && !arg.isEmpty(),
-          "%s: must be given", varnamesArr[i].trim());
+           varnamesArr[i].trim() + ": must be given");
       if (mustExist)
-        Preconditions.checkArgument(tops.exists(arg), "%s: %s does not exist", varnamesArr[i].trim(), arg);
+        Preconditions.checkArgument(tops.exists(arg), varnamesArr[i].trim() + ": "+ arg +" does not exist" );
     }
   }
 

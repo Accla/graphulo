@@ -44,7 +44,7 @@ public class CSVIngester {
 
   public long ingestFile(File file, String Atable, boolean deleteIfExists,
                          int everyXLines, int startOffset) throws IOException {
-    Preconditions.checkArgument(everyXLines >= 1 && startOffset >= 0, "bad params ", everyXLines, startOffset);
+    Preconditions.checkArgument(everyXLines >= 1 && startOffset >= 0, "bad params " + Integer.toString(everyXLines) +" "+ Integer.toString(startOffset));
     if (deleteIfExists && connector.tableOperations().exists(Atable))
       try {
         connector.tableOperations().delete(Atable);

@@ -296,10 +296,15 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
         }
       }
     }
+    if(log.isDebugEnabled()) {
+      if(auth == null) {log.debug("Auth null");}
+      if(token == null) { log.debug("Token null");}
+      if(tokenClass == null) {log.debug("TokenClass null");}
+    }
     Preconditions.checkArgument((auth == null && token != null && tokenClass != null) ||
             (token == null && tokenClass == null && auth != null),
-        "must specify only one kind of authentication: password=%s, token=%s, tokenClass=%s",
-        auth, token, tokenClass);
+            "must specify only one kind of authentication: password , token , tokenClass" );
+      //  "must specify only one kind of authentication: password= " +auth +", token "+ token + ", tokenClass=%s" +tokenClass);
     if (auth == null) {
       auth = GraphuloUtil.subclassNewInstance(tokenClass, AuthenticationToken.class);
       SerializationUtil.deserializeWritableBase64(auth, token);
@@ -362,7 +367,8 @@ public class RemoteWriteIterator implements OptionDescriber, SortedKeyValueItera
     ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeeperHost);
     if (timeout != -1)
       cc = cc.withZkTimeout(timeout);
-    Instance instance = new ZooKeeperInstance(cc);
+    //Instance instance = new ZooKeeperInstance(cc);
+    Instance instance = new ZooKeeperInstance(instanceName,zookeeperHost);
     Connector connector;
     try {
       connector = instance.getConnector(username, auth);

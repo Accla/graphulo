@@ -33,7 +33,7 @@ public class GatherReducer extends ReducerSerializable<HashSet<String>> {
 
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env)  {
-    Preconditions.checkArgument(options.containsKey(KEYPART), "Must contain option %s", KEYPART);
+    Preconditions.checkArgument(options.containsKey(KEYPART), "Must contain option " + KEYPART);
     keyPart = KeyPart.valueOf(options.get(KEYPART));
   }
 

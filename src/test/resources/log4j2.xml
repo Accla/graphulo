@@ -39,5 +39,8 @@
             <AppenderRef ref="console" />
             <appender-ref ref="fileLogger" />
         </Root>
+        <Logger name="edu.mit.ll.graphulo" level="DEBUG" additivity="false">
+            <AppenderRef ref="console" /> 
+        </Logger>
     </Loggers>
 </Configuration>

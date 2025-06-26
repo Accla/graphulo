@@ -95,7 +95,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
    */
   public static String[] splitD4mString(String str) {
     // maybe optimize away since this is a lower-level function
-    Preconditions.checkArgument(str != null && !str.isEmpty(), "%s must be length at least 1", str);
+    Preconditions.checkArgument(str != null && !str.isEmpty(), str+ " must be length at least 1");
     return str.substring(0,str.length()-1).split(
         Character.toString(str.charAt(str.length() - 1)), -1
     );
@@ -804,7 +804,7 @@ System.out.println(",a,,".split(",",-1).length + Arrays.toString(",a,,".split(",
   }
 
   public static boolean d4mStringContainsEmptyString(String str) {
-    Preconditions.checkArgument(str != null && !str.isEmpty(), "%s is not a D4M String", str);
+    Preconditions.checkArgument(str != null && !str.isEmpty(), str+ " is not a D4M String");
     if (str.length()==1)
       return true;
     String sep = Character.toString(str.charAt(str.length()-1));

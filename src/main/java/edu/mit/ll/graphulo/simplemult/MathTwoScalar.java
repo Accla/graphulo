@@ -305,7 +305,7 @@ public class MathTwoScalar extends SimpleTwoScalar {
         case BIGDECIMAL: if (nnew.equals(BigDecimal.ZERO)) return null; break;
       }
     }
-
+    log.debug("Anum="+Anum + ", Bnum="+Bnum +", nnew="+nnew);
     byte[] vnew;
     switch(scalarType) {
       case LONG: vnew = Long.toString(nnew.longValue()).getBytes(StandardCharsets.UTF_8); break;

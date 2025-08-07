@@ -25,9 +25,10 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-
+//import org.apache.log4j.LogManager;
+//import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
@@ -42,7 +43,7 @@ import java.util.TreeSet;
  * Reads from a remote Accumulo table.
  */
 public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/*, OptionDescriber*/ {
-  private static final Logger log = LogManager.getLogger(RemoteSourceIterator.class);
+  private static final Logger log = LoggerFactory.getLogger(RemoteSourceIterator.class);
 
   /** The original options passed to init. Retaining this makes deepCopy much easier-- call init again and done! */
   private Map<String,String> origOptions;
@@ -106,7 +107,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
       String password,
       Authorizations authorizations, String rowRanges, String colFilter, boolean doClientSideIterators,
       DynamicIteratorSetting remoteIterators) {
-    Preconditions.checkNotNull(tableName, "Param %s is required", TABLENAME);
+    Preconditions.checkNotNull(tableName, "Param  "+ TABLENAME + " is required" );
     return new IteratorSetting(priority, RemoteSourceIterator.class, optionMap(null, tableName, zookeeperHost, timeout, instanceName,
         username, password, authorizations, rowRanges, colFilter, doClientSideIterators, remoteIterators));
   }
@@ -116,7 +117,7 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
       AuthenticationToken token,
       Authorizations authorizations, String rowRanges, String colFilter, boolean doClientSideIterators,
       DynamicIteratorSetting remoteIterators) {
-    Preconditions.checkNotNull(tableName, "Param %s is required", TABLENAME);
+    Preconditions.checkNotNull(tableName, "Param "+ TABLENAME + " is required" );
     return new IteratorSetting(priority, RemoteSourceIterator.class, optionMap(null, tableName, zookeeperHost, timeout, instanceName,
         username, token, authorizations, rowRanges, colFilter, doClientSideIterators, remoteIterators));
   }
@@ -283,10 +284,12 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
       }
 //      log.trace("Option OK: " + optionEntry);
     }
+    if(auth == null) { log.info("Auth null");}
+    if(token == null) {log.info("Token null");}
+    if(tokenClass == null) {log.info("TokenClass null");}
     Preconditions.checkArgument((auth == null && token != null && tokenClass != null) ||
         (token == null && tokenClass == null && auth != null),
-        "must specify only one kind of authentication: password=%s, token=%s, tokenClass=%s",
-        auth, token, tokenClass);
+        "must specify only one kind of authentication: password="+", token=" +", tokenClass=");
     if (auth == null) {
       auth = GraphuloUtil.subclassNewInstance(tokenClass, AuthenticationToken.class);
       SerializationUtil.deserializeWritableBase64(auth, token);
@@ -332,7 +335,8 @@ public class RemoteSourceIterator implements SortedKeyValueIterator<Key, Value>/
     ClientConfiguration cc = ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeeperHost);
     if (timeout != -1)
       cc = cc.withZkTimeout(timeout);
-    Instance instance = new ZooKeeperInstance(cc);
+    //Instance instance = new ZooKeeperInstance(cc);
+    Instance instance = new ZooKeeperInstance(instanceName,zookeeperHost);
     Connector connector;
     try {
       connector = instance.getConnector(username, auth);

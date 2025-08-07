@@ -6,6 +6,7 @@ import edu.mit.ll.graphulo.skvi.TwoTableIterator;
 import edu.mit.ll.graphulo.util.AccumuloTestBase;
 import edu.mit.ll.graphulo.util.GraphuloUtil;
 import edu.mit.ll.graphulo.util.TestUtil;
+import edu.mit.ll.graphulo.util.DebugUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -20,8 +21,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+//import org.apache.log4j.LogManager;
+//import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
@@ -43,7 +46,7 @@ import java.util.TreeSet;
  * Test TableMult in {@link Graphulo}.
  */
 public class TableMultTest extends AccumuloTestBase {
-  private static final Logger log = LogManager.getLogger(TableMultTest.class);
+  private static final Logger log = LoggerFactory.getLogger(TableMultTest.class);
 
   /**
    * <pre>
@@ -100,6 +103,7 @@ public class TableMultTest extends AccumuloTestBase {
     {
       SortedMap<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
       for (Map.Entry<Key, Value> entry : scanner) {
+        log.debug("TEST1_ACTUAL="+entry.getKey()+","+ entry.getValue());
         actual.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
@@ -110,11 +114,12 @@ public class TableMultTest extends AccumuloTestBase {
     {
       SortedMap<Key, Value> actualT = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
       for (Map.Entry<Key, Value> entry : scanner) {
+        log.debug("TEST1_ACTUALT="+entry.getKey()+","+ entry.getValue());
         actualT.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
       Assert.assertEquals(expectT, actualT);
-    }
+    } 
 
     conn.tableOperations().delete(tAT);
     conn.tableOperations().delete(tB);
@@ -689,6 +694,7 @@ public class TableMultTest extends AccumuloTestBase {
     {
       SortedMap<Key, Value> actual = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
       for (Map.Entry<Key, Value> entry : scanner) {
+          log.debug("TEST_CLONE_MULTIPLY_ACTUAL="+entry.getKey()+","+ entry.getValue());
         actual.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
@@ -700,6 +706,7 @@ public class TableMultTest extends AccumuloTestBase {
     {
       SortedMap<Key, Value> actualT = new TreeMap<>(TestUtil.COMPARE_KEY_TO_COLQ); // only compare row, colF, colQ
       for (Map.Entry<Key, Value> entry : scanner) {
+        log.debug("TEST_CLONE_MULTIPLY_ACTUALT="+entry.getKey()+","+ entry.getValue());
         actualT.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
@@ -764,7 +771,7 @@ public class TableMultTest extends AccumuloTestBase {
         actual.put(entry.getKey(), entry.getValue());
       }
       scanner.close();
-//      DebugUtil.printMapFull(actual.entrySet().iterator(), 5);
+      //DebugUtil.printMapFull(actual.entrySet().iterator(), 5);
       Assert.assertEquals(expect, actual);
     }
 

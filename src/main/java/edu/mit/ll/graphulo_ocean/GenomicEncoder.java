@@ -19,7 +19,7 @@ public class GenomicEncoder implements Lexicoder<char[]> {
   public final int REM;
 
   public GenomicEncoder(int k) {
-    Preconditions.checkArgument(k > 0, "bad k ", k);
+    Preconditions.checkArgument(k > 0, "bad k " +  Integer.toString(k));
     K = k;
     NB = (K-1) / 4 + 1;
     REM = K == 0 ? 0 : (K-1) % 4 + 1;

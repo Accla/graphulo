@@ -10,9 +10,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-
+//import org.apache.log4j.LogManager;
+//import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -30,7 +31,7 @@ import java.util.Map;
  * @see edu.mit.ll.graphulo.skvi.DynamicIterator
  */
 public class DynamicIteratorSetting {
-  private static final Logger log = LogManager.getLogger(DynamicIteratorSetting.class);
+  private static final Logger log = LoggerFactory.getLogger(DynamicIteratorSetting.class);
 
   private Deque<IteratorSetting> iteratorSettingList = new LinkedList<>();
   private int diPriority;
@@ -77,7 +78,7 @@ public class DynamicIteratorSetting {
   }
 
   public DynamicIteratorSetting(int diPriority, String diName, EnumSet<MyIteratorScope> diScopes) {
-    Preconditions.checkArgument(diPriority > 0, "iterator priority must be >0: %s", diPriority);
+    Preconditions.checkArgument(diPriority > 0, "iterator priority must be >0: " + Integer.toString(diPriority));
     this.diPriority = diPriority;
     if (diName == null || diName.isEmpty())
       diName = DynamicIterator.class.getSimpleName();
@@ -195,14 +196,17 @@ public class DynamicIteratorSetting {
   public static DynamicIteratorSetting fromMap(String pre, Map<String,String> mapOrig) {
     if (pre == null) pre = "";
     Map<String,String> mapCopy = new LinkedHashMap<>(mapOrig);
-    Preconditions.checkArgument(mapOrig.containsKey(pre+"0.diPriority") && mapOrig.containsKey(pre+"0.diName"), "bad map %s", mapOrig);
+    //Preconditions.checkArgument(mapOrig.containsKey(pre+"0.diPriority") && mapOrig.containsKey(pre+"0.diName"), "bad map %s", mapOrig);
+    Preconditions.checkArgument(mapOrig.containsKey(pre+"0.diPriority") && mapOrig.containsKey(pre+"0.diName"), "bad map");
+
     int diPriotity = Integer.parseInt(mapCopy.remove(pre+"0.diPriority"));
     String diName = mapCopy.remove(pre+"0.diName");
     EnumSet<MyIteratorScope> diScopes = MyIteratorScope.d4mStringToScopes(mapCopy.remove(pre+"0.diScopes"));
     DynamicIteratorSetting dis = new DynamicIteratorSetting(diPriotity, diName, diScopes);
     for (int prio = 1; true; prio++) {
       String prioPrefix = prio+".";
-      String clazz = null, name = null, clazzStr = null, optPrefix = null;
+      String clazz = null, name = null, clazzStr = null;
+      String optPrefix = null;
       Map<String,String> opt = new HashMap<>();
 
       for (Iterator<Map.Entry<String, String>> iterator = mapCopy.entrySet().iterator(); iterator.hasNext(); ) {
@@ -216,14 +220,14 @@ public class DynamicIteratorSetting {
 
         if (name == null && key.startsWith(prioPrefix)) {
           int idxSecondDot = key.indexOf('.', prioPrefix.length());
-          Preconditions.checkArgument(idxSecondDot != -1, "invalid map entry %s -> %s", key, entry.getValue());
+          Preconditions.checkArgument(idxSecondDot != -1, "invalid map entry " + key +" -> "+ entry.getValue());
           name = key.substring(prioPrefix.length(), idxSecondDot);
           clazzStr = prioPrefix + name + ".class";
           optPrefix = prioPrefix + name + ".opt.";
         }
 
         if (name != null && key.equals(clazzStr)) {
-          Preconditions.checkArgument(clazz == null, "Class defined twice: %s -> %s", key, entry.getValue());
+          Preconditions.checkArgument(clazz == null, "Class defined twice: " +  key + " -> "+ entry.getValue());
           clazz = entry.getValue();
           iterator.remove();
         } else if (name != null && key.startsWith(optPrefix)) {
@@ -233,7 +237,7 @@ public class DynamicIteratorSetting {
       }
       if (name == null)
         break;
-      Preconditions.checkArgument(clazz != null, "no class for IteratorSetting with name %s and options %s", name, opt);
+      Preconditions.checkArgument(clazz != null, "no class for IteratorSetting with name "+ name+ " and options " + opt);
       dis.append(new IteratorSetting(prio, name, clazz, opt));
     }
     return dis;

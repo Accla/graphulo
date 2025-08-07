@@ -16,8 +16,10 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.lang.time.StopWatch;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+//import org.apache.log4j.LogManager;
+//import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -32,7 +34,7 @@ import java.util.*;
  * Tests to inject entries into the Accumulo iterator stream.
  */
 public class InjectTest extends AccumuloTestBase {
-  private static final Logger log = LogManager.getLogger(InjectTest.class);
+  private static final Logger log = LoggerFactory.getLogger(InjectTest.class);
 
   /**
    * Test ordinary Accumulo insert and scan, for sanity.
@@ -71,7 +73,7 @@ public class InjectTest extends AccumuloTestBase {
       actual.put(k, v);
     }
     Assert.assertEquals(expect, actual);
-
+    scan.close();
     // delete test data
     conn.tableOperations().delete(tableName);
   }
@@ -115,7 +117,7 @@ public class InjectTest extends AccumuloTestBase {
       actual.put(k, v);
     }
     Assert.assertEquals(expect, actual);
-
+    scan.close();
     // delete test data
     conn.tableOperations().delete(tableName);
   }
@@ -156,7 +158,7 @@ public class InjectTest extends AccumuloTestBase {
       actual.put(k, v);
     }
     Assert.assertEquals(expect, actual);
-
+    scan.close();
     // delete test data
     conn.tableOperations().delete(tableName);
   }
@@ -205,7 +207,7 @@ public class InjectTest extends AccumuloTestBase {
     }
     //TestUtil.assertEqualEntriesRowColFColQ(expect, actual);
     Assert.assertEquals(expect, actual);
-
+    scan.close();
     // delete test data
     conn.tableOperations().delete(tableName);
   }
@@ -272,7 +274,7 @@ public class InjectTest extends AccumuloTestBase {
       actual.put(k, v);
     }
     Assert.assertEquals(expect, actual);
-
+    scan.close();
     // delete test data
     conn.tableOperations().delete(tableName);
   }
@@ -324,7 +326,7 @@ public class InjectTest extends AccumuloTestBase {
       actual.put(k, v);
     }
     Assert.assertEquals(expect, actual);
-
+    scan.close();
     // delete test data
     conn.tableOperations().delete(tableName);
   }

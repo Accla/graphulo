@@ -36,7 +36,7 @@ public class MultiplyToEWiseAdapter implements EWiseOp {
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
     String clazz = options.get(MULTIPLYOP);
-    Preconditions.checkArgument(clazz != null, "Required option %s. Given: %s", MULTIPLYOP, options);
+    Preconditions.checkArgument(clazz != null, "Required option "+ MULTIPLYOP+ ". Given: " + options.toString());
     multiplyOp = GraphuloUtil.subclassNewInstance(clazz, MultiplyOp.class);
 
     if (options.containsKey(SWITCHARGS))

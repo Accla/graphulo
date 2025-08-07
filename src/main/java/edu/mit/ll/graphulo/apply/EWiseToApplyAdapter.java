@@ -38,11 +38,11 @@ public class EWiseToApplyAdapter implements ApplyOp {
   @Override
   public void init(Map<String, String> options, IteratorEnvironment env) throws IOException {
     String clazz = options.get(EWISEOP);
-    Preconditions.checkArgument(clazz != null, "Required option %s. Given: %s", EWISEOP, options);
+    Preconditions.checkArgument(clazz != null, "Required option "+ EWISEOP+". Given: options map " + options.toString());
     eWiseOp = GraphuloUtil.subclassNewInstance(clazz, EWiseOp.class);
 
     String valueFixed = options.get(FIXED_VALUE);
-    Preconditions.checkArgument(valueFixed != null, "Required option %s. Given: %s", FIXED_VALUE, options);
+    Preconditions.checkArgument(valueFixed != null, "Required option %s"+ FIXED_VALUE +". Given: options map " + options.toString());
     fixedValue = new Value(valueFixed.getBytes(StandardCharsets.UTF_8));
 
     if (options.containsKey(FIX_SIDE))

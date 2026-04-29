@@ -4,7 +4,7 @@
 
   <groupId>edu.mit.ll</groupId>
   <artifactId>graphulo</artifactId>
-  <version>3.3.0</version>
+  <version>3.3.1</version>
   <packaging>jar</packaging>
   <name>Graphulo</name>
   <description>
@@ -46,6 +46,8 @@
     <htrace.version>3.1.0-incubating</htrace.version>
     <json.version>chargebee-1.0</json.version>
     <collections4.version>4.1</collections4.version>
+    <log4j.version>2.25.3</log4j.version>
+    <slf4j.api.version>2.0.17</slf4j.api.version>
   </properties>
 
 
@@ -707,7 +709,7 @@
     <dependency>
        <groupId>org.apache.logging.log4j</groupId>
        <artifactId>log4j-1.2-api</artifactId>
-       <version>2.20.0</version>
+       <version>${log4j.version}</version>
     </dependency>
     
 
@@ -715,22 +717,22 @@
     <dependency>
        <groupId>org.apache.logging.log4j</groupId>
        <artifactId>log4j-api</artifactId>
-       <version>2.22.1</version>
+       <version>${log4j.version}</version>
     </dependency>
     <dependency>
        <groupId>org.apache.logging.log4j</groupId>
        <artifactId>log4j-core</artifactId>
-       <version>2.22.1</version>
+       <version>${log4j.version}</version>
     </dependency>
     <dependency>
        <groupId>org.apache.logging.log4j</groupId>
        <artifactId>log4j-slf4j2-impl</artifactId>
-       <version>2.22.1</version>
+       <version>${log4j.version}</version>
     </dependency>
     <dependency>
        <groupId>org.slf4j</groupId>
        <artifactId>slf4j-api</artifactId>
-       <version>2.0.10</version>
+       <version>${slf4j.api.version}</version>
     </dependency>
 
   </dependencies>
